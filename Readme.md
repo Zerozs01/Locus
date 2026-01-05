@@ -6,7 +6,7 @@
 An intelligent agent system designed to provide real-time location analysis, historical context, and safety assessment. By integrating computer vision with geospatial data, the system assists users in understanding their surroundings, evaluating travel risks, and discovering cultural heritage.
 
 ## 🚀 Tech Stack
-- **Frontend:** React 18, TypeScript, Vite
+- **Frontend:** React 18, TypeScript, Vite 
 - **Desktop Framework:** Electron
 - **Agent Orchestrator:** n8n (Local Deployment)
 - **Backend/Database:** Firebase Firestore (Sync Phase)
