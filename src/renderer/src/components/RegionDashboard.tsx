@@ -42,7 +42,7 @@ export const RegionDashboard = ({
               <div className={`absolute inset-0 bg-gradient-to-r ${isActive ? `from-black via-black/95 to-black/50` : 'from-black/95 to-black/80'}`}></div>
             </div>
 
-            <div className="absolute inset-0 p-8 flex flex-col h-full w-full">
+            <div className="absolute inset-0 px-8 pt-8 pb-2 flex flex-col h-full w-full">
                
                {/* Compact Header: Single Line */}
                <div className="flex justify-between items-center relative z-20 border-b border-white/10 pb-4 mb-4">

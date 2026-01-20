@@ -35,6 +35,10 @@ const App = () => {
       {/* MAIN CONTENT */}
       <main className="flex-1 flex overflow-hidden relative pl-[72px]">
         
+
+        {/* Window Drag Region */}
+        <div className="absolute top-0 left-0 right-0 h-8 z-[9999] titlebar-drag" />
+
         {/* LEFT: RADAR MAP */}
         <section className="flex-[2] relative bg-[#050608] flex flex-col border-r border-white/5 z-10 overflow-hidden">
           
@@ -45,7 +49,7 @@ const App = () => {
             </h1>
           </div>
 
-          <div className="flex-1 relative flex items-center justify-center -mt-16">
+          <div className="flex-1 relative flex items-center justify-center mt-10">
              <ThailandMap 
                activeId={selectedRegionId} 
                onSelectRegion={handleRegionSelect} 
