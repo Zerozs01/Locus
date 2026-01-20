@@ -42,6 +42,7 @@ export interface Region {
 export const regionsData: Region[] = [
   { 
     id: 'north', name: 'ภาคเหนือ', engName: 'NORTH', code: 'N-SEC', color: 'text-rose-400', safety: 75,
+    gradient: 'bg-gradient-to-br from-rose-600/20 to-rose-900/10',
     image: 'https://images.unsplash.com/photo-1528181304800-259b08848526?q=80&w=1000',
     summary: { provinces: 9, area: '169,644', pop: '6.2M' },
     stats: { dailyCost: '300 ฿', monthlyCost: '12,000 ฿', flora: 'ดอกพญาเสือโคร่ง', food: 'ข้าวซอย', attraction: 'ดอยอินทนนท์', nightlife: 'นิมมานฯ' },
@@ -57,6 +58,7 @@ export const regionsData: Region[] = [
   },
   { 
     id: 'northeast', name: 'ภาคอีสาน', engName: 'ISAN', code: 'NE-SEC', color: 'text-emerald-400', safety: 92,
+    gradient: 'bg-gradient-to-br from-emerald-600/20 to-emerald-900/10',
     image: 'https://images.unsplash.com/photo-1548123378-bde4eca81d2d?auto=format&fit=crop&q=80&w=1000',
     summary: { provinces: 20, area: '168,854', pop: '21.8M' },
     stats: { dailyCost: '250 ฿', monthlyCost: '10,000 ฿', flora: 'ดอกราชพฤกษ์', food: 'ส้มตำ', attraction: 'พนมรุ้ง', nightlife: 'UD Town' },
@@ -72,6 +74,7 @@ export const regionsData: Region[] = [
   },
   { 
     id: 'central', name: 'ภาคกลาง', engName: 'CENTRAL', code: 'C-SEC', color: 'text-cyan-400', safety: 88,
+    gradient: 'bg-gradient-to-br from-cyan-600/20 to-cyan-900/10',
     image: 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?auto=format&fit=crop&q=80&w=1000',
     summary: { provinces: 22, area: '102,337', pop: '20.5M' },
     stats: { dailyCost: '500 ฿', monthlyCost: '25,000 ฿', flora: 'ดอกบัว', food: 'ต้มยำกุ้ง', attraction: 'วัดพระแก้ว', nightlife: 'ทองหล่อ' },
@@ -87,6 +90,7 @@ export const regionsData: Region[] = [
   },
   { 
     id: 'south', name: 'ภาคใต้', engName: 'SOUTH', code: 'S-SEC', color: 'text-blue-400', safety: 82,
+    gradient: 'bg-gradient-to-br from-blue-600/20 to-blue-900/10',
     image: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&q=80&w=1000',
     summary: { provinces: 14, area: '70,715', pop: '9.4M' },
     stats: { dailyCost: '400 ฿', monthlyCost: '18,000 ฿', flora: 'ยางพารา', food: 'แกงส้ม', attraction: 'เกาะพีพี', nightlife: 'ป่าตอง' },

@@ -30,23 +30,23 @@ const provinceDots: Record<string, Record<string, { cx: number; cy: number }>> =
 
 const regionsDataList = [
   { 
-    id: 'north', label: 'NORTH', labelX: 65, labelY: 50, zoomX: 65, zoomY: 45,
-    d: "M 55 10 Q 80 5 100 20 L 110 60 L 60 80 L 30 50 Q 35 20 55 10 Z", 
+    id: 'north', label: 'NORTH', labelX: 65, labelY: 45, zoomX: 65, zoomY: 45,
+    d: "M 30 50 L 60 5 L 100 25 L 105 70 L 45 80 Z", 
     color: "fill-rose-500", glow: "drop-shadow-[0_0_20px_rgba(244,63,94,0.6)]"
   },
   { 
-    id: 'northeast', label: 'ISAN', labelX: 145, labelY: 85, zoomX: 145, zoomY: 85,
-    d: "M 110 60 L 170 60 L 180 110 Q 170 140 130 130 L 110 100 Z", 
+    id: 'northeast', label: 'ISAN', labelX: 135, labelY: 90, zoomX: 135, zoomY: 90,
+    d: "M 105 70 L 160 55 L 180 85 L 170 125 L 120 120 L 105 70 Z", 
     color: "fill-emerald-500", glow: "drop-shadow-[0_0_20px_rgba(16,185,129,0.6)]"
   },
   { 
-    id: 'central', label: 'CENTRAL', labelX: 90, labelY: 110, zoomX: 90, zoomY: 110,
-    d: "M 60 80 L 110 60 L 110 100 L 130 130 L 90 160 L 60 130 Z", 
+    id: 'central', label: 'CENTRAL', labelX: 80, labelY: 105, zoomX: 80, zoomY: 105,
+    d: "M 45 80 L 105 70 L 120 120 L 95 140 L 65 130 Z", 
     color: "fill-cyan-500", glow: "drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]"
   },
   { 
-    id: 'south', label: 'SOUTH', labelX: 70, labelY: 210, zoomX: 70, zoomY: 210,
-    d: "M 60 130 L 90 160 L 75 270 L 50 250 Z", 
+    id: 'south', label: 'SOUTH', labelX: 70, labelY: 200, zoomX: 70, zoomY: 200,
+    d: "M 65 130 L 95 140 L 85 180 L 95 240 L 60 280 L 35 170 Z", 
     color: "fill-blue-500", glow: "drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]"
   }
 ];
@@ -94,7 +94,7 @@ export const ThailandMap = ({
                     transition-all duration-500 ease-out stroke-[0.5] vector-effect-non-scaling-stroke
                     ${isActive 
                       ? `${reg.color} stroke-white ${reg.glow} opacity-100` 
-                      : `fill-slate-800/80 stroke-white/20 hover:fill-slate-700 hover:stroke-cyan-400/50 ${isDimmed ? 'opacity-10 fill-slate-950' : 'opacity-60'}`
+                      : `${reg.color}/20 stroke-white/10 hover:${reg.color}/60 ${isDimmed ? 'opacity-10' : 'opacity-100'}`
                     }
                   `}
                 />
