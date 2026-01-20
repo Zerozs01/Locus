@@ -31,22 +31,22 @@ const provinceDots: Record<string, Record<string, { cx: number; cy: number }>> =
 const regionsDataList = [
   { 
     id: 'north', label: 'NORTH', labelX: 65, labelY: 45, zoomX: 65, zoomY: 45,
-    d: "M 30 50 L 60 5 L 100 25 L 105 70 L 45 80 Z", 
+    d: "M 50 15 Q 70 5 90 20 L 100 55 L 100 70 L 55 80 L 30 50 Z", 
     color: "fill-rose-500", glow: "drop-shadow-[0_0_20px_rgba(244,63,94,0.6)]"
   },
   { 
     id: 'northeast', label: 'ISAN', labelX: 135, labelY: 90, zoomX: 135, zoomY: 90,
-    d: "M 105 70 L 160 55 L 180 85 L 170 125 L 120 120 L 105 70 Z", 
+    d: "M 100 70 L 150 60 L 175 75 L 170 120 L 120 120 L 100 70 Z", 
     color: "fill-emerald-500", glow: "drop-shadow-[0_0_20px_rgba(16,185,129,0.6)]"
   },
   { 
     id: 'central', label: 'CENTRAL', labelX: 80, labelY: 105, zoomX: 80, zoomY: 105,
-    d: "M 45 80 L 105 70 L 120 120 L 95 140 L 65 130 Z", 
+    d: "M 55 80 L 100 70 L 100 80 L 120 120 L 100 150 L 65 130 Z", 
     color: "fill-cyan-500", glow: "drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]"
   },
   { 
     id: 'south', label: 'SOUTH', labelX: 70, labelY: 200, zoomX: 70, zoomY: 200,
-    d: "M 65 130 L 95 140 L 85 180 L 95 240 L 60 280 L 35 170 Z", 
+    d: "M 65 130 L 100 150 L 90 190 Q 100 240 95 245 L 65 285 L 45 180 Z", 
     color: "fill-blue-500", glow: "drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]"
   }
 ];
@@ -94,7 +94,7 @@ export const ThailandMap = ({
                     transition-all duration-500 ease-out stroke-[0.5] vector-effect-non-scaling-stroke
                     ${isActive 
                       ? `${reg.color} stroke-white ${reg.glow} opacity-100` 
-                      : `${reg.color}/20 stroke-white/10 hover:${reg.color}/60 ${isDimmed ? 'opacity-10' : 'opacity-100'}`
+                      : `fill-slate-800/60 stroke-white/10 hover:fill-slate-700 hover:stroke-white/30 ${isDimmed ? 'opacity-30' : 'opacity-100'}`
                     }
                   `}
                 />

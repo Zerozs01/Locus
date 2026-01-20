@@ -38,8 +38,8 @@ export const RegionDashboard = ({
           >
             {/* Background */}
             <div className="absolute inset-0 overflow-hidden">
-              <img src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-40'}`} alt={reg.name} />
-              <div className={`absolute inset-0 ${isActive ? 'bg-gradient-to-r from-black via-black/95 to-black/50' : reg.gradient}`}></div>
+              <img src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-30'}`} alt={reg.name} />
+              <div className={`absolute inset-0 ${isActive ? 'bg-gradient-to-r from-black via-black/95 to-black/50' : 'bg-black/80 hover:bg-black/60 transition-colors'}`}></div>
             </div>
 
             <div className="absolute inset-0 px-8 pt-8 pb-2 flex flex-col h-full w-full">
