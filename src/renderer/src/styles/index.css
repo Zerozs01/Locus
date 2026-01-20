@@ -107,7 +107,13 @@ input:focus-visible {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+
 .card-hover:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Custom Utilities from New Design */
+.writing-vertical-lr {
+  writing-mode: vertical-lr;
 }
