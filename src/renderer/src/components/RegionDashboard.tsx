@@ -32,13 +32,13 @@ export const RegionDashboard = ({
             key={reg.id} 
             onClick={() => onSelectRegion(reg.id)} 
             className={`
-              relative transition-all duration-700 ease-out cursor-pointer overflow-hidden border-b border-white/5 
+              relative transition-[flex] duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden border-b border-white/5 
               ${isActive ? 'flex-[10]' : 'flex-[1] hover:flex-[1.2] opacity-50'}
             `}
           >
             {/* Background */}
             <div className="absolute inset-0 overflow-hidden">
-              <img src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-30'}`} alt={reg.name} />
+              <img loading="lazy" src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-30'}`} alt={reg.name} />
               <div className={`absolute inset-0 ${isActive ? 'bg-gradient-to-r from-black via-black/95 to-black/50' : 'bg-black/80 hover:bg-black/60 transition-colors'}`}></div>
             </div>
 
@@ -94,9 +94,9 @@ export const RegionDashboard = ({
                     {reg.subProvinces.map((prov) => {
                        const isSelected = selectedProvince?.id === prov.id;
                        return (
-                         <div key={prov.id} onClick={(e) => { e.stopPropagation(); onSelectProvince(prov); }} className={`bg-black/40 backdrop-blur-md border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group hover:border-cyan-500/50 transition-all duration-300 cursor-pointer`}>
+                         <div key={prov.id} onClick={(e) => { e.stopPropagation(); onSelectProvince(prov); }} className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group hover:border-cyan-500/50 transition-all duration-300 cursor-pointer`}>
                             <div className="relative h-28 overflow-hidden">
-                               <img src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={prov.name} />
+                               <img loading="lazy" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={prov.name} />
                                <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors"></div>
                                <div className="absolute bottom-2 left-2 right-2">
                                   <h3 className="text-lg font-bold text-white drop-shadow-md">{prov.name}</h3>

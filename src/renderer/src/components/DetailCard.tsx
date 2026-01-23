@@ -11,7 +11,7 @@ export interface DetailCardProps {
 
 export const DetailCard = ({ icon, label, value, sub, bgClass, textClass }: DetailCardProps) => (
   <div className={`
-    ${bgClass} backdrop-blur-md border border-white/10 p-3 rounded-xl hover:bg-white/10 transition-all group cursor-pointer flex flex-col justify-between shadow-lg hover:-translate-y-1 min-h-[80px]
+    ${bgClass} border border-white/10 p-3 rounded-xl hover:bg-white/10 transition-all group cursor-pointer flex flex-col justify-between shadow-sm hover:-translate-y-1 min-h-[80px]
   `}>
      <div className="flex justify-between items-start mb-1">
         <div className={`p-1.5 rounded-lg bg-black/20 ${textClass} group-hover:scale-110 transition-transform`}>

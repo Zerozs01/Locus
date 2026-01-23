@@ -1,5 +1,4 @@
 import { Province } from '../data/regions';
-import React from 'react';
 
 interface ThailandMapProps {
   activeId: string | null;
@@ -32,22 +31,22 @@ const regionsDataList = [
   { 
     id: 'north', label: 'NORTH', labelX: 65, labelY: 45, zoomX: 65, zoomY: 45,
     d: "M 50 15 Q 70 5 90 20 L 100 55 L 100 70 L 55 80 L 30 50 Z", 
-    color: "fill-rose-500", glow: "drop-shadow-[0_0_20px_rgba(244,63,94,0.6)]"
+    color: "fill-rose-500", glow: ""
   },
   { 
     id: 'northeast', label: 'ISAN', labelX: 135, labelY: 90, zoomX: 135, zoomY: 90,
     d: "M 100 70 L 150 60 L 175 75 L 170 120 L 120 120 L 100 70 Z", 
-    color: "fill-emerald-500", glow: "drop-shadow-[0_0_20px_rgba(16,185,129,0.6)]"
+    color: "fill-emerald-500", glow: ""
   },
   { 
     id: 'central', label: 'CENTRAL', labelX: 80, labelY: 105, zoomX: 80, zoomY: 105,
     d: "M 55 80 L 100 70 L 100 80 L 120 120 L 100 150 L 65 130 Z", 
-    color: "fill-cyan-500", glow: "drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]"
+    color: "fill-cyan-500", glow: ""
   },
   { 
     id: 'south', label: 'SOUTH', labelX: 70, labelY: 200, zoomX: 70, zoomY: 200,
     d: "M 65 130 L 100 150 L 90 190 Q 100 240 95 245 L 65 285 L 45 180 Z", 
-    color: "fill-blue-500", glow: "drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]"
+    color: "fill-blue-500", glow: ""
   }
 ];
 
@@ -79,7 +78,7 @@ export const ThailandMap = ({
          <div className="absolute w-[600px] h-[1px] bg-cyan-500/20 rotate-45"></div>
       </div>
 
-      <svg viewBox="0 0 220 300" className="w-full h-full max-h-[85vh] drop-shadow-2xl filter overflow-visible z-10 transition-transform duration-1000 ease-in-out pointer-events-auto">
+      <svg viewBox="0 0 220 300" className="w-full h-full max-h-[85vh] overflow-visible z-10 transition-transform duration-1000 ease-in-out pointer-events-auto">
         <g style={{ transform: getTransform(), transition: 'transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)', transformOrigin: 'center' }}>
           {regionsDataList.map((reg) => {
             const isActive = activeId === reg.id;
