@@ -1,37 +1,46 @@
-// src/renderer/src/services/n8nClient.ts
-import axios from 'axios';
+# System Architecture
 
-const N8N_WEBHOOK_URL = import.meta.env.VITE_NGROK_URL;
+## 1. High-Level Overview
 
-export const analyzeLocation = async (imageFile: File) => {
-    const formData = new FormData();
-    formData.append('image', imageFile);
+The system follows a specific **"Local-First, Cloud-Sync"** hybrid architecture.
 
-    try {
-        const response = await axios.post(`${N8N_WEBHOOK_URL}/analyze`, formData);
-        return response.data; // Returns JSON: { location, history, safety_score, etc. }
-    } catch (error) {
-        console.error("Agent communication failed:", error);
-        throw error;
-    }
-};
+- **Frontend (Brain Interface):** Electron + React (runs locally).
+- **Orchestrator (Nervous System):** n8n (runs locally via Docker).
+- **Communication Tunnel:** Ngrok (exposes n8n webhooks to internet/public URLs if needed, or local network).
+- **Knowledge Base (Long-term Memory):** LightRAG (running locally/Docker) for graph-based retrieval.
+- **Data Persistence:** Supabase (PostgreSQL) for structured data and chat history memory.
 
-// src/renderer/src/hooks/useFirestore.ts
-import { db } from '../../../firebaseConfig';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+## 2. Data Flow (Chat & Analysis)
 
-export const useSyncData = () => {
-    const syncToCloud = async (agentData: any) => {
-        try {
-            await addDoc(collection(db, "explorations"), {
-                ...agentData,
-                timestamp: serverTimestamp()
-            });
-            console.log("Data synced to Firestore successfully!");
-        } catch (e) {
-            console.error("Error adding document: ", e);
-        }
-    };
+1. **User Input:** User types in Electron Chat Overlay.
+2. **Transmission:** Electron `n8nClient` sends POST request to `ngrok-url/webhook/chat`.
+3. **Processing (n8n):**
+   - **Trigger:** Webhook receives message.
+   - **Agent Node:** Queries AI Model (OpenRouter/Gemini).
+   - **Tools:**
+     - **Memory:** Connects to Supabase (Postgres) to store/retrieve history.
+     - **RAG:** Queries LightRAG API for specialized knowledge (e.g., zombie survival, situational awareness).
+4. **Response:** n8n returns the answer -> Electron displays it.
 
-    return { syncToCloud };
-};
+## 3. Technology Stack Updates
+
+- **Frontend:** React 18, TypeScript, TailwindCSS.
+- **Backend/Automation:** n8n + ngrok.
+- **Database:** Supabase (PostgreSQL) - Replaces Firebase for structured table/relational needs.
+- **AI/RAG:** LightRAG + OpenRouter/Gemini.
+
+## 4. Why No Redis?
+
+Current architecture uses **PostgreSQL (Supabase)** which is sufficient for:
+
+- Vector storage (pgvector).
+- Chat history (structured relational data).
+- JSON document storage.
+
+For a single-user or small-group local-first app, Redis adds unnecessary complexity. PostgreSQL interactions in this scale are near-instant. Redis should only be considered if concurrent traffic scales significantly (>1000s req/sec) or for specific pub/sub limits not met by Supabase Realtime.
+
+## 5. Code Structure Ref
+
+- `src/renderer/src/services/n8nClient.ts`: Handles axios calls to n8n.
+- `src/renderer/src/components/ChatOverlay.tsx`: Chat UI logic.
+
