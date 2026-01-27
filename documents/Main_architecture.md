@@ -9,6 +9,7 @@ The system follows a specific **"Local-First, Cloud-Sync"** hybrid architecture.
 - **Communication Tunnel:** Ngrok (exposes n8n webhooks to internet/public URLs if needed, or local network).
 - **Knowledge Base (Long-term Memory):** LightRAG (running locally/Docker) for graph-based retrieval.
 - **Data Persistence:** Supabase (PostgreSQL) for structured data and chat history memory.
+- **Local Cache & Offline Data:** SQLite (Better-SQLite3) integrated directly into Electron for ultra-fast "Local-First" data access (Regions/Provinces).
 
 ## 2. Data Flow (Chat & Analysis)
 

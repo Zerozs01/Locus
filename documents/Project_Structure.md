@@ -4,6 +4,9 @@ survivor-agent-app/
 │   └── preview.ts
 ├── src/
 │   ├── main/                 # Electron Main Process
+│   │   ├── database/         # Local Database Logic
+│   │   │   ├── db.ts         # SQLite & Schema Config
+│   │   │   └── initialData.ts # Seeding Data
 │   │   └── main.ts
 │   ├── renderer/             # React Frontend (Vite)
 │   │   ├── src/

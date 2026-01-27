@@ -1,24 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ThailandMap } from './components/ThailandMap';
 import { RegionDashboard } from './components/RegionDashboard';
 import { ChatOverlay } from './components/ChatOverlay';
-import { regionsData, Province } from './data/regions';
+import { Region, Province } from './data/regions';
 import { Search, MessageSquare, Users, Maximize, Building } from 'lucide-react';
 
 const App = () => {
+  const [regions, setRegions] = useState<Region[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>('central');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [mapMode, setMapMode] = useState<'region' | 'province'>('region');
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
 
-  const activeData = regionsData.find(r => r.id === selectedRegionId);
+  useEffect(() => {
+    // Fetch initial data from SQLite
+    const fetchData = async () => {
+      try {
+        if (window.api && window.api.db) {
+          const data = await window.api.db.getRegions();
+          setRegions(data);
+          console.log('Data loaded from DB:', data);
+        } else {
+             // Fallback for development if window.api is incomplete (e.g. browser preview)
+             console.warn('DB API not found, likely running in browser mode without backend.');
+             // You could import the static data here as fallback if desired
+        }
+      } catch (error) {
+        console.error('Failed to load regions:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const activeData = regions.find(r => r.id === selectedRegionId);
 
   const handleRegionSelect = (id: string) => {
     setSelectedRegionId(id);
     setSelectedProvince(null);
-    // Note: We don't reset mapMode to 'region' here, to allow switching regions while in same view mode if desired, 
-    // but the dashboard logic might need it. The mockup didn't reset it.
   };
 
   const handleProvinceSelect = (prov: Province) => {
@@ -42,14 +62,8 @@ const App = () => {
         {/* LEFT: RADAR MAP */}
         <section className="flex-[2] relative bg-[#050608] flex flex-col border-r border-white/5 z-10 overflow-hidden">
           
-          <div className="absolute top-8 left-8 z-30 pointer-events-none">
-            <h1 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
-              <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse shadow-[0_0_10px_#06b6d4]"></span> 
-              Thailand Radar
-            </h1>
-          </div>
 
-          <div className="flex-1 relative flex items-center justify-center mt-10">
+          <div className="flex-1 relative flex items-center justify-center ">
              <ThailandMap 
                activeId={selectedRegionId} 
                onSelectRegion={handleRegionSelect} 
@@ -106,7 +120,7 @@ const App = () => {
 
         {/* RIGHT: DASHBOARD */}
         <RegionDashboard 
-          regions={regionsData}
+          regions={regions}
           selectedRegionId={selectedRegionId} 
           onSelectRegion={handleRegionSelect}
           mapMode={mapMode}

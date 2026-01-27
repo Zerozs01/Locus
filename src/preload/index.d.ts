@@ -5,6 +5,10 @@ declare global {
     electron: ElectronAPI
     api: {
       ping: () => void
+      db: {
+        getRegions: () => Promise<any[]>
+        getProvince: (id: string) => Promise<any>
+      }
     }
   }
 }
