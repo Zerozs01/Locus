@@ -396,7 +396,7 @@ export function ArchiveView(): JSX.Element {
           </div>
         ) : (
           // List View
-          <div className="space-y-2">
+          <div className="space-y-2 w-full">
             {filteredProvinces.map((province) => {
               const colors = regionColors[province.regionId] || regionColors.central;
               const inCompare = isInCompare(province.id);
@@ -404,7 +404,7 @@ export function ArchiveView(): JSX.Element {
               return (
                 <div
                   key={province.id}
-                  className={`group flex items-center gap-4 p-3 bg-[#0f1115] border rounded-xl transition-all hover:bg-[#12151a] cursor-pointer ${
+                  className={`group flex items-center gap-4 p-4 bg-[#0f1115] border rounded-xl transition-all hover:bg-[#12151a] cursor-pointer w-full ${
                     inCompare ? 'border-cyan-500 ring-2 ring-cyan-500/20' : 'border-white/10 hover:border-white/20'
                   }`}
                 >
@@ -412,46 +412,46 @@ export function ArchiveView(): JSX.Element {
                   <img
                     src={province.image}
                     alt={province.name}
-                    className="w-16 h-16 rounded-lg object-cover"
+                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
                   />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-white truncate">{province.name}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-white text-lg truncate">{province.name}</h3>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${colors.bg} ${colors.text}`}>
                         {regionNames[province.regionId]}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 mt-1 text-xs text-slate-400">
-                      <span className="flex items-center gap-1"><MapPin size={12} /> {province.dist} อำเภอ</span>
-                      <span className="flex items-center gap-1"><Users size={12} className="text-yellow-400" /> {province.population || 'N/A'}</span>
-                      <span className="flex items-center gap-1"><Maximize size={12} className="text-orange-400" /> {province.area || 'N/A'} km²</span>
+                    <div className="flex items-center gap-6 mt-2 text-sm text-slate-400">
+                      <span className="flex items-center gap-1.5"><MapPin size={14} /> {province.dist} อำเภอ</span>
+                      <span className="flex items-center gap-1.5"><Users size={14} className="text-yellow-400" /> {province.population || 'N/A'}</span>
+                      <span className="flex items-center gap-1.5"><Maximize size={14} className="text-orange-400" /> {province.area || 'N/A'} km²</span>
                     </div>
                   </div>
 
                   {/* Stats */}
-                  <div className="flex items-center gap-6 text-sm">
-                    <div className="text-center">
-                      <div className="text-emerald-400 font-bold">{province.dailyCost || '300 ฿'}</div>
-                      <div className="text-[10px] text-slate-500">ค่าครองชีพ</div>
+                  <div className="flex items-center gap-8 text-sm flex-shrink-0">
+                    <div className="text-center min-w-[80px]">
+                      <div className="text-emerald-400 font-bold text-lg">{province.dailyCost || '300 ฿'}</div>
+                      <div className="text-[11px] text-slate-500">ค่าครองชีพ</div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-blue-400 font-bold">{province.safety || 80}%</div>
-                      <div className="text-[10px] text-slate-500">ความปลอดภัย</div>
+                    <div className="text-center min-w-[80px]">
+                      <div className="text-blue-400 font-bold text-lg">{province.safety || 80}%</div>
+                      <div className="text-[11px] text-slate-500">ความปลอดภัย</div>
                     </div>
                   </div>
 
                   {/* Compare Toggle */}
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleCompare(province); }}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${
                       inCompare 
                         ? 'bg-cyan-500 text-white' 
                         : 'bg-white/5 text-slate-500 hover:bg-cyan-500/20 hover:text-cyan-400'
                     }`}
                   >
-                    <Scale size={18} />
+                    <Scale size={20} />
                   </button>
                 </div>
               );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -8,7 +8,6 @@ import {
   Shield, 
   Landmark, 
   Building2, 
-  TreePine, 
   Utensils, 
   Car, 
   Plane,
@@ -16,22 +15,61 @@ import {
   Heart,
   ChevronRight,
   ExternalLink,
-  Star
+  Star,
+  Users,
+  Maximize,
+  Wallet,
+  Loader2
 } from 'lucide-react';
-import { regionsData, Province, Region } from '../data/regions';
+import { Province, Region } from '../data/regions';
 
 /**
  * Province Tactical Detail Page
  * หน้าข้อมูลจังหวัดแบบละเอียด (Micro-level)
+ * ดึงข้อมูลจาก SQLite Database
  */
 export const ProvinceTacticalPage = () => {
   const { regionId, provinceId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'admin' | 'safety' | 'logistics' | 'lifestyle'>('overview');
+  const [region, setRegion] = useState<Region | null>(null);
+  const [province, setProvince] = useState<Province | null>(null);
+  const [loading, setLoading] = useState(true);
   
-  // Find region and province data
-  const region = regionsData.find(r => r.id === regionId);
-  const province = region?.subProvinces.find(p => p.id === provinceId);
+  // Fetch data from DB
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        if (window.api && window.api.db) {
+          const regions = await window.api.db.getRegions();
+          const foundRegion = regions.find((r: Region) => r.id === regionId);
+          if (foundRegion) {
+            setRegion(foundRegion);
+            const foundProvince = foundRegion.subProvinces?.find((p: Province) => p.id === provinceId);
+            if (foundProvince) {
+              setProvince(foundProvince);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load province data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [regionId, provinceId]);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#050608]">
+        <div className="text-center">
+          <Loader2 size={48} className="text-cyan-500 mx-auto mb-4 animate-spin" />
+          <p className="text-slate-400">Loading province data...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!region || !province) {
     return (
@@ -51,14 +89,14 @@ export const ProvinceTacticalPage = () => {
     );
   }
 
-  // Mock extended data (ในอนาคตจะดึงจาก API/Database)
+  // Extended data from province
   const extendedData = {
-    thaiName: getThaiProvinceName(province.id),
-    slogan: getProvinceSlogan(province.id),
+    thaiName: getThaiProvinceName(province.name),
+    slogan: getProvinceSlogan(province.name),
     weather: { temp: '28°C', condition: 'Partly Cloudy', humidity: '65%' },
     emergency: { police: '191', ambulance: '1669', fire: '199', tourist: '1155' },
     districts: generateMockDistricts(province.dist),
-    safetyIndex: province.serenity * 10,
+    safetyIndex: province.safety || 80,
     attractions: generateMockAttractions(province.name),
     restaurants: generateMockRestaurants(province.name),
     hospitals: generateMockHospitals(province.name),
@@ -183,20 +221,20 @@ const OverviewTab = ({ province, region, extendedData }: OverviewTabProps) => (
     <div className="col-span-2 space-y-6">
       <InfoCard title="Province Overview">
         <p className="text-slate-300 leading-relaxed">
-          {province.name} is a province in the {region.engName} region of Thailand. 
+          {province.name} ({extendedData.thaiName}) is a province in the {region.engName} region of Thailand. 
           It comprises {province.dist} districts and {province.tam} sub-districts (tambons).
-          The province is known for its {province.serenity > 7 ? 'peaceful atmosphere' : 'vibrant culture'} 
-          and {province.entertainment > 7 ? 'rich entertainment options' : 'natural beauty'}.
+          {province.population && ` The province has a population of approximately ${province.population}.`}
+          {province.area && ` The total area covers ${province.area} km².`}
         </p>
       </InfoCard>
 
       <InfoCard title="Quick Statistics">
         <div className="grid grid-cols-3 gap-4">
+          <StatBox label="Population" value={province.population || 'N/A'} icon={<Users size={20} />} />
+          <StatBox label="Area" value={`${province.area || 'N/A'} km²`} icon={<Maximize size={20} />} />
           <StatBox label="Districts" value={String(province.dist)} icon={<Building2 size={20} />} />
           <StatBox label="Sub-districts" value={String(province.tam)} icon={<MapPin size={20} />} />
-          <StatBox label="Serenity Score" value={`${province.serenity}/10`} icon={<TreePine size={20} />} />
-          <StatBox label="Entertainment" value={`${province.entertainment}/10`} icon={<Star size={20} />} />
-          <StatBox label="Relaxation" value={`${province.relax}/10`} icon={<Heart size={20} />} />
+          <StatBox label="Daily Cost" value={province.dailyCost || '300 ฿'} icon={<Wallet size={20} />} />
           <StatBox label="Safety Index" value={`${extendedData.safetyIndex}%`} icon={<Shield size={20} />} />
         </div>
       </InfoCard>
@@ -550,26 +588,58 @@ const PlaceItem = ({ name, sub, icon, rating }: { name: string; sub: string; ico
 
 // ==================== MOCK DATA GENERATORS ====================
 
-function getThaiProvinceName(id: string): string {
-  const names: Record<string, string> = {
-    cm: 'เชียงใหม่', cr: 'เชียงราย', nan: 'น่าน', phr: 'แพร่', mhs: 'แม่ฮ่องสอน', lp: 'ลำพูน',
-    kk: 'ขอนแก่น', nr: 'นครราชสีมา', ub: 'อุบลราชธานี', ud: 'อุดรธานี', br: 'บุรีรัมย์',
-    bkk: 'กรุงเทพมหานคร', nbi: 'นนทบุรี', smp: 'สมุทรปราการ', ptm: 'ปทุมธานี',
-    pkt: 'ภูเก็ต', srt: 'สุราษฎร์ธานี', kbi: 'กระบี่', nks: 'นครศรีธรรมราช',
-    cyp: 'ชลบุรี', ryg: 'ระยอง', cti: 'จันทบุรี',
-  };
-  return names[id] || 'ไม่ทราบชื่อ';
+// Thai names mapping by English province name
+const thaiProvinceNames: Record<string, string> = {
+  'Chiang Mai': 'เชียงใหม่', 'Chiang Rai': 'เชียงราย', 'Nan': 'น่าน', 'Phrae': 'แพร่', 
+  'Mae Hong Son': 'แม่ฮ่องสอน', 'Lamphun': 'ลำพูน', 'Lampang': 'ลำปาง', 'Phayao': 'พะเยา', 'Uttaradit': 'อุตรดิตถ์',
+  'Khon Kaen': 'ขอนแก่น', 'Nakhon Ratchasima': 'นครราชสีมา', 'Ubon Ratchathani': 'อุบลราชธานี', 
+  'Udon Thani': 'อุดรธานี', 'Buri Ram': 'บุรีรัมย์', 'Surin': 'สุรินทร์', 'Si Sa Ket': 'ศรีสะเกษ',
+  'Roi Et': 'ร้อยเอ็ด', 'Kalasin': 'กาฬสินธุ์', 'Maha Sarakham': 'มหาสารคาม', 'Nakhon Phanom': 'นครพนม',
+  'Sakon Nakhon': 'สกลนคร', 'Mukdahan': 'มุกดาหาร', 'Yasothon': 'ยโสธร', 'Amnat Charoen': 'อำนาจเจริญ',
+  'Nong Khai': 'หนองคาย', 'Loei': 'เลย', 'Nong Bua Lam Phu': 'หนองบัวลำภู', 'Bueng Kan': 'บึงกาฬ',
+  'Chaiyaphum': 'ชัยภูมิ',
+  'Bangkok Metropolis': 'กรุงเทพมหานคร', 'Nonthaburi': 'นนทบุรี', 'Samut Prakan': 'สมุทรปราการ', 
+  'Pathum Thani': 'ปทุมธานี', 'Nakhon Pathom': 'นครปฐม', 'Samut Sakhon': 'สมุทรสาคร',
+  'Phra Nakhon Si Ayutthaya': 'พระนครศรีอยุธยา', 'Ang Thong': 'อ่างทอง', 'Lop Buri': 'ลพบุรี',
+  'Sing Buri': 'สิงห์บุรี', 'Chai Nat': 'ชัยนาท', 'Saraburi': 'สระบุรี', 'Suphan Buri': 'สุพรรณบุรี',
+  'Nakhon Nayok': 'นครนายก', 'Prachin Buri': 'ปราจีนบุรี', 'Sa Kaeo': 'สระแก้ว',
+  'Kamphaeng Phet': 'กำแพงเพชร', 'Phichit': 'พิจิตร', 'Phitsanulok': 'พิษณุโลก', 'Sukhothai': 'สุโขทัย',
+  'Tak': 'ตาก', 'Nakhon Sawan': 'นครสวรรค์', 'Uthai Thani': 'อุทัยธานี', 'Phetchabun': 'เพชรบูรณ์',
+  'Kanchanaburi': 'กาญจนบุรี', 'Ratchaburi': 'ราชบุรี',
+  'Phetchaburi': 'เพชรบุรี', 'Prachuap Khiri Khan': 'ประจวบคีรีขันธ์', 'Samut Songkhram': 'สมุทรสงคราม',
+  'Chon Buri': 'ชลบุรี', 'Rayong': 'ระยอง', 'Chanthaburi': 'จันทบุรี', 'Trat': 'ตราด',
+  'Phuket': 'ภูเก็ต', 'Surat Thani': 'สุราษฎร์ธานี', 'Krabi': 'กระบี่', 'Nakhon Si Thammarat': 'นครศรีธรรมราช',
+  'Songkhla': 'สงขลา', 'Pattani': 'ปัตตานี', 'Yala': 'ยะลา', 'Narathiwat': 'นราธิวาส',
+  'Chumphon': 'ชุมพร', 'Ranong': 'ระนอง', 'Phang Nga': 'พังงา', 'Trang': 'ตรัง', 
+  'Satun': 'สตูล', 'Phatthalung': 'พัทลุง',
+  'Chachoengsao': 'ฉะเชิงเทรา',
+};
+
+// Province slogans mapping by English name
+const provinceSlogans: Record<string, string> = {
+  'Chiang Mai': 'ดอยสุเทพคู่บ้าน ศาสนาพุทธล้านนา',
+  'Chiang Rai': 'เหนือสุดแดนสยาม ชายแดนสามแผ่นดิน',
+  'Nan': 'เมืองเก่าที่มีชีวิต ศิลปกรรมล้านนาตะวันออก',
+  'Bangkok Metropolis': 'กรุงเทพฯ ดุจเทพสร้าง เมืองศูนย์กลางการปกครอง',
+  'Phuket': 'ไข่มุกแห่งอันดามัน',
+  'Khon Kaen': 'พระธาตุขามแก่น เสียงแคนดอกคูน ศูนย์รวมผ้าไหม',
+  'Nakhon Ratchasima': 'เมืองหญิงกล้า ผ้าไหมดี หมี่โคราช ปราสาทหิน',
+  'Chon Buri': 'ทะเลงาม ข้าวหลามอร่อย หอยใหญ่ ไร่องุ่น',
+  'Surat Thani': 'เมืองร้อยเกาะ เงาะอร่อย หอยนางรม',
+  'Krabi': 'เมืองถ้ำ ทะเล หาดทราย ป่าชายเลน',
+  'Nakhon Si Thammarat': 'เมืองพระ ธาตุทองคำ ข้าวหลาม ร้อยเกาะ',
+  'Songkhla': 'นกน้ำเพลินตา สมิหลางามล้ำ น้ำตกสวย',
+  'Ayutthaya': 'ราชธานีเก่า อู่ข้าว อู่น้ำ เลิศล้ำกานท์กวี',
+  'Sukhothai': 'มรดกโลกล้ำเลิศ กำเนิดลายสือไทย',
+  'Kanchanaburi': 'แคว้นโบราณ ด่านเจดีย์ มณีเมืองกาญจน์',
+};
+
+function getThaiProvinceName(name: string): string {
+  return thaiProvinceNames[name] || name;
 }
 
-function getProvinceSlogan(id: string): string {
-  const slogans: Record<string, string> = {
-    cm: 'ดอยสุเทพคู่บ้าน ศาสนาพุทธล้านนา',
-    cr: 'เหนือสุดแดนสยาม ชายแดนสามแผ่นดิน',
-    nan: 'เมืองเก่าที่มีชีวิต ศิลปกรรมล้านนาตะวันออก',
-    bkk: 'กรุงเทพฯ ดุจเทพสร้าง เมืองศูนย์กลางการปกครอง',
-    pkt: 'ไข่มุกแห่งอันดามัน',
-  };
-  return slogans[id] || '';
+function getProvinceSlogan(name: string): string {
+  return provinceSlogans[name] || '';
 }
 
 function generateMockDistricts(count: number): Array<{ name: string; tambons: number }> {
