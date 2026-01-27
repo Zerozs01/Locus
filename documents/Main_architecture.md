@@ -24,14 +24,54 @@ The system uses a **"Tunneling"** method to communicate.
     - **Tools:** Fetches data from Supabase/LightRAG.
 5.  **Return Trip:** n8n sends the JSON response back through the tunnel -> Ngrok -> Electron App.
 
-## 3. Technology Stack Updates
+## 3. Technology Stack
 
-- **Frontend:** React 18, TypeScript, TailwindCSS.
-- **Backend/Automation:** n8n + ngrok.
-- **Database:** Supabase (PostgreSQL) - Replaces Firebase for structured table/relational needs.
-- **AI/RAG:** LightRAG + OpenRouter/Gemini.
+### Frontend
+- **Framework:** React 18 + TypeScript
+- **Styling:** TailwindCSS
+- **Map:** react-simple-maps + GeoJSON
+- **Routing:** React Router v6
+- **State:** React hooks (useState, useEffect, useMemo)
 
-## 4. Why No Redis?
+### Desktop
+- **Runtime:** Electron
+- **Build:** electron-vite
+- **Database:** SQLite (better-sqlite3) with WAL mode
+
+### Backend/AI
+- **Automation:** n8n + Ngrok
+- **Database:** Supabase (PostgreSQL)
+- **AI/RAG:** LightRAG + OpenRouter/Gemini
+
+## 4. Application Pages
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | RadarPage | Main map view with region dashboard |
+| `/archive` | GeoArchivePage | Province gallery with compare mode |
+| `/travel-guide/:regionId` | TravelGuidePage | Transport routes & fare calculator |
+| `/intelligence` | IntelligencePage | AI chat with context support |
+| `/analytics` | AnalyticsPage | Data analytics dashboard |
+| `/settings` | SettingsPage | App configuration |
+
+## 5. Key Features
+
+### Search System
+- **Thai/English Support:** Uses `thaiProvinceNames.ts` mapping
+- **Keyboard Navigation:** Arrow Up/Down, Enter, Escape
+- **Auto-suggest:** Max 6 results with highlighting
+
+### Region Dashboard
+- **Region Mode:** Stats overview (costs, food, attractions)
+- **Province Mode:** 3-column gallery with cards
+- **Chat Integration:** Context-aware navigation to AI chat
+
+### AI Chat (Intelligence Page)
+- **Context Passing:** Receives region/province data from navigation state
+- **Image Upload:** Drag & drop support
+- **Suggested Queries:** Dynamic based on context
+
+## 6. Why No Redis?
 
 Current architecture uses **PostgreSQL (Supabase)** which is sufficient for:
 
@@ -41,8 +81,10 @@ Current architecture uses **PostgreSQL (Supabase)** which is sufficient for:
 
 For a single-user or small-group local-first app, Redis adds unnecessary complexity. PostgreSQL interactions in this scale are near-instant. Redis should only be considered if concurrent traffic scales significantly (>1000s req/sec) or for specific pub/sub limits not met by Supabase Realtime.
 
-## 5. Code Structure Ref
+## 7. Code Structure Ref
 
 - `src/renderer/src/services/n8nClient.ts`: Handles axios calls to n8n.
-- `src/renderer/src/components/ChatOverlay.tsx`: Chat UI logic.
+- `src/renderer/src/pages/IntelligencePage.tsx`: Main AI chat interface.
+- `src/renderer/src/data/thaiProvinceNames.ts`: Thai-English province mapping.
+- `src/renderer/src/data/regions.ts`: Region/Province data structures.
 

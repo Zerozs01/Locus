@@ -2,9 +2,15 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ThailandMap } from '../components/ThailandMap';
 import { RegionDashboard } from '../components/RegionDashboard';
-import { Region, Province } from '../data/regions';
+import { Region, Province, regionsData } from '../data/regions';
 import { searchProvince, getThaiProvinceName } from '../data/thaiProvinceNames';
 import { Search, Users, Maximize, Building, MapPin } from 'lucide-react';
+
+// Local image mapping for regions (override DB URLs)
+const regionImageMap: Record<string, string> = regionsData.reduce((acc, r) => {
+  acc[r.id] = r.image;
+  return acc;
+}, {} as Record<string, string>);
 
 /**
  * Radar Page - Main Map View (หน้าแรก)
@@ -26,9 +32,16 @@ export const RadarPage = () => {
       try {
         if (window.api && window.api.db) {
           const data = await window.api.db.getRegions();
-          setRegions(data);
+          // Override images with local files
+          const dataWithLocalImages = data.map((region: Region) => ({
+            ...region,
+            image: regionImageMap[region.id] || region.image
+          }));
+          setRegions(dataWithLocalImages);
         } else {
           console.warn('DB API not found, running in browser mode.');
+          // Use static data as fallback
+          setRegions(regionsData);
         }
       } catch (error) {
         console.error('Failed to load regions:', error);
