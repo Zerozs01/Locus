@@ -1,10 +1,15 @@
 survivor-agent-app/
+├── .storybook/               # Storybook Configuration
+│   ├── main.ts
+│   └── preview.ts
 ├── src/
 │   ├── main/                 # Electron Main Process
 │   │   └── main.ts
 │   ├── renderer/             # React Frontend (Vite)
 │   │   ├── src/
 │   │   │   ├── components/
+│   │   │   │   ├── *.tsx
+│   │   │   │   └── *.stories.tsx  # Component Stories
 │   │   │   ├── hooks/
 │   │   │   │   └── useFirestore.ts
 │   │   │   ├── services/

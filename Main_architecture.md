@@ -12,15 +12,16 @@ The system follows a specific **"Local-First, Cloud-Sync"** hybrid architecture.
 
 ## 2. Data Flow (Chat & Analysis)
 
-1. **User Input:** User types in Electron Chat Overlay.
-2. **Transmission:** Electron `n8nClient` sends POST request to `ngrok-url/webhook/chat`.
-3. **Processing (n8n):**
-   - **Trigger:** Webhook receives message.
-   - **Agent Node:** Queries AI Model (OpenRouter/Gemini).
-   - **Tools:**
-     - **Memory:** Connects to Supabase (Postgres) to store/retrieve history.
-     - **RAG:** Queries LightRAG API for specialized knowledge (e.g., zombie survival, situational awareness).
-4. **Response:** n8n returns the answer -> Electron displays it.
+The system uses a **"Tunneling"** method to communicate.
+
+1.  **Origin (Electron):** User presses send. The app initiates a POST request.
+2.  **Destination (Ngrok URL):** The request acts as if it's going to the internet (e.g., `https://xxxxx.ngrok-free.app/webhook/chat`).
+3.  **Tunneling (Ngrok -> Localhost):** Ngrok receives the request and **automatically forwards** it through the secure tunnel to your local machine port `5678`.
+4.  **Processing (n8n):**
+    - **Trigger:** The n8n Webhook node (listening on port 5678) activates.
+    - **Agent Node:** Queries AI Model.
+    - **Tools:** Fetches data from Supabase/LightRAG.
+5.  **Return Trip:** n8n sends the JSON response back through the tunnel -> Ngrok -> Electron App.
 
 ## 3. Technology Stack Updates
 
