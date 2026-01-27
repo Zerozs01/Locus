@@ -126,7 +126,7 @@ const App = () => {
              />
           </div>
 
-          {/* SUMMARY STATS: Vertical Stack on Right Edge of Left Panel */}
+          {/* SUMMARY STATS */}
           {activeData && (
             <div className="absolute bottom-28 right-8 z-30 flex flex-col gap-3 animate-in fade-in slide-in-from-right-4 duration-500 items-end">
               

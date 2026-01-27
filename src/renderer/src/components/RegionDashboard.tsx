@@ -14,6 +14,16 @@ const provinceDisplayNames: Record<string, string> = {
 
 const getDisplayName = (name: string) => provinceDisplayNames[name] || name;
 
+// Region hover border/glow colors matching map colors
+const regionHoverStyles: Record<string, { border: string; glow: string; text: string }> = {
+  north: { border: 'hover:border-rose-500/50', glow: 'hover:shadow-rose-500/20', text: 'group-hover:text-rose-400' },
+  northeast: { border: 'hover:border-pink-400/50', glow: 'hover:shadow-pink-400/20', text: 'group-hover:text-pink-400' },
+  central: { border: 'hover:border-cyan-400/50', glow: 'hover:shadow-cyan-400/20', text: 'group-hover:text-cyan-400' },
+  west: { border: 'hover:border-purple-400/50', glow: 'hover:shadow-purple-400/20', text: 'group-hover:text-purple-400' },
+  east: { border: 'hover:border-green-400/50', glow: 'hover:shadow-green-400/20', text: 'group-hover:text-green-400' },
+  south: { border: 'hover:border-orange-400/50', glow: 'hover:shadow-orange-400/20', text: 'group-hover:text-orange-400' },
+};
+
 interface RegionDashboardProps {
   regions: Region[];
   selectedRegionId: string | null;
@@ -41,13 +51,15 @@ export const RegionDashboard = ({
       {regions.map((reg) => {
         const isActive = selectedRegionId === reg.id;
         
+        const hoverStyle = regionHoverStyles[reg.id] || regionHoverStyles.central;
+        
         return (
           <div 
             key={reg.id} 
             onClick={() => onSelectRegion(reg.id)} 
             className={`
-              relative transition-[flex] duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden border-b border-white/5 
-              ${isActive ? 'flex-[10]' : 'flex-[1] hover:flex-[1.2] opacity-50'}
+              group relative transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden border-l-4 border-l-transparent border-b border-white/5
+              ${isActive ? 'flex-[10] border-l-transparent' : `flex-[1] hover:flex-[1.2] opacity-60 hover:opacity-100 ${hoverStyle.border} ${hoverStyle.glow} hover:shadow-lg`}
             `}
           >
             {/* Background */}
@@ -61,7 +73,7 @@ export const RegionDashboard = ({
                {/* Compact Header: Single Line */}
                <div className="flex justify-between items-center relative z-20 border-b border-white/10 pb-3 mb-3">
                   <div className="flex items-baseline gap-3">
-                     <h2 className={`font-black uppercase tracking-tighter leading-none transition-all duration-500 ${isActive ? 'text-5xl text-white' : 'text-3xl text-slate-400'}`}>{reg.name}</h2>
+                     <h2 className={`font-black uppercase tracking-tighter leading-none transition-all duration-300 ${isActive ? 'text-5xl text-white' : `text-3xl text-slate-400 ${hoverStyle.text}`}`}>{reg.name}</h2>
                      {isActive && (
                        <>
                          <span className="text-xl font-light text-slate-400 tracking-wider uppercase border-l border-white/20 pl-3">{reg.engName}</span>
@@ -103,7 +115,7 @@ export const RegionDashboard = ({
                </div>
 
                {/* PROVINCE GALLERY GRID (3 Columns) - Sorted A-Z with Scroll */}
-               <div className={`flex-1 min-h-0 overflow-y-auto mt-2 pr-2 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full h-full'}`} style={{ maxHeight: 'calc(100% - 80px)' }}>
+               <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar mt-2 pr-1 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full h-full'}`} style={{ maxHeight: 'calc(100% - 80px)' }}>
                   <div className="grid grid-cols-3 gap-4 pb-8">
                     {[...reg.subProvinces].sort((a, b) => a.name.localeCompare(b.name)).map((prov) => {
                        const isSelected = selectedProvince?.id === prov.id;
@@ -117,17 +129,14 @@ export const RegionDashboard = ({
                                </div>
                             </div>
                             <div className="p-3">
-                               <div className="flex justify-between text-[10px] text-slate-400 mb-3">
-                                  <span className="flex items-center gap-1"><MapIcon size={10}/> {prov.dist} อ.</span>
-                                  <span className="flex items-center gap-1"><Grid size={10}/> {prov.tam} ต.</span>
+                               <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 mb-2">
+                                  <span className="flex items-center gap-1"><MapIcon size={10}/> {prov.dist} อำเภอ</span>
+                                  <span className="flex items-center gap-1"><Grid size={10}/> {prov.tam} ตำบล</span>
+                                  <span className="flex items-center gap-1">💰 {prov.dailyCost || '300 ฿'}</span>
+                                  <span className="flex items-center gap-1">🛡️ {prov.safety || 80}%</span>
                                </div>
                                {isSelected && (
                                   <div className="animate-in slide-in-from-top-2 pt-2 border-t border-white/10">
-                                     <div className="grid grid-cols-3 gap-2 mb-3">
-                                        <div className="text-center"><div className="text-[8px] text-slate-500 uppercase">Peace</div><div className="text-xs font-bold text-emerald-400">{prov.serenity}/10</div></div>
-                                        <div className="text-center"><div className="text-[8px] text-slate-500 uppercase">Fun</div><div className="text-xs font-bold text-purple-400">{prov.entertainment}/10</div></div>
-                                        <div className="text-center"><div className="text-[8px] text-slate-500 uppercase">Relax</div><div className="text-xs font-bold text-cyan-400">{prov.relax}/10</div></div>
-                                     </div>
                                      <button 
                                         onClick={(e) => { 
                                           e.stopPropagation(); 

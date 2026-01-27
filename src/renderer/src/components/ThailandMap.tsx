@@ -158,8 +158,8 @@ export const ThailandMap = ({
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
-          scale: 2500,
-          center: [101, 12.8],
+          scale: 2800,
+          center: [101, 12.2],
         }}
         style={{ width: '100%', height: '100%' }}
       >

@@ -7,6 +7,10 @@ export interface Province {
   entertainment: number;
   relax: number;
   image: string;
+  population?: string;  // e.g., "1.78M", "724K"
+  area?: string;        // e.g., "20,107" (km²)
+  dailyCost?: string;   // e.g., "350 ฿"
+  safety?: number;      // e.g., 85 (%)
 }
 
 export interface RegionStats {

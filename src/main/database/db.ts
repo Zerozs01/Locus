@@ -56,9 +56,17 @@ export function initDatabase() {
       serenity INTEGER,
       entertainment INTEGER,
       relax INTEGER,
+      population TEXT,
+      area TEXT,
+      dailyCost TEXT,
+      safety INTEGER,
       FOREIGN KEY(region_id) REFERENCES regions(id)
     );
   `);
+
+  // Create indexes for faster queries
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region ON provinces(region_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_stats_region ON region_stats(region_id);`);
 
   console.log('✓ Database ready at:', dbPath);
 }
@@ -116,8 +124,8 @@ export function seedDatabase(initialRegions: any[]) {
     `);
 
     const insertProvince = db.prepare(`
-        INSERT INTO provinces (id, region_id, name, image, dist, tam, serenity, entertainment, relax)
-        VALUES (@id, @region_id, @name, @image, @dist, @tam, @serenity, @entertainment, @relax)
+        INSERT INTO provinces (id, region_id, name, image, dist, tam, serenity, entertainment, relax, population, area, dailyCost, safety)
+        VALUES (@id, @region_id, @name, @image, @dist, @tam, @serenity, @entertainment, @relax, @population, @area, @dailyCost, @safety)
     `);
 
     const insertMany = db.transaction((regions: any[]) => {
@@ -156,9 +164,13 @@ export function seedDatabase(initialRegions: any[]) {
                     image: prov.image,
                     dist: prov.dist,
                     tam: prov.tam,
-                    serenity: prov.serenity,
-                    entertainment: prov.entertainment,
-                    relax: prov.relax
+                    serenity: prov.serenity || 5,
+                    entertainment: prov.entertainment || 5,
+                    relax: prov.relax || 5,
+                    population: prov.population || null,
+                    area: prov.area || null,
+                    dailyCost: prov.dailyCost || '300 ฿',
+                    safety: prov.safety || 80
                 });
             }
         }
