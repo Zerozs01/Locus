@@ -1,4 +1,4 @@
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Annotation } from 'react-simple-maps';
 import { Province } from '../data/regions';
 import thailandGeo from '../data/thailand-geo.json';
 
@@ -103,19 +103,30 @@ const provinceToRegion: Record<string, string> = {
 };
 
 // Region colors - ใช้สีที่ชัดเจนสำหรับแต่ละภาค
-const regionColors: Record<string, { default: string; active: string; hover: string }> = {
-  north: { default: '#475569', active: '#f43f5e', hover: '#64748b' },      // แดง/ชมพู
-  northeast: { default: '#475569', active: '#fbcfe8', hover: '#64748b' },  // ชมพูอ่อน
-  central: { default: '#475569', active: '#06b6d4', hover: '#64748b' },    // ฟ้า cyan
-  west: { default: '#475569', active: '#a855f7', hover: '#64748b' },       // ม่วง purple
-  east: { default: '#475569', active: '#22c55e', hover: '#64748b' },       // เขียว green
-  south: { default: '#475569', active: '#f97316', hover: '#64748b' },      // ส้ม orange
+const regionColors: Record<string, { default: string; active: string; hover: string; dimmed: string }> = {
+  north: { default: '#475569', active: '#f43f5e', hover: '#64748b', dimmed: '#7f1d1d' },      // แดง/ชมพู
+  northeast: { default: '#475569', active: '#fbcfe8', hover: '#64748b', dimmed: '#831843' },  // ชมพูอ่อน
+  central: { default: '#475569', active: '#06b6d4', hover: '#64748b', dimmed: '#164e63' },    // ฟ้า cyan
+  west: { default: '#475569', active: '#a855f7', hover: '#64748b', dimmed: '#581c87' },       // ม่วง purple
+  east: { default: '#475569', active: '#22c55e', hover: '#64748b', dimmed: '#14532d' },       // เขียว green
+  south: { default: '#475569', active: '#f97316', hover: '#64748b', dimmed: '#7c2d12' },      // ส้ม orange
+};
+
+// Region label positions (lat, lng) - ตำแหน่งศูนย์กลางแต่ละภาค
+const regionLabelPositions: Record<string, [number, number]> = {
+  north: [99.0, 18.8],
+  northeast: [103.5, 16.0],
+  central: [100.2, 15.0],
+  west: [99.0, 13.5],
+  east: [102.0, 13.2],
+  south: [99.5, 8.5],
 };
 
 export const ThailandMap = ({ 
   activeId, 
   onSelectRegion, 
-  viewMode
+  viewMode,
+  selectedProvince
 }: ThailandMapProps) => {
 
   const getZoomCenter = (): { center: [number, number]; zoom: number } => {
@@ -165,8 +176,38 @@ export const ThailandMap = ({
                 const regionId = provinceToRegion[provinceName] || 'central';
                 const isRegionActive = activeId === regionId;
                 const isProvinceView = viewMode === 'province';
-                const isDimmed = isProvinceView && !isRegionActive;
+                const isOtherRegion = activeId && !isRegionActive;
                 const colors = regionColors[regionId] || regionColors.central;
+                
+                // Province highlight logic
+                const isSelectedProvince = selectedProvince && provinceName === selectedProvince.name;
+                const isSameRegionAsSelected = selectedProvince && regionId === activeId;
+                
+                // Determine fill color
+                let fillColor = colors.default;
+                let opacity = 1;
+                
+                if (isProvinceView && activeId) {
+                  if (isSelectedProvince) {
+                    // Selected province - bright active color
+                    fillColor = colors.active;
+                    opacity = 1;
+                  } else if (isSameRegionAsSelected && !isSelectedProvince) {
+                    // Same region but not selected - dimmed version of active color
+                    fillColor = colors.dimmed;
+                    opacity = 0.9;
+                  } else if (isRegionActive && !selectedProvince) {
+                    // Region active but no province selected yet - all provinces bright
+                    fillColor = colors.active;
+                    opacity = 1;
+                  } else if (isOtherRegion) {
+                    // Other regions - gray out
+                    fillColor = '#1e293b';
+                    opacity = 0.4;
+                  }
+                } else if (isRegionActive) {
+                  fillColor = colors.active;
+                }
 
                 return (
                   <Geography
@@ -175,20 +216,20 @@ export const ThailandMap = ({
                     onClick={() => onSelectRegion(regionId)}
                     style={{
                       default: {
-                        fill: isRegionActive ? colors.active : colors.default,
-                        stroke: isRegionActive ? '#fff' : '#64748b',
-                        strokeWidth: 0.3,
+                        fill: fillColor,
+                        stroke: isSelectedProvince ? '#fff' : (isRegionActive ? '#fff' : '#64748b'),
+                        strokeWidth: isSelectedProvince ? 0.8 : 0.3,
                         outline: 'none',
-                        opacity: isDimmed ? 0.3 : 1,
+                        opacity: opacity,
                         transition: 'all 0.3s ease',
                       },
                       hover: {
-                        fill: isRegionActive ? colors.active : colors.hover,
+                        fill: isSelectedProvince ? fillColor : (isRegionActive ? colors.active : colors.hover),
                         stroke: '#fff',
                         strokeWidth: 0.5,
                         outline: 'none',
                         cursor: 'pointer',
-                        opacity: isDimmed ? 0.3 : 1,
+                        opacity: isOtherRegion ? 0.5 : 1,
                       },
                       pressed: {
                         fill: colors.active,
@@ -202,22 +243,35 @@ export const ThailandMap = ({
               })
             }
           </Geographies>
+
+          {/* Region Labels - Using Annotation to stay fixed with map */}
+          {viewMode !== 'province' && Object.entries(regionLabelPositions).map(([regionId, coords]) => (
+            <Annotation
+              key={regionId}
+              subject={coords}
+              dx={0}
+              dy={0}
+              connectorProps={{}}
+            >
+              <text
+                textAnchor="middle"
+                alignmentBaseline="middle"
+                style={{
+                  fontFamily: 'system-ui',
+                  fontSize: '6px',
+                  fontWeight: 'bold',
+                  fill: activeId === regionId ? '#fff' : 'rgba(255,255,255,0.6)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  pointerEvents: 'none',
+                }}
+              >
+                {regionId === 'northeast' ? 'ISAN' : regionId.toUpperCase()}
+              </text>
+            </Annotation>
+          ))}
         </ZoomableGroup>
       </ComposableMap>
-
-      {/* Region Labels - แสดงเมื่อไม่ได้ซูมเข้าภาค */}
-      {viewMode !== 'province' && (
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <div className="relative w-full h-full">
-            <span className={`absolute top-[18%] left-[38%] text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeId === 'north' ? 'text-white' : 'text-white/60'}`}>North</span>
-            <span className={`absolute top-[28%] left-[58%] text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeId === 'northeast' ? 'text-white' : 'text-white/60'}`}>Isan</span>
-            <span className={`absolute top-[42%] left-[42%] text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeId === 'central' ? 'text-white' : 'text-white/60'}`}>Central</span>
-            <span className={`absolute top-[48%] left-[28%] text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeId === 'west' ? 'text-white' : 'text-white/60'}`}>West</span>
-            <span className={`absolute top-[50%] left-[55%] text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeId === 'east' ? 'text-white' : 'text-white/60'}`}>East</span>
-            <span className={`absolute top-[72%] left-[35%] text-xs font-bold uppercase tracking-wide transition-all duration-300 ${activeId === 'south' ? 'text-white' : 'text-white/60'}`}>South</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
