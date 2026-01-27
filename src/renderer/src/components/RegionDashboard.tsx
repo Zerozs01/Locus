@@ -25,6 +25,16 @@ const regionHoverStyles: Record<string, { border: string; glow: string; text: st
   south: { border: 'hover:border-orange-400/50', glow: 'hover:shadow-orange-400/20', text: 'group-hover:text-orange-400' },
 };
 
+// Region-specific button colors for Chat with AI
+const regionChatButtonStyles: Record<string, { bg: string; hover: string; border: string; text: string }> = {
+  north: { bg: 'bg-rose-600/20', hover: 'hover:bg-rose-600/30', border: 'border-rose-500/30', text: 'text-rose-300' },
+  northeast: { bg: 'bg-pink-600/20', hover: 'hover:bg-pink-600/30', border: 'border-pink-500/30', text: 'text-pink-300' },
+  central: { bg: 'bg-cyan-600/20', hover: 'hover:bg-cyan-600/30', border: 'border-cyan-500/30', text: 'text-cyan-300' },
+  west: { bg: 'bg-purple-600/20', hover: 'hover:bg-purple-600/30', border: 'border-purple-500/30', text: 'text-purple-300' },
+  east: { bg: 'bg-green-600/20', hover: 'hover:bg-green-600/30', border: 'border-green-500/30', text: 'text-green-300' },
+  south: { bg: 'bg-orange-600/20', hover: 'hover:bg-orange-600/30', border: 'border-orange-500/30', text: 'text-orange-300' },
+};
+
 interface RegionDashboardProps {
   regions: Region[];
   selectedRegionId: string | null;
@@ -149,7 +159,7 @@ export const RegionDashboard = ({
                                  });
                               }
                            }}
-                           className="flex-1 py-3 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl text-sm font-bold text-cyan-300 transition-all flex items-center justify-center gap-2"
+                           className={`flex-1 py-3 ${regionChatButtonStyles[reg.id]?.bg || 'bg-cyan-600/20'} ${regionChatButtonStyles[reg.id]?.hover || 'hover:bg-cyan-600/30'} border ${regionChatButtonStyles[reg.id]?.border || 'border-cyan-500/30'} rounded-xl text-sm font-bold ${regionChatButtonStyles[reg.id]?.text || 'text-cyan-300'} transition-all flex items-center justify-center gap-2`}
                         >
                            <MessageSquare size={16} /> Chat with AI
                         </button>

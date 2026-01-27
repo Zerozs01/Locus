@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ThailandMap } from '../components/ThailandMap';
 import { RegionDashboard } from '../components/RegionDashboard';
 import { Region, Province } from '../data/regions';
-import { Search, Users, Maximize, Building } from 'lucide-react';
+import { searchProvince, getThaiProvinceName } from '../data/thaiProvinceNames';
+import { Search, Users, Maximize, Building, MapPin } from 'lucide-react';
 
 /**
  * Radar Page - Main Map View (หน้าแรก)
@@ -15,6 +16,10 @@ export const RadarPage = () => {
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>('central');
   const [mapMode, setMapMode] = useState<'region' | 'province'>('region');
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,6 +38,63 @@ export const RadarPage = () => {
   }, []);
 
   const activeData = regions.find(r => r.id === selectedRegionId);
+
+  // Get all provinces for search
+  const allProvinces = useMemo(() => {
+    return regions.flatMap(region => 
+      (region.subProvinces || []).map(prov => ({
+        ...prov,
+        regionId: region.id,
+        regionName: region.name
+      }))
+    );
+  }, [regions]);
+
+  // Filter provinces based on search (supports Thai and English)
+  const filteredProvinces = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return allProvinces.filter(p => 
+      searchProvince(searchQuery, p.name)
+    ).slice(0, 6);
+  }, [searchQuery, allProvinces]);
+
+  // Reset selected index when filtered results change
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [filteredProvinces.length]);
+
+  // Handle search selection
+  const handleSearchSelect = (prov: typeof allProvinces[0]) => {
+    setSelectedRegionId(prov.regionId);
+    setSelectedProvince(prov);
+    setMapMode('province');
+    setSearchQuery('');
+    setShowSuggestions(false);
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setShowSuggestions(e.target.value.length > 0);
+    setSelectedIndex(0);
+  };
+
+  // Handle keyboard navigation
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.min(prev + 1, filteredProvinces.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter' && filteredProvinces.length > 0) {
+      e.preventDefault();
+      handleSearchSelect(filteredProvinces[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      setSearchQuery('');
+      setShowSuggestions(false);
+    }
+  };
 
   const handleRegionSelect = (id: string) => {
     setSelectedRegionId(id);
@@ -87,16 +149,53 @@ export const RadarPage = () => {
           </div>
         )}
 
-        {/* SEARCH BAR */}
+        {/* SEARCH BAR WITH UPWARD SUGGESTIONS */}
         <div className="absolute bottom-6 left-6 right-6 z-30">
           <div className="relative group w-full">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/50 to-blue-600/50 rounded-xl blur opacity-30 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative bg-[#0f1115] border border-white/10 rounded-xl flex items-center p-3.5 shadow-xl focus-within:ring-2 focus-within:ring-cyan-500/50 transition-all w-full">
+            {/* Suggestions Overlay - Above search bar */}
+            {showSuggestions && filteredProvinces.length > 0 && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f1115] border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
+                {filteredProvinces.map((prov, index) => (
+                  <button
+                    key={prov.id}
+                    onClick={() => handleSearchSelect(prov)}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${index === selectedIndex ? 'bg-cyan-500/20' : 'hover:bg-white/5'}`}
+                  >
+                    <MapPin size={16} className={`flex-shrink-0 ${index === selectedIndex ? 'text-cyan-400' : 'text-slate-500'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white truncate">{prov.name}</div>
+                      <div className="text-[10px] text-slate-500">{getThaiProvinceName(prov.name)} • {prov.regionName}</div>
+                    </div>
+                    {index === selectedIndex && (
+                      <span className="text-[10px] text-slate-500 bg-white/5 px-2 py-0.5 rounded">Enter</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/30 to-blue-600/30 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
+            <div className="relative bg-[#0f1115] border border-white/10 rounded-xl flex items-center p-3.5 shadow-xl transition-all w-full">
               <Search className="text-slate-400 ml-2 mr-3 group-focus-within:text-cyan-400 transition-colors" size={20} />
               <input 
-                className="bg-transparent border-none outline-none text-sm text-white w-full placeholder:text-slate-500 font-medium"
-                placeholder={mapMode === 'province' ? "Search province..." : "Search region..."}
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onKeyDown={handleSearchKeyDown}
+                onFocus={() => searchQuery && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                className="bg-transparent border-none outline-none text-sm text-yellow-400 w-full placeholder:text-slate-500 font-medium"
+                placeholder="ค้นหาจังหวัด (TH/EN)..."
               />
+              {searchQuery && (
+                <button 
+                  onClick={() => { setSearchQuery(''); setShowSuggestions(false); }}
+                  className="text-slate-500 hover:text-white transition-colors mr-2"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
         </div>

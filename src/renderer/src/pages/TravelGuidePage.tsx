@@ -701,52 +701,109 @@ export function TravelGuidePage() {
 
       {/* Fare Calculator Panel (Fixed Bottom) */}
       <div className="shrink-0 border-t border-white/10 bg-[#0a0c10] px-8 py-4">
-        <div className="flex items-center gap-6">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 text-sm text-slate-400">
             <Wallet size={18} className="text-emerald-400" />
             <span className="font-bold text-white">คำนวณค่าโดยสาร</span>
           </div>
           
-          <div className="flex items-center gap-3 flex-1">
-            <select
-              value={fareCalcFrom}
-              onChange={(e) => setFareCalcFrom(e.target.value)}
-              title="เลือกต้นทาง"
-              aria-label="เลือกต้นทาง"
-              className="flex-1 max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50"
-            >
-              <option value="">ต้นทาง</option>
-              {allProvinces.map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-            
-            <ChevronRight size={20} className="text-slate-500" />
-            
-            <select
-              value={fareCalcTo}
-              onChange={(e) => setFareCalcTo(e.target.value)}
-              title="เลือกปลายทาง"
-              aria-label="เลือกปลายทาง"
-              className="flex-1 max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50"
-            >
-              <option value="">ปลายทาง</option>
-              {allProvinces.map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-
-          {fareCalcFrom && fareCalcTo && (
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-xs text-slate-500">ค่าโดยสารโดยประมาณ</div>
-                <div className="text-emerald-400 font-bold text-xl">
-                  ฿{Math.round(Math.random() * 400 + 100)} - ฿{Math.round(Math.random() * 600 + 400)}
-                </div>
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Text Input Mode */}
+            <div className="flex items-center gap-3 flex-1 min-w-[300px]">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={fareCalcFrom}
+                  onChange={(e) => setFareCalcFrom(e.target.value)}
+                  placeholder="พิมพ์ต้นทาง..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 placeholder:text-slate-500"
+                />
+                {fareCalcFrom && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1d24] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 max-h-40 overflow-y-auto">
+                    {allProvinces.filter(p => p.toLowerCase().includes(fareCalcFrom.toLowerCase())).slice(0, 5).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setFareCalcFrom(p)}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white transition-colors"
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <ChevronRight size={20} className="text-slate-500 flex-shrink-0" />
+              
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={fareCalcTo}
+                  onChange={(e) => setFareCalcTo(e.target.value)}
+                  placeholder="พิมพ์ปลายทาง..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 placeholder:text-slate-500"
+                />
+                {fareCalcTo && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1d24] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 max-h-40 overflow-y-auto">
+                    {allProvinces.filter(p => p.toLowerCase().includes(fareCalcTo.toLowerCase())).slice(0, 5).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setFareCalcTo(p)}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white transition-colors"
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          )}
+
+            <div className="text-slate-500 text-xs">หรือ</div>
+
+            {/* Dropdown Mode */}
+            <div className="flex items-center gap-3">
+              <select
+                value={fareCalcFrom}
+                onChange={(e) => setFareCalcFrom(e.target.value)}
+                title="เลือกต้นทาง"
+                aria-label="เลือกต้นทาง"
+                className="bg-[#1a1d24] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-800"
+              >
+                <option value="" className="!text-slate-500">ต้นทาง</option>
+                {allProvinces.map(p => (
+                  <option key={p} value={p} className="!text-slate-800">{p}</option>
+                ))}
+              </select>
+              
+              <ChevronRight size={16} className="text-slate-500" />
+              
+              <select
+                value={fareCalcTo}
+                onChange={(e) => setFareCalcTo(e.target.value)}
+                title="เลือกปลายทาง"
+                aria-label="เลือกปลายทาง"
+                className="bg-[#1a1d24] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-800"
+              >
+                <option value="" className="!text-slate-500">ปลายทาง</option>
+                {allProvinces.map(p => (
+                  <option key={p} value={p} className="!text-slate-800">{p}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Result */}
+            {fareCalcFrom && fareCalcTo && allProvinces.includes(fareCalcFrom) && allProvinces.includes(fareCalcTo) && (
+              <div className="flex items-center gap-4 ml-auto">
+                <div className="text-right">
+                  <div className="text-xs text-slate-500">ค่าโดยสารโดยประมาณ</div>
+                  <div className="text-emerald-400 font-bold text-xl">
+                    ฿{Math.round(Math.random() * 400 + 100)} - ฿{Math.round(Math.random() * 600 + 400)}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

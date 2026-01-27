@@ -4,6 +4,7 @@ import {
   Shield, Wallet, X, ChevronDown, Scale, Grid, List, SlidersHorizontal,
   Sparkles, TrendingUp, TrendingDown, Check
 } from 'lucide-react';
+import { searchProvince } from '../data/thaiProvinceNames';
 
 interface Province {
   id: string;
@@ -109,11 +110,10 @@ export function ArchiveView(): JSX.Element {
   const filteredProvinces = useMemo(() => {
     let result = [...allProvinces];
 
-    // Filter by search
+    // Filter by search (supports Thai and English)
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
       result = result.filter(p => 
-        p.name.toLowerCase().includes(query)
+        searchProvince(searchQuery, p.name)
       );
     }
 
@@ -248,10 +248,10 @@ export function ArchiveView(): JSX.Element {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
               <input
                 type="text"
-                placeholder="ค้นหาจังหวัด..."
+                placeholder="ค้นหาจังหวัด (TH/EN)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-yellow-400 placeholder:text-slate-500 focus:outline-none focus:border-purple-500/30 transition-all"
               />
             </div>
 
