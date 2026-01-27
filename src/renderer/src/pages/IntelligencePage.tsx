@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   Send, 
   Bot, 
@@ -17,11 +18,23 @@ import {
   MapPin,
   ExternalLink,
   Lightbulb,
-  BookOpen
+  BookOpen,
+  X,
+  Tag
 } from 'lucide-react';
 import { sendChatMessage } from '../services/n8nClient';
 
 // ==================== TYPES ====================
+
+interface ChatContext {
+  type: 'region' | 'province';
+  name: string;
+  regionId?: string;
+  engName?: string;
+  provinces?: string[];
+  stats?: any;
+  safety?: number;
+}
 
 interface Message {
   id: string;
@@ -49,17 +62,40 @@ interface SuggestedQuery {
 // ==================== MAIN COMPONENT ====================
 
 export const IntelligencePage = () => {
+  const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
   const [activeContext, setActiveContext] = useState<Message | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [chatContext, setChatContext] = useState<ChatContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Check for context passed via navigation state
+  useEffect(() => {
+    const state = location.state as { context?: ChatContext } | null;
+    if (state?.context) {
+      setChatContext(state.context);
+      // Auto-generate a welcome message based on context
+      const contextMsg: Message = {
+        id: 'context-' + Date.now(),
+        text: `🎯 Context loaded: **${state.context.name}** (${state.context.type === 'region' ? 'ภาค' : 'จังหวัด'})\n\nคุณสามารถถามคำถามเกี่ยวกับ${state.context.name}ได้เลย เช่น:\n• ข้อมูลค่าครองชีพ\n• แหล่งท่องเที่ยวแนะนำ\n• ความปลอดภัย\n• เส้นทางการเดินทาง`,
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages([contextMsg]);
+    }
+  }, [location.state]);
+
   // Suggested queries for empty state
-  const suggestedQueries: SuggestedQuery[] = [
+  const suggestedQueries: SuggestedQuery[] = chatContext ? [
+    { text: `วิเคราะห์ความปลอดภัยของ${chatContext.name}`, icon: <MapPin size={14} /> },
+    { text: `แนะนำที่เที่ยวใน${chatContext.name}`, icon: <Lightbulb size={14} /> },
+    { text: `ค่าครองชีพเฉลี่ยของ${chatContext.name}เป็นอย่างไร`, icon: <BookOpen size={14} /> },
+    { text: `เส้นทางการเดินทางไป${chatContext.name}`, icon: <Network size={14} /> },
+  ] : [
     { text: 'วิเคราะห์ความปลอดภัยของจังหวัดเชียงใหม่', icon: <MapPin size={14} /> },
     { text: 'เปรียบเทียบค่าครองชีพ ภาคเหนือ vs ภาคใต้', icon: <Lightbulb size={14} /> },
     { text: 'วางแผนเที่ยวภูเก็ต 3 วัน เน้นโซนปลอดภัย', icon: <BookOpen size={14} /> },
@@ -121,6 +157,13 @@ export const IntelligencePage = () => {
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
 
+    // Build message with context if available
+    let messageWithContext = inputText;
+    if (chatContext) {
+      const contextInfo = `[Context: ${chatContext.type === 'region' ? 'ภาค' : 'จังหวัด'} ${chatContext.name}${chatContext.provinces ? `, provinces: ${chatContext.provinces.join(', ')}` : ''}${chatContext.stats ? `, daily cost: ${chatContext.stats.dailyCost}, safety: ${chatContext.safety}%` : ''}]`;
+      messageWithContext = `${contextInfo}\n\nUser question: ${inputText}`;
+    }
+
     const userMsg: Message = {
       id: Date.now().toString(),
       text: inputText,
@@ -133,7 +176,7 @@ export const IntelligencePage = () => {
     setIsLoading(true);
 
     try {
-      const responseText = await sendChatMessage(userMsg.text);
+      const responseText = await sendChatMessage(messageWithContext);
       
       // Generate mock sources (in production, these come from LightRAG)
       const mockSources: Source[] = [
@@ -195,7 +238,21 @@ export const IntelligencePage = () => {
               <p className="text-xs text-slate-500">Powered by LightRAG + Gemini</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Context Badge */}
+            {chatContext && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 rounded-full border border-purple-500/20">
+                <Tag size={12} className="text-purple-400" />
+                <span className="text-xs text-purple-300 font-medium">{chatContext.name}</span>
+                <button 
+                  onClick={() => setChatContext(null)}
+                  title="ลบ context"
+                  className="ml-1 text-purple-400 hover:text-white transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
               <span className="text-xs text-emerald-400 font-medium">Online</span>

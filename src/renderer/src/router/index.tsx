@@ -6,6 +6,7 @@ import { SettingsPage } from '../pages/SettingsPage';
 import { GeoArchivePage } from '../pages/GeoArchivePage';
 import { IntelligencePage } from '../pages/IntelligencePage';
 import { AnalyticsPage } from '../pages/AnalyticsPage';
+import { TravelGuidePage } from '../pages/TravelGuidePage';
 
 /**
  * Locus Navigation Routes
@@ -36,6 +37,10 @@ export const routes: RouteObject[] = [
       {
         path: 'analytics',
         element: <AnalyticsPage />,
+      },
+      {
+        path: 'travel-guide/:regionId',
+        element: <TravelGuidePage />,
       },
       {
         path: 'settings',

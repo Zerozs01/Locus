@@ -1,6 +1,7 @@
 import { Region, Province } from '../data/regions';
-import { Grid, MapPin, Map as MapIcon, Plane, FileText, Coins, Wallet, Utensils, Flower2, Landmark, Music, Shield, ExternalLink } from 'lucide-react';
+import { Grid, MapPin, Map as MapIcon, MessageSquare, Coins, Wallet, Utensils, Flower2, Landmark, Music, Shield, ExternalLink, Bus } from 'lucide-react';
 import { DetailCard } from './DetailCard';
+import { useNavigate } from 'react-router-dom';
 
 // Display names for provinces with long official names (GeoJSON names → Display names)
 const provinceDisplayNames: Record<string, string> = {
@@ -33,6 +34,7 @@ interface RegionDashboardProps {
   selectedProvince: Province | null;
   onSelectProvince: (prov: Province) => void;
   onViewProvinceDetail?: (regionId: string, provinceId: string) => void;
+  onOpenChat?: (context: { type: 'region' | 'province'; name: string; data: any }) => void;
 }
 
 export const RegionDashboard = ({ 
@@ -43,8 +45,10 @@ export const RegionDashboard = ({
   setMapMode,
   selectedProvince,
   onSelectProvince,
-  onViewProvinceDetail
+  onViewProvinceDetail,
+  onOpenChat
 }: RegionDashboardProps) => {
+  const navigate = useNavigate();
 
   return (
     <section className="flex-[3] bg-[#020305] relative overflow-hidden flex flex-col">
@@ -104,11 +108,50 @@ export const RegionDashboard = ({
                   {/* Description & Buttons at Bottom */}
                   <div className="mt-auto">
                      <div className="flex gap-4 pt-4 border-t border-white/10">
-                        <button className="flex-1 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2">
-                           <Plane size={16} /> Travel Guide
+                        <button 
+                           onClick={(e) => { 
+                              e.stopPropagation(); 
+                              navigate(`/travel-guide/${reg.id}`);
+                           }}
+                           className="flex-1 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2"
+                        >
+                           <Bus size={16} /> Travel Guide
                         </button>
-                        <button className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-sm font-bold text-slate-300 transition-all flex items-center justify-center gap-2">
-                           <FileText size={16} /> Download PDF
+                        <button 
+                           onClick={(e) => { 
+                              e.stopPropagation(); 
+                              if (onOpenChat) {
+                                 onOpenChat({ 
+                                    type: 'region', 
+                                    name: reg.name, 
+                                    data: { 
+                                       regionId: reg.id,
+                                       regionName: reg.name,
+                                       engName: reg.engName,
+                                       provinces: reg.subProvinces.map(p => p.name),
+                                       stats: reg.stats,
+                                       safety: reg.safety
+                                    }
+                                 });
+                              } else {
+                                 navigate('/intelligence', { 
+                                    state: { 
+                                       context: {
+                                          type: 'region',
+                                          name: reg.name,
+                                          regionId: reg.id,
+                                          engName: reg.engName,
+                                          provinces: reg.subProvinces.map(p => p.name),
+                                          stats: reg.stats,
+                                          safety: reg.safety
+                                       }
+                                    }
+                                 });
+                              }
+                           }}
+                           className="flex-1 py-3 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl text-sm font-bold text-cyan-300 transition-all flex items-center justify-center gap-2"
+                        >
+                           <MessageSquare size={16} /> Chat with AI
                         </button>
                      </div>
                   </div>

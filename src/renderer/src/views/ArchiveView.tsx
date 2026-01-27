@@ -315,7 +315,7 @@ export function ArchiveView(): JSX.Element {
       )}
 
       {/* Province Grid/List */}
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
         {filteredProvinces.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <Search size={48} className="mb-4 opacity-50" />
@@ -395,8 +395,8 @@ export function ArchiveView(): JSX.Element {
             })}
           </div>
         ) : (
-          // List View
-          <div className="space-y-2 w-full">
+          // List View - Full Width
+          <div className="space-y-3">
             {filteredProvinces.map((province) => {
               const colors = regionColors[province.regionId] || regionColors.central;
               const inCompare = isInCompare(province.id);
@@ -404,7 +404,7 @@ export function ArchiveView(): JSX.Element {
               return (
                 <div
                   key={province.id}
-                  className={`group flex items-center gap-4 p-4 bg-[#0f1115] border rounded-xl transition-all hover:bg-[#12151a] cursor-pointer w-full ${
+                  className={`group flex items-center gap-5 p-4 bg-[#0f1115] border rounded-2xl transition-all hover:bg-[#12151a] cursor-pointer w-full ${
                     inCompare ? 'border-cyan-500 ring-2 ring-cyan-500/20' : 'border-white/10 hover:border-white/20'
                   }`}
                 >
@@ -412,12 +412,12 @@ export function ArchiveView(): JSX.Element {
                   <img
                     src={province.image}
                     alt={province.name}
-                    className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+                    className="w-24 h-24 rounded-xl object-cover flex-shrink-0"
                   />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-bold text-white text-lg truncate">{province.name}</h3>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${colors.bg} ${colors.text}`}>
                         {regionNames[province.regionId]}
