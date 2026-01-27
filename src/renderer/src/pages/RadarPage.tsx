@@ -63,23 +63,23 @@ export const RadarPage = () => {
           />
         </div>
 
-        {/* SUMMARY STATS */}
+        {/* SUMMARY STATS - Positioned higher to avoid search bar */}
         {activeData && (
-          <div className="absolute bottom-28 right-8 z-30 flex flex-col gap-3 animate-in fade-in slide-in-from-right-4 duration-500 items-end">
+          <div className="absolute bottom-24 right-6 z-30 flex flex-col gap-2.5 animate-in fade-in slide-in-from-right-4 duration-500 items-end">
             <StatCard 
-              icon={<Users size={16} />}
+              icon={<Users size={18} />}
               value={activeData.summary.pop}
               label="Population"
               colorClass="yellow"
             />
             <StatCard 
-              icon={<Maximize size={16} />}
+              icon={<Maximize size={18} />}
               value={activeData.summary.area}
               label="Area km²"
               colorClass="orange"
             />
             <StatCard 
-              icon={<Building size={16} />}
+              icon={<Building size={18} />}
               value={String(activeData.summary.provinces)}
               label="Provinces"
               colorClass="amber"
@@ -88,7 +88,7 @@ export const RadarPage = () => {
         )}
 
         {/* SEARCH BAR */}
-        <div className="absolute bottom-8 left-8 right-8 z-30">
+        <div className="absolute bottom-6 left-6 right-6 z-30">
           <div className="relative group w-full">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/50 to-blue-600/50 rounded-xl blur opacity-30 group-hover:opacity-100 transition-opacity duration-300"></div>
             <div className="relative bg-[#0f1115] border border-white/10 rounded-xl flex items-center p-3.5 shadow-xl focus-within:ring-2 focus-within:ring-cyan-500/50 transition-all w-full">
@@ -134,11 +134,11 @@ const StatCard = ({ icon, value, label, colorClass }: StatCardProps) => {
   const c = colors[colorClass];
 
   return (
-    <div className={`flex items-center gap-3 bg-[#0f1115] p-2 pr-4 pl-2 rounded-l-xl border-r-2 ${c.border} shadow-md pointer-events-auto hover:-translate-x-2 transition-transform cursor-default group min-w-[140px] justify-between`}>
-      <div className={`${c.bg} p-1.5 rounded-lg shadow-lg ${c.iconText}`}>{icon}</div>
+    <div className={`flex items-center gap-3 bg-[#0f1115]/90 backdrop-blur-sm p-2.5 pr-5 pl-2.5 rounded-l-xl border-r-[3px] ${c.border} shadow-lg pointer-events-auto hover:-translate-x-2 transition-transform cursor-default group min-w-[160px] justify-between`}>
+      <div className={`${c.bg} p-2 rounded-lg shadow-lg ${c.iconText}`}>{icon}</div>
       <div className="text-right">
-        <div className="text-lg font-black text-white leading-none">{value}</div>
-        <div className={`text-[9px] font-bold ${c.text} uppercase tracking-wider`}>{label}</div>
+        <div className="text-xl font-black text-white leading-none">{value}</div>
+        <div className={`text-[10px] font-bold ${c.text} uppercase tracking-wider`}>{label}</div>
       </div>
     </div>
   );

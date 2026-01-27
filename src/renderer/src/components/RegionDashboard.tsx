@@ -44,10 +44,10 @@ export const RegionDashboard = ({
               <div className={`absolute inset-0 ${isActive ? 'bg-gradient-to-r from-black via-black/95 to-black/50' : 'bg-black/80 hover:bg-black/60 transition-colors'}`}></div>
             </div>
 
-            <div className="absolute inset-0 px-8 pt-8 pb-2 flex flex-col h-full w-full">
+            <div className="absolute inset-0 px-6 pt-6 pb-2 flex flex-col h-full w-full">
                
                {/* Compact Header: Single Line */}
-               <div className="flex justify-between items-center relative z-20 border-b border-white/10 pb-4 mb-4">
+               <div className="flex justify-between items-center relative z-20 border-b border-white/10 pb-3 mb-3">
                   <div className="flex items-baseline gap-3">
                      <h2 className={`font-black uppercase tracking-tighter leading-none transition-all duration-500 ${isActive ? 'text-5xl text-white' : 'text-3xl text-slate-400'}`}>{reg.name}</h2>
                      {isActive && (
@@ -65,9 +65,9 @@ export const RegionDashboard = ({
                </div>
 
                {/* REGION STATS VIEW (Default) */}
-               <div className={`flex-1 overflow-y-auto mt-2 pr-2 transition-all duration-700 ${isActive && mapMode === 'region' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full'}`}>
-                  <p className="text-slate-300 font-light leading-relaxed mb-6 max-w-2xl border-l-2 border-white/10 pl-4">{reg.desc}</p>
-                  <div className="grid grid-cols-4 gap-4 pb-6">
+               <div className={`flex-1 overflow-y-auto mt-1 pr-2 transition-all duration-700 ${isActive && mapMode === 'region' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full'}`}>
+                  <p className="text-slate-300 font-light leading-relaxed mb-4 max-w-2xl border-l-2 border-white/10 pl-4">{reg.desc}</p>
+                  <div className="grid grid-cols-4 gap-3 pb-3">
                      <DetailCard icon={<Coins />} label="Daily Cost" value={reg.stats.dailyCost} sub="Avg/Person" bgClass={reg.gradient} textClass="text-emerald-300" />
                      <DetailCard icon={<Wallet />} label="Monthly" value={reg.stats.monthlyCost} sub="Living Cost" bgClass={reg.gradient} textClass="text-emerald-300" />
                      <DetailCard icon={<Utensils />} label="Signature Food" value={reg.stats.food} sub="Must Try" bgClass={reg.gradient} textClass="text-orange-300" />
