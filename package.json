@@ -20,7 +20,8 @@
     "axios": "^1.7.9",
     "better-sqlite3": "^12.6.2",
     "firebase": "^11.1.0",
-    "lucide-react": "^0.469.0"
+    "lucide-react": "^0.469.0",
+    "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.0",

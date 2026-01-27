@@ -1,5 +1,5 @@
 import { Region, Province } from '../data/regions';
-import { Grid, MapPin, Map as MapIcon, Plane, FileText, Coins, Wallet, Utensils, Flower2, Landmark, Music, Shield } from 'lucide-react';
+import { Grid, MapPin, Map as MapIcon, Plane, FileText, Coins, Wallet, Utensils, Flower2, Landmark, Music, Shield, ExternalLink } from 'lucide-react';
 import { DetailCard } from './DetailCard';
 
 interface RegionDashboardProps {
@@ -10,6 +10,7 @@ interface RegionDashboardProps {
   setMapMode: (mode: 'region' | 'province') => void;
   selectedProvince: Province | null;
   onSelectProvince: (prov: Province) => void;
+  onViewProvinceDetail?: (regionId: string, provinceId: string) => void;
 }
 
 export const RegionDashboard = ({ 
@@ -19,7 +20,8 @@ export const RegionDashboard = ({
   mapMode, 
   setMapMode,
   selectedProvince,
-  onSelectProvince 
+  onSelectProvince,
+  onViewProvinceDetail
 }: RegionDashboardProps) => {
 
   return (
@@ -114,8 +116,17 @@ export const RegionDashboard = ({
                                         <div className="text-center"><div className="text-[8px] text-slate-500 uppercase">Fun</div><div className="text-xs font-bold text-purple-400">{prov.entertainment}/10</div></div>
                                         <div className="text-center"><div className="text-[8px] text-slate-500 uppercase">Relax</div><div className="text-xs font-bold text-cyan-400">{prov.relax}/10</div></div>
                                      </div>
-                                     <button className="w-full py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded transition-colors">
+                                     <button 
+                                        onClick={(e) => { 
+                                          e.stopPropagation(); 
+                                          if (onViewProvinceDetail && selectedRegionId) {
+                                            onViewProvinceDetail(selectedRegionId, prov.id);
+                                          }
+                                        }}
+                                        className="w-full py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded transition-colors flex items-center justify-center gap-1 group"
+                                     >
                                         View Details
+                                        <ExternalLink size={12} className="group-hover:translate-x-0.5 transition-transform" />
                                      </button>
                                   </div>
                                )}

@@ -4,18 +4,13 @@ import path from 'path';
 
 const dbPath = path.join(app.getPath('userData'), 'locus.db');
 
-// Initialize Database
-const db = new Database(dbPath, { verbose: console.log });
+// Initialize Database (verbose mode disabled for cleaner terminal)
+const db = new Database(dbPath);
 db.pragma('journal_mode = WAL'); 
 db.pragma('cache_size = -64000'); 
 
 export function initDatabase() {
-  // DEVELOPMENT ONLY: Reset tables to ensure schema changes apply and bad data is cleared
-  // In production, we would use migrations.
-  db.exec('DROP TABLE IF EXISTS region_stats');
-  db.exec('DROP TABLE IF EXISTS provinces');
-  db.exec('DROP TABLE IF EXISTS regions');
-
+  // Create tables if they don't exist (no more DROP every time)
   // Create Regions Table
   // Changed population/area to TEXT to match source "6.2M" format
   db.exec(`
@@ -65,7 +60,7 @@ export function initDatabase() {
     );
   `);
 
-  console.log('Database initialized successfully at:', dbPath);
+  console.log('✓ Database ready at:', dbPath);
 }
 
 export function getRegions() {
@@ -104,9 +99,12 @@ export function getProvince(id: string) {
 
 export function seedDatabase(initialRegions: any[]) {
     const count = db.prepare('SELECT count(*) as count FROM regions').get() as { count: number };
-    if (count.count > 0) return; 
+    if (count.count > 0) {
+        console.log('✓ Database already seeded, skipping...');
+        return; 
+    }
 
-    console.log('Seeding Database...');
+    console.log('⏳ Seeding Database...');
     const insertRegion = db.prepare(`
         INSERT INTO regions (id, name, engName, code, desc, color, gradient, image, safety, population, area, province_count)
         VALUES (@id, @name, @engName, @code, @desc, @color, @gradient, @image, @safety, @population, @area, @province_count)
@@ -167,5 +165,5 @@ export function seedDatabase(initialRegions: any[]) {
     });
 
     insertMany(initialRegions);
-    console.log('Seeding Complete!');
+    console.log('✓ Seeding Complete! (' + initialRegions.length + ' regions)');
 }
