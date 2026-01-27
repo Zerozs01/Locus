@@ -114,12 +114,12 @@ const regionColors: Record<string, { default: string; active: string; hover: str
 
 // Region label positions (lat, lng) - ตำแหน่งศูนย์กลางแต่ละภาค
 const regionLabelPositions: Record<string, [number, number]> = {
-  north: [99.0, 18.8],
-  northeast: [103.5, 16.0],
-  central: [100.2, 15.0],
-  west: [99.0, 13.5],
-  east: [102.0, 13.2],
-  south: [99.5, 8.5],
+  north: [99.4, 18.5],
+  northeast: [103.3, 16],
+  central: [100.3, 15.6],
+  west: [99.3, 14.3],
+  east: [101.7, 13.3],
+  south: [99.4, 8.4],
 };
 
 export const ThailandMap = ({ 
@@ -145,10 +145,10 @@ export const ThailandMap = ({
         case 'south':
           return { center: [99.5, 9], zoom: 3.5 };
         default:
-          return { center: [101, 13], zoom: 1.8 };
+          return { center: [101, 13.5], zoom: 1.5 };
       }
     }
-    return { center: [101, 13], zoom: 1.8 };
+    return { center: [101, 13.5], zoom: 1.5 };
   };
 
   const { center, zoom } = getZoomCenter();
@@ -158,8 +158,8 @@ export const ThailandMap = ({
       <ComposableMap
         projection="geoMercator"
         projectionConfig={{
-          scale: 2800,
-          center: [101, 13],
+          scale: 2500,
+          center: [101, 12.8],
         }}
         style={{ width: '100%', height: '100%' }}
       >
@@ -258,12 +258,13 @@ export const ThailandMap = ({
                 alignmentBaseline="middle"
                 style={{
                   fontFamily: 'system-ui',
-                  fontSize: '6px',
+                  fontSize: '10px',
                   fontWeight: 'bold',
-                  fill: activeId === regionId ? '#fff' : 'rgba(255,255,255,0.6)',
+                  fill: activeId === regionId ? '#fff' : 'rgba(255,255,255,0.5)',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
+                  letterSpacing: '1px',
                   pointerEvents: 'none',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.8)',
                 }}
               >
                 {regionId === 'northeast' ? 'ISAN' : regionId.toUpperCase()}

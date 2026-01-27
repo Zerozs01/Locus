@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ThailandMap } from './components/ThailandMap';
 import { RegionDashboard } from './components/RegionDashboard';
@@ -12,6 +12,59 @@ const App = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [mapMode, setMapMode] = useState<'region' | 'province'>('region');
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Get all provinces from all regions for search
+  const allProvinces = useMemo(() => {
+    return regions.flatMap(region => 
+      (region.subProvinces || []).map(prov => ({
+        ...prov,
+        regionId: region.id,
+        regionName: region.engName
+      }))
+    );
+  }, [regions]);
+
+  // Filter provinces based on search query (supports regex)
+  const filteredProvinces = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    try {
+      const regex = new RegExp(searchQuery, 'i');
+      return allProvinces.filter(prov => regex.test(prov.name));
+    } catch {
+      // If invalid regex, fall back to simple includes
+      return allProvinces.filter(prov => 
+        prov.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+  }, [searchQuery, allProvinces]);
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // Handle Enter key to select first matching province
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && filteredProvinces.length > 0) {
+      const firstMatch = filteredProvinces[0];
+      // Find the region and select it
+      setSelectedRegionId(firstMatch.regionId);
+      setSelectedProvince(firstMatch);
+      setMapMode('province');
+      setSearchQuery('');
+    } else if (e.key === 'Escape') {
+      setSearchQuery('');
+    }
+  };
+
+  // Handle clicking on a search result
+  const handleSearchResultClick = (prov: typeof filteredProvinces[0]) => {
+    setSelectedRegionId(prov.regionId);
+    setSelectedProvince(prov);
+    setMapMode('province');
+    setSearchQuery('');
+  };
 
   useEffect(() => {
     // Fetch initial data from SQLite
@@ -111,9 +164,40 @@ const App = () => {
                 <Search className="text-slate-400 ml-2 mr-3 group-focus-within:text-cyan-400 transition-colors" size={20} />
                 <input 
                   className="bg-transparent border-none outline-none text-sm text-white w-full placeholder:text-slate-500 font-medium"
-                  placeholder={mapMode === 'province' ? "Search province..." : "Search region..."}
+                  placeholder="Search province... (supports regex)"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onKeyDown={handleSearchKeyDown}
                 />
               </div>
+              
+              {/* Search Results Dropdown */}
+              {searchQuery && filteredProvinces.length > 0 && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f1115] border border-white/10 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                  {filteredProvinces.slice(0, 10).map((prov, idx) => (
+                    <button
+                      key={prov.id}
+                      onClick={() => handleSearchResultClick(prov)}
+                      className={`w-full text-left px-4 py-3 hover:bg-white/5 flex items-center justify-between transition-colors ${idx === 0 ? 'bg-cyan-500/10' : ''}`}
+                    >
+                      <span className="text-white font-medium">{prov.name}</span>
+                      <span className="text-xs text-slate-500">{prov.regionName}</span>
+                    </button>
+                  ))}
+                  {filteredProvinces.length > 10 && (
+                    <div className="px-4 py-2 text-xs text-slate-500 text-center border-t border-white/5">
+                      +{filteredProvinces.length - 10} more results
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* No results message */}
+              {searchQuery && filteredProvinces.length === 0 && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f1115] border border-white/10 rounded-xl shadow-xl px-4 py-3 text-slate-500 text-sm">
+                  No provinces found for "{searchQuery}"
+                </div>
+              )}
             </div>
           </div>
         </section>

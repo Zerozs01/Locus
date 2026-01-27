@@ -2,6 +2,18 @@ import { Region, Province } from '../data/regions';
 import { Grid, MapPin, Map as MapIcon, Plane, FileText, Coins, Wallet, Utensils, Flower2, Landmark, Music, Shield, ExternalLink } from 'lucide-react';
 import { DetailCard } from './DetailCard';
 
+// Display names for provinces with long official names (GeoJSON names → Display names)
+const provinceDisplayNames: Record<string, string> = {
+  'Bangkok Metropolis': 'Bangkok',
+  'Phra Nakhon Si Ayutthaya': 'Ayutthaya',
+  'Prachuap Khiri Khan': 'Prachuap K.K.',
+  'Nakhon Ratchasima': 'Korat',
+  'Nong Bua Lam Phu': 'Nong Bua L.P.',
+  'Nakhon Si Thammarat': 'Nakhon S.T.',
+};
+
+const getDisplayName = (name: string) => provinceDisplayNames[name] || name;
+
 interface RegionDashboardProps {
   regions: Region[];
   selectedRegionId: string | null;
@@ -90,18 +102,18 @@ export const RegionDashboard = ({
                   </div>
                </div>
 
-               {/* PROVINCE GALLERY GRID (3 Columns) */}
-               <div className={`flex-1 overflow-y-auto mt-2 pr-2 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full'}`}>
-                  <div className="grid grid-cols-3 gap-4">
-                    {reg.subProvinces.map((prov) => {
+               {/* PROVINCE GALLERY GRID (3 Columns) - Sorted A-Z with Scroll */}
+               <div className={`flex-1 min-h-0 overflow-y-auto mt-2 pr-2 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full h-full'}`} style={{ maxHeight: 'calc(100% - 80px)' }}>
+                  <div className="grid grid-cols-3 gap-4 pb-8">
+                    {[...reg.subProvinces].sort((a, b) => a.name.localeCompare(b.name)).map((prov) => {
                        const isSelected = selectedProvince?.id === prov.id;
                        return (
                          <div key={prov.id} onClick={(e) => { e.stopPropagation(); onSelectProvince(prov); }} className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group hover:border-cyan-500/50 transition-all duration-300 cursor-pointer`}>
                             <div className="relative h-28 overflow-hidden">
-                               <img loading="lazy" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={prov.name} />
+                               <img loading="lazy" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={getDisplayName(prov.name)} />
                                <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors"></div>
                                <div className="absolute bottom-2 left-2 right-2">
-                                  <h3 className="text-lg font-bold text-white drop-shadow-md">{prov.name}</h3>
+                                  <h3 className="text-lg font-bold text-white drop-shadow-md">{getDisplayName(prov.name)}</h3>
                                </div>
                             </div>
                             <div className="p-3">
