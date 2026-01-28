@@ -106,10 +106,25 @@ export function getProvince(id: string) {
 }
 
 export function seedDatabase(initialRegions: any[]) {
-    const count = db.prepare('SELECT count(*) as count FROM regions').get() as { count: number };
-    if (count.count > 0) {
-        console.log('✓ Database already seeded, skipping...');
+    const regionCount = db.prepare('SELECT count(*) as count FROM regions').get() as { count: number };
+    const provinceCount = db.prepare('SELECT count(*) as count FROM provinces').get() as { count: number };
+    
+    // Calculate expected province count from initialRegions
+    const expectedProvinces = initialRegions.reduce((sum, r) => sum + r.subProvinces.length, 0);
+    const expectedRegions = initialRegions.length;
+    
+    // Only skip if we have ALL the data
+    if (regionCount.count >= expectedRegions && provinceCount.count >= expectedProvinces) {
+        console.log(`✓ Database already has complete data (${regionCount.count} regions, ${provinceCount.count} provinces), skipping...`);
         return; 
+    }
+
+    // Clear incomplete data and reseed
+    if (regionCount.count > 0 || provinceCount.count > 0) {
+        console.log(`⚠️ Incomplete data detected (${regionCount.count}/${expectedRegions} regions, ${provinceCount.count}/${expectedProvinces} provinces). Reseeding...`);
+        db.exec('DELETE FROM provinces;');
+        db.exec('DELETE FROM region_stats;');
+        db.exec('DELETE FROM regions;');
     }
 
     console.log('⏳ Seeding Database...');
@@ -177,5 +192,33 @@ export function seedDatabase(initialRegions: any[]) {
     });
 
     insertMany(initialRegions);
-    console.log('✓ Seeding Complete! (' + initialRegions.length + ' regions)');
+    
+    // Count total provinces seeded
+    const totalProvinces = initialRegions.reduce((sum, r) => sum + r.subProvinces.length, 0);
+    console.log(`✓ Seeding Complete! (${initialRegions.length} regions, ${totalProvinces} provinces)`);
+}
+
+// Force reseed database (for troubleshooting)
+export function forceReseedDatabase(initialRegions: any[]) {
+    console.log('🔄 Force reseeding database...');
+    db.exec('DELETE FROM provinces;');
+    db.exec('DELETE FROM region_stats;');
+    db.exec('DELETE FROM regions;');
+    
+    // Call seedDatabase with cleared tables
+    seedDatabase(initialRegions);
+}
+
+// Get database stats for debugging
+export function getDatabaseStats() {
+    const regionCount = db.prepare('SELECT count(*) as count FROM regions').get() as { count: number };
+    const provinceCount = db.prepare('SELECT count(*) as count FROM provinces').get() as { count: number };
+    const statsCount = db.prepare('SELECT count(*) as count FROM region_stats').get() as { count: number };
+    
+    return {
+        regions: regionCount.count,
+        provinces: provinceCount.count,
+        stats: statsCount.count,
+        dbPath: dbPath
+    };
 }

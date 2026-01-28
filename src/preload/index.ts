@@ -6,7 +6,9 @@ const api = {
   ping: (): void => ipcRenderer.send('ping'),
   db: {
     getRegions: () => ipcRenderer.invoke('db:getRegions'),
-    getProvince: (id: string) => ipcRenderer.invoke('db:getProvince', id)
+    getProvince: (id: string) => ipcRenderer.invoke('db:getProvince', id),
+    getStats: () => ipcRenderer.invoke('db:getStats'),
+    forceReseed: () => ipcRenderer.invoke('db:forceReseed')
   }
 }
 
