@@ -37,3 +37,48 @@ export interface AppConfig {
   firebaseProjectId: string
   geminiApiKey?: string
 }
+
+export interface Province {
+  name: string;
+  id: string;
+  dist: number;
+  tam: number;
+  serenity?: number;
+  entertainment?: number;
+  relax?: number;
+  image: string;
+  population?: string;
+  area?: string;
+  dailyCost?: string;
+  safety?: number;
+}
+
+export interface RegionStats {
+  dailyCost: string;
+  monthlyCost: string;
+  flora: string;
+  food: string;
+  attraction: string;
+  nightlife: string;
+}
+
+export interface RegionSummary {
+  provinces: number;
+  area: string;
+  pop: string;
+}
+
+export interface Region {
+  id: string;
+  name: string;
+  engName: string;
+  code: string;
+  color: string;
+  gradient?: string;
+  image: string;
+  summary: RegionSummary;
+  stats: RegionStats;
+  desc: string;
+  subProvinces: Province[];
+  safety: number;
+}

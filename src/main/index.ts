@@ -22,7 +22,7 @@ function createWindow(): void {
     backgroundColor: '#0a0a0b',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: false, // Required for @electron-toolkit/preload compatibility
       contextIsolation: true,
       nodeIntegration: false
     }

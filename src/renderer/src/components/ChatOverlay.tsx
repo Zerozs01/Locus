@@ -53,10 +53,10 @@ export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMsg]);
-    } catch (error) {
+    } catch (error: any) {
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Error connecting to Agent. Please check n8n connection.',
+        text: error.message || 'Error connecting to Agent. Please check n8n connection.',
         sender: 'bot',
         timestamp: new Date()
       };

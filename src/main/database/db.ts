@@ -1,13 +1,20 @@
 import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
+import { Region, Province, RegionStats } from '../../shared/types';
 
 const dbPath = path.join(app.getPath('userData'), 'locus.db');
 
 // Initialize Database (verbose mode disabled for cleaner terminal)
 const db = new Database(dbPath);
-db.pragma('journal_mode = WAL'); 
-db.pragma('cache_size = -64000'); 
+
+// Performance optimizations for SQLite
+db.pragma('journal_mode = WAL');           // Write-Ahead Logging for better concurrency
+db.pragma('cache_size = -64000');          // 64MB cache (negative = KB)
+db.pragma('synchronous = NORMAL');         // Balance between safety and speed
+db.pragma('temp_store = MEMORY');          // Store temp tables in memory
+db.pragma('mmap_size = 268435456');        // Memory-mapped I/O (256MB)
+db.pragma('foreign_keys = ON');            // Enforce foreign key constraints 
 
 export function initDatabase() {
   // Create tables if they don't exist (no more DROP every time)
@@ -71,12 +78,70 @@ export function initDatabase() {
   console.log('✓ Database ready at:', dbPath);
 }
 
-export function getRegions() {
-  const regions = db.prepare('SELECT * FROM regions').all();
+// Database row types (raw from SQLite)
+interface RegionRow {
+  id: string;
+  name: string;
+  engName: string;
+  code: string;
+  desc: string | null;
+  color: string | null;
+  gradient: string | null;
+  image: string | null;
+  safety: number;
+  population: string | null;
+  area: string | null;
+  province_count: number;
+}
+
+interface RegionStatsRow {
+  region_id: string;
+  dailyCost: string | null;
+  monthlyCost: string | null;
+  food: string | null;
+  flora: string | null;
+  attraction: string | null;
+  nightlife: string | null;
+}
+
+interface ProvinceRow {
+  id: string;
+  region_id: string;
+  name: string;
+  image: string | null;
+  dist: number;
+  tam: number;
+  serenity: number | null;
+  entertainment: number | null;
+  relax: number | null;
+  population: string | null;
+  area: string | null;
+  dailyCost: string | null;
+  safety: number | null;
+}
+
+export function getRegions(): Region[] {
+  const regions = db.prepare('SELECT * FROM regions').all() as RegionRow[];
+  const allStats = db.prepare('SELECT * FROM region_stats').all() as RegionStatsRow[];
+  const allProvinces = db.prepare('SELECT * FROM provinces').all() as ProvinceRow[];
+
+  // Create lookup maps for performance
+  const statsMap = new Map<string, RegionStatsRow>();
+  for (const s of allStats) {
+      statsMap.set(s.region_id, s);
+  }
+
+  const provincesMap = new Map<string, ProvinceRow[]>();
+  for (const p of allProvinces) {
+      if (!provincesMap.has(p.region_id)) {
+          provincesMap.set(p.region_id, []);
+      }
+      provincesMap.get(p.region_id)!.push(p);
+  }
   
-  return regions.map((reg: any) => {
-    const stats = db.prepare('SELECT * FROM region_stats WHERE region_id = ?').get(reg.id);
-    const subProvinces = db.prepare('SELECT * FROM provinces WHERE region_id = ?').all(reg.id);
+  return regions.map((reg) => {
+    const stats = statsMap.get(reg.id);
+    const subProvinces = provincesMap.get(reg.id) || [];
     
     // Reconstruct the nested object structure expected by the frontend
     return {
@@ -95,17 +160,38 @@ export function getRegions() {
         area: reg.area,
         provinces: reg.province_count
       },
-      stats: stats,
-      subProvinces: subProvinces
+      stats: {
+          dailyCost: stats?.dailyCost || '',
+          monthlyCost: stats?.monthlyCost || '',
+          flora: stats?.flora || '',
+          food: stats?.food || '',
+          attraction: stats?.attraction || '',
+          nightlife: stats?.nightlife || ''
+      },
+      subProvinces: subProvinces.map((p: ProvinceRow): Province => ({
+          id: p.id,
+          name: p.name,
+          image: p.image || '',
+          dist: p.dist,
+          tam: p.tam,
+          serenity: p.serenity ?? undefined,
+          entertainment: p.entertainment ?? undefined,
+          relax: p.relax ?? undefined,
+          population: p.population ?? undefined,
+          area: p.area ?? undefined,
+          dailyCost: p.dailyCost ?? undefined,
+          safety: p.safety ?? undefined
+      }))
     };
   });
 }
 
-export function getProvince(id: string) {
-    return db.prepare('SELECT * FROM provinces WHERE id = ?').get(id);
+export function getProvince(id: string): Province | undefined {
+    return db.prepare('SELECT * FROM provinces WHERE id = ?').get(id) as Province | undefined;
 }
 
-export function seedDatabase(initialRegions: any[]) {
+export function seedDatabase(initialRegions: Region[]) {
+    // Check main counts
     const regionCount = db.prepare('SELECT count(*) as count FROM regions').get() as { count: number };
     const provinceCount = db.prepare('SELECT count(*) as count FROM provinces').get() as { count: number };
     
@@ -113,37 +199,29 @@ export function seedDatabase(initialRegions: any[]) {
     const expectedProvinces = initialRegions.reduce((sum, r) => sum + r.subProvinces.length, 0);
     const expectedRegions = initialRegions.length;
     
-    // Only skip if we have ALL the data
+    // Quick check to skip if everything looks populated (simple heuristic)
     if (regionCount.count >= expectedRegions && provinceCount.count >= expectedProvinces) {
-        console.log(`✓ Database already has complete data (${regionCount.count} regions, ${provinceCount.count} provinces), skipping...`);
+        console.log(`✓ Database checks out (${regionCount.count} regions, ${provinceCount.count} provinces). Skipping seed.`);
         return; 
     }
 
-    // Clear incomplete data and reseed
-    if (regionCount.count > 0 || provinceCount.count > 0) {
-        console.log(`⚠️ Incomplete data detected (${regionCount.count}/${expectedRegions} regions, ${provinceCount.count}/${expectedProvinces} provinces). Reseeding...`);
-        db.exec('DELETE FROM provinces;');
-        db.exec('DELETE FROM region_stats;');
-        db.exec('DELETE FROM regions;');
-    }
-
-    console.log('⏳ Seeding Database...');
+    console.log('⏳ Verifying and Seeding Database...');
     const insertRegion = db.prepare(`
-        INSERT INTO regions (id, name, engName, code, desc, color, gradient, image, safety, population, area, province_count)
+        INSERT OR IGNORE INTO regions (id, name, engName, code, desc, color, gradient, image, safety, population, area, province_count)
         VALUES (@id, @name, @engName, @code, @desc, @color, @gradient, @image, @safety, @population, @area, @province_count)
     `);
 
     const insertStats = db.prepare(`
-        INSERT INTO region_stats (region_id, dailyCost, monthlyCost, food, flora, attraction, nightlife)
+        INSERT OR IGNORE INTO region_stats (region_id, dailyCost, monthlyCost, food, flora, attraction, nightlife)
         VALUES (@region_id, @dailyCost, @monthlyCost, @food, @flora, @attraction, @nightlife)
     `);
 
     const insertProvince = db.prepare(`
-        INSERT INTO provinces (id, region_id, name, image, dist, tam, serenity, entertainment, relax, population, area, dailyCost, safety)
+        INSERT OR IGNORE INTO provinces (id, region_id, name, image, dist, tam, serenity, entertainment, relax, population, area, dailyCost, safety)
         VALUES (@id, @region_id, @name, @image, @dist, @tam, @serenity, @entertainment, @relax, @population, @area, @dailyCost, @safety)
     `);
 
-    const insertMany = db.transaction((regions: any[]) => {
+    const insertMany = db.transaction((regions: Region[]) => {
         for (const reg of regions) {
             insertRegion.run({
                 id: reg.id,
@@ -155,7 +233,6 @@ export function seedDatabase(initialRegions: any[]) {
                 gradient: reg.gradient,
                 image: reg.image,
                 safety: reg.safety,
-                // Map from summary object
                 population: reg.summary.pop,
                 area: reg.summary.area,
                 province_count: reg.summary.provinces
@@ -192,14 +269,11 @@ export function seedDatabase(initialRegions: any[]) {
     });
 
     insertMany(initialRegions);
-    
-    // Count total provinces seeded
-    const totalProvinces = initialRegions.reduce((sum, r) => sum + r.subProvinces.length, 0);
-    console.log(`✓ Seeding Complete! (${initialRegions.length} regions, ${totalProvinces} provinces)`);
+    console.log('✓ Seeding process completed.');
 }
 
 // Force reseed database (for troubleshooting)
-export function forceReseedDatabase(initialRegions: any[]) {
+export function forceReseedDatabase(initialRegions: Region[]) {
     console.log('🔄 Force reseeding database...');
     db.exec('DELETE FROM provinces;');
     db.exec('DELETE FROM region_stats;');
