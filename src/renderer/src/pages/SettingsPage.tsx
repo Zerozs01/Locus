@@ -14,8 +14,15 @@ import {
   RefreshCw,
   Zap,
   Cloud,
-  Shield
+  Shield,
+  Activity,
+  Wifi,
+  WifiOff,
+  HardDrive,
+  Server,
+  Bot
 } from 'lucide-react';
+import { pingAgent } from '../services/n8nClient';
 
 interface ApiKey {
   id: string;
@@ -27,6 +34,19 @@ interface ApiKey {
   required: boolean;
 }
 
+interface SystemStatus {
+  database: 'checking' | 'online' | 'offline' | 'error';
+  agent: 'checking' | 'online' | 'offline' | 'error';
+  network: 'checking' | 'online' | 'offline';
+}
+
+interface DatabaseStats {
+  regions: number;
+  provinces: number;
+  stats: number;
+  dbPath: string;
+}
+
 /**
  * Settings Page - API Keys & Configuration Management
  */
@@ -34,6 +54,16 @@ export const SettingsPage = () => {
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  
+  // System Status State
+  const [systemStatus, setSystemStatus] = useState<SystemStatus>({
+    database: 'checking',
+    agent: 'checking',
+    network: 'checking'
+  });
+  const [dbStats, setDbStats] = useState<DatabaseStats | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
   
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([
     {
@@ -120,6 +150,56 @@ export const SettingsPage = () => {
     };
     loadSavedKeys();
   }, []);
+
+  // Check system status on mount
+  useEffect(() => {
+    checkAllStatus();
+  }, []);
+
+  const checkAllStatus = async () => {
+    setIsRefreshing(true);
+    setSystemStatus({
+      database: 'checking',
+      agent: 'checking',
+      network: 'checking'
+    });
+
+    // Check Network
+    try {
+      const online = navigator.onLine;
+      setSystemStatus(prev => ({ ...prev, network: online ? 'online' : 'offline' }));
+    } catch {
+      setSystemStatus(prev => ({ ...prev, network: 'offline' }));
+    }
+
+    // Check Database (via IPC)
+    try {
+      if (window.api?.db?.getStats) {
+        const stats = await window.api.db.getStats();
+        setDbStats(stats);
+        setSystemStatus(prev => ({ 
+          ...prev, 
+          database: stats.regions > 0 ? 'online' : 'error' 
+        }));
+      } else {
+        setSystemStatus(prev => ({ ...prev, database: 'offline' }));
+      }
+    } catch (error) {
+      console.error('DB check failed:', error);
+      setSystemStatus(prev => ({ ...prev, database: 'error' }));
+    }
+
+    // Check Agent (n8n)
+    try {
+      const agentOnline = await pingAgent();
+      setSystemStatus(prev => ({ ...prev, agent: agentOnline ? 'online' : 'offline' }));
+    } catch {
+      setSystemStatus(prev => ({ ...prev, agent: 'offline' }));
+    }
+
+    setLastChecked(new Date());
+    setIsRefreshing(false);
+  };
 
   const handleKeyChange = (id: string, value: string) => {
     setApiKeys(prev => prev.map(key => 
@@ -231,6 +311,82 @@ export const SettingsPage = () => {
             <SystemInfoItem label="AI Model" value="Gemini 1.5 Flash" />
             <SystemInfoItem label="Database" value="SQLite + Supabase" />
           </div>
+        </div>
+
+        {/* System Status & Health */}
+        <div className="bg-[#0a0c10] rounded-xl border border-white/5 p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+              <Activity size={16} className="text-emerald-400" />
+              System Status
+            </h2>
+            <div className="flex items-center gap-3">
+              {lastChecked && (
+                <span className="text-xs text-slate-500">
+                  Last checked: {lastChecked.toLocaleTimeString('th-TH')}
+                </span>
+              )}
+              <button
+                onClick={checkAllStatus}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-slate-300 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+                Refresh
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <StatusCard 
+              label="Database" 
+              status={systemStatus.database}
+              icon={<HardDrive size={18} />}
+              detail={dbStats ? `${dbStats.regions} regions, ${dbStats.provinces} provinces` : undefined}
+            />
+            <StatusCard 
+              label="AI Agent (n8n)" 
+              status={systemStatus.agent}
+              icon={<Bot size={18} />}
+              detail={systemStatus.agent === 'online' ? 'Connected via Ngrok' : 'Not responding'}
+            />
+            <StatusCard 
+              label="Network" 
+              status={systemStatus.network}
+              icon={systemStatus.network === 'online' ? <Wifi size={18} /> : <WifiOff size={18} />}
+              detail={systemStatus.network === 'online' ? 'Internet connected' : 'Offline mode'}
+            />
+          </div>
+
+          {/* Database Details */}
+          {dbStats && (
+            <div className="bg-[#0f1115] rounded-lg p-4 border border-white/5">
+              <div className="flex items-center gap-2 mb-3">
+                <Server size={14} className="text-cyan-400" />
+                <span className="text-xs font-bold text-slate-400 uppercase">Database Details</span>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">{dbStats.regions}</div>
+                  <div className="text-xs text-slate-500">Regions</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-emerald-400">{dbStats.provinces}</div>
+                  <div className="text-xs text-slate-500">Provinces</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-cyan-400">{dbStats.stats}</div>
+                  <div className="text-xs text-slate-500">Stats Records</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs font-mono text-slate-400 truncate" title={dbStats.dbPath}>
+                    {dbStats.dbPath.split(/[/\\]/).pop()}
+                  </div>
+                  <div className="text-xs text-slate-500">DB File</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Required API Keys */}
@@ -365,3 +521,64 @@ const SystemInfoItem = ({ label, value }: { label: string; value: string }) => (
     <div className="text-sm font-mono text-white">{value}</div>
   </div>
 );
+
+// Status Card Component
+interface StatusCardProps {
+  label: string;
+  status: 'checking' | 'online' | 'offline' | 'error';
+  icon: React.ReactNode;
+  detail?: string;
+}
+
+const StatusCard = ({ label, status, icon, detail }: StatusCardProps) => {
+  const statusConfig = {
+    checking: { 
+      color: 'text-slate-400', 
+      bg: 'bg-slate-500/20', 
+      border: 'border-slate-500/30',
+      label: 'Checking...',
+      dot: 'bg-slate-400 animate-pulse'
+    },
+    online: { 
+      color: 'text-emerald-400', 
+      bg: 'bg-emerald-500/20', 
+      border: 'border-emerald-500/30',
+      label: 'Online',
+      dot: 'bg-emerald-400'
+    },
+    offline: { 
+      color: 'text-amber-400', 
+      bg: 'bg-amber-500/20', 
+      border: 'border-amber-500/30',
+      label: 'Offline',
+      dot: 'bg-amber-400'
+    },
+    error: { 
+      color: 'text-red-400', 
+      bg: 'bg-red-500/20', 
+      border: 'border-red-500/30',
+      label: 'Error',
+      dot: 'bg-red-400'
+    }
+  };
+  
+  const config = statusConfig[status];
+  
+  return (
+    <div className={`${config.bg} rounded-xl border ${config.border} p-4 transition-all`}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className={`${config.color}`}>{icon}</div>
+        <div className="flex-1">
+          <div className="text-sm font-medium text-white">{label}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${config.dot}`} />
+          <span className={`text-xs font-bold ${config.color}`}>{config.label}</span>
+        </div>
+      </div>
+      {detail && (
+        <div className="text-xs text-slate-500 pl-7">{detail}</div>
+      )}
+    </div>
+  );
+};

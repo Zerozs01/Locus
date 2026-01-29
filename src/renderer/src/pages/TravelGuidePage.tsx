@@ -544,7 +544,7 @@ export function TravelGuidePage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="p-8 space-y-4">
+        <div className="p-8 space-y-4 w-full">
           {filteredRoutes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-500">
               <Route size={48} className="mb-4 opacity-50" />
@@ -558,7 +558,7 @@ export function TravelGuidePage() {
               return (
                 <div
                   key={route.id}
-                  className="bg-[#0f1115] border border-white/10 rounded-2xl overflow-hidden transition-all hover:border-white/20"
+                  className="bg-[#0f1115] border border-white/10 rounded-2xl overflow-hidden transition-all hover:border-white/20 w-full"
                 >
                   {/* Route Header */}
                   <div 

@@ -315,7 +315,7 @@ export function ArchiveView(): JSX.Element {
       )}
 
       {/* Province Grid/List */}
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar w-full">
         {filteredProvinces.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <Search size={48} className="mb-4 opacity-50" />
@@ -396,7 +396,7 @@ export function ArchiveView(): JSX.Element {
           </div>
         ) : (
           // List View - Full Width
-          <div className="space-y-3">
+          <div className="space-y-3 w-full">
             {filteredProvinces.map((province) => {
               const colors = regionColors[province.regionId] || regionColors.central;
               const inCompare = isInCompare(province.id);
@@ -404,7 +404,7 @@ export function ArchiveView(): JSX.Element {
               return (
                 <div
                   key={province.id}
-                  className={`group flex items-center gap-5 p-4 bg-[#0f1115] border rounded-2xl transition-all hover:bg-[#12151a] cursor-pointer w-full ${
+                  className={`group flex items-center gap-5 p-4 bg-[#0f1115] border rounded-2xl transition-all hover:bg-[#12151a] cursor-pointer ${
                     inCompare ? 'border-cyan-500 ring-2 ring-cyan-500/20' : 'border-white/10 hover:border-white/20'
                   }`}
                 >
