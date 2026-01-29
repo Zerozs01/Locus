@@ -1,5 +1,6 @@
+import { ComposableMap, Geographies, Geography, ZoomableGroup, Annotation } from 'react-simple-maps';
 import { Province } from '../data/regions';
-import React from 'react';
+import thailandGeo from '../data/thailand-geo.json';
 
 interface ThailandMapProps {
   activeId: string | null;
@@ -9,130 +10,269 @@ interface ThailandMapProps {
   onSelectProvince: (prov: Province) => void;
 }
 
-const provinceDots: Record<string, Record<string, { cx: number; cy: number }>> = {
-  north: { 
-    cm: {cx: 55, cy: 35}, cr: {cx: 70, cy: 20}, nan: {cx: 90, cy: 40}, 
-    phr: {cx: 80, cy: 50}, mhs: {cx: 40, cy: 30}, lp: {cx: 55, cy: 45}
-  },
-  northeast: { 
-    kk: {cx: 130, cy: 75}, nr: {cx: 120, cy: 95}, ub: {cx: 160, cy: 90}, 
-    ud: {cx: 130, cy: 60}, br: {cx: 135, cy: 100}, sr: {cx: 145, cy: 100}
-  },
-  central: { 
-    bkk: {cx: 85, cy: 135}, ay: {cx: 85, cy: 120}, kan: {cx: 60, cy: 125}, 
-    sp: {cx: 90, cy: 140}, nbi: {cx: 85, cy: 130}, pte: {cx: 85, cy: 125}
-  },
-  south: { 
-    pkt: {cx: 50, cy: 220}, srt: {cx: 65, cy: 200}, hy: {cx: 80, cy: 260}, 
-    kb: {cx: 55, cy: 225}, pna: {cx: 55, cy: 210}, trg: {cx: 70, cy: 240}
-  }
+// Map provinces to their regions
+const provinceToRegion: Record<string, string> = {
+  // North - 9 provinces
+  'Chiang Mai': 'north',
+  'Chiang Rai': 'north',
+  'Lampang': 'north',
+  'Lamphun': 'north',
+  'Mae Hong Son': 'north',
+  'Nan': 'north',
+  'Phayao': 'north',
+  'Phrae': 'north',
+  'Uttaradit': 'north',
+  
+  // Northeast (Isan) - 20 provinces
+  'Amnat Charoen': 'northeast',
+  'Bueng Kan': 'northeast',
+  'Buri Ram': 'northeast',
+  'Chaiyaphum': 'northeast',
+  'Kalasin': 'northeast',
+  'Khon Kaen': 'northeast',
+  'Loei': 'northeast',
+  'Maha Sarakham': 'northeast',
+  'Mukdahan': 'northeast',
+  'Nakhon Phanom': 'northeast',
+  'Nakhon Ratchasima': 'northeast',
+  'Nong Bua Lam Phu': 'northeast',
+  'Nong Khai': 'northeast',
+  'Roi Et': 'northeast',
+  'Sakon Nakhon': 'northeast',
+  'Si Sa Ket': 'northeast',
+  'Surin': 'northeast',
+  'Ubon Ratchathani': 'northeast',
+  'Udon Thani': 'northeast',
+  'Yasothon': 'northeast',
+  
+  // Central - 22 provinces + Bangkok
+  'Ang Thong': 'central',
+  'Bangkok Metropolis': 'central',
+  'Chai Nat': 'central',
+  'Kamphaeng Phet': 'central',
+  'Lop Buri': 'central',
+  'Nakhon Nayok': 'central',
+  'Nakhon Pathom': 'central',
+  'Nakhon Sawan': 'central',
+  'Nonthaburi': 'central',
+  'Pathum Thani': 'central',
+  'Phetchabun': 'central',
+  'Phichit': 'central',
+  'Phitsanulok': 'central',
+  'Phra Nakhon Si Ayutthaya': 'central',
+  'Samut Prakan': 'central',
+  'Samut Sakhon': 'central',
+  'Samut Songkhram': 'central',
+  'Saraburi': 'central',
+  'Sing Buri': 'central',
+  'Sukhothai': 'central',
+  'Suphan Buri': 'central',
+  'Uthai Thani': 'central',
+  
+  // West - 5 provinces
+  'Kanchanaburi': 'west',
+  'Phetchaburi': 'west',  // เพชรบุรี (ไม่ใช่ Phetchabun เพชรบูรณ์)
+  'Prachuap Khiri Khan': 'west',
+  'Ratchaburi': 'west',
+  'Tak': 'west',
+  
+  // East - 7 provinces
+  'Chachoengsao': 'east',
+  'Chanthaburi': 'east',
+  'Chon Buri': 'east',
+  'Prachin Buri': 'east',
+  'Rayong': 'east',
+  'Sa Kaeo': 'east',
+  'Trat': 'east',
+  
+  // South - 14 provinces
+  'Chumphon': 'south',
+  'Krabi': 'south',
+  'Nakhon Si Thammarat': 'south',
+  'Narathiwat': 'south',
+  'Pattani': 'south',
+  'Phangnga': 'south',
+  'Phatthalung': 'south',
+  'Phuket': 'south',
+  'Ranong': 'south',
+  'Satun': 'south',
+  'Songkhla': 'south',
+  'Surat Thani': 'south',
+  'Trang': 'south',
+  'Yala': 'south',
 };
 
-const regionsDataList = [
-  { 
-    id: 'north', label: 'NORTH', labelX: 65, labelY: 45, zoomX: 65, zoomY: 45,
-    d: "M 50 15 Q 70 5 90 20 L 100 55 L 100 70 L 55 80 L 30 50 Z", 
-    color: "fill-rose-500", glow: "drop-shadow-[0_0_20px_rgba(244,63,94,0.6)]"
-  },
-  { 
-    id: 'northeast', label: 'ISAN', labelX: 135, labelY: 90, zoomX: 135, zoomY: 90,
-    d: "M 100 70 L 150 60 L 175 75 L 170 120 L 120 120 L 100 70 Z", 
-    color: "fill-emerald-500", glow: "drop-shadow-[0_0_20px_rgba(16,185,129,0.6)]"
-  },
-  { 
-    id: 'central', label: 'CENTRAL', labelX: 80, labelY: 105, zoomX: 80, zoomY: 105,
-    d: "M 55 80 L 100 70 L 100 80 L 120 120 L 100 150 L 65 130 Z", 
-    color: "fill-cyan-500", glow: "drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]"
-  },
-  { 
-    id: 'south', label: 'SOUTH', labelX: 70, labelY: 200, zoomX: 70, zoomY: 200,
-    d: "M 65 130 L 100 150 L 90 190 Q 100 240 95 245 L 65 285 L 45 180 Z", 
-    color: "fill-blue-500", glow: "drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]"
-  }
-];
+// Region colors - ใช้สีที่ชัดเจนสำหรับแต่ละภาค
+const regionColors: Record<string, { default: string; active: string; hover: string; dimmed: string }> = {
+  north: { default: '#475569', active: '#f43f5e', hover: '#64748b', dimmed: '#7f1d1d' },      // แดง/ชมพู
+  northeast: { default: '#475569', active: '#fbcfe8', hover: '#64748b', dimmed: '#831843' },  // ชมพูอ่อน
+  central: { default: '#475569', active: '#06b6d4', hover: '#64748b', dimmed: '#164e63' },    // ฟ้า cyan
+  west: { default: '#475569', active: '#a855f7', hover: '#64748b', dimmed: '#581c87' },       // ม่วง purple
+  east: { default: '#475569', active: '#22c55e', hover: '#64748b', dimmed: '#14532d' },       // เขียว green
+  south: { default: '#475569', active: '#f97316', hover: '#64748b', dimmed: '#7c2d12' },      // ส้ม orange
+};
+
+// Region label positions (lat, lng) - ตำแหน่งศูนย์กลางแต่ละภาค
+const regionLabelPositions: Record<string, [number, number]> = {
+  north: [99.4, 18.5],
+  northeast: [103.3, 16],
+  central: [100.3, 15.6],
+  west: [99.3, 14.3],
+  east: [101.7, 13.3],
+  south: [99.4, 8.4],
+};
 
 export const ThailandMap = ({ 
   activeId, 
   onSelectRegion, 
-  viewMode, 
+  viewMode,
   selectedProvince
 }: ThailandMapProps) => {
 
-  const getTransform = () => {
+  const getZoomCenter = (): { center: [number, number]; zoom: number } => {
     if (activeId && viewMode === 'province') {
-       if (selectedProvince && provinceDots[activeId] && provinceDots[activeId][selectedProvince.id]) {
-          const dot = provinceDots[activeId][selectedProvince.id];
-          return `translate(${110 - dot.cx * 2.5}, ${150 - dot.cy * 2.5}) scale(2.5)`;
-       }
-       const reg = regionsDataList.find(r => r.id === activeId);
-       if (reg) {
-          return `translate(${110 - reg.zoomX * 1.8}, ${150 - reg.zoomY * 1.8}) scale(1.8)`;
-       }
+      switch (activeId) {
+        case 'north':
+          return { center: [99.5, 18.5], zoom: 4 };
+        case 'northeast':
+          return { center: [103.5, 15.5], zoom: 3.5 };
+        case 'central':
+          return { center: [100.5, 15], zoom: 4 };
+        case 'west':
+          return { center: [99, 14], zoom: 4 };
+        case 'east':
+          return { center: [102, 13], zoom: 5 };
+        case 'south':
+          return { center: [99.5, 9], zoom: 3.5 };
+        default:
+          return { center: [101, 13.5], zoom: 1.5 };
+      }
     }
-    return `translate(0, 0) scale(1)`;
+    return { center: [101, 13.5], zoom: 1.5 };
   };
 
+  const { center, zoom } = getZoomCenter();
+
   return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-hidden pointer-events-none">
-      <div className="absolute inset-0 flex items-center justify-center opacity-10">
-         <div className="w-[450px] h-[450px] border border-cyan-500/30 rounded-full animate-[spin_30s_linear_infinite]"></div>
-         <div className="absolute w-[600px] h-[1px] bg-cyan-500/20 rotate-45"></div>
-      </div>
-
-      <svg viewBox="0 0 220 300" className="w-full h-full max-h-[85vh] drop-shadow-2xl filter overflow-visible z-10 transition-transform duration-1000 ease-in-out pointer-events-auto">
-        <g style={{ transform: getTransform(), transition: 'transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)', transformOrigin: 'center' }}>
-          {regionsDataList.map((reg) => {
-            const isActive = activeId === reg.id;
-            const isProvinceView = viewMode === 'province';
-            const isDimmed = isProvinceView && !isActive; 
-
-            return (
-              <g key={reg.id} onClick={() => onSelectRegion(reg.id)} className="cursor-pointer">
-                <path
-                  d={reg.d}
-                  className={`
-                    transition-all duration-500 ease-out stroke-[0.5] vector-effect-non-scaling-stroke
-                    ${isActive 
-                      ? `${reg.color} stroke-white ${reg.glow} opacity-100` 
-                      : `fill-slate-800/60 stroke-white/10 hover:fill-slate-700 hover:stroke-white/30 ${isDimmed ? 'opacity-30' : 'opacity-100'}`
-                    }
-                  `}
-                />
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      <ComposableMap
+        projection="geoMercator"
+        projectionConfig={{
+          scale: 2800,
+          center: [101, 12.2],
+        }}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <ZoomableGroup
+          center={center}
+          zoom={zoom}
+          minZoom={1}
+          maxZoom={8}
+        >
+          <Geographies geography={thailandGeo}>
+            {({ geographies }) =>
+              geographies.map((geo) => {
+                const provinceName = geo.properties.name;
+                const regionId = provinceToRegion[provinceName] || 'central';
+                const isRegionActive = activeId === regionId;
+                const isProvinceView = viewMode === 'province';
+                const isOtherRegion = activeId && !isRegionActive;
+                const colors = regionColors[regionId] || regionColors.central;
                 
-                <text 
-                  x={reg.labelX} y={reg.labelY} 
-                  className={`
-                    text-[8px] font-black pointer-events-none transition-all duration-500
-                    ${isActive ? 'fill-white scale-110' : 'fill-white/40 scale-100'}
-                    ${isDimmed ? 'opacity-0' : 'opacity-100'}
-                  `}
-                  textAnchor="middle"
-                  style={{ transformBox: 'fill-box', transformOrigin: 'center', textShadow: isActive ? '0 0 10px rgba(0,0,0,0.5)' : 'none' }}
-                >
-                  {reg.label}
-                </text>
-              </g>
-            );
-          })}
-          
-          {/* Active Province Dot */}
-          {viewMode === 'province' && activeId && selectedProvince && provinceDots[activeId] && provinceDots[activeId][selectedProvince.id] && (
-             <g>
-               <circle cx={provinceDots[activeId][selectedProvince.id].cx} cy={provinceDots[activeId][selectedProvince.id].cy} r="15" className="fill-cyan-500/20 animate-ping" />
-               <circle cx={provinceDots[activeId][selectedProvince.id].cx} cy={provinceDots[activeId][selectedProvince.id].cy} r="3" className="fill-cyan-400 stroke-2 stroke-black" />
-               <text 
-                 x={provinceDots[activeId][selectedProvince.id].cx} 
-                 y={provinceDots[activeId][selectedProvince.id].cy - 8} 
-                 className="text-[3px] fill-white font-bold uppercase" 
-                 textAnchor="middle"
-                 style={{ textShadow: '0 0 4px black' }}
-               >
-                 {selectedProvince.name}
-               </text>
-             </g>
-          )}
-        </g>
-      </svg>
+                // Province highlight logic
+                const isSelectedProvince = selectedProvince && provinceName === selectedProvince.name;
+                const isSameRegionAsSelected = selectedProvince && regionId === activeId;
+                
+                // Determine fill color
+                let fillColor = colors.default;
+                let opacity = 1;
+                
+                if (isProvinceView && activeId) {
+                  if (isSelectedProvince) {
+                    // Selected province - bright active color
+                    fillColor = colors.active;
+                    opacity = 1;
+                  } else if (isSameRegionAsSelected && !isSelectedProvince) {
+                    // Same region but not selected - dimmed version of active color
+                    fillColor = colors.dimmed;
+                    opacity = 0.9;
+                  } else if (isRegionActive && !selectedProvince) {
+                    // Region active but no province selected yet - all provinces bright
+                    fillColor = colors.active;
+                    opacity = 1;
+                  } else if (isOtherRegion) {
+                    // Other regions - gray out
+                    fillColor = '#1e293b';
+                    opacity = 0.4;
+                  }
+                } else if (isRegionActive) {
+                  fillColor = colors.active;
+                }
+
+                return (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    onClick={() => onSelectRegion(regionId)}
+                    style={{
+                      default: {
+                        fill: fillColor,
+                        stroke: isSelectedProvince ? '#fff' : (isRegionActive ? '#fff' : '#64748b'),
+                        strokeWidth: isSelectedProvince ? 0.8 : 0.3,
+                        outline: 'none',
+                        opacity: opacity,
+                        transition: 'all 0.3s ease',
+                      },
+                      hover: {
+                        fill: isSelectedProvince ? fillColor : (isRegionActive ? colors.active : colors.hover),
+                        stroke: '#fff',
+                        strokeWidth: 0.5,
+                        outline: 'none',
+                        cursor: 'pointer',
+                        opacity: isOtherRegion ? 0.5 : 1,
+                      },
+                      pressed: {
+                        fill: colors.active,
+                        stroke: '#fff',
+                        strokeWidth: 0.5,
+                        outline: 'none',
+                      },
+                    }}
+                  />
+                );
+              })
+            }
+          </Geographies>
+
+          {/* Region Labels - Using Annotation to stay fixed with map */}
+          {viewMode !== 'province' && Object.entries(regionLabelPositions).map(([regionId, coords]) => (
+            <Annotation
+              key={regionId}
+              subject={coords}
+              dx={0}
+              dy={0}
+              connectorProps={{}}
+            >
+              <text
+                textAnchor="middle"
+                alignmentBaseline="middle"
+                style={{
+                  fontFamily: 'system-ui',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  fill: activeId === regionId ? '#fff' : 'rgba(255,255,255,0.5)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  pointerEvents: 'none',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                }}
+              >
+                {regionId === 'northeast' ? 'ISAN' : regionId.toUpperCase()}
+              </text>
+            </Annotation>
+          ))}
+        </ZoomableGroup>
+      </ComposableMap>
     </div>
   );
 };

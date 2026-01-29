@@ -54,3 +54,7 @@ coverage/
 
 # TypeScript cache
 *.tsbuildinfo
+
+*storybook.log
+storybook-static/
+.chromatic/

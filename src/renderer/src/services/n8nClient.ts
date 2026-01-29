@@ -38,3 +38,22 @@ export const pingAgent = async (): Promise<boolean> => {
     return false
   }
 }
+
+export interface ChatResponse {
+  output: string;
+  // Add other fields if n8n returns more context
+}
+
+export const sendChatMessage = async (message: string, sessionId?: string): Promise<string> => {
+  try {
+    const response = await axios.post(`${N8N_WEBHOOK_URL}/chat`, {
+       message,
+       sessionId // Optional: if n8n workflow handles memory by session ID
+    });
+    // Adjust based on actual n8n return structure, assuming { output: "text" } or just text
+    return response.data.output || response.data.text || JSON.stringify(response.data); 
+  } catch (error) {
+    console.error("Chat Error:", error);
+    throw error;
+  }
+};
