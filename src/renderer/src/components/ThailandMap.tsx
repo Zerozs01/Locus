@@ -8,6 +8,7 @@ interface ThailandMapProps {
   viewMode: string;
   selectedProvince: Province | null;
   onSelectProvince: (prov: Province) => void;
+  onClearProvince?: () => void;
 }
 
 // Map provinces to their regions
@@ -126,7 +127,8 @@ export const ThailandMap = ({
   activeId, 
   onSelectRegion, 
   viewMode,
-  selectedProvince
+  selectedProvince,
+  onClearProvince
 }: ThailandMapProps) => {
 
   const getZoomCenter = (): { center: [number, number]; zoom: number } => {
@@ -152,6 +154,16 @@ export const ThailandMap = ({
   };
 
   const { center, zoom } = getZoomCenter();
+  const handleGeographyClick = (regionId: string) => {
+    if (viewMode === 'province' && selectedProvince) {
+      onClearProvince?.();
+      if (regionId !== activeId) {
+        onSelectRegion(regionId);
+      }
+      return;
+    }
+    onSelectRegion(regionId);
+  };
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
@@ -213,7 +225,7 @@ export const ThailandMap = ({
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    onClick={() => onSelectRegion(regionId)}
+                    onClick={() => handleGeographyClick(regionId)}
                     style={{
                       default: {
                         fill: fillColor,

@@ -1,6 +1,7 @@
 import { Region, Province } from '../data/regions';
 import { Grid, MapPin, Map as MapIcon, MessageSquare, Coins, Wallet, Utensils, Flower2, Landmark, Music, Shield, ExternalLink, Bus } from 'lucide-react';
 import { DetailCard } from './DetailCard';
+import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatProps } from './RegionalIntelBar';
 import { useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
 
@@ -34,6 +35,31 @@ const regionChatButtonStyles: Record<string, { bg: string; hover: string; border
   west: { bg: 'bg-purple-600/20', hover: 'hover:bg-purple-600/30', border: 'border-purple-500/30', text: 'text-purple-300' },
   east: { bg: 'bg-green-600/20', hover: 'hover:bg-green-600/30', border: 'border-green-500/30', text: 'text-green-300' },
   south: { bg: 'bg-orange-600/20', hover: 'hover:bg-orange-600/30', border: 'border-orange-500/30', text: 'text-orange-300' },
+};
+
+const climateByRegion: Record<string, ClimateStatProps> = {
+  north: { value: '24.8°C', trend: '-0.6°C (7d)', tone: 'cool' },
+  northeast: { value: '32.6°C', trend: '+0.9°C (7d)', tone: 'warm' },
+  central: { value: '34.1°C', trend: '+1.2°C (7d)', tone: 'hot' },
+  south: { value: '30.4°C', trend: '+0.3°C (7d)', tone: 'warm' },
+  west: { value: '31.2°C', trend: '+0.5°C (7d)', tone: 'warm' },
+  east: { value: '32.8°C', trend: '+0.8°C (7d)', tone: 'warm' },
+};
+
+const mobilityByRegion: Record<string, MobilityStatProps> = {
+  north: { state: 'ไหลเวียนปกติ', subtitle: 'ตามฤดูกาล', tone: 'normal' },
+  northeast: { state: 'ไหลเวียนปกติ', subtitle: 'เกษตรกรรม', tone: 'normal' },
+  central: { state: 'หนาแน่น', subtitle: 'ศูนย์กลางเมือง', tone: 'congested' },
+  south: { state: 'พีคตามฤดูกาล', subtitle: 'ท่องเที่ยว', tone: 'seasonal' },
+  west: { state: 'ไหลเวียนปกติ', subtitle: 'การค้าชายแดน', tone: 'normal' },
+  east: { state: 'พีคตามฤดูกาล', subtitle: 'อุตสาหกรรม/ท่าเรือ', tone: 'seasonal' },
+};
+
+const getStabilityProps = (safetyScore?: number): StabilityStatProps => {
+  const score = Number.isFinite(safetyScore) ? safetyScore : 80;
+  if (score >= 88) return { value: `${score}%`, label: 'เสถียร', tone: 'stable' };
+  if (score >= 80) return { value: `${score}%`, label: 'เฝ้าระวัง', tone: 'watch' };
+  return { value: `${score}%`, label: 'ผันผวน', tone: 'volatile' };
 };
 
 interface RegionDashboardProps {
@@ -72,6 +98,10 @@ export const RegionDashboard = ({
     <section className="flex-[3] bg-[#020305] relative overflow-hidden flex flex-col">
       {regions.map((reg) => {
         const isActive = selectedRegionId === reg.id;
+        const climate = climateByRegion[reg.id] || climateByRegion.central;
+        const mobility = mobilityByRegion[reg.id] || mobilityByRegion.central;
+        const stability = getStabilityProps(reg.safety);
+        const isProvinceFocus = mapMode === 'province' && !!selectedProvince;
         
         const hoverStyle = regionHoverStyles[reg.id] || regionHoverStyles.central;
         
@@ -172,6 +202,7 @@ export const RegionDashboard = ({
                            <MessageSquare size={16} /> Chat with AI
                         </button>
                      </div>
+                     <RegionalIntelBar climate={climate} stability={stability} mobility={mobility} />
                   </div>
                </div>
 
@@ -180,8 +211,17 @@ export const RegionDashboard = ({
                   <div className="grid grid-cols-3 gap-4 pb-8">
                     {(sortedProvincesByRegion.get(reg.id) || reg.subProvinces).map((prov) => {
                        const isSelected = selectedProvince?.id === prov.id;
+                       const isDisabled = isProvinceFocus && !isSelected;
                        return (
-                         <div key={prov.id} onClick={(e) => { e.stopPropagation(); onSelectProvince(prov); }} className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group hover:border-cyan-500/50 transition-all duration-300 cursor-pointer`}>
+                         <div
+                           key={prov.id}
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             if (isDisabled) return;
+                             onSelectProvince(prov);
+                           }}
+                           className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group transition-all duration-300 ${isDisabled ? 'opacity-40 pointer-events-none' : 'hover:border-cyan-500/50 cursor-pointer'}`}
+                         >
                             <div className="relative h-28 overflow-hidden">
                                <img loading="lazy" decoding="async" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={getDisplayName(prov.name)} />
                                <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors"></div>

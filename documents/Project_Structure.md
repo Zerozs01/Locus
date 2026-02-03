@@ -25,7 +25,6 @@ locus/
 │   ├── renderer/             # React Frontend (Vite)
 │   │   ├── index.html
 │   │   └── src/
-│   │       ├── App.tsx       # Main App Component (React Router)
 │   │       ├── main.tsx      # React Entry Point
 │   │       ├── components/
 │   │       │   ├── ChatOverlay.tsx      # AI Chat Overlay (deprecated)
@@ -33,6 +32,7 @@ locus/
 │   │       │   ├── DetailCard.tsx       # Region Detail Cards
 │   │       │   ├── Footer.tsx           # Footer Component
 │   │       │   ├── Header.tsx           # Header Component
+│   │       │   ├── RegionalIntelBar.tsx # Regional Intelligence Overview Bar
 │   │       │   ├── RegionDashboard.tsx  # Region/Province Dashboard
 │   │       │   ├── Sidebar.tsx          # Navigation Sidebar
 │   │       │   ├── ProvinceMap.tsx      # Leaflet Province Map
@@ -49,12 +49,7 @@ locus/
 │   │       │   ├── SettingsPage.tsx     # Settings (/settings)
 │   │       │   └── *.stories.tsx        # Page Storybook Stories
 │   │       ├── views/
-│   │       │   ├── ArchiveView.tsx      # Archive View Component
-│   │       │   ├── HistoryView.tsx      # History timeline view
-│   │       │   ├── MapView.tsx          # Map UI view
-│   │       │   ├── ScanView.tsx         # Image scan view
-│   │       │   ├── SettingsView.tsx     # Settings view (legacy)
-│   │       │   └── SyncView.tsx         # Sync status view
+│   │       │   └── ArchiveView.tsx      # Archive View Component
 │   │       ├── data/
 │   │       │   ├── regions.ts           # Region/Province Types & Static Data
 │   │       │   └── thaiProvinceNames.ts # Thai-English Province Name Mapping

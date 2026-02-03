@@ -53,6 +53,19 @@ export const RadarPage = () => {
   }, []);
 
   const activeData = regions.find(r => r.id === selectedRegionId);
+  const isProvinceFocus = mapMode === 'province' && !!selectedProvince;
+  const getProvincePopulation = (prov: Province | null) => {
+    if (!prov) return null;
+    if (prov.population) return prov.population;
+    if (typeof prov.populationValue === 'number') return prov.populationValue.toLocaleString();
+    return null;
+  };
+  const getProvinceArea = (prov: Province | null) => {
+    if (!prov) return null;
+    if (prov.area) return prov.area;
+    if (typeof prov.areaValue === 'number') return prov.areaValue.toLocaleString();
+    return null;
+  };
 
   // Get all provinces for search
   const allProvinces = useMemo(() => {
@@ -137,6 +150,7 @@ export const RadarPage = () => {
             viewMode={mapMode} 
             selectedProvince={selectedProvince} 
             onSelectProvince={handleProvinceSelect} 
+            onClearProvince={() => setSelectedProvince(null)}
           />
         </div>
 
@@ -145,13 +159,13 @@ export const RadarPage = () => {
           <div className="absolute bottom-24 right-6 z-30 flex flex-col gap-2.5 animate-in fade-in slide-in-from-right-4 duration-500 items-end">
             <StatCard 
               icon={<Users size={18} />}
-              value={activeData.summary.pop}
+              value={isProvinceFocus ? (getProvincePopulation(selectedProvince) || activeData.summary.pop) : activeData.summary.pop}
               label="Population"
               colorClass="yellow"
             />
             <StatCard 
               icon={<Maximize size={18} />}
-              value={activeData.summary.area}
+              value={isProvinceFocus ? (getProvinceArea(selectedProvince) || activeData.summary.area) : activeData.summary.area}
               label="Area km²"
               colorClass="orange"
             />
