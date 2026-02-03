@@ -11,7 +11,7 @@ let regionsCache: Region[] | null = null;
 let regionSummaryCache: Region[] | null = null;
 let provincesCache: Map<string, Province> | null = null;
 let provincesByRegionCache: Map<string, Province[]> | null = null;
-let provinceIndexCache: Array<{ id: string; name: string; regionId: string; regionName: string }> | null = null;
+let provinceIndexCache: Array<{ id: string; name: string; regionId: string; regionName: string; dailyCostValue: number | null; populationValue: number | null; safety: number | null }> | null = null;
 
 // Performance optimizations for SQLite
 db.pragma('journal_mode = WAL');           // Write-Ahead Logging for better concurrency
@@ -87,6 +87,10 @@ export function initDatabase() {
   // Create indexes for faster queries
   db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region ON provinces(region_id);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_stats_region ON region_stats(region_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_name ON provinces(name);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_cost ON provinces(region_id, dailyCost_value);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_population ON provinces(region_id, population_value);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_safety ON provinces(region_id, safety);`);
 
   // Migrations: ensure numeric columns exist for legacy DBs
   ensureColumn('regions', 'population_value', 'INTEGER');
@@ -148,6 +152,22 @@ interface ProvinceRow {
   area_value: number | null;
   dailyCost: string | null;
   dailyCost_value: number | null;
+  safety: number | null;
+}
+
+interface ArchiveProvinceRow {
+  id: string;
+  name: string;
+  regionId: string;
+  image: string | null;
+  dist: number;
+  tam: number;
+  population: string | null;
+  populationValue: number | null;
+  area: string | null;
+  areaValue: number | null;
+  dailyCost: string | null;
+  dailyCostValue: number | null;
   safety: number | null;
 }
 
@@ -482,23 +502,113 @@ export function getProvincesByRegion(regionId: string): Province[] {
   return provinces;
 }
 
-export function getProvinceIndex(): Array<{ id: string; name: string; regionId: string; regionName: string }> {
+export function getProvinceIndex(): Array<{ id: string; name: string; regionId: string; regionName: string; dailyCostValue: number | null; populationValue: number | null; safety: number | null }> {
   if (provinceIndexCache) return provinceIndexCache;
 
   const rows = db.prepare(`
-    SELECT p.id as id, p.name as name, p.region_id as regionId, r.name as regionName
+    SELECT
+      p.id as id,
+      p.name as name,
+      p.region_id as regionId,
+      r.name as regionName,
+      p.dailyCost_value as dailyCostValue,
+      p.population_value as populationValue,
+      p.safety as safety
     FROM provinces p
     JOIN regions r ON r.id = p.region_id
     ORDER BY p.name ASC
-  `).all() as Array<{ id: string; name: string; regionId: string; regionName: string }>;
+  `).all() as Array<{ id: string; name: string; regionId: string; regionName: string; dailyCostValue: number | null; populationValue: number | null; safety: number | null }>;
 
   provinceIndexCache = rows;
   return provinceIndexCache;
 }
 
+export function getArchiveProvinces(params: {
+  regionIds?: string[];
+  ids?: string[];
+  sortBy?: string;
+  offset?: number;
+  limit?: number;
+}) {
+  const { regionIds, ids, sortBy = 'name', offset = 0, limit = 60 } = params;
+
+  if (Array.isArray(ids) && ids.length === 0) {
+    return { rows: [], total: 0 };
+  }
+
+  const where: string[] = [];
+  const queryParams: Array<string | number> = [];
+
+  if (ids && ids.length > 0) {
+    where.push(`p.id IN (${ids.map(() => '?').join(',')})`);
+    queryParams.push(...ids);
+  }
+
+  if (regionIds && regionIds.length > 0) {
+    where.push(`p.region_id IN (${regionIds.map(() => '?').join(',')})`);
+    queryParams.push(...regionIds);
+  }
+
+  const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+  const sortMap: Record<string, string> = {
+    name: 'p.name COLLATE NOCASE ASC',
+    'cost-high': 'COALESCE(p.dailyCost_value, 0) DESC',
+    'cost-low': 'COALESCE(p.dailyCost_value, 0) ASC',
+    'safety-high': 'COALESCE(p.safety, 0) DESC',
+    'safety-low': 'COALESCE(p.safety, 0) ASC',
+    'pop-high': 'COALESCE(p.population_value, 0) DESC',
+    'pop-low': 'COALESCE(p.population_value, 0) ASC',
+  };
+  const orderBy = sortMap[sortBy] || sortMap.name;
+
+  const countRow = db.prepare(`SELECT COUNT(*) as total FROM provinces p ${whereClause}`).get(...queryParams) as { total: number };
+  const rows = db.prepare(`
+    SELECT
+      p.id as id,
+      p.name as name,
+      p.region_id as regionId,
+      p.image as image,
+      p.dist as dist,
+      p.tam as tam,
+      p.population as population,
+      p.population_value as populationValue,
+      p.area as area,
+      p.area_value as areaValue,
+      p.dailyCost as dailyCost,
+      p.dailyCost_value as dailyCostValue,
+      p.safety as safety
+    FROM provinces p
+    ${whereClause}
+    ORDER BY ${orderBy}
+    LIMIT ? OFFSET ?
+  `).all(...queryParams, limit, offset) as ArchiveProvinceRow[];
+
+  return {
+    rows: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      regionId: row.regionId,
+      image: row.image || '',
+      dist: row.dist,
+      tam: row.tam,
+      population: row.population ?? undefined,
+      area: row.area ?? undefined,
+      dailyCost: row.dailyCost ?? undefined,
+      safety: row.safety ?? undefined,
+      populationValue: row.populationValue ?? undefined,
+      areaValue: row.areaValue ?? undefined,
+      dailyCostValue: row.dailyCostValue ?? undefined
+    })),
+    total: countRow.total
+  };
+}
+
 export function seedDatabase(initialRegions: Region[]) {
     regionsCache = null;
+    regionSummaryCache = null;
     provincesCache = null;
+    provincesByRegionCache = null;
+    provinceIndexCache = null;
     // Check main counts
     const regionCount = db.prepare('SELECT count(*) as count FROM regions').get() as { count: number };
     const provinceCount = db.prepare('SELECT count(*) as count FROM provinces').get() as { count: number };
@@ -596,7 +706,10 @@ export function seedDatabase(initialRegions: Region[]) {
 export function forceReseedDatabase(initialRegions: Region[]) {
     console.log('🔄 Force reseeding database...');
     regionsCache = null;
+    regionSummaryCache = null;
     provincesCache = null;
+    provincesByRegionCache = null;
+    provinceIndexCache = null;
     db.exec('DELETE FROM provinces;');
     db.exec('DELETE FROM region_stats;');
     db.exec('DELETE FROM regions;');

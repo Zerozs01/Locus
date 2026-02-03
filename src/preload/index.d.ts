@@ -18,7 +18,8 @@ declare global {
         getRegion: (id: string) => Promise<any>
         getProvince: (id: string) => Promise<any>
         getProvincesByRegion: (id: string) => Promise<any[]>
-        getProvinceIndex: () => Promise<Array<{ id: string; name: string; regionId: string; regionName: string }>>
+        getProvinceIndex: () => Promise<Array<{ id: string; name: string; regionId: string; regionName: string; dailyCostValue?: number | null; populationValue?: number | null; safety?: number | null }>>
+        getArchiveProvinces: (params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number }) => Promise<{ rows: any[]; total: number }>
         getStats: () => Promise<DatabaseStats>
         forceReseed: () => Promise<DatabaseStats>
       }

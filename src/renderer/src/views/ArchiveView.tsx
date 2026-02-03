@@ -10,7 +10,7 @@ import { measureAsync } from '../utils/perf';
 interface Province {
   id: string;
   name: string;
-  region_id: string;
+  regionId: string;
   image: string;
   dist: number;
   tam: number;
@@ -23,21 +23,14 @@ interface Province {
   dailyCostValue?: number;
 }
 
-interface Region {
+interface ProvinceIndexItem {
   id: string;
   name: string;
-  engName: string;
-  color: string;
-  subProvinces: Province[];
-}
-
-interface ProvinceDerived extends Province {
   regionId: string;
   regionName: string;
-  regionEngName: string;
-  regionColor: string;
-  costValue: number;
-  popValue: number;
+  dailyCostValue?: number | null;
+  populationValue?: number | null;
+  safety?: number | null;
 }
 
 // Region colors for tags
@@ -62,7 +55,11 @@ const regionNames: Record<string, string> = {
 type SortOption = 'name' | 'cost-high' | 'cost-low' | 'safety-high' | 'safety-low' | 'pop-high' | 'pop-low';
 
 export function ArchiveView(): JSX.Element {
-  const [regions, setRegions] = useState<Region[]>([]);
+  const [provinceIndex, setProvinceIndex] = useState<ProvinceIndexItem[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('name');
@@ -72,97 +69,116 @@ export function ArchiveView(): JSX.Element {
   const [showComparePanel, setShowComparePanel] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const pageSize = 60;
 
-  // Fetch data from DB
+  // Fetch province search index (used for Thai/EN matching)
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchIndex = async () => {
       try {
-        if (window.api && window.api.db) {
-          const data = await measureAsync('db:getRegions@ArchiveView', () => window.api.db.getRegions());
-          setRegions(data);
+        if (window.api?.db?.getProvinceIndex) {
+          const data = await measureAsync('db:getProvinceIndex@ArchiveView', () => window.api.db.getProvinceIndex());
+          setProvinceIndex(data);
         }
       } catch (error) {
-        console.error('Failed to load regions:', error);
+        console.error('Failed to load province index:', error);
       }
     };
-    fetchData();
+    fetchIndex();
   }, []);
 
-  // Get all provinces with region info and derived fields for fast sorting
-  const allProvinces = useMemo(() => {
-    const parseCost = (cost?: string): number => {
-      if (!cost) return 300;
-      const match = cost.match(/(\d+)/);
-      return match ? parseInt(match[1]) : 300;
-    };
-
-    const parsePopulation = (pop?: string): number => {
-      if (!pop) return 0;
-      const match = pop.match(/([\d.]+)([KM]?)/i);
-      if (!match) return 0;
-      const num = parseFloat(match[1]);
-      const unit = match[2].toUpperCase();
-      if (unit === 'M') return num * 1000000;
-      if (unit === 'K') return num * 1000;
-      return num;
-    };
-
-    return regions.flatMap(region => 
-      (region.subProvinces || []).map(prov => ({
-        ...prov,
-        regionId: region.id,
-        regionName: region.name,
-        regionEngName: region.engName,
-        regionColor: region.color,
-        costValue: prov.dailyCostValue ?? parseCost(prov.dailyCost),
-        popValue: prov.populationValue ?? parsePopulation(prov.population)
-      }))
-    );
-  }, [regions]);
-
-  // Filter and sort provinces
-  const filteredProvinces = useMemo(() => {
-    let result: ProvinceDerived[] = [...allProvinces];
-
-    // Filter by search (supports Thai and English)
-    if (deferredSearchQuery.trim()) {
-      result = result.filter(p => 
-        searchProvince(deferredSearchQuery, p.name)
-      );
-    }
-
-    // Filter by region
+  const searchActive = deferredSearchQuery.trim().length > 0;
+  const searchMatches = useMemo(() => {
+    if (!searchActive || provinceIndex.length === 0) return null;
+    let matches = provinceIndex.filter((p) => searchProvince(deferredSearchQuery, p.name));
     if (selectedRegions.length > 0) {
-      result = result.filter(p => selectedRegions.includes(p.regionId));
+      matches = matches.filter((p) => selectedRegions.includes(p.regionId));
     }
-
-    // Sort
+    const getCost = (item: ProvinceIndexItem) => item.dailyCostValue ?? 0;
+    const getPop = (item: ProvinceIndexItem) => item.populationValue ?? 0;
+    const getSafety = (item: ProvinceIndexItem) => item.safety ?? 0;
+    const sorted = [...matches];
     switch (sortBy) {
       case 'name':
-        result.sort((a, b) => a.name.localeCompare(b.name));
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case 'cost-high':
-        result.sort((a, b) => b.costValue - a.costValue);
+        sorted.sort((a, b) => getCost(b) - getCost(a));
         break;
       case 'cost-low':
-        result.sort((a, b) => a.costValue - b.costValue);
+        sorted.sort((a, b) => getCost(a) - getCost(b));
         break;
       case 'safety-high':
-        result.sort((a, b) => (b.safety || 80) - (a.safety || 80));
+        sorted.sort((a, b) => getSafety(b) - getSafety(a));
         break;
       case 'safety-low':
-        result.sort((a, b) => (a.safety || 80) - (b.safety || 80));
+        sorted.sort((a, b) => getSafety(a) - getSafety(b));
         break;
       case 'pop-high':
-        result.sort((a, b) => b.popValue - a.popValue);
+        sorted.sort((a, b) => getPop(b) - getPop(a));
         break;
       case 'pop-low':
-        result.sort((a, b) => a.popValue - b.popValue);
+        sorted.sort((a, b) => getPop(a) - getPop(b));
         break;
     }
+    return sorted;
+  }, [searchActive, deferredSearchQuery, provinceIndex, selectedRegions, sortBy]);
 
-    return result;
-  }, [allProvinces, deferredSearchQuery, selectedRegions, sortBy]);
+  const pagedSearchIds = useMemo(() => {
+    if (!searchMatches) return null;
+    const start = page * pageSize;
+    const slice = searchMatches.slice(start, start + pageSize);
+    return slice.map((p) => p.id);
+  }, [searchMatches, page, pageSize]);
+
+  // Reset paging when filters change
+  useEffect(() => {
+    setPage(0);
+    setProvinces([]);
+  }, [sortBy, selectedRegions, deferredSearchQuery]);
+
+  // Fetch provinces page (server-side filter/sort)
+  useEffect(() => {
+    const fetchPage = async () => {
+      if (!window.api?.db?.getArchiveProvinces) return;
+      if (searchActive && provinceIndex.length === 0) return;
+      if (searchActive && searchMatches && searchMatches.length === 0) {
+        setProvinces([]);
+        setTotalCount(0);
+        return;
+      }
+
+      if (searchActive && (!pagedSearchIds || pagedSearchIds.length === 0)) {
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number } = {
+          sortBy,
+          offset: page * pageSize,
+          limit: pageSize
+        };
+        if (!searchActive && selectedRegions.length > 0) {
+          params.regionIds = selectedRegions;
+        }
+        if (searchActive && pagedSearchIds) {
+          params.ids = pagedSearchIds;
+        }
+
+        const result = await measureAsync('db:getArchiveProvinces@ArchiveView', () => window.api.db.getArchiveProvinces(params));
+        const rows = searchActive && pagedSearchIds
+          ? [...result.rows].sort((a, b) => pagedSearchIds.indexOf(a.id) - pagedSearchIds.indexOf(b.id))
+          : result.rows;
+        setProvinces((prev) => (page === 0 ? rows : [...prev, ...rows]));
+        setTotalCount(searchActive && searchMatches ? searchMatches.length : result.total);
+      } catch (error) {
+        console.error('Failed to load provinces:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPage();
+  }, [page, sortBy, selectedRegions, searchActive, searchMatches, pagedSearchIds, provinceIndex.length]);
 
   // Toggle region filter
   const toggleRegion = (regionId: string) => {
@@ -174,7 +190,7 @@ export function ArchiveView(): JSX.Element {
   };
 
   // Toggle compare
-  const toggleCompare = (province: Province & { regionId: string }) => {
+  const toggleCompare = (province: Province) => {
     setCompareList(prev => {
       const exists = prev.find(p => p.id === province.id);
       if (exists) {
@@ -210,7 +226,7 @@ export function ArchiveView(): JSX.Element {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white tracking-tight">Geo-Archive</h1>
-              <p className="text-sm text-slate-500">Province gallery with smart filters • {filteredProvinces.length} of {allProvinces.length} provinces</p>
+              <p className="text-sm text-slate-500">Province gallery with smart filters • {provinces.length} of {totalCount} provinces</p>
             </div>
           </div>
 
@@ -330,7 +346,12 @@ export function ArchiveView(): JSX.Element {
 
       {/* Province Grid/List */}
       <div className="flex-1 overflow-y-auto p-6 custom-scrollbar w-full">
-        {filteredProvinces.length === 0 ? (
+        {isLoading && provinces.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-slate-500">
+            <Database size={48} className="mb-4 opacity-50" />
+            <p className="text-lg">กำลังโหลดจังหวัด...</p>
+          </div>
+        ) : provinces.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <Search size={48} className="mb-4 opacity-50" />
             <p className="text-lg">ไม่พบจังหวัดที่ตรงกับเงื่อนไข</p>
@@ -343,7 +364,7 @@ export function ArchiveView(): JSX.Element {
           </div>
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-            {filteredProvinces.map((province) => {
+            {provinces.map((province) => {
               const colors = regionColors[province.regionId] || regionColors.central;
               const inCompare = isInCompare(province.id);
               
@@ -413,7 +434,7 @@ export function ArchiveView(): JSX.Element {
         ) : (
           // List View - Full Width
           <div className="space-y-3 w-full">
-            {filteredProvinces.map((province) => {
+            {provinces.map((province) => {
               const colors = regionColors[province.regionId] || regionColors.central;
               const inCompare = isInCompare(province.id);
               
@@ -476,6 +497,20 @@ export function ArchiveView(): JSX.Element {
             })}
           </div>
         )}
+
+        {provinces.length < totalCount && (
+          <div className="flex items-center justify-center py-6">
+            <button
+              onClick={() => setPage((prev) => prev + 1)}
+              disabled={isLoading}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                isLoading ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+            >
+              {isLoading ? 'กำลังโหลด...' : 'โหลดเพิ่ม'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Compare Panel Overlay */}
@@ -503,7 +538,7 @@ export function ArchiveView(): JSX.Element {
             {/* Compare Grid */}
             <div className={`grid gap-6 ${compareList.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {compareList.map((province) => {
-                const colors = regionColors[(province as any).regionId] || regionColors.central;
+                const colors = regionColors[province.regionId] || regionColors.central;
                 
                 return (
                   <div key={province.id} className="bg-[#0f1115] border border-white/10 rounded-2xl overflow-hidden">
@@ -512,13 +547,13 @@ export function ArchiveView(): JSX.Element {
                       <img src={province.image} alt={province.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0f1115] via-transparent to-transparent" />
                       <button
-                        onClick={() => toggleCompare(province as Province & { regionId: string })}
+                        onClick={() => toggleCompare(province)}
                         className="absolute top-3 right-3 w-8 h-8 bg-red-500/80 rounded-lg flex items-center justify-center text-white hover:bg-red-500 transition-all"
                       >
                         <X size={16} />
                       </button>
                       <div className={`absolute bottom-3 left-3 px-2 py-1 rounded-lg text-xs font-bold ${colors.bg} ${colors.text}`}>
-                        {regionNames[(province as any).regionId]}
+                        {regionNames[province.regionId]}
                       </div>
                     </div>
 
@@ -580,7 +615,7 @@ export function ArchiveView(): JSX.Element {
               <div key={p.id} className="relative group">
                 <img src={p.image} alt={p.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-lg object-cover border-2 border-cyan-500" />
                 <button
-                  onClick={() => toggleCompare(p as Province & { regionId: string })}
+                  onClick={() => toggleCompare(p)}
                   className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <X size={10} className="text-white" />

@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, seedDatabase, forceReseedDatabase, getDatabaseStats } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats } from './database/db'
 import { initialRegions } from './database/initialData'
 
 function createWindow(): void {
@@ -83,6 +83,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle('db:getProvinceIndex', () => {
      return getProvinceIndex();
+  })
+
+  ipcMain.handle('db:getArchiveProvinces', (_, params) => {
+     return getArchiveProvinces(params);
   })
 
   // Database debug/maintenance handlers

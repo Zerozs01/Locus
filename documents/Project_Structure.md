@@ -113,6 +113,7 @@ locus/
 - ✅ Compare mode (up to 3 provinces side-by-side)
 - ✅ Thai/English search support
 - ✅ List view optimized width
+- ✅ Server-side pagination + indexed filtering (`db:getArchiveProvinces`)
 
 #### 🚌 Travel Guide Page
 - ✅ Transport routes by region (bus, van, train, plane, boat)

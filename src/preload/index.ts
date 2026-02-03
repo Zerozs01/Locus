@@ -11,6 +11,8 @@ const api = {
     getProvince: (id: string) => ipcRenderer.invoke('db:getProvince', id),
     getProvincesByRegion: (id: string) => ipcRenderer.invoke('db:getProvincesByRegion', id),
     getProvinceIndex: () => ipcRenderer.invoke('db:getProvinceIndex'),
+    getArchiveProvinces: (params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number }) =>
+      ipcRenderer.invoke('db:getArchiveProvinces', params),
     getStats: () => ipcRenderer.invoke('db:getStats'),
     forceReseed: () => ipcRenderer.invoke('db:forceReseed')
   }

@@ -10,7 +10,7 @@ The system follows a specific **"Local-First, Cloud-Sync"** hybrid architecture.
 - **Knowledge Base (Long-term Memory):** LightRAG (running locally/Docker) for graph-based retrieval.
 - **Data Persistence:** Supabase (PostgreSQL) for structured data and chat history memory.
 - **Local Cache & Offline Data:** SQLite (Better-SQLite3) integrated directly into Electron for ultra-fast "Local-First" data access (Regions/Provinces).
-  - **IPC Access:** Preload exposes `db:getRegionSummaries`, `db:getRegions`, `db:getRegion`, `db:getProvincesByRegion`, `db:getProvince`, `db:getProvinceIndex`, `db:getStats` for renderer data loading.
+  - **IPC Access:** Preload exposes `db:getRegionSummaries`, `db:getRegions`, `db:getRegion`, `db:getProvincesByRegion`, `db:getProvince`, `db:getProvinceIndex`, `db:getArchiveProvinces`, `db:getStats` for renderer data loading.
 
 ## 2. Data Flow (Chat & Analysis)
 
