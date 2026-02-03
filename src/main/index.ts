@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, seedDatabase, forceReseedDatabase, getDatabaseStats } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, seedDatabase, forceReseedDatabase, getDatabaseStats } from './database/db'
 import { initialRegions } from './database/initialData'
 
 function createWindow(): void {
@@ -64,6 +64,10 @@ app.whenReady().then(() => {
      return getRegions();
   })
 
+  ipcMain.handle('db:getRegionSummaries', () => {
+     return getRegionSummaries();
+  })
+
   ipcMain.handle('db:getRegion', (_, id) => {
      return getRegion(id);
   })
@@ -71,6 +75,14 @@ app.whenReady().then(() => {
   // Example of parameter usage, though currently not heavily used by frontend yet
   ipcMain.handle('db:getProvince', (_, id) => {
      return getProvince(id);
+  })
+
+  ipcMain.handle('db:getProvincesByRegion', (_, id) => {
+     return getProvincesByRegion(id);
+  })
+
+  ipcMain.handle('db:getProvinceIndex', () => {
+     return getProvinceIndex();
   })
 
   // Database debug/maintenance handlers

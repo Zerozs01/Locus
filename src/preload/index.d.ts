@@ -14,8 +14,11 @@ declare global {
       ping: () => void
       db: {
         getRegions: () => Promise<any[]>
+        getRegionSummaries: () => Promise<any[]>
         getRegion: (id: string) => Promise<any>
         getProvince: (id: string) => Promise<any>
+        getProvincesByRegion: (id: string) => Promise<any[]>
+        getProvinceIndex: () => Promise<Array<{ id: string; name: string; regionId: string; regionName: string }>>
         getStats: () => Promise<DatabaseStats>
         forceReseed: () => Promise<DatabaseStats>
       }

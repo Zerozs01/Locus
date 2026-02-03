@@ -6,8 +6,11 @@ const api = {
   ping: (): void => ipcRenderer.send('ping'),
   db: {
     getRegions: () => ipcRenderer.invoke('db:getRegions'),
+    getRegionSummaries: () => ipcRenderer.invoke('db:getRegionSummaries'),
     getRegion: (id: string) => ipcRenderer.invoke('db:getRegion', id),
     getProvince: (id: string) => ipcRenderer.invoke('db:getProvince', id),
+    getProvincesByRegion: (id: string) => ipcRenderer.invoke('db:getProvincesByRegion', id),
+    getProvinceIndex: () => ipcRenderer.invoke('db:getProvinceIndex'),
     getStats: () => ipcRenderer.invoke('db:getStats'),
     forceReseed: () => ipcRenderer.invoke('db:forceReseed')
   }

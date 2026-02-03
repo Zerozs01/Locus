@@ -8,7 +8,10 @@ const dbPath = path.join(app.getPath('userData'), 'locus.db');
 // Initialize Database (verbose mode disabled for cleaner terminal)
 const db = new Database(dbPath);
 let regionsCache: Region[] | null = null;
+let regionSummaryCache: Region[] | null = null;
 let provincesCache: Map<string, Province> | null = null;
+let provincesByRegionCache: Map<string, Province[]> | null = null;
+let provinceIndexCache: Array<{ id: string; name: string; regionId: string; regionName: string }> | null = null;
 
 // Performance optimizations for SQLite
 db.pragma('journal_mode = WAL');           // Write-Ahead Logging for better concurrency
@@ -17,6 +20,7 @@ db.pragma('synchronous = NORMAL');         // Balance between safety and speed
 db.pragma('temp_store = MEMORY');          // Store temp tables in memory
 db.pragma('mmap_size = 268435456');        // Memory-mapped I/O (256MB)
 db.pragma('foreign_keys = ON');            // Enforce foreign key constraints 
+db.pragma('busy_timeout = 3000');          // Avoid immediate "database is locked" errors
 
 export function initDatabase() {
   // Create tables if they don't exist (no more DROP every time)
@@ -314,18 +318,25 @@ export function getRegions(): Region[] {
   });
 
   regionsCache = result;
+  if (!regionSummaryCache) {
+    regionSummaryCache = result.map((region) => ({ ...region, subProvinces: [] }));
+  }
   const provinceMap = new Map<string, Province>();
+  const provinceByRegion = new Map<string, Province[]>();
   for (const region of result) {
+    provinceByRegion.set(region.id, region.subProvinces);
     for (const province of region.subProvinces) {
       provinceMap.set(province.id, province);
     }
   }
   provincesCache = provinceMap;
+  provincesByRegionCache = provinceByRegion;
   return result;
 }
 
 export function getRegion(id: string): Region | undefined {
   if (regionsCache) return regionsCache.find(r => r.id === id);
+  if (regionSummaryCache) return regionSummaryCache.find(r => r.id === id);
 
   const reg = db.prepare('SELECT * FROM regions WHERE id = ?').get(id) as RegionRow | undefined;
   if (!reg) return undefined;
@@ -385,6 +396,104 @@ export function getProvince(id: string): Province | undefined {
       areaValue: row.area_value ?? undefined,
       dailyCostValue: row.dailyCost_value ?? undefined
     };
+}
+
+export function getRegionSummaries(): Region[] {
+  if (regionSummaryCache) return regionSummaryCache;
+
+  const regions = db.prepare('SELECT * FROM regions').all() as RegionRow[];
+  const allStats = db.prepare('SELECT * FROM region_stats').all() as RegionStatsRow[];
+
+  const statsMap = new Map<string, RegionStatsRow>();
+  for (const stat of allStats) {
+    statsMap.set(stat.region_id, stat);
+  }
+
+  regionSummaryCache = regions.map((reg) => {
+    const stats = statsMap.get(reg.id);
+    return {
+      id: reg.id,
+      name: reg.name,
+      engName: reg.engName,
+      code: reg.code,
+      color: reg.color,
+      gradient: reg.gradient,
+      image: reg.image,
+      desc: reg.desc,
+      safety: reg.safety,
+      summary: {
+        pop: reg.population,
+        area: reg.area,
+        provinces: reg.province_count,
+        popValue: reg.population_value ?? undefined,
+        areaValue: reg.area_value ?? undefined
+      },
+      stats: {
+        dailyCost: stats?.dailyCost || '',
+        monthlyCost: stats?.monthlyCost || '',
+        flora: stats?.flora || '',
+        food: stats?.food || '',
+        attraction: stats?.attraction || '',
+        nightlife: stats?.nightlife || '',
+        dailyCostValue: stats?.dailyCost_value ?? undefined,
+        monthlyCostValue: stats?.monthlyCost_value ?? undefined
+      },
+      subProvinces: []
+    };
+  });
+
+  return regionSummaryCache;
+}
+
+export function getProvincesByRegion(regionId: string): Province[] {
+  if (provincesByRegionCache?.has(regionId)) {
+    return provincesByRegionCache.get(regionId)!;
+  }
+
+  const rows = db.prepare('SELECT * FROM provinces WHERE region_id = ?').all(regionId) as ProvinceRow[];
+  const provinces = rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    image: row.image || '',
+    dist: row.dist,
+    tam: row.tam,
+    serenity: row.serenity ?? undefined,
+    entertainment: row.entertainment ?? undefined,
+    relax: row.relax ?? undefined,
+    population: row.population ?? undefined,
+    area: row.area ?? undefined,
+    dailyCost: row.dailyCost ?? undefined,
+    safety: row.safety ?? undefined,
+    populationValue: row.population_value ?? undefined,
+    areaValue: row.area_value ?? undefined,
+    dailyCostValue: row.dailyCost_value ?? undefined
+  })) as Province[];
+
+  if (!provincesByRegionCache) {
+    provincesByRegionCache = new Map<string, Province[]>();
+  }
+  provincesByRegionCache.set(regionId, provinces);
+  if (!provincesCache) {
+    provincesCache = new Map<string, Province>();
+  }
+  for (const province of provinces) {
+    provincesCache.set(province.id, province);
+  }
+  return provinces;
+}
+
+export function getProvinceIndex(): Array<{ id: string; name: string; regionId: string; regionName: string }> {
+  if (provinceIndexCache) return provinceIndexCache;
+
+  const rows = db.prepare(`
+    SELECT p.id as id, p.name as name, p.region_id as regionId, r.name as regionName
+    FROM provinces p
+    JOIN regions r ON r.id = p.region_id
+    ORDER BY p.name ASC
+  `).all() as Array<{ id: string; name: string; regionId: string; regionName: string }>;
+
+  provinceIndexCache = rows;
+  return provinceIndexCache;
 }
 
 export function seedDatabase(initialRegions: Region[]) {

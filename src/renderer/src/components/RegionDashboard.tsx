@@ -3,7 +3,7 @@ import { Grid, MapPin, Map as MapIcon, MessageSquare, Coins, Wallet, Utensils, F
 import { DetailCard } from './DetailCard';
 import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatProps } from './RegionalIntelBar';
 import { useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 
 // Display names for provinces with long official names (GeoJSON names → Display names)
 const provinceDisplayNames: Record<string, string> = {
@@ -72,6 +72,7 @@ interface RegionDashboardProps {
   onSelectProvince: (prov: Province) => void;
   onViewProvinceDetail?: (regionId: string, provinceId: string) => void;
   onOpenChat?: (context: { type: 'region' | 'province'; name: string; data: any }) => void;
+  loadingProvinceRegionId?: string | null;
 }
 
 export const RegionDashboard = ({ 
@@ -83,9 +84,12 @@ export const RegionDashboard = ({
   selectedProvince,
   onSelectProvince,
   onViewProvinceDetail,
-  onOpenChat
+  onOpenChat,
+  loadingProvinceRegionId
 }: RegionDashboardProps) => {
   const navigate = useNavigate();
+  const provinceListRef = useRef<HTMLDivElement | null>(null);
+  const provinceCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const sortedProvincesByRegion = useMemo(() => {
     const map = new Map<string, Province[]>();
     for (const reg of regions) {
@@ -93,6 +97,15 @@ export const RegionDashboard = ({
     }
     return map;
   }, [regions]);
+
+  useEffect(() => {
+    if (mapMode !== 'province' || !selectedProvince) return;
+    const target = provinceCardRefs.current.get(selectedProvince.id);
+    if (!target || !provinceListRef.current) return;
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [mapMode, selectedProvince?.id, selectedRegionId, regions]);
 
   return (
     <section className="flex-[3] bg-[#020305] relative overflow-hidden flex flex-col">
@@ -207,20 +220,33 @@ export const RegionDashboard = ({
                </div>
 
                {/* PROVINCE GALLERY GRID (3 Columns) - Sorted A-Z with Scroll */}
-               <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar mt-2 pr-1 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full h-full'}`} style={{ maxHeight: 'calc(100% - 80px)' }}>
+               <div
+                 ref={isActive ? provinceListRef : undefined}
+                 className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar mt-2 pr-1 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full h-full'}`}
+                 style={{ maxHeight: 'calc(100% - 80px)' }}
+               >
                   <div className="grid grid-cols-3 gap-4 pb-8">
-                    {(sortedProvincesByRegion.get(reg.id) || reg.subProvinces).map((prov) => {
+                    {isActive && reg.subProvinces.length === 0 && loadingProvinceRegionId === reg.id ? (
+                      <div className="col-span-3 text-center text-sm text-slate-500 py-10">
+                        กำลังโหลดจังหวัด...
+                      </div>
+                    ) : (sortedProvincesByRegion.get(reg.id) || reg.subProvinces).map((prov) => {
                        const isSelected = selectedProvince?.id === prov.id;
-                       const isDisabled = isProvinceFocus && !isSelected;
-                       return (
+                        return (
                          <div
                            key={prov.id}
+                           ref={(el) => {
+                             if (el) {
+                               provinceCardRefs.current.set(prov.id, el);
+                             } else {
+                               provinceCardRefs.current.delete(prov.id);
+                             }
+                           }}
                            onClick={(e) => {
                              e.stopPropagation();
-                             if (isDisabled) return;
                              onSelectProvince(prov);
                            }}
-                           className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group transition-all duration-300 ${isDisabled ? 'opacity-40 pointer-events-none' : 'hover:border-cyan-500/50 cursor-pointer'}`}
+                           className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group transition-all duration-300 hover:border-cyan-500/50 cursor-pointer`}
                          >
                             <div className="relative h-28 overflow-hidden">
                                <img loading="lazy" decoding="async" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={getDisplayName(prov.name)} />

@@ -108,12 +108,8 @@ export const MobilityStat = ({ state, subtitle, tone }: MobilityStatProps) => {
 
 export const RegionalIntelBar = ({ climate, stability, mobility }: RegionalIntelBarProps) => {
   return (
-    <div className="mt-4 min-h-[96px] rounded-2xl border border-white/5 bg-[#0a0c10]/70 backdrop-blur-md p-4 shadow-[0_0_25px_rgba(8,145,178,0.12)] hover:shadow-[0_0_30px_rgba(8,145,178,0.18)] transition-shadow">
-      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/50">
-        <span>🌍</span>
-        Regional Intelligence Overview
-      </div>
-      <div className="mt-2 h-px w-full bg-gradient-to-r from-white/10 via-white/30 to-transparent" />
+    <div className="mt-3 min-h-[96px] rounded-2xl border border-white/5 bg-[#0a0c10]/70 backdrop-blur-md p-4 shadow-[0_0_25px_rgba(8,145,178,0.12)] hover:shadow-[0_0_30px_rgba(8,145,178,0.18)] transition-shadow">
+      <div className="mt-1 h-px w-full bg-gradient-to-r from-white/10 via-white/30 to-transparent" />
       <div className="mt-3 grid grid-cols-3 gap-4">
         <ClimateStat {...climate} />
         <StabilityStat {...stability} />
