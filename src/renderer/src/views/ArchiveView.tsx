@@ -216,7 +216,7 @@ export function ArchiveView(): JSX.Element {
   ];
 
   return (
-    <div className="h-full flex flex-col bg-[#020305] overflow-hidden">
+    <div className="h-full w-full flex-1 min-w-0 flex flex-col bg-[#020305] overflow-hidden">
       {/* Header */}
       <div className="shrink-0 px-8 py-6 border-b border-white/5">
         <div className="flex items-center justify-between">
@@ -363,7 +363,7 @@ export function ArchiveView(): JSX.Element {
             </button>
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
             {provinces.map((province) => {
               const colors = regionColors[province.regionId] || regionColors.central;
               const inCompare = isInCompare(province.id);
@@ -441,7 +441,7 @@ export function ArchiveView(): JSX.Element {
               return (
                 <div
                   key={province.id}
-                  className={`group flex items-center gap-5 p-4 bg-[#0f1115] border rounded-2xl transition-all hover:bg-[#12151a] cursor-pointer ${
+                  className={`group w-full flex items-center gap-5 p-4 bg-[#0f1115] border rounded-2xl transition-all hover:bg-[#12151a] cursor-pointer ${
                     inCompare ? 'border-cyan-500 ring-2 ring-cyan-500/20' : 'border-white/10 hover:border-white/20'
                   }`}
                 >

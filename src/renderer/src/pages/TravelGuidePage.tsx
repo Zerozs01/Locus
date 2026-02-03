@@ -435,8 +435,8 @@ export function TravelGuidePage() {
   const deferredFareCalcFrom = useDeferredValue(fareCalcFrom);
   const deferredFareCalcTo = useDeferredValue(fareCalcTo);
 
-  const region = regionId ? regionInfo[regionId] : null;
-  const routes = regionId ? (regionTransportData[regionId] || []) : [];
+  const region = useMemo(() => (regionId ? regionInfo[regionId] : null), [regionId]);
+  const routes = useMemo(() => (regionId ? (regionTransportData[regionId] || []) : []), [regionId]);
 
   // Filter routes
   const filteredRoutes = useMemo(() => {
@@ -509,7 +509,7 @@ export function TravelGuidePage() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#020305] overflow-hidden">
+    <div className="h-full w-full flex-1 min-w-0 flex flex-col bg-[#020305] overflow-hidden">
       {/* Header */}
       <div className="shrink-0 px-8 py-6 border-b border-white/5">
         <div className="flex items-center gap-4">

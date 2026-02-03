@@ -72,43 +72,51 @@ export const AnalyticsPage = () => {
   const loadAllData = async () => {
     setIsLoading(true);
     
-    // Load regions from DB
     try {
-      if (window.api?.db?.getRegions) {
-        const data = await measureAsync('db:getRegions@AnalyticsPage', () => window.api.db.getRegions());
-        setRegions(data);
+      const regionPromise = window.api?.db?.getRegionSummaries
+        ? measureAsync('db:getRegionSummaries@AnalyticsPage', () => window.api.db.getRegionSummaries())
+        : window.api?.db?.getRegions
+          ? measureAsync('db:getRegions@AnalyticsPage', () => window.api.db.getRegions())
+          : Promise.resolve([]);
+
+      const statsPromise = window.api?.db?.getStats
+        ? measureAsync('db:getStats@AnalyticsPage', () => window.api.db.getStats())
+        : Promise.resolve(null);
+
+      const agentPromise = measureAsync('pingAgent@AnalyticsPage', () => pingAgent());
+
+      const [regionResult, statsResult, agentResult] = await Promise.allSettled([
+        regionPromise,
+        statsPromise,
+        agentPromise
+      ]);
+
+      if (regionResult.status === 'fulfilled') {
+        setRegions(regionResult.value);
+      }
+
+      if (statsResult.status === 'fulfilled') {
+        setSystemStats(prev => ({ ...prev, database: statsResult.value }));
+      }
+
+      if (agentResult.status === 'fulfilled') {
+        setSystemStats(prev => ({ ...prev, agent: agentResult.value ? 'online' : 'offline' }));
+      } else {
+        setSystemStats(prev => ({ ...prev, agent: 'offline' }));
       }
     } catch (error) {
-      console.error('Failed to load regions:', error);
+      console.error('Failed to load analytics data:', error);
+    } finally {
+      setSystemStats(prev => ({ ...prev, lastUpdated: new Date(), network: navigator.onLine }));
+      setIsLoading(false);
     }
-
-    // Load DB stats
-    try {
-      if (window.api?.db?.getStats) {
-        const stats = await measureAsync('db:getStats@AnalyticsPage', () => window.api.db.getStats());
-        setSystemStats(prev => ({ ...prev, database: stats }));
-      }
-    } catch (error) {
-      console.error('Failed to load DB stats:', error);
-    }
-
-    // Check agent status
-    try {
-      const agentOnline = await measureAsync('pingAgent@AnalyticsPage', () => pingAgent());
-      setSystemStats(prev => ({ ...prev, agent: agentOnline ? 'online' : 'offline' }));
-    } catch {
-      setSystemStats(prev => ({ ...prev, agent: 'offline' }));
-    }
-
-    setSystemStats(prev => ({ ...prev, lastUpdated: new Date(), network: navigator.onLine }));
-    setIsLoading(false);
   };
 
   // Computed statistics
   const regionStats = useMemo(() => {
     if (regions.length === 0) return null;
     
-    const totalProvinces = regions.reduce((sum, r) => sum + r.subProvinces.length, 0);
+    const totalProvinces = regions.reduce((sum, r) => sum + (r.summary?.provinces || 0), 0);
     const avgSafety = Math.round(regions.reduce((sum, r) => sum + r.safety, 0) / regions.length);
     const totalArea = regions.reduce((sum, r) => {
       if (typeof r.summary.areaValue === 'number') return sum + r.summary.areaValue;
@@ -139,7 +147,7 @@ export const AnalyticsPage = () => {
   const provinceDistribution = useMemo(() => {
     return regions.map(r => ({
       name: r.engName,
-      count: r.subProvinces.length,
+      count: r.summary?.provinces || 0,
       color: r.color,
       safety: r.safety
     })).sort((a, b) => b.count - a.count);
