@@ -25,13 +25,15 @@ interface TransportRoute {
   notes?: string;
 }
 
-const matchesQuery = (value: string, query: string): boolean => {
-  if (!query.trim()) return false;
+const buildMatcher = (query: string): ((value: string) => boolean) | null => {
+  const trimmed = query.trim();
+  if (!trimmed) return null;
   try {
-    const regex = new RegExp(query, 'i');
-    return regex.test(value);
+    const regex = new RegExp(trimmed, 'i');
+    return (value: string) => regex.test(value);
   } catch {
-    return value.toLowerCase().includes(query.toLowerCase());
+    const lower = trimmed.toLowerCase();
+    return (value: string) => value.toLowerCase().includes(lower);
   }
 };
 
@@ -438,26 +440,34 @@ export function TravelGuidePage() {
   const region = useMemo(() => (regionId ? regionInfo[regionId] : null), [regionId]);
   const routes = useMemo(() => (regionId ? (regionTransportData[regionId] || []) : []), [regionId]);
 
+  const routesWithSearchText = useMemo(() => {
+    return routes.map((route) => ({
+      ...route,
+      searchText: [
+        route.name,
+        route.operator,
+        route.from,
+        route.to,
+        ...(route.via || [])
+      ].join(' • ')
+    }));
+  }, [routes]);
+
   // Filter routes
   const filteredRoutes = useMemo(() => {
-    let result = [...routes];
+    let result = [...routesWithSearchText];
 
     if (selectedTypes.length > 0) {
       result = result.filter(r => selectedTypes.includes(r.type));
     }
 
-    if (deferredSearchQuery.trim()) {
-      const query = deferredSearchQuery.trim();
-      result = result.filter(r => 
-        matchesQuery(r.name, query) ||
-        matchesQuery(r.from, query) ||
-        matchesQuery(r.to, query) ||
-        r.via.some(v => matchesQuery(v, query))
-      );
+    const matcher = buildMatcher(deferredSearchQuery);
+    if (matcher) {
+      result = result.filter(r => matcher(r.searchText));
     }
 
     return result;
-  }, [routes, selectedTypes, deferredSearchQuery]);
+  }, [routesWithSearchText, selectedTypes, deferredSearchQuery]);
 
   // Get all provinces mentioned in routes for fare calculator
   const allProvinces = useMemo(() => {
@@ -473,13 +483,15 @@ export function TravelGuidePage() {
   const allProvincesSet = useMemo(() => new Set(allProvinces), [allProvinces]);
 
   const fromSuggestions = useMemo(() => {
-    if (!deferredFareCalcFrom) return [];
-    return allProvinces.filter(p => matchesQuery(p, deferredFareCalcFrom)).slice(0, 5);
+    const matcher = buildMatcher(deferredFareCalcFrom);
+    if (!matcher) return [];
+    return allProvinces.filter(p => matcher(p)).slice(0, 5);
   }, [allProvinces, deferredFareCalcFrom]);
 
   const toSuggestions = useMemo(() => {
-    if (!deferredFareCalcTo) return [];
-    return allProvinces.filter(p => matchesQuery(p, deferredFareCalcTo)).slice(0, 5);
+    const matcher = buildMatcher(deferredFareCalcTo);
+    if (!matcher) return [];
+    return allProvinces.filter(p => matcher(p)).slice(0, 5);
   }, [allProvinces, deferredFareCalcTo]);
 
   // Toggle transport type filter

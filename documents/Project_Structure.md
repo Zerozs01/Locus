@@ -154,6 +154,15 @@ locus/
 
 ---
 
+## Phase C: Performance Pass ✅
+
+### Completed:
+- ✅ Geo-Archive server-side pagination + indexed filtering (`db:getArchiveProvinces`)
+- ✅ TravelGuide search matcher precompiled for faster filtering + suggestions
+- ✅ Analytics loads region summaries in parallel (reduced blocking)
+
+---
+
 ## Region Color Scheme
 
 | Region | Thai Name | Color Class | Gradient |
