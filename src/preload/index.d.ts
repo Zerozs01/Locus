@@ -23,6 +23,10 @@ declare global {
         getStats: () => Promise<DatabaseStats>
         forceReseed: () => Promise<DatabaseStats>
       }
+      assets: {
+        getImageCacheStats: () => Promise<{ fileCount: number; totalBytes: number; path: string }>
+        clearImageCache: () => Promise<{ fileCount: number; totalBytes: number; path: string }>
+      }
     }
   }
 }

@@ -2,6 +2,7 @@ import { Region, Province } from '../data/regions';
 import { Grid, MapPin, Map as MapIcon, MessageSquare, Coins, Wallet, Utensils, Flower2, Landmark, Music, Shield, ExternalLink, Bus } from 'lucide-react';
 import { DetailCard } from './DetailCard';
 import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatProps } from './RegionalIntelBar';
+import { CachedImage } from './CachedImage';
 import { useNavigate } from 'react-router-dom';
 import { useMemo, useRef, useEffect } from 'react';
 
@@ -129,7 +130,7 @@ export const RegionDashboard = ({
           >
             {/* Background */}
             <div className="absolute inset-0 overflow-hidden">
-              <img loading="lazy" decoding="async" src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-30'}`} alt={reg.name} />
+              <CachedImage loading="lazy" decoding="async" src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-30'}`} alt={reg.name} />
               <div className={`absolute inset-0 ${isActive ? 'bg-gradient-to-r from-black via-black/95 to-black/50' : 'bg-black/80 hover:bg-black/60 transition-colors'}`}></div>
             </div>
 
@@ -249,7 +250,7 @@ export const RegionDashboard = ({
                            className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group transition-all duration-300 hover:border-cyan-500/50 cursor-pointer`}
                          >
                             <div className="relative h-28 overflow-hidden">
-                               <img loading="lazy" decoding="async" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={getDisplayName(prov.name)} />
+                               <CachedImage loading="lazy" decoding="async" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={getDisplayName(prov.name)} />
                                <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors"></div>
                                <div className="absolute bottom-2 left-2 right-2">
                                   <h3 className="text-lg font-bold text-white drop-shadow-md">{getDisplayName(prov.name)}</h3>

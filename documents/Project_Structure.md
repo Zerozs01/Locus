@@ -27,6 +27,7 @@ locus/
 │   │   └── src/
 │   │       ├── main.tsx      # React Entry Point
 │   │       ├── components/
+│   │       │   ├── CachedImage.tsx      # Safe cached image wrapper
 │   │       │   ├── ChatOverlay.tsx      # AI Chat Overlay (deprecated)
 │   │       │   ├── DataCard.tsx         # Data Display Cards
 │   │       │   ├── DetailCard.tsx       # Region Detail Cards
@@ -55,6 +56,9 @@ locus/
 │   │       │   └── thaiProvinceNames.ts # Thai-English Province Name Mapping
 │   │       ├── services/
 │   │       │   └── n8nClient.ts         # n8n API Client
+│   │       ├── utils/
+│   │       │   ├── imageCache.ts        # Cached image URL helper (locus protocol)
+│   │       │   └── perf.ts              # Perf measurement helper
 │   │       └── styles/
 │   │           └── index.css            # Global Styles (TailwindCSS)
 │   ├── shared/               # Shared Types & Interfaces
@@ -160,6 +164,16 @@ locus/
 - ✅ Geo-Archive server-side pagination + indexed filtering (`db:getArchiveProvinces`)
 - ✅ TravelGuide search matcher precompiled for faster filtering + suggestions
 - ✅ Analytics loads region summaries in parallel (reduced blocking)
+- ✅ Asset cache: `locus://image` protocol + disk cache controls in Settings
+- ✅ Image cache supports range requests for large assets
+
+---
+
+## Phase D: Asset Reliability ✅
+
+### Completed:
+- ✅ Image protocol registers before window creation to prevent 404 race conditions
+- ✅ Fallback image for invalid/failed URLs + short-lived failure cache
 
 ---
 

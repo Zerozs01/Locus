@@ -38,6 +38,10 @@ The system uses a **"Tunneling"** method to communicate.
 - **Runtime:** Electron
 - **Build:** electron-vite
 - **Database:** SQLite (better-sqlite3) with WAL mode
+- **Asset Protocol:** `locus://image?url=...` (on-demand image cache)
+  - **Cache Controls:** size-limited disk cache + clearable from Settings
+  - **Streaming:** range requests supported for large images
+  - **Reliability:** protocol registered before window creation + fallback image for invalid/failed URLs
 
 ### Backend/AI
 - **Automation:** n8n + Ngrok

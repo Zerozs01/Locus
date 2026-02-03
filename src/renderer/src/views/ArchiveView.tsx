@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { searchProvince } from '../data/thaiProvinceNames';
 import { measureAsync } from '../utils/perf';
+import { CachedImage } from '../components/CachedImage';
 
 interface Province {
   id: string;
@@ -377,7 +378,7 @@ export function ArchiveView(): JSX.Element {
                 >
                   {/* Image */}
                   <div className="relative h-32 overflow-hidden">
-                    <img
+                    <CachedImage
                       src={province.image}
                       alt={province.name}
                       loading="lazy"
@@ -446,7 +447,7 @@ export function ArchiveView(): JSX.Element {
                   }`}
                 >
                   {/* Image */}
-                  <img
+                  <CachedImage
                     src={province.image}
                     alt={province.name}
                     loading="lazy"
@@ -544,7 +545,7 @@ export function ArchiveView(): JSX.Element {
                   <div key={province.id} className="bg-[#0f1115] border border-white/10 rounded-2xl overflow-hidden">
                     {/* Image */}
                     <div className="relative h-40">
-                      <img src={province.image} alt={province.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                      <CachedImage src={province.image} alt={province.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0f1115] via-transparent to-transparent" />
                       <button
                         onClick={() => toggleCompare(province)}
@@ -613,7 +614,7 @@ export function ArchiveView(): JSX.Element {
           <div className="flex items-center gap-2">
             {compareList.map((p) => (
               <div key={p.id} className="relative group">
-                <img src={p.image} alt={p.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-lg object-cover border-2 border-cyan-500" />
+                <CachedImage src={p.image} alt={p.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-lg object-cover border-2 border-cyan-500" />
                 <button
                   onClick={() => toggleCompare(p)}
                   className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"

@@ -47,6 +47,12 @@ interface DatabaseStats {
   dbPath: string;
 }
 
+interface ImageCacheStats {
+  fileCount: number;
+  totalBytes: number;
+  path: string;
+}
+
 /**
  * Settings Page - API Keys & Configuration Management
  */
@@ -62,7 +68,9 @@ export const SettingsPage = () => {
     network: 'checking'
   });
   const [dbStats, setDbStats] = useState<DatabaseStats | null>(null);
+  const [imageCacheStats, setImageCacheStats] = useState<ImageCacheStats | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isClearingCache, setIsClearingCache] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([
@@ -197,8 +205,31 @@ export const SettingsPage = () => {
       setSystemStatus(prev => ({ ...prev, agent: 'offline' }));
     }
 
+    // Image Cache Stats
+    try {
+      if (window.api?.assets?.getImageCacheStats) {
+        const cacheStats = await window.api.assets.getImageCacheStats();
+        setImageCacheStats(cacheStats);
+      }
+    } catch (error) {
+      console.error('Cache stats failed:', error);
+    }
+
     setLastChecked(new Date());
     setIsRefreshing(false);
+  };
+
+  const clearImageCache = async () => {
+    if (!window.api?.assets?.clearImageCache) return;
+    setIsClearingCache(true);
+    try {
+      const stats = await window.api.assets.clearImageCache();
+      setImageCacheStats(stats);
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+    } finally {
+      setIsClearingCache(false);
+    }
   };
 
   const handleKeyChange = (id: string, value: string) => {
@@ -311,6 +342,33 @@ export const SettingsPage = () => {
             <SystemInfoItem label="AI Model" value="Gemini 1.5 Flash" />
             <SystemInfoItem label="Database" value="SQLite + Supabase" />
           </div>
+        </div>
+
+        {/* Image Cache */}
+        <div className="bg-[#0a0c10] rounded-xl border border-white/5 p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+              <HardDrive size={16} className="text-cyan-400" />
+              Image Cache
+            </h2>
+            <button
+              onClick={clearImageCache}
+              disabled={isClearingCache}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-slate-300 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={isClearingCache ? 'animate-spin' : ''} />
+              {isClearingCache ? 'Clearing...' : 'Clear Cache'}
+            </button>
+          </div>
+          {imageCacheStats ? (
+            <div className="grid grid-cols-3 gap-4">
+              <SystemInfoItem label="Cached Files" value={`${imageCacheStats.fileCount} files`} />
+              <SystemInfoItem label="Cache Size" value={`${(imageCacheStats.totalBytes / (1024 * 1024)).toFixed(1)} MB`} />
+              <SystemInfoItem label="Cache Path" value={imageCacheStats.path} />
+            </div>
+          ) : (
+            <div className="text-sm text-slate-500">Cache stats unavailable.</div>
+          )}
         </div>
 
         {/* System Status & Health */}

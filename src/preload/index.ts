@@ -15,6 +15,10 @@ const api = {
       ipcRenderer.invoke('db:getArchiveProvinces', params),
     getStats: () => ipcRenderer.invoke('db:getStats'),
     forceReseed: () => ipcRenderer.invoke('db:forceReseed')
+  },
+  assets: {
+    getImageCacheStats: () => ipcRenderer.invoke('assets:getImageCacheStats'),
+    clearImageCache: () => ipcRenderer.invoke('assets:clearImageCache')
   }
 }
 
