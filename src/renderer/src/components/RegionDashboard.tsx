@@ -2,6 +2,7 @@ import { Region, Province } from '../data/regions';
 import { Grid, MapPin, Map as MapIcon, MessageSquare, Coins, Wallet, Utensils, Flower2, Landmark, Music, Shield, ExternalLink, Bus } from 'lucide-react';
 import { DetailCard } from './DetailCard';
 import { useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
 
 // Display names for provinces with long official names (GeoJSON names → Display names)
 const provinceDisplayNames: Record<string, string> = {
@@ -59,6 +60,13 @@ export const RegionDashboard = ({
   onOpenChat
 }: RegionDashboardProps) => {
   const navigate = useNavigate();
+  const sortedProvincesByRegion = useMemo(() => {
+    const map = new Map<string, Province[]>();
+    for (const reg of regions) {
+      map.set(reg.id, [...reg.subProvinces].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+    return map;
+  }, [regions]);
 
   return (
     <section className="flex-[3] bg-[#020305] relative overflow-hidden flex flex-col">
@@ -78,7 +86,7 @@ export const RegionDashboard = ({
           >
             {/* Background */}
             <div className="absolute inset-0 overflow-hidden">
-              <img loading="lazy" src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-30'}`} alt={reg.name} />
+              <img loading="lazy" decoding="async" src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-30'}`} alt={reg.name} />
               <div className={`absolute inset-0 ${isActive ? 'bg-gradient-to-r from-black via-black/95 to-black/50' : 'bg-black/80 hover:bg-black/60 transition-colors'}`}></div>
             </div>
 
@@ -170,12 +178,12 @@ export const RegionDashboard = ({
                {/* PROVINCE GALLERY GRID (3 Columns) - Sorted A-Z with Scroll */}
                <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar mt-2 pr-1 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full h-full'}`} style={{ maxHeight: 'calc(100% - 80px)' }}>
                   <div className="grid grid-cols-3 gap-4 pb-8">
-                    {[...reg.subProvinces].sort((a, b) => a.name.localeCompare(b.name)).map((prov) => {
+                    {(sortedProvincesByRegion.get(reg.id) || reg.subProvinces).map((prov) => {
                        const isSelected = selectedProvince?.id === prov.id;
                        return (
                          <div key={prov.id} onClick={(e) => { e.stopPropagation(); onSelectProvince(prov); }} className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group hover:border-cyan-500/50 transition-all duration-300 cursor-pointer`}>
                             <div className="relative h-28 overflow-hidden">
-                               <img loading="lazy" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={getDisplayName(prov.name)} />
+                               <img loading="lazy" decoding="async" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={getDisplayName(prov.name)} />
                                <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors"></div>
                                <div className="absolute bottom-2 left-2 right-2">
                                   <h3 className="text-lg font-bold text-white drop-shadow-md">{getDisplayName(prov.name)}</h3>

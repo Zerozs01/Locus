@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getProvince, seedDatabase, forceReseedDatabase, getDatabaseStats } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, seedDatabase, forceReseedDatabase, getDatabaseStats } from './database/db'
 import { initialRegions } from './database/initialData'
 
 function createWindow(): void {
@@ -62,6 +62,10 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
   ipcMain.handle('db:getRegions', () => {
      return getRegions();
+  })
+
+  ipcMain.handle('db:getRegion', (_, id) => {
+     return getRegion(id);
   })
   
   // Example of parameter usage, though currently not heavily used by frontend yet

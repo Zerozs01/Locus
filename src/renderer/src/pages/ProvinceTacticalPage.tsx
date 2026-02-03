@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -49,13 +49,22 @@ export const ProvinceTacticalPage = () => {
     const fetchData = async () => {
       try {
         if (window.api && window.api.db) {
-          const regions = await window.api.db.getRegions();
-          const foundRegion = regions.find((r: Region) => r.id === regionId);
-          if (foundRegion) {
-            setRegion(foundRegion);
-            const foundProvince = foundRegion.subProvinces?.find((p: Province) => p.id === provinceId);
-            if (foundProvince) {
-              setProvince(foundProvince);
+          if (regionId && provinceId && window.api.db.getRegion) {
+            const [regionData, provinceData] = await Promise.all([
+              window.api.db.getRegion(regionId),
+              window.api.db.getProvince(provinceId)
+            ]);
+            if (regionData) setRegion(regionData);
+            if (provinceData) setProvince(provinceData);
+          } else {
+            const regions = await window.api.db.getRegions();
+            const foundRegion = regions.find((r: Region) => r.id === regionId);
+            if (foundRegion) {
+              setRegion(foundRegion);
+              const foundProvince = foundRegion.subProvinces?.find((p: Province) => p.id === provinceId);
+              if (foundProvince) {
+                setProvince(foundProvince);
+              }
             }
           }
         }
@@ -68,6 +77,11 @@ export const ProvinceTacticalPage = () => {
     fetchData();
   }, [regionId, provinceId]);
 
+  const provinceData = useMemo(() => {
+    if (!region || !province) return null;
+    return generateProvinceData(province, region);
+  }, [province, region]);
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#050608]">
@@ -79,7 +93,7 @@ export const ProvinceTacticalPage = () => {
     );
   }
 
-  if (!region || !province) {
+  if (!region || !province || !provinceData) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#050608]">
         <div className="text-center">
@@ -96,9 +110,6 @@ export const ProvinceTacticalPage = () => {
       </div>
     );
   }
-
-  // Generate province data
-  const provinceData = generateProvinceData(province, region);
 
   const tabs = [
     { id: 'explore', label: 'Explore', icon: <Camera size={18} />, color: 'text-teal-400' },

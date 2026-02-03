@@ -1,12 +1,13 @@
 import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
-import { Region, Province, RegionStats } from '../../shared/types';
+import { Region, Province } from '../../shared/types';
 
 const dbPath = path.join(app.getPath('userData'), 'locus.db');
 
 // Initialize Database (verbose mode disabled for cleaner terminal)
 const db = new Database(dbPath);
+let regionsCache: Region[] | null = null;
 
 // Performance optimizations for SQLite
 db.pragma('journal_mode = WAL');           // Write-Ahead Logging for better concurrency
@@ -121,6 +122,8 @@ interface ProvinceRow {
 }
 
 export function getRegions(): Region[] {
+  if (regionsCache) return regionsCache;
+
   const regions = db.prepare('SELECT * FROM regions').all() as RegionRow[];
   const allStats = db.prepare('SELECT * FROM region_stats').all() as RegionStatsRow[];
   const allProvinces = db.prepare('SELECT * FROM provinces').all() as ProvinceRow[];
@@ -139,7 +142,7 @@ export function getRegions(): Region[] {
       provincesMap.get(p.region_id)!.push(p);
   }
   
-  return regions.map((reg) => {
+  const result = regions.map((reg) => {
     const stats = statsMap.get(reg.id);
     const subProvinces = provincesMap.get(reg.id) || [];
     
@@ -184,13 +187,67 @@ export function getRegions(): Region[] {
       }))
     };
   });
+
+  regionsCache = result;
+  return result;
+}
+
+export function getRegion(id: string): Region | undefined {
+  if (regionsCache) return regionsCache.find(r => r.id === id);
+
+  const reg = db.prepare('SELECT * FROM regions WHERE id = ?').get(id) as RegionRow | undefined;
+  if (!reg) return undefined;
+  const stats = db.prepare('SELECT * FROM region_stats WHERE region_id = ?').get(id) as RegionStatsRow | undefined;
+
+  return {
+    id: reg.id,
+    name: reg.name,
+    engName: reg.engName,
+    code: reg.code,
+    color: reg.color || '',
+    gradient: reg.gradient || undefined,
+    image: reg.image || '',
+    desc: reg.desc || '',
+    safety: reg.safety,
+    summary: {
+      pop: reg.population || '',
+      area: reg.area || '',
+      provinces: reg.province_count
+    },
+    stats: {
+      dailyCost: stats?.dailyCost || '',
+      monthlyCost: stats?.monthlyCost || '',
+      flora: stats?.flora || '',
+      food: stats?.food || '',
+      attraction: stats?.attraction || '',
+      nightlife: stats?.nightlife || ''
+    },
+    subProvinces: []
+  };
 }
 
 export function getProvince(id: string): Province | undefined {
-    return db.prepare('SELECT * FROM provinces WHERE id = ?').get(id) as Province | undefined;
+    const row = db.prepare('SELECT * FROM provinces WHERE id = ?').get(id) as ProvinceRow | undefined;
+    if (!row) return undefined;
+
+    return {
+      id: row.id,
+      name: row.name,
+      image: row.image || '',
+      dist: row.dist,
+      tam: row.tam,
+      serenity: row.serenity ?? undefined,
+      entertainment: row.entertainment ?? undefined,
+      relax: row.relax ?? undefined,
+      population: row.population ?? undefined,
+      area: row.area ?? undefined,
+      dailyCost: row.dailyCost ?? undefined,
+      safety: row.safety ?? undefined
+    };
 }
 
 export function seedDatabase(initialRegions: Region[]) {
+    regionsCache = null;
     // Check main counts
     const regionCount = db.prepare('SELECT count(*) as count FROM regions').get() as { count: number };
     const provinceCount = db.prepare('SELECT count(*) as count FROM provinces').get() as { count: number };
@@ -275,6 +332,7 @@ export function seedDatabase(initialRegions: Region[]) {
 // Force reseed database (for troubleshooting)
 export function forceReseedDatabase(initialRegions: Region[]) {
     console.log('🔄 Force reseeding database...');
+    regionsCache = null;
     db.exec('DELETE FROM provinces;');
     db.exec('DELETE FROM region_stats;');
     db.exec('DELETE FROM regions;');

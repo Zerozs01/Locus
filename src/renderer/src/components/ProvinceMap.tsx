@@ -54,6 +54,74 @@ const tileProviders = {
   },
 };
 
+const markerIcons: Record<string, L.DivIcon> = {
+  attraction: L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="background: linear-gradient(135deg, #14b8a6, #0d9488); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(20,184,166,0.4);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+    </div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+  }),
+  restaurant: L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(245,158,11,0.4);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+    </div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+  }),
+  hotel: L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(139,92,246,0.4);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg>
+    </div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+  }),
+  hospital: L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(239,68,68,0.4);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+    </div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+  }),
+  transport: L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="background: linear-gradient(135deg, #3b82f6, #2563eb); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(59,130,246,0.4);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/></svg>
+    </div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+  }),
+};
+
+const markerTypeColors: Record<string, string> = {
+  attraction: '#14b8a6',
+  restaurant: '#f59e0b',
+  hotel: '#8b5cf6',
+  hospital: '#ef4444',
+  transport: '#3b82f6',
+};
+
+const markerTypeLabels: Record<string, string> = {
+  attraction: '🎯 Attraction',
+  restaurant: '🍜 Restaurant',
+  hotel: '🏨 Hotel',
+  hospital: '🏥 Hospital',
+  transport: '🚌 Transport',
+};
+
+const centerMarkerIcon = L.divIcon({
+  className: 'custom-marker province-center',
+  html: `<div style="background: linear-gradient(135deg, #06b6d4, #0891b2); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 4px solid white; box-shadow: 0 4px 15px rgba(6,182,212,0.5); animation: pulse 2s infinite;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+  </div>`,
+  iconSize: [44, 44],
+  iconAnchor: [22, 44],
+});
+
 // Province coordinates (lat, lng) - ข้อมูลพิกัดจังหวัดไทย
 const provinceCoordinates: Record<string, { lat: number; lng: number }> = {
   // ภาคเหนือ
@@ -160,6 +228,9 @@ export const ProvinceMap = ({
 }: ProvinceMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const loadingTimeoutRef = useRef<number | null>(null);
+  const hasLoadedRef = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -169,174 +240,129 @@ export const ProvinceMap = ({
     ? { lat, lng } 
     : provinceCoordinates[provinceName] || defaultCoords;
 
-  const initMap = () => {
+  useEffect(() => {
     if (!mapRef.current) return;
 
     setIsLoading(true);
     setHasError(false);
+    hasLoadedRef.current = false;
 
-    // Clean up existing map
+    if (loadingTimeoutRef.current) {
+      window.clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove();
       mapInstanceRef.current = null;
     }
 
     try {
-      // Initialize map
       const map = L.map(mapRef.current, {
         center: [coords.lat, coords.lng],
         zoom: zoom,
         zoomControl: true,
         attributionControl: true,
       });
+      mapInstanceRef.current = map;
 
-      // Get tile provider
       const provider = tileProviders[theme] || tileProviders.voyager;
-
-      // Add tile layer with error handling
       const tileLayer = L.tileLayer(provider.url, {
         maxZoom: 19,
         attribution: provider.attribution,
-        errorTileUrl: '', // Prevent broken image icons
+        errorTileUrl: '',
       });
 
-      // Track tile loading
       let loadedTiles = 0;
       let errorTiles = 0;
 
-      tileLayer.on('tileload', () => {
+      const handleTileLoad = () => {
         loadedTiles++;
-        if (loadedTiles >= 4) { // At least 4 tiles loaded
+        if (!hasLoadedRef.current && loadedTiles >= 4) {
+          hasLoadedRef.current = true;
           setIsLoading(false);
         }
-      });
+      };
 
-      tileLayer.on('tileerror', () => {
+      const handleTileError = () => {
         errorTiles++;
         if (errorTiles > 10) {
           setHasError(true);
           setIsLoading(false);
         }
-      });
-
-      tileLayer.addTo(map);
-
-      // Timeout fallback for loading state
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 3000);
-
-      // Custom marker icons with better colors for light theme
-      const markerIcons: Record<string, L.DivIcon> = {
-        attraction: L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="background: linear-gradient(135deg, #14b8a6, #0d9488); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(20,184,166,0.4);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
-          </div>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 36],
-        }),
-        restaurant: L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(245,158,11,0.4);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
-          </div>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 36],
-        }),
-        hotel: L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(139,92,246,0.4);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg>
-          </div>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 36],
-        }),
-        hospital: L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(239,68,68,0.4);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-          </div>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 36],
-        }),
-        transport: L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="background: linear-gradient(135deg, #3b82f6, #2563eb); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(59,130,246,0.4);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/></svg>
-          </div>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 36],
-        }),
       };
 
-      // Add markers with popup styling
-      markers.forEach(marker => {
-        const icon = markerIcons[marker.type] || markerIcons.attraction;
-        const typeColors: Record<string, string> = {
-          attraction: '#14b8a6',
-          restaurant: '#f59e0b',
-          hotel: '#8b5cf6',
-          hospital: '#ef4444',
-          transport: '#3b82f6',
-        };
-        const typeLabels: Record<string, string> = {
-          attraction: '🎯 Attraction',
-          restaurant: '🍜 Restaurant',
-          hotel: '🏨 Hotel',
-          hospital: '🏥 Hospital',
-          transport: '🚌 Transport',
-        };
-        
-        L.marker([marker.lat, marker.lng], { icon })
-          .addTo(map)
-          .bindPopup(`
-            <div style="font-family: system-ui; min-width: 150px;">
-              <strong style="font-size: 14px; color: #1f2937;">${marker.title}</strong>
-              <div style="color: ${typeColors[marker.type]}; font-size: 12px; margin-top: 4px;">
-                ${typeLabels[marker.type] || marker.type}
-              </div>
-            </div>
-          `);
-      });
+      tileLayer.on('tileload', handleTileLoad);
+      tileLayer.on('tileerror', handleTileError);
+      tileLayer.addTo(map);
 
-      // Add province center marker
-      const centerIcon = L.divIcon({
-        className: 'custom-marker province-center',
-        html: `<div style="background: linear-gradient(135deg, #06b6d4, #0891b2); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 4px solid white; box-shadow: 0 4px 15px rgba(6,182,212,0.5); animation: pulse 2s infinite;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-        </div>`,
-        iconSize: [44, 44],
-        iconAnchor: [22, 44],
-      });
-      
-      L.marker([coords.lat, coords.lng], { icon: centerIcon })
-        .addTo(map)
-        .bindPopup(`
-          <div style="font-family: system-ui; text-align: center; min-width: 120px;">
-            <strong style="font-size: 15px; color: #1f2937;">${provinceName}</strong>
-            <div style="color: #06b6d4; font-size: 12px; margin-top: 4px;">📍 Province Center</div>
-          </div>
-        `);
+      markersLayerRef.current = L.layerGroup().addTo(map);
 
-      mapInstanceRef.current = map;
+      loadingTimeoutRef.current = window.setTimeout(() => {
+        if (!hasLoadedRef.current) {
+          setIsLoading(false);
+        }
+      }, 3000);
+
+      return () => {
+        if (loadingTimeoutRef.current) {
+          window.clearTimeout(loadingTimeoutRef.current);
+          loadingTimeoutRef.current = null;
+        }
+        tileLayer.off('tileload', handleTileLoad);
+        tileLayer.off('tileerror', handleTileError);
+        map.remove();
+        mapInstanceRef.current = null;
+        markersLayerRef.current = null;
+      };
     } catch (error) {
       console.error('Map initialization error:', error);
       setHasError(true);
       setIsLoading(false);
     }
-  };
+  }, [theme, retryCount]);
 
   useEffect(() => {
-    initMap();
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    map.setView([coords.lat, coords.lng], zoom, { animate: true });
+  }, [coords.lat, coords.lng, zoom]);
 
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [provinceName, coords.lat, coords.lng, zoom, markers, theme, retryCount]);
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    let layer = markersLayerRef.current;
+    if (!layer) {
+      layer = L.layerGroup().addTo(map);
+      markersLayerRef.current = layer;
+    }
+
+    layer.clearLayers();
+
+    markers.forEach(marker => {
+      const icon = markerIcons[marker.type] || markerIcons.attraction;
+      L.marker([marker.lat, marker.lng], { icon })
+        .addTo(layer)
+        .bindPopup(`
+          <div style="font-family: system-ui; min-width: 150px;">
+            <strong style="font-size: 14px; color: #1f2937;">${marker.title}</strong>
+            <div style="color: ${markerTypeColors[marker.type]}; font-size: 12px; margin-top: 4px;">
+              ${markerTypeLabels[marker.type] || marker.type}
+            </div>
+          </div>
+        `);
+    });
+
+    L.marker([coords.lat, coords.lng], { icon: centerMarkerIcon })
+      .addTo(layer)
+      .bindPopup(`
+        <div style="font-family: system-ui; text-align: center; min-width: 120px;">
+          <strong style="font-size: 15px; color: #1f2937;">${provinceName}</strong>
+          <div style="color: #06b6d4; font-size: 12px; margin-top: 4px;">📍 Province Center</div>
+        </div>
+      `);
+  }, [markers, coords.lat, coords.lng, provinceName, retryCount, theme]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);

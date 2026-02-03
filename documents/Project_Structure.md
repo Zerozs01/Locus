@@ -35,6 +35,7 @@ locus/
 │   │       │   ├── Header.tsx           # Header Component
 │   │       │   ├── RegionDashboard.tsx  # Region/Province Dashboard
 │   │       │   ├── Sidebar.tsx          # Navigation Sidebar
+│   │       │   ├── ProvinceMap.tsx      # Leaflet Province Map
 │   │       │   ├── ThailandMap.tsx      # Interactive Map (react-simple-maps)
 │   │       │   └── *.stories.tsx        # Storybook Stories
 │   │       ├── pages/                   # Page Components (React Router)
@@ -43,11 +44,17 @@ locus/
 │   │       │   ├── GeoArchivePage.tsx   # Province Gallery & Compare (/archive)
 │   │       │   ├── TravelGuidePage.tsx  # Transport Routes (/travel-guide/:regionId)
 │   │       │   ├── IntelligencePage.tsx # AI Chat Interface (/intelligence)
+│   │       │   ├── ProvinceTacticalPage.tsx # Province Detail (/province/:regionId/:provinceId)
 │   │       │   ├── AnalyticsPage.tsx    # Analytics Dashboard (/analytics)
 │   │       │   ├── SettingsPage.tsx     # Settings (/settings)
 │   │       │   └── *.stories.tsx        # Page Storybook Stories
 │   │       ├── views/
-│   │       │   └── ArchiveView.tsx      # Archive View Component
+│   │       │   ├── ArchiveView.tsx      # Archive View Component
+│   │       │   ├── HistoryView.tsx      # History timeline view
+│   │       │   ├── MapView.tsx          # Map UI view
+│   │       │   ├── ScanView.tsx         # Image scan view
+│   │       │   ├── SettingsView.tsx     # Settings view (legacy)
+│   │       │   └── SyncView.tsx         # Sync status view
 │   │       ├── data/
 │   │       │   ├── regions.ts           # Region/Province Types & Static Data
 │   │       │   └── thaiProvinceNames.ts # Thai-English Province Name Mapping

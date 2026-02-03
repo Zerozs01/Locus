@@ -27,6 +27,15 @@ interface Region {
   subProvinces: Province[];
 }
 
+interface ProvinceDerived extends Province {
+  regionId: string;
+  regionName: string;
+  regionEngName: string;
+  regionColor: string;
+  costValue: number;
+  popValue: number;
+}
+
 // Region colors for tags
 const regionColors: Record<string, { bg: string; text: string; border: string }> = {
   north: { bg: 'bg-rose-500/20', text: 'text-rose-400', border: 'border-rose-500/30' },
@@ -74,41 +83,41 @@ export function ArchiveView(): JSX.Element {
     fetchData();
   }, []);
 
-  // Get all provinces with region info
+  // Get all provinces with region info and derived fields for fast sorting
   const allProvinces = useMemo(() => {
+    const parseCost = (cost?: string): number => {
+      if (!cost) return 300;
+      const match = cost.match(/(\d+)/);
+      return match ? parseInt(match[1]) : 300;
+    };
+
+    const parsePopulation = (pop?: string): number => {
+      if (!pop) return 0;
+      const match = pop.match(/([\d.]+)([KM]?)/i);
+      if (!match) return 0;
+      const num = parseFloat(match[1]);
+      const unit = match[2].toUpperCase();
+      if (unit === 'M') return num * 1000000;
+      if (unit === 'K') return num * 1000;
+      return num;
+    };
+
     return regions.flatMap(region => 
       (region.subProvinces || []).map(prov => ({
         ...prov,
         regionId: region.id,
         regionName: region.name,
         regionEngName: region.engName,
-        regionColor: region.color
+        regionColor: region.color,
+        costValue: parseCost(prov.dailyCost),
+        popValue: parsePopulation(prov.population)
       }))
     );
   }, [regions]);
 
-  // Parse cost string to number for sorting
-  const parseCost = (cost?: string): number => {
-    if (!cost) return 300;
-    const match = cost.match(/(\d+)/);
-    return match ? parseInt(match[1]) : 300;
-  };
-
-  // Parse population string to number
-  const parsePopulation = (pop?: string): number => {
-    if (!pop) return 0;
-    const match = pop.match(/([\d.]+)([KM]?)/i);
-    if (!match) return 0;
-    const num = parseFloat(match[1]);
-    const unit = match[2].toUpperCase();
-    if (unit === 'M') return num * 1000000;
-    if (unit === 'K') return num * 1000;
-    return num;
-  };
-
   // Filter and sort provinces
   const filteredProvinces = useMemo(() => {
-    let result = [...allProvinces];
+    let result: ProvinceDerived[] = [...allProvinces];
 
     // Filter by search (supports Thai and English)
     if (searchQuery.trim()) {
@@ -128,10 +137,10 @@ export function ArchiveView(): JSX.Element {
         result.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case 'cost-high':
-        result.sort((a, b) => parseCost(b.dailyCost) - parseCost(a.dailyCost));
+        result.sort((a, b) => b.costValue - a.costValue);
         break;
       case 'cost-low':
-        result.sort((a, b) => parseCost(a.dailyCost) - parseCost(b.dailyCost));
+        result.sort((a, b) => a.costValue - b.costValue);
         break;
       case 'safety-high':
         result.sort((a, b) => (b.safety || 80) - (a.safety || 80));
@@ -140,10 +149,10 @@ export function ArchiveView(): JSX.Element {
         result.sort((a, b) => (a.safety || 80) - (b.safety || 80));
         break;
       case 'pop-high':
-        result.sort((a, b) => parsePopulation(b.population) - parsePopulation(a.population));
+        result.sort((a, b) => b.popValue - a.popValue);
         break;
       case 'pop-low':
-        result.sort((a, b) => parsePopulation(a.population) - parsePopulation(b.population));
+        result.sort((a, b) => a.popValue - b.popValue);
         break;
     }
 
@@ -345,6 +354,8 @@ export function ArchiveView(): JSX.Element {
                     <img
                       src={province.image}
                       alt={province.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0f1115] via-transparent to-transparent" />
@@ -412,6 +423,8 @@ export function ArchiveView(): JSX.Element {
                   <img
                     src={province.image}
                     alt={province.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-24 h-24 rounded-xl object-cover flex-shrink-0"
                   />
 
@@ -491,7 +504,7 @@ export function ArchiveView(): JSX.Element {
                   <div key={province.id} className="bg-[#0f1115] border border-white/10 rounded-2xl overflow-hidden">
                     {/* Image */}
                     <div className="relative h-40">
-                      <img src={province.image} alt={province.name} className="w-full h-full object-cover" />
+                      <img src={province.image} alt={province.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0f1115] via-transparent to-transparent" />
                       <button
                         onClick={() => toggleCompare(province as Province & { regionId: string })}
@@ -560,7 +573,7 @@ export function ArchiveView(): JSX.Element {
           <div className="flex items-center gap-2">
             {compareList.map((p) => (
               <div key={p.id} className="relative group">
-                <img src={p.image} alt={p.name} className="w-10 h-10 rounded-lg object-cover border-2 border-cyan-500" />
+                <img src={p.image} alt={p.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-lg object-cover border-2 border-cyan-500" />
                 <button
                   onClick={() => toggleCompare(p as Province & { regionId: string })}
                   className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
