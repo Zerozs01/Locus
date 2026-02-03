@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Province, Region } from '../data/regions';
 import ProvinceMap from '../components/ProvinceMap';
+import { measureAsync } from '../utils/perf';
 
 /**
  * Province Tactical Detail Page - REDESIGNED
@@ -50,14 +51,17 @@ export const ProvinceTacticalPage = () => {
       try {
         if (window.api && window.api.db) {
           if (regionId && provinceId && window.api.db.getRegion) {
-            const [regionData, provinceData] = await Promise.all([
-              window.api.db.getRegion(regionId),
-              window.api.db.getProvince(provinceId)
-            ]);
+            const [regionData, provinceData] = await measureAsync(
+              'db:getRegion+Province@ProvinceTacticalPage',
+              () => Promise.all([
+                window.api.db.getRegion(regionId),
+                window.api.db.getProvince(provinceId)
+              ])
+            );
             if (regionData) setRegion(regionData);
             if (provinceData) setProvince(provinceData);
           } else {
-            const regions = await window.api.db.getRegions();
+            const regions = await measureAsync('db:getRegions@ProvinceTacticalPage', () => window.api.db.getRegions());
             const foundRegion = regions.find((r: Region) => r.id === regionId);
             if (foundRegion) {
               setRegion(foundRegion);

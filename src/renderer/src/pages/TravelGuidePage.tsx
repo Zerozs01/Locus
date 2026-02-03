@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useDeferredValue } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Bus, Train, Car, MapPin, ArrowLeft, Clock,
@@ -24,6 +24,16 @@ interface TransportRoute {
   contact?: string;
   notes?: string;
 }
+
+const matchesQuery = (value: string, query: string): boolean => {
+  if (!query.trim()) return false;
+  try {
+    const regex = new RegExp(query, 'i');
+    return regex.test(value);
+  } catch {
+    return value.toLowerCase().includes(query.toLowerCase());
+  }
+};
 
 // Sample transport routes data (grouped by region)
 const regionTransportData: Record<string, TransportRoute[]> = {
@@ -421,6 +431,9 @@ export function TravelGuidePage() {
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null);
   const [fareCalcFrom, setFareCalcFrom] = useState('');
   const [fareCalcTo, setFareCalcTo] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const deferredFareCalcFrom = useDeferredValue(fareCalcFrom);
+  const deferredFareCalcTo = useDeferredValue(fareCalcTo);
 
   const region = regionId ? regionInfo[regionId] : null;
   const routes = regionId ? (regionTransportData[regionId] || []) : [];
@@ -433,18 +446,18 @@ export function TravelGuidePage() {
       result = result.filter(r => selectedTypes.includes(r.type));
     }
 
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    if (deferredSearchQuery.trim()) {
+      const query = deferredSearchQuery.trim();
       result = result.filter(r => 
-        r.name.toLowerCase().includes(query) ||
-        r.from.toLowerCase().includes(query) ||
-        r.to.toLowerCase().includes(query) ||
-        r.via.some(v => v.toLowerCase().includes(query))
+        matchesQuery(r.name, query) ||
+        matchesQuery(r.from, query) ||
+        matchesQuery(r.to, query) ||
+        r.via.some(v => matchesQuery(v, query))
       );
     }
 
     return result;
-  }, [routes, selectedTypes, searchQuery]);
+  }, [routes, selectedTypes, deferredSearchQuery]);
 
   // Get all provinces mentioned in routes for fare calculator
   const allProvinces = useMemo(() => {
@@ -456,6 +469,18 @@ export function TravelGuidePage() {
     });
     return Array.from(provinces).sort();
   }, [routes]);
+
+  const allProvincesSet = useMemo(() => new Set(allProvinces), [allProvinces]);
+
+  const fromSuggestions = useMemo(() => {
+    if (!deferredFareCalcFrom) return [];
+    return allProvinces.filter(p => matchesQuery(p, deferredFareCalcFrom)).slice(0, 5);
+  }, [allProvinces, deferredFareCalcFrom]);
+
+  const toSuggestions = useMemo(() => {
+    if (!deferredFareCalcTo) return [];
+    return allProvinces.filter(p => matchesQuery(p, deferredFareCalcTo)).slice(0, 5);
+  }, [allProvinces, deferredFareCalcTo]);
 
   // Toggle transport type filter
   const toggleType = (type: string) => {
@@ -716,15 +741,15 @@ export function TravelGuidePage() {
                   value={fareCalcFrom}
                   onChange={(e) => setFareCalcFrom(e.target.value)}
                   placeholder="พิมพ์ต้นทาง..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 placeholder:text-slate-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-violet-300 placeholder:text-violet-500/60 focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20"
                 />
                 {fareCalcFrom && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1d24] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 max-h-40 overflow-y-auto">
-                    {allProvinces.filter(p => p.toLowerCase().includes(fareCalcFrom.toLowerCase())).slice(0, 5).map(p => (
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f1115] border border-violet-500/30 rounded-xl overflow-hidden shadow-2xl z-50 max-h-48 overflow-y-auto">
+                    {fromSuggestions.map(p => (
                       <button
                         key={p}
                         onClick={() => setFareCalcFrom(p)}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white transition-colors"
+                        className="w-full px-4 py-2 text-left text-sm text-violet-200 hover:bg-violet-500/20 hover:text-white transition-colors"
                       >
                         {p}
                       </button>
@@ -741,15 +766,15 @@ export function TravelGuidePage() {
                   value={fareCalcTo}
                   onChange={(e) => setFareCalcTo(e.target.value)}
                   placeholder="พิมพ์ปลายทาง..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 placeholder:text-slate-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-sky-300 placeholder:text-sky-500/60 focus:outline-none focus:border-sky-500/60 focus:ring-2 focus:ring-sky-500/20"
                 />
                 {fareCalcTo && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1d24] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 max-h-40 overflow-y-auto">
-                    {allProvinces.filter(p => p.toLowerCase().includes(fareCalcTo.toLowerCase())).slice(0, 5).map(p => (
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f1115] border border-sky-500/30 rounded-xl overflow-hidden shadow-2xl z-50 max-h-48 overflow-y-auto">
+                    {toSuggestions.map(p => (
                       <button
                         key={p}
                         onClick={() => setFareCalcTo(p)}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white transition-colors"
+                        className="w-full px-4 py-2 text-left text-sm text-sky-200 hover:bg-sky-500/20 hover:text-white transition-colors"
                       >
                         {p}
                       </button>
@@ -768,11 +793,11 @@ export function TravelGuidePage() {
                 onChange={(e) => setFareCalcFrom(e.target.value)}
                 title="เลือกต้นทาง"
                 aria-label="เลือกต้นทาง"
-                className="bg-[#1a1d24] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-800"
+                className="bg-[#1a1d24] border border-violet-500/30 rounded-xl px-4 py-2.5 text-violet-300 text-sm focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-200"
               >
                 <option value="" className="!text-slate-500">ต้นทาง</option>
                 {allProvinces.map(p => (
-                  <option key={p} value={p} className="!text-slate-800">{p}</option>
+                  <option key={p} value={p} className="!text-slate-200">{p}</option>
                 ))}
               </select>
               
@@ -783,17 +808,17 @@ export function TravelGuidePage() {
                 onChange={(e) => setFareCalcTo(e.target.value)}
                 title="เลือกปลายทาง"
                 aria-label="เลือกปลายทาง"
-                className="bg-[#1a1d24] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-800"
+                className="bg-[#1a1d24] border border-sky-500/30 rounded-xl px-4 py-2.5 text-sky-300 text-sm focus:outline-none focus:border-sky-500/60 focus:ring-2 focus:ring-sky-500/20 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-200"
               >
                 <option value="" className="!text-slate-500">ปลายทาง</option>
                 {allProvinces.map(p => (
-                  <option key={p} value={p} className="!text-slate-800">{p}</option>
+                  <option key={p} value={p} className="!text-slate-200">{p}</option>
                 ))}
               </select>
             </div>
 
             {/* Result */}
-            {fareCalcFrom && fareCalcTo && allProvinces.includes(fareCalcFrom) && allProvinces.includes(fareCalcTo) && (
+            {fareCalcFrom && fareCalcTo && allProvincesSet.has(fareCalcFrom) && allProvincesSet.has(fareCalcTo) && (
               <div className="flex items-center gap-4 ml-auto">
                 <div className="text-right">
                   <div className="text-xs text-slate-500">ค่าโดยสารโดยประมาณ</div>

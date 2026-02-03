@@ -1,10 +1,11 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { 
   Database, Search, Filter, ArrowUpDown, MapPin, Users, Maximize, 
   Shield, Wallet, X, ChevronDown, Scale, Grid, List, SlidersHorizontal,
   Sparkles, TrendingUp, TrendingDown, Check
 } from 'lucide-react';
 import { searchProvince } from '../data/thaiProvinceNames';
+import { measureAsync } from '../utils/perf';
 
 interface Province {
   id: string;
@@ -17,6 +18,9 @@ interface Province {
   area?: string;
   dailyCost?: string;
   safety?: number;
+  populationValue?: number;
+  areaValue?: number;
+  dailyCostValue?: number;
 }
 
 interface Region {
@@ -67,13 +71,14 @@ export function ArchiveView(): JSX.Element {
   const [compareList, setCompareList] = useState<Province[]>([]);
   const [showComparePanel, setShowComparePanel] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   // Fetch data from DB
   useEffect(() => {
     const fetchData = async () => {
       try {
         if (window.api && window.api.db) {
-          const data = await window.api.db.getRegions();
+          const data = await measureAsync('db:getRegions@ArchiveView', () => window.api.db.getRegions());
           setRegions(data);
         }
       } catch (error) {
@@ -109,8 +114,8 @@ export function ArchiveView(): JSX.Element {
         regionName: region.name,
         regionEngName: region.engName,
         regionColor: region.color,
-        costValue: parseCost(prov.dailyCost),
-        popValue: parsePopulation(prov.population)
+        costValue: prov.dailyCostValue ?? parseCost(prov.dailyCost),
+        popValue: prov.populationValue ?? parsePopulation(prov.population)
       }))
     );
   }, [regions]);
@@ -120,9 +125,9 @@ export function ArchiveView(): JSX.Element {
     let result: ProvinceDerived[] = [...allProvinces];
 
     // Filter by search (supports Thai and English)
-    if (searchQuery.trim()) {
+    if (deferredSearchQuery.trim()) {
       result = result.filter(p => 
-        searchProvince(searchQuery, p.name)
+        searchProvince(deferredSearchQuery, p.name)
       );
     }
 
@@ -157,7 +162,7 @@ export function ArchiveView(): JSX.Element {
     }
 
     return result;
-  }, [allProvinces, searchQuery, selectedRegions, sortBy]);
+  }, [allProvinces, deferredSearchQuery, selectedRegions, sortBy]);
 
   // Toggle region filter
   const toggleRegion = (regionId: string) => {

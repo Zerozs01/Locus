@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ThailandMap } from '../components/ThailandMap';
 import { RegionDashboard } from '../components/RegionDashboard';
 import { Region, Province, regionsData } from '../data/regions';
 import { searchProvince, getThaiProvinceName } from '../data/thaiProvinceNames';
 import { Search, Users, Maximize, Building, MapPin } from 'lucide-react';
+import { measureAsync } from '../utils/perf';
 
 // Local image mapping for regions (override DB URLs)
 const regionImageMap: Record<string, string> = regionsData.reduce((acc, r) => {
@@ -26,12 +27,13 @@ export const RadarPage = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         if (window.api && window.api.db) {
-          const data = await window.api.db.getRegions();
+          const data = await measureAsync('db:getRegions@RadarPage', () => window.api.db.getRegions());
           // Override images with local files
           const dataWithLocalImages = data.map((region: Region) => ({
             ...region,
@@ -65,11 +67,11 @@ export const RadarPage = () => {
 
   // Filter provinces based on search (supports Thai and English)
   const filteredProvinces = useMemo(() => {
-    if (!searchQuery.trim()) return [];
+    if (!deferredSearchQuery.trim()) return [];
     return allProvinces.filter(p => 
-      searchProvince(searchQuery, p.name)
+      searchProvince(deferredSearchQuery, p.name)
     ).slice(0, 6);
-  }, [searchQuery, allProvinces]);
+  }, [deferredSearchQuery, allProvinces]);
 
   // Reset selected index when filtered results change
   useEffect(() => {

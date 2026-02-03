@@ -21,6 +21,14 @@ export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const MAX_MESSAGES = 200;
+
+  const appendMessage = (msg: Message) => {
+    setMessages(prev => {
+      const next = [...prev, msg];
+      return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
+    });
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -40,7 +48,7 @@ export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    appendMessage(userMsg);
     setInputText('');
     setIsLoading(true);
 
@@ -52,7 +60,7 @@ export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
         sender: 'bot',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, botMsg]);
+      appendMessage(botMsg);
     } catch (error: any) {
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -60,7 +68,7 @@ export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
         sender: 'bot',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMsg]);
+      appendMessage(errorMsg);
     } finally {
       setIsLoading(false);
     }

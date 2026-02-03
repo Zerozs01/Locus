@@ -72,6 +72,14 @@ export const IntelligencePage = () => {
   const [chatContext, setChatContext] = useState<ChatContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const MAX_MESSAGES = 200;
+
+  const appendMessage = (msg: Message) => {
+    setMessages(prev => {
+      const next = [...prev, msg];
+      return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
+    });
+  };
 
   // Check for context passed via navigation state
   useEffect(() => {
@@ -139,7 +147,7 @@ export const IntelligencePage = () => {
       sender: 'user',
       timestamp: new Date()
     };
-    setMessages(prev => [...prev, fileMsg]);
+    appendMessage(fileMsg);
     
     // Simulate AI response for file analysis
     setTimeout(() => {
@@ -150,7 +158,7 @@ export const IntelligencePage = () => {
         timestamp: new Date(),
         contextType: 'text'
       };
-      setMessages(prev => [...prev, botMsg]);
+      appendMessage(botMsg);
     }, 1000);
   };
 
@@ -171,7 +179,7 @@ export const IntelligencePage = () => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    appendMessage(userMsg);
     setInputText('');
     setIsLoading(true);
 
@@ -194,7 +202,7 @@ export const IntelligencePage = () => {
         contextData: generateMockContextData(userMsg.text)
       };
       
-      setMessages(prev => [...prev, botMsg]);
+      appendMessage(botMsg);
       setActiveContext(botMsg);
     } catch (error) {
       const errorMsg: Message = {
@@ -203,7 +211,7 @@ export const IntelligencePage = () => {
         sender: 'bot',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMsg]);
+      appendMessage(errorMsg);
     } finally {
       setIsLoading(false);
     }

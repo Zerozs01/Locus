@@ -19,6 +19,9 @@ export interface Province {
   area?: string;        // e.g., "20,107" (km²)
   dailyCost?: string;   // e.g., "350 ฿"
   safety?: number;      // e.g., 85 (%)
+  populationValue?: number;
+  areaValue?: number;
+  dailyCostValue?: number;
 }
 
 export interface RegionStats {
@@ -28,12 +31,16 @@ export interface RegionStats {
   food: string;
   attraction: string;
   nightlife: string;
+  dailyCostValue?: number;
+  monthlyCostValue?: number;
 }
 
 export interface RegionSummary {
   provinces: number;
   area: string;
   pop: string;
+  areaValue?: number;
+  popValue?: number;
 }
 
 export interface Region {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { 
+import {
   Activity, 
   Database, 
   Map, 
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { pingAgent } from '../services/n8nClient';
 import { Region } from '../../../shared/types';
+import { measureAsync } from '../utils/perf';
 
 interface SystemStats {
   database: {
@@ -74,7 +75,7 @@ export const AnalyticsPage = () => {
     // Load regions from DB
     try {
       if (window.api?.db?.getRegions) {
-        const data = await window.api.db.getRegions();
+        const data = await measureAsync('db:getRegions@AnalyticsPage', () => window.api.db.getRegions());
         setRegions(data);
       }
     } catch (error) {
@@ -84,7 +85,7 @@ export const AnalyticsPage = () => {
     // Load DB stats
     try {
       if (window.api?.db?.getStats) {
-        const stats = await window.api.db.getStats();
+        const stats = await measureAsync('db:getStats@AnalyticsPage', () => window.api.db.getStats());
         setSystemStats(prev => ({ ...prev, database: stats }));
       }
     } catch (error) {
@@ -93,7 +94,7 @@ export const AnalyticsPage = () => {
 
     // Check agent status
     try {
-      const agentOnline = await pingAgent();
+      const agentOnline = await measureAsync('pingAgent@AnalyticsPage', () => pingAgent());
       setSystemStats(prev => ({ ...prev, agent: agentOnline ? 'online' : 'offline' }));
     } catch {
       setSystemStats(prev => ({ ...prev, agent: 'offline' }));
@@ -110,12 +111,14 @@ export const AnalyticsPage = () => {
     const totalProvinces = regions.reduce((sum, r) => sum + r.subProvinces.length, 0);
     const avgSafety = Math.round(regions.reduce((sum, r) => sum + r.safety, 0) / regions.length);
     const totalArea = regions.reduce((sum, r) => {
+      if (typeof r.summary.areaValue === 'number') return sum + r.summary.areaValue;
       const area = parseFloat(r.summary.area.replace(/,/g, '')) || 0;
       return sum + area;
     }, 0);
     const totalPop = regions.reduce((sum, r) => {
+      if (typeof r.summary.popValue === 'number') return sum + r.summary.popValue;
       const pop = r.summary.pop.replace('M', '');
-      return sum + (parseFloat(pop) || 0);
+      return sum + (parseFloat(pop) || 0) * 1000000;
     }, 0);
     
     // Find safest & least safe regions
@@ -125,7 +128,7 @@ export const AnalyticsPage = () => {
       totalProvinces,
       avgSafety,
       totalArea: totalArea.toLocaleString(),
-      totalPop: totalPop.toFixed(1),
+      totalPop: (totalPop / 1000000).toFixed(1),
       safestRegion: sortedBySafety[0],
       leastSafeRegion: sortedBySafety[sortedBySafety.length - 1],
       regionCount: regions.length

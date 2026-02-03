@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ThailandMap } from './components/ThailandMap';
 import { RegionDashboard } from './components/RegionDashboard';
@@ -13,6 +13,7 @@ const App = () => {
   const [mapMode, setMapMode] = useState<'region' | 'province'>('region');
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   // Get all provinces from all regions for search
   const allProvinces = useMemo(() => {
@@ -27,17 +28,17 @@ const App = () => {
 
   // Filter provinces based on search query (supports regex)
   const filteredProvinces = useMemo(() => {
-    if (!searchQuery.trim()) return [];
+    if (!deferredSearchQuery.trim()) return [];
     try {
-      const regex = new RegExp(searchQuery, 'i');
+      const regex = new RegExp(deferredSearchQuery, 'i');
       return allProvinces.filter(prov => regex.test(prov.name));
     } catch {
       // If invalid regex, fall back to simple includes
       return allProvinces.filter(prov => 
-        prov.name.toLowerCase().includes(searchQuery.toLowerCase())
+        prov.name.toLowerCase().includes(deferredSearchQuery.toLowerCase())
       );
     }
-  }, [searchQuery, allProvinces]);
+  }, [deferredSearchQuery, allProvinces]);
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {

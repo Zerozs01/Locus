@@ -77,9 +77,9 @@ locus/
 ## Database Schema (SQLite)
 
 ### Tables:
-- **regions**: id, name, engName, code, desc, color, gradient, image, safety, population, area, province_count
-- **region_stats**: region_id, dailyCost, monthlyCost, food, flora, attraction, nightlife
-- **provinces**: id, region_id, name, image, dist, tam, serenity, entertainment, relax, population, area, dailyCost, safety
+- **regions**: id, name, engName, code, desc, color, gradient, image, safety, population, population_value, area, area_value, province_count
+- **region_stats**: region_id, dailyCost, dailyCost_value, monthlyCost, monthlyCost_value, food, flora, attraction, nightlife
+- **provinces**: id, region_id, name, image, dist, tam, serenity, entertainment, relax, population, population_value, area, area_value, dailyCost, dailyCost_value, safety
 
 ---
 

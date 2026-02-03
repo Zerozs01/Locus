@@ -51,6 +51,9 @@ export interface Province {
   area?: string;
   dailyCost?: string;
   safety?: number;
+  populationValue?: number;
+  areaValue?: number;
+  dailyCostValue?: number;
 }
 
 export interface RegionStats {
@@ -60,12 +63,16 @@ export interface RegionStats {
   food: string;
   attraction: string;
   nightlife: string;
+  dailyCostValue?: number;
+  monthlyCostValue?: number;
 }
 
 export interface RegionSummary {
   provinces: number;
   area: string;
   pop: string;
+  areaValue?: number;
+  popValue?: number;
 }
 
 export interface Region {
