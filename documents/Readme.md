@@ -24,6 +24,7 @@ It follows a **"Local-First"** architecture, ensuring fast performance and offli
 - **Situational Awareness:** Assessing safety, supply locations, and environmental risks.
 - **Historical & Cultural Insights:** Fetching localized lore and history based on identified landmarks.
 - **Agent Chat Interface:** Interactive chat with AI agents capable of controlling the UI.
+- **Unified Region Theme:** Single source of truth for region colors/gradients shared between main and renderer.
 
 ## 🛠️ Getting Started
 

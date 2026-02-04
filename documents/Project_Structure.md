@@ -9,7 +9,6 @@ locus/
 │   ├── Main_architecture.md  # System Architecture
 │   ├── Project_Structure.md  # This file
 │   └── Readme.md             # Project Overview
-├── mockup/                   # UI Design Mockups
 ├── resources/                # Static Resources
 ├── scripts/
 │   └── start_all.bat         # Master Launcher (n8n + Ngrok)
@@ -52,6 +51,7 @@ locus/
 │   │       ├── views/
 │   │       │   └── ArchiveView.tsx      # Archive View Component
 │   │       ├── data/
+│   │       │   ├── regionTheme.ts       # Renderer re-export of shared region theme
 │   │       │   ├── regions.ts           # Region/Province Types & Static Data
 │   │       │   └── thaiProvinceNames.ts # Thai-English Province Name Mapping
 │   │       ├── services/
@@ -62,6 +62,7 @@ locus/
 │   │       └── styles/
 │   │           └── index.css            # Global Styles (TailwindCSS)
 │   ├── shared/               # Shared Types & Interfaces
+│   │   ├── regionTheme.ts     # Region color/gradient single source of truth
 │   │   └── types.ts
 │   └── stories/              # Storybook Default Stories
 ├── electron.vite.config.ts   # Electron-Vite Configuration
@@ -112,7 +113,7 @@ locus/
 
 #### 📚 Geo-Archive Page
 - ✅ Province gallery with Grid/List view
-- ✅ Multi-region filter (rose/cyan/emerald/blue/amber/violet)
+- ✅ Multi-region filter (rose/pink/cyan/purple/green/orange)
 - ✅ Sort by name, cost, safety, population
 - ✅ Compare mode (up to 3 provinces side-by-side)
 - ✅ Thai/English search support
@@ -182,11 +183,13 @@ locus/
 | Region | Thai Name | Color Class | Gradient |
 |--------|-----------|-------------|----------|
 | North | ภาคเหนือ | `text-rose-400` | `from-rose-600/20` |
-| Northeast | ภาคอีสาน | `text-emerald-400` | `from-emerald-600/20` |
+| Northeast | ภาคอีสาน | `text-pink-400` | `from-pink-600/20` |
 | Central | ภาคกลาง | `text-cyan-400` | `from-cyan-600/20` |
-| South | ภาคใต้ | `text-blue-400` | `from-blue-600/20` |
-| West | ภาคตะวันตก | `text-amber-400` | `from-amber-600/20` |
-| East | ภาคตะวันออก | `text-violet-400` | `from-violet-600/20` |
+| South | ภาคใต้ | `text-orange-400` | `from-orange-600/20` |
+| West | ภาคตะวันตก | `text-purple-400` | `from-purple-600/20` |
+| East | ภาคตะวันออก | `text-green-400` | `from-green-600/20` |
+
+> Source of truth: `src/shared/regionTheme.ts` (renderer uses `src/renderer/src/data/regionTheme.ts` re-export)
 
 ---
 

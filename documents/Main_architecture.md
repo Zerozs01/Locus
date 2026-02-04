@@ -99,4 +99,5 @@ For a single-user or small-group local-first app, Redis adds unnecessary complex
 - `src/renderer/src/components/ProvinceMap.tsx`: Leaflet-based province map component.
 - `src/renderer/src/data/thaiProvinceNames.ts`: Thai-English province mapping.
 - `src/renderer/src/data/regions.ts`: Region/Province data structures.
+- `src/shared/regionTheme.ts`: Region color/gradient single source of truth.
 

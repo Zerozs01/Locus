@@ -2,7 +2,7 @@ import { X, Send, Bot, User } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { sendChatMessage } from '../services/n8nClient';
 
-interface ChatOverlayProps {
+export interface ChatOverlayProps {
   isOpen: boolean;
   onClose: () => void;
 }

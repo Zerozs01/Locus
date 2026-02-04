@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, { AxiosResponse } from 'axios'
 
 const N8N_WEBHOOK_URL = import.meta.env.VITE_NGROK_URL || 'http://localhost:5678'
 const N8N_API_KEY = import.meta.env.VITE_N8N_API_KEY

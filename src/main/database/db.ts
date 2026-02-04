@@ -286,7 +286,7 @@ export function getRegions(): Region[] {
       provincesMap.get(p.region_id)!.push(p);
   }
   
-  const result = regions.map((reg) => {
+  const result: Region[] = regions.map((reg): Region => {
     const stats = statsMap.get(reg.id);
     const subProvinces = provincesMap.get(reg.id) || [];
     
@@ -296,15 +296,15 @@ export function getRegions(): Region[] {
       name: reg.name,
       engName: reg.engName,
       code: reg.code,
-      color: reg.color,
-      gradient: reg.gradient,
-      image: reg.image,
-      desc: reg.desc,
+      color: reg.color || '',
+      gradient: reg.gradient || undefined,
+      image: reg.image || '',
+      desc: reg.desc || '',
       safety: reg.safety,
       // Reconstruct summary object
       summary: {
-        pop: reg.population,
-        area: reg.area,
+        pop: reg.population || '',
+        area: reg.area || '',
         provinces: reg.province_count,
         popValue: reg.population_value ?? undefined,
         areaValue: reg.area_value ?? undefined
@@ -431,21 +431,21 @@ export function getRegionSummaries(): Region[] {
     statsMap.set(stat.region_id, stat);
   }
 
-  regionSummaryCache = regions.map((reg) => {
+  const summaries: Region[] = regions.map((reg): Region => {
     const stats = statsMap.get(reg.id);
     return {
       id: reg.id,
       name: reg.name,
       engName: reg.engName,
       code: reg.code,
-      color: reg.color,
-      gradient: reg.gradient,
-      image: reg.image,
-      desc: reg.desc,
+      color: reg.color || '',
+      gradient: reg.gradient || undefined,
+      image: reg.image || '',
+      desc: reg.desc || '',
       safety: reg.safety,
       summary: {
-        pop: reg.population,
-        area: reg.area,
+        pop: reg.population || '',
+        area: reg.area || '',
         provinces: reg.province_count,
         popValue: reg.population_value ?? undefined,
         areaValue: reg.area_value ?? undefined
@@ -464,7 +464,8 @@ export function getRegionSummaries(): Region[] {
     };
   });
 
-  return regionSummaryCache;
+  regionSummaryCache = summaries;
+  return summaries;
 }
 
 export function getProvincesByRegion(regionId: string): Province[] {
@@ -622,7 +623,14 @@ export function seedDatabase(initialRegions: Region[]) {
     // Quick check to skip if everything looks populated (simple heuristic)
     if (regionCount.count >= expectedRegions && provinceCount.count >= expectedProvinces) {
         console.log(`✓ Database checks out (${regionCount.count} regions, ${provinceCount.count} provinces). Skipping seed.`);
-        return; 
+        // Keep static theme columns in sync for existing DBs.
+        const updateTheme = db.prepare(`UPDATE regions SET color = ?, gradient = ? WHERE id = ?`);
+        db.transaction(() => {
+          for (const reg of initialRegions) {
+            updateTheme.run(reg.color, reg.gradient || null, reg.id);
+          }
+        })();
+        return;
     }
 
     console.log('⏳ Verifying and Seeding Database...');

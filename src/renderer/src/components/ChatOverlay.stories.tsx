@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ChatOverlay } from './ChatOverlay';
 
 const meta = {
@@ -20,11 +20,13 @@ type Story = StoryObj<typeof meta>;
 export const Open: Story = {
   args: {
     isOpen: true,
+    onClose: () => {},
   },
 };
 
 export const Closed: Story = {
   args: {
     isOpen: false,
+    onClose: () => {},
   },
 };

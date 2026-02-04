@@ -5,6 +5,7 @@ import {
   Route, ChevronRight, ChevronDown, Info, Navigation2,
   Building2, Plane, Ship, Search, Tag, Wallet
 } from 'lucide-react';
+import { regionTheme, type RegionId } from '../data/regionTheme';
 
 interface TransportRoute {
   id: string;
@@ -406,15 +407,6 @@ const regionTransportData: Record<string, TransportRoute[]> = {
   ]
 };
 
-const regionInfo: Record<string, { name: string; engName: string; color: string; gradient: string }> = {
-  north: { name: 'ภาคเหนือ', engName: 'Northern', color: 'text-rose-400', gradient: 'from-rose-500 to-orange-600' },
-  northeast: { name: 'ภาคอีสาน', engName: 'Northeastern', color: 'text-pink-400', gradient: 'from-pink-500 to-purple-600' },
-  central: { name: 'ภาคกลาง', engName: 'Central', color: 'text-cyan-400', gradient: 'from-cyan-500 to-blue-600' },
-  west: { name: 'ภาคตะวันตก', engName: 'Western', color: 'text-purple-400', gradient: 'from-purple-500 to-indigo-600' },
-  east: { name: 'ภาคตะวันออก', engName: 'Eastern', color: 'text-green-400', gradient: 'from-green-500 to-teal-600' },
-  south: { name: 'ภาคใต้', engName: 'Southern', color: 'text-orange-400', gradient: 'from-orange-500 to-red-600' }
-};
-
 const transportTypeIcons: Record<string, { icon: any; label: string; color: string }> = {
   bus: { icon: Bus, label: 'รถเมล์', color: 'text-yellow-400 bg-yellow-500/20' },
   van: { icon: Car, label: 'รถตู้', color: 'text-blue-400 bg-blue-500/20' },
@@ -437,7 +429,10 @@ export function TravelGuidePage() {
   const deferredFareCalcFrom = useDeferredValue(fareCalcFrom);
   const deferredFareCalcTo = useDeferredValue(fareCalcTo);
 
-  const region = useMemo(() => (regionId ? regionInfo[regionId] : null), [regionId]);
+  const region = useMemo(
+    () => (regionId ? regionTheme[regionId as RegionId] : null),
+    [regionId]
+  );
   const routes = useMemo(() => (regionId ? (regionTransportData[regionId] || []) : []), [regionId]);
 
   const routesWithSearchText = useMemo(() => {
@@ -532,13 +527,13 @@ export function TravelGuidePage() {
           >
             <ArrowLeft size={20} />
           </button>
-          <div className={`w-12 h-12 bg-gradient-to-br ${region.gradient} rounded-2xl flex items-center justify-center shadow-lg`}>
+          <div className={`w-12 h-12 bg-gradient-to-br ${region.heroGradient} rounded-2xl flex items-center justify-center shadow-lg`}>
             <Bus size={24} className="text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">Travel Guide</h1>
             <p className="text-sm text-slate-500">
-              <span className={region.color}>{region.name}</span> • {region.engName} Region • {routes.length} เส้นทาง
+              <span className={region.text}>{region.label}</span> • {region.engLabel} Region • {routes.length} เส้นทาง
             </p>
           </div>
         </div>

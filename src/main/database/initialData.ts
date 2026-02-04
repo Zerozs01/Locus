@@ -1,14 +1,15 @@
 // Initial Data for Seeding - Province names must match GeoJSON exactly
 // Population, Area, DailyCost, Safety data for each province
+import { regionTheme } from '../../shared/regionTheme';
 export const initialRegions = [
   {
     id: "north",
     name: "ภาคเหนือ",
     engName: "NORTH",
     code: "N-SEC",
-    color: "text-rose-400",
+    color: regionTheme.north.text,
     safety: 75,
-    gradient: "bg-gradient-to-br from-rose-600/20 to-rose-900/10",
+    gradient: regionTheme.north.gradient,
     image: "https://images.unsplash.com/photo-1528181304800-259b08848526?q=80&w=600",
     summary: { provinces: 9, area: "169,644", pop: "6.2M" },
     stats: {
@@ -37,9 +38,9 @@ export const initialRegions = [
     name: "ภาคอีสาน",
     engName: "ISAN",
     code: "NE-SEC",
-    color: "text-pink-400",
+    color: regionTheme.northeast.text,
     safety: 92,
-    gradient: "bg-gradient-to-br from-pink-600/20 to-pink-900/10",
+    gradient: regionTheme.northeast.gradient,
     image: "https://images.unsplash.com/photo-1548123378-bde4eca81d2d?q=80&w=600",
     summary: { provinces: 20, area: "168,854", pop: "21.8M" },
     stats: {
@@ -79,9 +80,9 @@ export const initialRegions = [
     name: "ภาคกลาง",
     engName: "CENTRAL",
     code: "C-SEC",
-    color: "text-cyan-400",
+    color: regionTheme.central.text,
     safety: 88,
-    gradient: "bg-gradient-to-br from-cyan-600/20 to-cyan-900/10",
+    gradient: regionTheme.central.gradient,
     image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600",
     summary: { provinces: 22, area: "102,337", pop: "20.5M" },
     stats: {
@@ -123,9 +124,9 @@ export const initialRegions = [
     name: "ภาคตะวันตก",
     engName: "WEST",
     code: "W-SEC",
-    color: "text-purple-400",
+    color: regionTheme.west.text,
     safety: 85,
-    gradient: "bg-gradient-to-br from-purple-600/20 to-purple-900/10",
+    gradient: regionTheme.west.gradient,
     image: "https://images.unsplash.com/photo-1592393739775-690226305632?q=80&w=600",
     summary: { provinces: 5, area: "53,679", pop: "3.5M" },
     stats: {
@@ -150,9 +151,9 @@ export const initialRegions = [
     name: "ภาคตะวันออก",
     engName: "EAST",
     code: "E-SEC",
-    color: "text-green-400",
+    color: regionTheme.east.text,
     safety: 86,
-    gradient: "bg-gradient-to-br from-green-600/20 to-green-900/10",
+    gradient: regionTheme.east.gradient,
     image: "https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=600",
     summary: { provinces: 7, area: "36,503", pop: "4.8M" },
     stats: {
@@ -179,9 +180,9 @@ export const initialRegions = [
     name: "ภาคใต้",
     engName: "SOUTH",
     code: "S-SEC",
-    color: "text-orange-400",
+    color: regionTheme.south.text,
     safety: 82,
-    gradient: "bg-gradient-to-br from-orange-600/20 to-orange-900/10",
+    gradient: regionTheme.south.gradient,
     image: "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=80&w=600",
     summary: { provinces: 14, area: "70,715", pop: "9.4M" },
     stats: {

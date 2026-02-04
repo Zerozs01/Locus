@@ -1,8 +1,9 @@
 import { ComposableMap, Geographies, Geography, ZoomableGroup, Annotation } from 'react-simple-maps';
 import { Province } from '../data/regions';
+import { regionTheme, mapBaseColors, type RegionId } from '../data/regionTheme';
 import thailandGeo from '../data/thailand-geo.json';
 
-interface ThailandMapProps {
+export interface ThailandMapProps {
   activeId: string | null;
   onSelectRegion: (id: string) => void;
   viewMode: string;
@@ -103,16 +104,6 @@ const provinceToRegion: Record<string, string> = {
   'Yala': 'south',
 };
 
-// Region colors - ใช้สีที่ชัดเจนสำหรับแต่ละภาค
-const regionColors: Record<string, { default: string; active: string; hover: string; dimmed: string }> = {
-  north: { default: '#475569', active: '#f43f5e', hover: '#64748b', dimmed: '#7f1d1d' },      // แดง/ชมพู
-  northeast: { default: '#475569', active: '#fbcfe8', hover: '#64748b', dimmed: '#831843' },  // ชมพูอ่อน
-  central: { default: '#475569', active: '#06b6d4', hover: '#64748b', dimmed: '#164e63' },    // ฟ้า cyan
-  west: { default: '#475569', active: '#a855f7', hover: '#64748b', dimmed: '#581c87' },       // ม่วง purple
-  east: { default: '#475569', active: '#22c55e', hover: '#64748b', dimmed: '#14532d' },       // เขียว green
-  south: { default: '#475569', active: '#f97316', hover: '#64748b', dimmed: '#7c2d12' },      // ส้ม orange
-};
-
 // Region label positions (lat, lng) - ตำแหน่งศูนย์กลางแต่ละภาค
 const regionLabelPositions: Record<string, [number, number]> = {
   north: [99.4, 18.5],
@@ -182,14 +173,20 @@ export const ThailandMap = ({
           maxZoom={8}
         >
           <Geographies geography={thailandGeo}>
-            {({ geographies }) =>
+            {({ geographies }: { geographies: Array<{ rsmKey: string; properties: { name: string } }> }) =>
               geographies.map((geo) => {
                 const provinceName = geo.properties.name;
                 const regionId = provinceToRegion[provinceName] || 'central';
                 const isRegionActive = activeId === regionId;
                 const isProvinceView = viewMode === 'province';
                 const isOtherRegion = activeId && !isRegionActive;
-                const colors = regionColors[regionId] || regionColors.central;
+                const theme = regionTheme[regionId as RegionId] || regionTheme.central;
+                const colors = {
+                  default: mapBaseColors.default,
+                  active: theme.mapActive,
+                  hover: mapBaseColors.hover,
+                  dimmed: theme.mapDimmed
+                };
                 
                 // Province highlight logic
                 const isSelectedProvince = selectedProvince && provinceName === selectedProvince.name;

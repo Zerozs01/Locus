@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { IntelligencePage } from './IntelligencePage';
 
@@ -65,7 +65,6 @@ export const EmptyState: Story = {
 
 // With region context
 export const WithRegionContext: Story = {
-  name: 'With Region Context',
   render: () => (
     <MemoryRouter 
       initialEntries={[{
@@ -99,7 +98,6 @@ export const WithRegionContext: Story = {
 
 // With province context
 export const WithProvinceContext: Story = {
-  name: 'With Province Context',
   render: () => (
     <MemoryRouter 
       initialEntries={[{

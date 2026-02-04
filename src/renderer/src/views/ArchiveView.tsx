@@ -7,6 +7,7 @@ import {
 import { searchProvince } from '../data/thaiProvinceNames';
 import { measureAsync } from '../utils/perf';
 import { CachedImage } from '../components/CachedImage';
+import { regionTheme, type RegionId } from '../data/regionTheme';
 
 interface Province {
   id: string;
@@ -34,24 +35,7 @@ interface ProvinceIndexItem {
   safety?: number | null;
 }
 
-// Region colors for tags
-const regionColors: Record<string, { bg: string; text: string; border: string }> = {
-  north: { bg: 'bg-rose-500/20', text: 'text-rose-400', border: 'border-rose-500/30' },
-  northeast: { bg: 'bg-pink-500/20', text: 'text-pink-400', border: 'border-pink-500/30' },
-  central: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/30' },
-  west: { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30' },
-  east: { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/30' },
-  south: { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/30' },
-};
-
-const regionNames: Record<string, string> = {
-  north: 'ภาคเหนือ',
-  northeast: 'ภาคอีสาน',
-  central: 'ภาคกลาง',
-  west: 'ภาคตะวันตก',
-  east: 'ภาคตะวันออก',
-  south: 'ภาคใต้',
-};
+const getRegionTheme = (regionId: string) => regionTheme[regionId as RegionId] || regionTheme.central;
 
 type SortOption = 'name' | 'cost-high' | 'cost-low' | 'safety-high' | 'safety-low' | 'pop-high' | 'pop-low';
 
@@ -289,17 +273,17 @@ export function ArchiveView(): JSX.Element {
             {/* Region Tags */}
             <div className="flex items-center gap-2 flex-wrap">
               <Filter size={16} className="text-slate-500" />
-              {Object.entries(regionColors).map(([regionId, colors]) => (
+              {Object.entries(regionTheme).map(([regionId, theme]) => (
                 <button
                   key={regionId}
                   onClick={() => toggleRegion(regionId)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                     selectedRegions.includes(regionId)
-                      ? `${colors.bg} ${colors.text} ${colors.border}`
+                      ? `${theme.bg} ${theme.text} ${theme.border}`
                       : 'bg-white/5 text-slate-400 border-transparent hover:bg-white/10'
                   }`}
                 >
-                  {regionNames[regionId]}
+                  {theme.label}
                 </button>
               ))}
               {selectedRegions.length > 0 && (
@@ -366,7 +350,7 @@ export function ArchiveView(): JSX.Element {
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
             {provinces.map((province) => {
-              const colors = regionColors[province.regionId] || regionColors.central;
+              const theme = getRegionTheme(province.regionId);
               const inCompare = isInCompare(province.id);
               
               return (
@@ -388,8 +372,8 @@ export function ArchiveView(): JSX.Element {
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0f1115] via-transparent to-transparent" />
                     
                     {/* Region Tag */}
-                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg text-[10px] font-bold ${colors.bg} ${colors.text} backdrop-blur-sm`}>
-                      {regionNames[province.regionId]}
+                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg text-[10px] font-bold ${theme.bg} ${theme.text} backdrop-blur-sm`}>
+                      {theme.label}
                     </div>
 
                     {/* Compare Toggle */}
@@ -436,7 +420,7 @@ export function ArchiveView(): JSX.Element {
           // List View - Full Width
           <div className="space-y-3 w-full">
             {provinces.map((province) => {
-              const colors = regionColors[province.regionId] || regionColors.central;
+              const theme = getRegionTheme(province.regionId);
               const inCompare = isInCompare(province.id);
               
               return (
@@ -459,8 +443,8 @@ export function ArchiveView(): JSX.Element {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-bold text-white text-lg truncate">{province.name}</h3>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${colors.bg} ${colors.text}`}>
-                        {regionNames[province.regionId]}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${theme.bg} ${theme.text}`}>
+                        {theme.label}
                       </span>
                     </div>
                     <div className="flex items-center gap-6 mt-2 text-sm text-slate-400">
@@ -539,7 +523,7 @@ export function ArchiveView(): JSX.Element {
             {/* Compare Grid */}
             <div className={`grid gap-6 ${compareList.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {compareList.map((province) => {
-                const colors = regionColors[province.regionId] || regionColors.central;
+                const theme = getRegionTheme(province.regionId);
                 
                 return (
                   <div key={province.id} className="bg-[#0f1115] border border-white/10 rounded-2xl overflow-hidden">
@@ -553,8 +537,8 @@ export function ArchiveView(): JSX.Element {
                       >
                         <X size={16} />
                       </button>
-                      <div className={`absolute bottom-3 left-3 px-2 py-1 rounded-lg text-xs font-bold ${colors.bg} ${colors.text}`}>
-                        {regionNames[province.regionId]}
+                      <div className={`absolute bottom-3 left-3 px-2 py-1 rounded-lg text-xs font-bold ${theme.bg} ${theme.text}`}>
+                        {theme.label}
                       </div>
                     </div>
 

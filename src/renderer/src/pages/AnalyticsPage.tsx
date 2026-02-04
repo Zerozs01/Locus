@@ -5,11 +5,9 @@ import {
   Map, 
   Users, 
   Shield, 
-  TrendingUp,
   Clock,
   Zap,
   Globe,
-  Server,
   HardDrive,
   Bot,
   RefreshCw,
@@ -19,8 +17,7 @@ import {
   Wifi,
   WifiOff,
   AlertTriangle,
-  CheckCircle,
-  Info
+  CheckCircle
 } from 'lucide-react';
 import { pingAgent } from '../services/n8nClient';
 import { Region } from '../../../shared/types';
