@@ -6,9 +6,19 @@ const api = {
   ping: (): void => ipcRenderer.send('ping'),
   db: {
     getRegions: () => ipcRenderer.invoke('db:getRegions'),
+    getRegionSummaries: () => ipcRenderer.invoke('db:getRegionSummaries'),
+    getRegion: (id: string) => ipcRenderer.invoke('db:getRegion', id),
     getProvince: (id: string) => ipcRenderer.invoke('db:getProvince', id),
+    getProvincesByRegion: (id: string) => ipcRenderer.invoke('db:getProvincesByRegion', id),
+    getProvinceIndex: () => ipcRenderer.invoke('db:getProvinceIndex'),
+    getArchiveProvinces: (params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number }) =>
+      ipcRenderer.invoke('db:getArchiveProvinces', params),
     getStats: () => ipcRenderer.invoke('db:getStats'),
     forceReseed: () => ipcRenderer.invoke('db:forceReseed')
+  },
+  assets: {
+    getImageCacheStats: () => ipcRenderer.invoke('assets:getImageCacheStats'),
+    clearImageCache: () => ipcRenderer.invoke('assets:clearImageCache')
   }
 }
 

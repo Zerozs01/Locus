@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useDeferredValue } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Bus, Train, Car, MapPin, ArrowLeft, Clock,
   Route, ChevronRight, ChevronDown, Info, Navigation2,
   Building2, Plane, Ship, Search, Tag, Wallet
 } from 'lucide-react';
+import { regionTheme, type RegionId } from '../data/regionTheme';
 
 interface TransportRoute {
   id: string;
@@ -24,6 +25,18 @@ interface TransportRoute {
   contact?: string;
   notes?: string;
 }
+
+const buildMatcher = (query: string): ((value: string) => boolean) | null => {
+  const trimmed = query.trim();
+  if (!trimmed) return null;
+  try {
+    const regex = new RegExp(trimmed, 'i');
+    return (value: string) => regex.test(value);
+  } catch {
+    const lower = trimmed.toLowerCase();
+    return (value: string) => value.toLowerCase().includes(lower);
+  }
+};
 
 // Sample transport routes data (grouped by region)
 const regionTransportData: Record<string, TransportRoute[]> = {
@@ -394,15 +407,6 @@ const regionTransportData: Record<string, TransportRoute[]> = {
   ]
 };
 
-const regionInfo: Record<string, { name: string; engName: string; color: string; gradient: string }> = {
-  north: { name: 'ภาคเหนือ', engName: 'Northern', color: 'text-rose-400', gradient: 'from-rose-500 to-orange-600' },
-  northeast: { name: 'ภาคอีสาน', engName: 'Northeastern', color: 'text-pink-400', gradient: 'from-pink-500 to-purple-600' },
-  central: { name: 'ภาคกลาง', engName: 'Central', color: 'text-cyan-400', gradient: 'from-cyan-500 to-blue-600' },
-  west: { name: 'ภาคตะวันตก', engName: 'Western', color: 'text-purple-400', gradient: 'from-purple-500 to-indigo-600' },
-  east: { name: 'ภาคตะวันออก', engName: 'Eastern', color: 'text-green-400', gradient: 'from-green-500 to-teal-600' },
-  south: { name: 'ภาคใต้', engName: 'Southern', color: 'text-orange-400', gradient: 'from-orange-500 to-red-600' }
-};
-
 const transportTypeIcons: Record<string, { icon: any; label: string; color: string }> = {
   bus: { icon: Bus, label: 'รถเมล์', color: 'text-yellow-400 bg-yellow-500/20' },
   van: { icon: Car, label: 'รถตู้', color: 'text-blue-400 bg-blue-500/20' },
@@ -421,30 +425,44 @@ export function TravelGuidePage() {
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null);
   const [fareCalcFrom, setFareCalcFrom] = useState('');
   const [fareCalcTo, setFareCalcTo] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const deferredFareCalcFrom = useDeferredValue(fareCalcFrom);
+  const deferredFareCalcTo = useDeferredValue(fareCalcTo);
 
-  const region = regionId ? regionInfo[regionId] : null;
-  const routes = regionId ? (regionTransportData[regionId] || []) : [];
+  const region = useMemo(
+    () => (regionId ? regionTheme[regionId as RegionId] : null),
+    [regionId]
+  );
+  const routes = useMemo(() => (regionId ? (regionTransportData[regionId] || []) : []), [regionId]);
+
+  const routesWithSearchText = useMemo(() => {
+    return routes.map((route) => ({
+      ...route,
+      searchText: [
+        route.name,
+        route.operator,
+        route.from,
+        route.to,
+        ...(route.via || [])
+      ].join(' • ')
+    }));
+  }, [routes]);
 
   // Filter routes
   const filteredRoutes = useMemo(() => {
-    let result = [...routes];
+    let result = [...routesWithSearchText];
 
     if (selectedTypes.length > 0) {
       result = result.filter(r => selectedTypes.includes(r.type));
     }
 
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(r => 
-        r.name.toLowerCase().includes(query) ||
-        r.from.toLowerCase().includes(query) ||
-        r.to.toLowerCase().includes(query) ||
-        r.via.some(v => v.toLowerCase().includes(query))
-      );
+    const matcher = buildMatcher(deferredSearchQuery);
+    if (matcher) {
+      result = result.filter(r => matcher(r.searchText));
     }
 
     return result;
-  }, [routes, selectedTypes, searchQuery]);
+  }, [routesWithSearchText, selectedTypes, deferredSearchQuery]);
 
   // Get all provinces mentioned in routes for fare calculator
   const allProvinces = useMemo(() => {
@@ -456,6 +474,20 @@ export function TravelGuidePage() {
     });
     return Array.from(provinces).sort();
   }, [routes]);
+
+  const allProvincesSet = useMemo(() => new Set(allProvinces), [allProvinces]);
+
+  const fromSuggestions = useMemo(() => {
+    const matcher = buildMatcher(deferredFareCalcFrom);
+    if (!matcher) return [];
+    return allProvinces.filter(p => matcher(p)).slice(0, 5);
+  }, [allProvinces, deferredFareCalcFrom]);
+
+  const toSuggestions = useMemo(() => {
+    const matcher = buildMatcher(deferredFareCalcTo);
+    if (!matcher) return [];
+    return allProvinces.filter(p => matcher(p)).slice(0, 5);
+  }, [allProvinces, deferredFareCalcTo]);
 
   // Toggle transport type filter
   const toggleType = (type: string) => {
@@ -484,7 +516,7 @@ export function TravelGuidePage() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#020305] overflow-hidden">
+    <div className="h-full w-full flex-1 min-w-0 flex flex-col bg-[#020305] overflow-hidden">
       {/* Header */}
       <div className="shrink-0 px-8 py-6 border-b border-white/5">
         <div className="flex items-center gap-4">
@@ -495,13 +527,13 @@ export function TravelGuidePage() {
           >
             <ArrowLeft size={20} />
           </button>
-          <div className={`w-12 h-12 bg-gradient-to-br ${region.gradient} rounded-2xl flex items-center justify-center shadow-lg`}>
+          <div className={`w-12 h-12 bg-gradient-to-br ${region.heroGradient} rounded-2xl flex items-center justify-center shadow-lg`}>
             <Bus size={24} className="text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">Travel Guide</h1>
             <p className="text-sm text-slate-500">
-              <span className={region.color}>{region.name}</span> • {region.engName} Region • {routes.length} เส้นทาง
+              <span className={region.text}>{region.label}</span> • {region.engLabel} Region • {routes.length} เส้นทาง
             </p>
           </div>
         </div>
@@ -544,7 +576,7 @@ export function TravelGuidePage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="p-8 space-y-4">
+        <div className="p-8 space-y-4 w-full">
           {filteredRoutes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-500">
               <Route size={48} className="mb-4 opacity-50" />
@@ -558,7 +590,7 @@ export function TravelGuidePage() {
               return (
                 <div
                   key={route.id}
-                  className="bg-[#0f1115] border border-white/10 rounded-2xl overflow-hidden transition-all hover:border-white/20"
+                  className="bg-[#0f1115] border border-white/10 rounded-2xl overflow-hidden transition-all hover:border-white/20 w-full"
                 >
                   {/* Route Header */}
                   <div 
@@ -716,15 +748,15 @@ export function TravelGuidePage() {
                   value={fareCalcFrom}
                   onChange={(e) => setFareCalcFrom(e.target.value)}
                   placeholder="พิมพ์ต้นทาง..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 placeholder:text-slate-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-violet-300 placeholder:text-violet-500/60 focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20"
                 />
                 {fareCalcFrom && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1d24] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 max-h-40 overflow-y-auto">
-                    {allProvinces.filter(p => p.toLowerCase().includes(fareCalcFrom.toLowerCase())).slice(0, 5).map(p => (
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f1115] border border-violet-500/30 rounded-xl overflow-hidden shadow-2xl z-50 max-h-48 overflow-y-auto">
+                    {fromSuggestions.map(p => (
                       <button
                         key={p}
                         onClick={() => setFareCalcFrom(p)}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white transition-colors"
+                        className="w-full px-4 py-2 text-left text-sm text-violet-200 hover:bg-violet-500/20 hover:text-white transition-colors"
                       >
                         {p}
                       </button>
@@ -741,15 +773,15 @@ export function TravelGuidePage() {
                   value={fareCalcTo}
                   onChange={(e) => setFareCalcTo(e.target.value)}
                   placeholder="พิมพ์ปลายทาง..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 placeholder:text-slate-500"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-sky-300 placeholder:text-sky-500/60 focus:outline-none focus:border-sky-500/60 focus:ring-2 focus:ring-sky-500/20"
                 />
                 {fareCalcTo && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1d24] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 max-h-40 overflow-y-auto">
-                    {allProvinces.filter(p => p.toLowerCase().includes(fareCalcTo.toLowerCase())).slice(0, 5).map(p => (
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f1115] border border-sky-500/30 rounded-xl overflow-hidden shadow-2xl z-50 max-h-48 overflow-y-auto">
+                    {toSuggestions.map(p => (
                       <button
                         key={p}
                         onClick={() => setFareCalcTo(p)}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white transition-colors"
+                        className="w-full px-4 py-2 text-left text-sm text-sky-200 hover:bg-sky-500/20 hover:text-white transition-colors"
                       >
                         {p}
                       </button>
@@ -768,11 +800,11 @@ export function TravelGuidePage() {
                 onChange={(e) => setFareCalcFrom(e.target.value)}
                 title="เลือกต้นทาง"
                 aria-label="เลือกต้นทาง"
-                className="bg-[#1a1d24] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-800"
+                className="bg-[#1a1d24] border border-violet-500/30 rounded-xl px-4 py-2.5 text-violet-300 text-sm focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-200"
               >
                 <option value="" className="!text-slate-500">ต้นทาง</option>
                 {allProvinces.map(p => (
-                  <option key={p} value={p} className="!text-slate-800">{p}</option>
+                  <option key={p} value={p} className="!text-slate-200">{p}</option>
                 ))}
               </select>
               
@@ -783,17 +815,17 @@ export function TravelGuidePage() {
                 onChange={(e) => setFareCalcTo(e.target.value)}
                 title="เลือกปลายทาง"
                 aria-label="เลือกปลายทาง"
-                className="bg-[#1a1d24] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-800"
+                className="bg-[#1a1d24] border border-sky-500/30 rounded-xl px-4 py-2.5 text-sky-300 text-sm focus:outline-none focus:border-sky-500/60 focus:ring-2 focus:ring-sky-500/20 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-200"
               >
                 <option value="" className="!text-slate-500">ปลายทาง</option>
                 {allProvinces.map(p => (
-                  <option key={p} value={p} className="!text-slate-800">{p}</option>
+                  <option key={p} value={p} className="!text-slate-200">{p}</option>
                 ))}
               </select>
             </div>
 
             {/* Result */}
-            {fareCalcFrom && fareCalcTo && allProvinces.includes(fareCalcFrom) && allProvinces.includes(fareCalcTo) && (
+            {fareCalcFrom && fareCalcTo && allProvincesSet.has(fareCalcFrom) && allProvincesSet.has(fareCalcTo) && (
               <div className="flex items-center gap-4 ml-auto">
                 <div className="text-right">
                   <div className="text-xs text-slate-500">ค่าโดยสารโดยประมาณ</div>

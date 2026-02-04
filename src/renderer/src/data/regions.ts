@@ -5,6 +5,7 @@ import RegionCentral from '../../../Image/RegionCard_Central.webp';
 import RegionSouth from '../../../Image/RegionCard_South.webp';
 import RegionWest from '../../../Image/RegionCard_West.webp';
 import RegionEast from '../../../Image/RegionCard_East.webp';
+import { regionTheme } from './regionTheme';
 
 export interface Province {
   name: string;
@@ -19,6 +20,9 @@ export interface Province {
   area?: string;        // e.g., "20,107" (km²)
   dailyCost?: string;   // e.g., "350 ฿"
   safety?: number;      // e.g., 85 (%)
+  populationValue?: number;
+  areaValue?: number;
+  dailyCostValue?: number;
 }
 
 export interface RegionStats {
@@ -28,12 +32,16 @@ export interface RegionStats {
   food: string;
   attraction: string;
   nightlife: string;
+  dailyCostValue?: number;
+  monthlyCostValue?: number;
 }
 
 export interface RegionSummary {
   provinces: number;
   area: string;
   pop: string;
+  areaValue?: number;
+  popValue?: number;
 }
 
 export interface Region {
@@ -57,9 +65,9 @@ export const regionsData: Region[] = [
     name: "ภาคเหนือ",
     engName: "NORTH",
     code: "N-SEC",
-    color: "text-rose-400",
+    color: regionTheme.north.text,
     safety: 75,
-    gradient: "bg-gradient-to-br from-rose-600/20 to-rose-900/10",
+    gradient: regionTheme.north.gradient,
     image: RegionNorth,
     summary: { provinces: 9, area: "169,644", pop: "6.2M" },
     stats: {
@@ -145,9 +153,9 @@ export const regionsData: Region[] = [
     name: "ภาคอีสาน",
     engName: "ISAN",
     code: "NE-SEC",
-    color: "text-emerald-400",
+    color: regionTheme.northeast.text,
     safety: 92,
-    gradient: "bg-gradient-to-br from-emerald-600/20 to-emerald-900/10",
+    gradient: regionTheme.northeast.gradient,
     image: RegionNortheast,
     summary: { provinces: 20, area: "168,854", pop: "21.8M" },
     stats: {
@@ -233,9 +241,9 @@ export const regionsData: Region[] = [
     name: "ภาคกลาง",
     engName: "CENTRAL",
     code: "C-SEC",
-    color: "text-cyan-400",
+    color: regionTheme.central.text,
     safety: 88,
-    gradient: "bg-gradient-to-br from-cyan-600/20 to-cyan-900/10",
+    gradient: regionTheme.central.gradient,
     image: RegionCentral,
     summary: { provinces: 22, area: "102,337", pop: "20.5M" },
     stats: {
@@ -321,9 +329,9 @@ export const regionsData: Region[] = [
     name: "ภาคใต้",
     engName: "SOUTH",
     code: "S-SEC",
-    color: "text-blue-400",
+    color: regionTheme.south.text,
     safety: 82,
-    gradient: "bg-gradient-to-br from-blue-600/20 to-blue-900/10",
+    gradient: regionTheme.south.gradient,
     image: RegionSouth,
     summary: { provinces: 14, area: "70,715", pop: "9.4M" },
     stats: {
@@ -409,9 +417,9 @@ export const regionsData: Region[] = [
     name: "ภาคตะวันตก",
     engName: "WEST",
     code: "W-SEC",
-    color: "text-amber-400",
+    color: regionTheme.west.text,
     safety: 85,
-    gradient: "bg-gradient-to-br from-amber-600/20 to-amber-900/10",
+    gradient: regionTheme.west.gradient,
     image: RegionWest,
     summary: { provinces: 5, area: "53,679", pop: "3.5M" },
     stats: {
@@ -486,9 +494,9 @@ export const regionsData: Region[] = [
     name: "ภาคตะวันออก",
     engName: "EAST",
     code: "E-SEC",
-    color: "text-violet-400",
+    color: regionTheme.east.text,
     safety: 90,
-    gradient: "bg-gradient-to-br from-violet-600/20 to-violet-900/10",
+    gradient: regionTheme.east.gradient,
     image: RegionEast,
     summary: { provinces: 7, area: "36,503", pop: "4.8M" },
     stats: {

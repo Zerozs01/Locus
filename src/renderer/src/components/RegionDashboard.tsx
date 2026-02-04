@@ -1,7 +1,11 @@
 import { Region, Province } from '../data/regions';
 import { Grid, MapPin, Map as MapIcon, MessageSquare, Coins, Wallet, Utensils, Flower2, Landmark, Music, Shield, ExternalLink, Bus } from 'lucide-react';
 import { DetailCard } from './DetailCard';
+import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatProps } from './RegionalIntelBar';
+import { CachedImage } from './CachedImage';
 import { useNavigate } from 'react-router-dom';
+import { useMemo, useRef, useEffect } from 'react';
+import { regionTheme, type RegionId } from '../data/regionTheme';
 
 // Display names for provinces with long official names (GeoJSON names → Display names)
 const provinceDisplayNames: Record<string, string> = {
@@ -15,27 +19,34 @@ const provinceDisplayNames: Record<string, string> = {
 
 const getDisplayName = (name: string) => provinceDisplayNames[name] || name;
 
-// Region hover border/glow colors matching map colors
-const regionHoverStyles: Record<string, { border: string; glow: string; text: string }> = {
-  north: { border: 'hover:border-rose-500/50', glow: 'hover:shadow-rose-500/20', text: 'group-hover:text-rose-400' },
-  northeast: { border: 'hover:border-pink-400/50', glow: 'hover:shadow-pink-400/20', text: 'group-hover:text-pink-400' },
-  central: { border: 'hover:border-cyan-400/50', glow: 'hover:shadow-cyan-400/20', text: 'group-hover:text-cyan-400' },
-  west: { border: 'hover:border-purple-400/50', glow: 'hover:shadow-purple-400/20', text: 'group-hover:text-purple-400' },
-  east: { border: 'hover:border-green-400/50', glow: 'hover:shadow-green-400/20', text: 'group-hover:text-green-400' },
-  south: { border: 'hover:border-orange-400/50', glow: 'hover:shadow-orange-400/20', text: 'group-hover:text-orange-400' },
+const getRegionTheme = (regionId: string) => regionTheme[regionId as RegionId] || regionTheme.central;
+
+const climateByRegion: Record<string, ClimateStatProps> = {
+  north: { value: '24.8°C', trend: '-0.6°C (7d)', tone: 'cool' },
+  northeast: { value: '32.6°C', trend: '+0.9°C (7d)', tone: 'warm' },
+  central: { value: '34.1°C', trend: '+1.2°C (7d)', tone: 'hot' },
+  south: { value: '30.4°C', trend: '+0.3°C (7d)', tone: 'warm' },
+  west: { value: '31.2°C', trend: '+0.5°C (7d)', tone: 'warm' },
+  east: { value: '32.8°C', trend: '+0.8°C (7d)', tone: 'warm' },
 };
 
-// Region-specific button colors for Chat with AI
-const regionChatButtonStyles: Record<string, { bg: string; hover: string; border: string; text: string }> = {
-  north: { bg: 'bg-rose-600/20', hover: 'hover:bg-rose-600/30', border: 'border-rose-500/30', text: 'text-rose-300' },
-  northeast: { bg: 'bg-pink-600/20', hover: 'hover:bg-pink-600/30', border: 'border-pink-500/30', text: 'text-pink-300' },
-  central: { bg: 'bg-cyan-600/20', hover: 'hover:bg-cyan-600/30', border: 'border-cyan-500/30', text: 'text-cyan-300' },
-  west: { bg: 'bg-purple-600/20', hover: 'hover:bg-purple-600/30', border: 'border-purple-500/30', text: 'text-purple-300' },
-  east: { bg: 'bg-green-600/20', hover: 'hover:bg-green-600/30', border: 'border-green-500/30', text: 'text-green-300' },
-  south: { bg: 'bg-orange-600/20', hover: 'hover:bg-orange-600/30', border: 'border-orange-500/30', text: 'text-orange-300' },
+const mobilityByRegion: Record<string, MobilityStatProps> = {
+  north: { state: 'ไหลเวียนปกติ', subtitle: 'ตามฤดูกาล', tone: 'normal' },
+  northeast: { state: 'ไหลเวียนปกติ', subtitle: 'เกษตรกรรม', tone: 'normal' },
+  central: { state: 'หนาแน่น', subtitle: 'ศูนย์กลางเมือง', tone: 'congested' },
+  south: { state: 'พีคตามฤดูกาล', subtitle: 'ท่องเที่ยว', tone: 'seasonal' },
+  west: { state: 'ไหลเวียนปกติ', subtitle: 'การค้าชายแดน', tone: 'normal' },
+  east: { state: 'พีคตามฤดูกาล', subtitle: 'อุตสาหกรรม/ท่าเรือ', tone: 'seasonal' },
 };
 
-interface RegionDashboardProps {
+const getStabilityProps = (safetyScore?: number): StabilityStatProps => {
+  const score = typeof safetyScore === 'number' && Number.isFinite(safetyScore) ? safetyScore : 80;
+  if (score >= 88) return { value: `${score}%`, label: 'เสถียร', tone: 'stable' };
+  if (score >= 80) return { value: `${score}%`, label: 'เฝ้าระวัง', tone: 'watch' };
+  return { value: `${score}%`, label: 'ผันผวน', tone: 'volatile' };
+};
+
+export interface RegionDashboardProps {
   regions: Region[];
   selectedRegionId: string | null;
   onSelectRegion: (id: string) => void;
@@ -45,6 +56,7 @@ interface RegionDashboardProps {
   onSelectProvince: (prov: Province) => void;
   onViewProvinceDetail?: (regionId: string, provinceId: string) => void;
   onOpenChat?: (context: { type: 'region' | 'province'; name: string; data: any }) => void;
+  loadingProvinceRegionId?: string | null;
 }
 
 export const RegionDashboard = ({ 
@@ -56,16 +68,39 @@ export const RegionDashboard = ({
   selectedProvince,
   onSelectProvince,
   onViewProvinceDetail,
-  onOpenChat
+  onOpenChat,
+  loadingProvinceRegionId
 }: RegionDashboardProps) => {
   const navigate = useNavigate();
+  const provinceListRef = useRef<HTMLDivElement | null>(null);
+  const provinceCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const sortedProvincesByRegion = useMemo(() => {
+    const map = new Map<string, Province[]>();
+    for (const reg of regions) {
+      map.set(reg.id, [...reg.subProvinces].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+    return map;
+  }, [regions]);
+
+  useEffect(() => {
+    if (mapMode !== 'province' || !selectedProvince) return;
+    const target = provinceCardRefs.current.get(selectedProvince.id);
+    if (!target || !provinceListRef.current) return;
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [mapMode, selectedProvince?.id, selectedRegionId, regions]);
 
   return (
     <section className="flex-[3] bg-[#020305] relative overflow-hidden flex flex-col">
       {regions.map((reg) => {
         const isActive = selectedRegionId === reg.id;
+        const climate = climateByRegion[reg.id] || climateByRegion.central;
+        const mobility = mobilityByRegion[reg.id] || mobilityByRegion.central;
+        const stability = getStabilityProps(reg.safety);
         
-        const hoverStyle = regionHoverStyles[reg.id] || regionHoverStyles.central;
+        const theme = getRegionTheme(reg.id);
+        const hoverStyle = { border: theme.hoverBorder, glow: theme.hoverGlow, text: theme.textHover };
         
         return (
           <div 
@@ -78,7 +113,7 @@ export const RegionDashboard = ({
           >
             {/* Background */}
             <div className="absolute inset-0 overflow-hidden">
-              <img loading="lazy" src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-30'}`} alt={reg.name} />
+              <CachedImage loading="lazy" decoding="async" src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-30'}`} alt={reg.name} />
               <div className={`absolute inset-0 ${isActive ? 'bg-gradient-to-r from-black via-black/95 to-black/50' : 'bg-black/80 hover:bg-black/60 transition-colors'}`}></div>
             </div>
 
@@ -159,23 +194,46 @@ export const RegionDashboard = ({
                                  });
                               }
                            }}
-                           className={`flex-1 py-3 ${regionChatButtonStyles[reg.id]?.bg || 'bg-cyan-600/20'} ${regionChatButtonStyles[reg.id]?.hover || 'hover:bg-cyan-600/30'} border ${regionChatButtonStyles[reg.id]?.border || 'border-cyan-500/30'} rounded-xl text-sm font-bold ${regionChatButtonStyles[reg.id]?.text || 'text-cyan-300'} transition-all flex items-center justify-center gap-2`}
+                           className={`flex-1 py-3 ${theme.chatBg} ${theme.chatHover} border ${theme.chatBorder} rounded-xl text-sm font-bold ${theme.chatText} transition-all flex items-center justify-center gap-2`}
                         >
                            <MessageSquare size={16} /> Chat with AI
                         </button>
                      </div>
+                     <RegionalIntelBar climate={climate} stability={stability} mobility={mobility} />
                   </div>
                </div>
 
                {/* PROVINCE GALLERY GRID (3 Columns) - Sorted A-Z with Scroll */}
-               <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar mt-2 pr-1 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full h-full'}`} style={{ maxHeight: 'calc(100% - 80px)' }}>
+               <div
+                 ref={isActive ? provinceListRef : undefined}
+                 className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar mt-2 pr-1 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full h-full'}`}
+                 style={{ maxHeight: 'calc(100% - 80px)' }}
+               >
                   <div className="grid grid-cols-3 gap-4 pb-8">
-                    {[...reg.subProvinces].sort((a, b) => a.name.localeCompare(b.name)).map((prov) => {
+                    {isActive && reg.subProvinces.length === 0 && loadingProvinceRegionId === reg.id ? (
+                      <div className="col-span-3 text-center text-sm text-slate-500 py-10">
+                        กำลังโหลดจังหวัด...
+                      </div>
+                    ) : (sortedProvincesByRegion.get(reg.id) || reg.subProvinces).map((prov) => {
                        const isSelected = selectedProvince?.id === prov.id;
-                       return (
-                         <div key={prov.id} onClick={(e) => { e.stopPropagation(); onSelectProvince(prov); }} className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group hover:border-cyan-500/50 transition-all duration-300 cursor-pointer`}>
+                        return (
+                         <div
+                           key={prov.id}
+                           ref={(el) => {
+                             if (el) {
+                               provinceCardRefs.current.set(prov.id, el);
+                             } else {
+                               provinceCardRefs.current.delete(prov.id);
+                             }
+                           }}
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             onSelectProvince(prov);
+                           }}
+                           className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group transition-all duration-300 hover:border-cyan-500/50 cursor-pointer`}
+                         >
                             <div className="relative h-28 overflow-hidden">
-                               <img loading="lazy" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={getDisplayName(prov.name)} />
+                               <CachedImage loading="lazy" decoding="async" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={getDisplayName(prov.name)} />
                                <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors"></div>
                                <div className="absolute bottom-2 left-2 right-2">
                                   <h3 className="text-lg font-bold text-white drop-shadow-md">{getDisplayName(prov.name)}</h3>

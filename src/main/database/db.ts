@@ -1,13 +1,26 @@
 import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
+import { Region, Province } from '../../shared/types';
 
 const dbPath = path.join(app.getPath('userData'), 'locus.db');
 
 // Initialize Database (verbose mode disabled for cleaner terminal)
 const db = new Database(dbPath);
-db.pragma('journal_mode = WAL'); 
-db.pragma('cache_size = -64000'); 
+let regionsCache: Region[] | null = null;
+let regionSummaryCache: Region[] | null = null;
+let provincesCache: Map<string, Province> | null = null;
+let provincesByRegionCache: Map<string, Province[]> | null = null;
+let provinceIndexCache: Array<{ id: string; name: string; regionId: string; regionName: string; dailyCostValue: number | null; populationValue: number | null; safety: number | null }> | null = null;
+
+// Performance optimizations for SQLite
+db.pragma('journal_mode = WAL');           // Write-Ahead Logging for better concurrency
+db.pragma('cache_size = -64000');          // 64MB cache (negative = KB)
+db.pragma('synchronous = NORMAL');         // Balance between safety and speed
+db.pragma('temp_store = MEMORY');          // Store temp tables in memory
+db.pragma('mmap_size = 268435456');        // Memory-mapped I/O (256MB)
+db.pragma('foreign_keys = ON');            // Enforce foreign key constraints 
+db.pragma('busy_timeout = 3000');          // Avoid immediate "database is locked" errors
 
 export function initDatabase() {
   // Create tables if they don't exist (no more DROP every time)
@@ -25,7 +38,9 @@ export function initDatabase() {
       image TEXT,
       safety INTEGER,
       population TEXT, 
+      population_value INTEGER,
       area TEXT,
+      area_value REAL,
       province_count INTEGER
     );
   `);
@@ -35,7 +50,9 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS region_stats (
       region_id TEXT PRIMARY KEY,
       dailyCost TEXT,
+      dailyCost_value INTEGER,
       monthlyCost TEXT,
+      monthlyCost_value INTEGER,
       food TEXT,
       flora TEXT,
       attraction TEXT,
@@ -57,26 +74,221 @@ export function initDatabase() {
       entertainment INTEGER,
       relax INTEGER,
       population TEXT,
+      population_value INTEGER,
       area TEXT,
+      area_value REAL,
       dailyCost TEXT,
+      dailyCost_value INTEGER,
       safety INTEGER,
       FOREIGN KEY(region_id) REFERENCES regions(id)
     );
   `);
 
+  // Indexes creation moved after column migrations to ensure columns exist
+
+  // Migrations: ensure numeric columns exist for legacy DBs
+  ensureColumn('regions', 'population_value', 'INTEGER');
+  ensureColumn('regions', 'area_value', 'REAL');
+  ensureColumn('region_stats', 'dailyCost_value', 'INTEGER');
+  ensureColumn('region_stats', 'monthlyCost_value', 'INTEGER');
+  ensureColumn('provinces', 'population_value', 'INTEGER');
+  ensureColumn('provinces', 'area_value', 'REAL');
+  ensureColumn('provinces', 'dailyCost_value', 'INTEGER');
+
+  backfillNumericColumns();
+
   // Create indexes for faster queries
   db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region ON provinces(region_id);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_stats_region ON region_stats(region_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_name ON provinces(name);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_cost ON provinces(region_id, dailyCost_value);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_population ON provinces(region_id, population_value);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_safety ON provinces(region_id, safety);`);
 
   console.log('✓ Database ready at:', dbPath);
 }
 
-export function getRegions() {
-  const regions = db.prepare('SELECT * FROM regions').all();
+// Database row types (raw from SQLite)
+interface RegionRow {
+  id: string;
+  name: string;
+  engName: string;
+  code: string;
+  desc: string | null;
+  color: string | null;
+  gradient: string | null;
+  image: string | null;
+  safety: number;
+  population: string | null;
+  population_value: number | null;
+  area: string | null;
+  area_value: number | null;
+  province_count: number;
+}
+
+interface RegionStatsRow {
+  region_id: string;
+  dailyCost: string | null;
+  dailyCost_value: number | null;
+  monthlyCost: string | null;
+  monthlyCost_value: number | null;
+  food: string | null;
+  flora: string | null;
+  attraction: string | null;
+  nightlife: string | null;
+}
+
+interface ProvinceRow {
+  id: string;
+  region_id: string;
+  name: string;
+  image: string | null;
+  dist: number;
+  tam: number;
+  serenity: number | null;
+  entertainment: number | null;
+  relax: number | null;
+  population: string | null;
+  population_value: number | null;
+  area: string | null;
+  area_value: number | null;
+  dailyCost: string | null;
+  dailyCost_value: number | null;
+  safety: number | null;
+}
+
+interface ArchiveProvinceRow {
+  id: string;
+  name: string;
+  regionId: string;
+  image: string | null;
+  dist: number;
+  tam: number;
+  population: string | null;
+  populationValue: number | null;
+  area: string | null;
+  areaValue: number | null;
+  dailyCost: string | null;
+  dailyCostValue: number | null;
+  safety: number | null;
+}
+
+const parsePopulationValue = (pop: string | null): number | null => {
+  if (!pop) return null;
+  const normalized = pop.replace(/,/g, '').trim();
+  const match = normalized.match(/([\d.]+)\s*([KkMm]?)/);
+  if (!match) return null;
+  const num = parseFloat(match[1]);
+  if (Number.isNaN(num)) return null;
+  const unit = match[2]?.toUpperCase();
+  if (unit === 'M') return Math.round(num * 1_000_000);
+  if (unit === 'K') return Math.round(num * 1_000);
+  return Math.round(num);
+};
+
+const parseAreaValue = (area: string | null): number | null => {
+  if (!area) return null;
+  const normalized = area.replace(/,/g, '').trim();
+  const num = parseFloat(normalized);
+  return Number.isNaN(num) ? null : num;
+};
+
+const parseCostValue = (cost: string | null): number | null => {
+  if (!cost) return null;
+  const match = cost.replace(/,/g, '').match(/([\d.]+)/);
+  if (!match) return null;
+  const num = parseFloat(match[1]);
+  return Number.isNaN(num) ? null : Math.round(num);
+};
+
+const columnExists = (table: string, column: string): boolean => {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  return columns.some((col) => col.name === column);
+};
+
+const ensureColumn = (table: string, column: string, type: string) => {
+  if (!columnExists(table, column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
+};
+
+const backfillNumericColumns = () => {
+  const updateRegions = db.prepare(`
+    UPDATE regions
+    SET population_value = ?, area_value = ?
+    WHERE id = ?
+  `);
+  const updateStats = db.prepare(`
+    UPDATE region_stats
+    SET dailyCost_value = ?, monthlyCost_value = ?
+    WHERE region_id = ?
+  `);
+  const updateProvinces = db.prepare(`
+    UPDATE provinces
+    SET population_value = ?, area_value = ?, dailyCost_value = ?
+    WHERE id = ?
+  `);
+
+  const regions = db.prepare('SELECT id, population, area, population_value, area_value FROM regions').all() as RegionRow[];
+  const stats = db.prepare('SELECT region_id, dailyCost, monthlyCost, dailyCost_value, monthlyCost_value FROM region_stats').all() as RegionStatsRow[];
+  const provinces = db.prepare('SELECT id, population, area, dailyCost, population_value, area_value, dailyCost_value FROM provinces').all() as ProvinceRow[];
+
+  db.transaction(() => {
+    for (const reg of regions) {
+      const popValue = reg.population_value ?? parsePopulationValue(reg.population);
+      const areaValue = reg.area_value ?? parseAreaValue(reg.area);
+      if (popValue !== reg.population_value || areaValue !== reg.area_value) {
+        updateRegions.run(popValue, areaValue, reg.id);
+      }
+    }
+
+    for (const stat of stats) {
+      const dailyCostValue = stat.dailyCost_value ?? parseCostValue(stat.dailyCost);
+      const monthlyCostValue = stat.monthlyCost_value ?? parseCostValue(stat.monthlyCost);
+      if (dailyCostValue !== stat.dailyCost_value || monthlyCostValue !== stat.monthlyCost_value) {
+        updateStats.run(dailyCostValue, monthlyCostValue, stat.region_id);
+      }
+    }
+
+    for (const prov of provinces) {
+      const popValue = prov.population_value ?? parsePopulationValue(prov.population);
+      const areaValue = prov.area_value ?? parseAreaValue(prov.area);
+      const dailyCostValue = prov.dailyCost_value ?? parseCostValue(prov.dailyCost);
+      if (
+        popValue !== prov.population_value ||
+        areaValue !== prov.area_value ||
+        dailyCostValue !== prov.dailyCost_value
+      ) {
+        updateProvinces.run(popValue, areaValue, dailyCostValue, prov.id);
+      }
+    }
+  })();
+};
+
+export function getRegions(): Region[] {
+  if (regionsCache) return regionsCache;
+
+  const regions = db.prepare('SELECT * FROM regions').all() as RegionRow[];
+  const allStats = db.prepare('SELECT * FROM region_stats').all() as RegionStatsRow[];
+  const allProvinces = db.prepare('SELECT * FROM provinces').all() as ProvinceRow[];
+
+  // Create lookup maps for performance
+  const statsMap = new Map<string, RegionStatsRow>();
+  for (const s of allStats) {
+      statsMap.set(s.region_id, s);
+  }
+
+  const provincesMap = new Map<string, ProvinceRow[]>();
+  for (const p of allProvinces) {
+      if (!provincesMap.has(p.region_id)) {
+          provincesMap.set(p.region_id, []);
+      }
+      provincesMap.get(p.region_id)!.push(p);
+  }
   
-  return regions.map((reg: any) => {
-    const stats = db.prepare('SELECT * FROM region_stats WHERE region_id = ?').get(reg.id);
-    const subProvinces = db.prepare('SELECT * FROM provinces WHERE region_id = ?').all(reg.id);
+  const result: Region[] = regions.map((reg): Region => {
+    const stats = statsMap.get(reg.id);
+    const subProvinces = provincesMap.get(reg.id) || [];
     
     // Reconstruct the nested object structure expected by the frontend
     return {
@@ -84,28 +296,323 @@ export function getRegions() {
       name: reg.name,
       engName: reg.engName,
       code: reg.code,
-      color: reg.color,
-      gradient: reg.gradient,
-      image: reg.image,
-      desc: reg.desc,
+      color: reg.color || '',
+      gradient: reg.gradient || undefined,
+      image: reg.image || '',
+      desc: reg.desc || '',
       safety: reg.safety,
       // Reconstruct summary object
       summary: {
-        pop: reg.population,
-        area: reg.area,
-        provinces: reg.province_count
+        pop: reg.population || '',
+        area: reg.area || '',
+        provinces: reg.province_count,
+        popValue: reg.population_value ?? undefined,
+        areaValue: reg.area_value ?? undefined
       },
-      stats: stats,
-      subProvinces: subProvinces
+      stats: {
+          dailyCost: stats?.dailyCost || '',
+          monthlyCost: stats?.monthlyCost || '',
+          flora: stats?.flora || '',
+          food: stats?.food || '',
+          attraction: stats?.attraction || '',
+          nightlife: stats?.nightlife || '',
+          dailyCostValue: stats?.dailyCost_value ?? undefined,
+          monthlyCostValue: stats?.monthlyCost_value ?? undefined
+      },
+      subProvinces: subProvinces.map((p: ProvinceRow): Province => ({
+          id: p.id,
+          name: p.name,
+          image: p.image || '',
+          dist: p.dist,
+          tam: p.tam,
+          serenity: p.serenity ?? undefined,
+          entertainment: p.entertainment ?? undefined,
+          relax: p.relax ?? undefined,
+          population: p.population ?? undefined,
+          area: p.area ?? undefined,
+          dailyCost: p.dailyCost ?? undefined,
+          safety: p.safety ?? undefined,
+          populationValue: p.population_value ?? undefined,
+          areaValue: p.area_value ?? undefined,
+          dailyCostValue: p.dailyCost_value ?? undefined
+      }))
     };
   });
+
+  regionsCache = result;
+  if (!regionSummaryCache) {
+    regionSummaryCache = result.map((region) => ({ ...region, subProvinces: [] }));
+  }
+  const provinceMap = new Map<string, Province>();
+  const provinceByRegion = new Map<string, Province[]>();
+  for (const region of result) {
+    provinceByRegion.set(region.id, region.subProvinces);
+    for (const province of region.subProvinces) {
+      provinceMap.set(province.id, province);
+    }
+  }
+  provincesCache = provinceMap;
+  provincesByRegionCache = provinceByRegion;
+  return result;
 }
 
-export function getProvince(id: string) {
-    return db.prepare('SELECT * FROM provinces WHERE id = ?').get(id);
+export function getRegion(id: string): Region | undefined {
+  if (regionsCache) return regionsCache.find(r => r.id === id);
+  if (regionSummaryCache) return regionSummaryCache.find(r => r.id === id);
+
+  const reg = db.prepare('SELECT * FROM regions WHERE id = ?').get(id) as RegionRow | undefined;
+  if (!reg) return undefined;
+  const stats = db.prepare('SELECT * FROM region_stats WHERE region_id = ?').get(id) as RegionStatsRow | undefined;
+
+  return {
+    id: reg.id,
+    name: reg.name,
+    engName: reg.engName,
+    code: reg.code,
+    color: reg.color || '',
+    gradient: reg.gradient || undefined,
+    image: reg.image || '',
+    desc: reg.desc || '',
+    safety: reg.safety,
+    summary: {
+      pop: reg.population || '',
+      area: reg.area || '',
+      provinces: reg.province_count,
+      popValue: reg.population_value ?? undefined,
+      areaValue: reg.area_value ?? undefined
+    },
+    stats: {
+      dailyCost: stats?.dailyCost || '',
+      monthlyCost: stats?.monthlyCost || '',
+      flora: stats?.flora || '',
+      food: stats?.food || '',
+      attraction: stats?.attraction || '',
+      nightlife: stats?.nightlife || '',
+      dailyCostValue: stats?.dailyCost_value ?? undefined,
+      monthlyCostValue: stats?.monthlyCost_value ?? undefined
+    },
+    subProvinces: []
+  };
 }
 
-export function seedDatabase(initialRegions: any[]) {
+export function getProvince(id: string): Province | undefined {
+    if (provincesCache) return provincesCache.get(id);
+
+    const row = db.prepare('SELECT * FROM provinces WHERE id = ?').get(id) as ProvinceRow | undefined;
+    if (!row) return undefined;
+
+    return {
+      id: row.id,
+      name: row.name,
+      image: row.image || '',
+      dist: row.dist,
+      tam: row.tam,
+      serenity: row.serenity ?? undefined,
+      entertainment: row.entertainment ?? undefined,
+      relax: row.relax ?? undefined,
+      population: row.population ?? undefined,
+      area: row.area ?? undefined,
+      dailyCost: row.dailyCost ?? undefined,
+      safety: row.safety ?? undefined,
+      populationValue: row.population_value ?? undefined,
+      areaValue: row.area_value ?? undefined,
+      dailyCostValue: row.dailyCost_value ?? undefined
+    };
+}
+
+export function getRegionSummaries(): Region[] {
+  if (regionSummaryCache) return regionSummaryCache;
+
+  const regions = db.prepare('SELECT * FROM regions').all() as RegionRow[];
+  const allStats = db.prepare('SELECT * FROM region_stats').all() as RegionStatsRow[];
+
+  const statsMap = new Map<string, RegionStatsRow>();
+  for (const stat of allStats) {
+    statsMap.set(stat.region_id, stat);
+  }
+
+  const summaries: Region[] = regions.map((reg): Region => {
+    const stats = statsMap.get(reg.id);
+    return {
+      id: reg.id,
+      name: reg.name,
+      engName: reg.engName,
+      code: reg.code,
+      color: reg.color || '',
+      gradient: reg.gradient || undefined,
+      image: reg.image || '',
+      desc: reg.desc || '',
+      safety: reg.safety,
+      summary: {
+        pop: reg.population || '',
+        area: reg.area || '',
+        provinces: reg.province_count,
+        popValue: reg.population_value ?? undefined,
+        areaValue: reg.area_value ?? undefined
+      },
+      stats: {
+        dailyCost: stats?.dailyCost || '',
+        monthlyCost: stats?.monthlyCost || '',
+        flora: stats?.flora || '',
+        food: stats?.food || '',
+        attraction: stats?.attraction || '',
+        nightlife: stats?.nightlife || '',
+        dailyCostValue: stats?.dailyCost_value ?? undefined,
+        monthlyCostValue: stats?.monthlyCost_value ?? undefined
+      },
+      subProvinces: []
+    };
+  });
+
+  regionSummaryCache = summaries;
+  return summaries;
+}
+
+export function getProvincesByRegion(regionId: string): Province[] {
+  if (provincesByRegionCache?.has(regionId)) {
+    return provincesByRegionCache.get(regionId)!;
+  }
+
+  const rows = db.prepare('SELECT * FROM provinces WHERE region_id = ?').all(regionId) as ProvinceRow[];
+  const provinces = rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    image: row.image || '',
+    dist: row.dist,
+    tam: row.tam,
+    serenity: row.serenity ?? undefined,
+    entertainment: row.entertainment ?? undefined,
+    relax: row.relax ?? undefined,
+    population: row.population ?? undefined,
+    area: row.area ?? undefined,
+    dailyCost: row.dailyCost ?? undefined,
+    safety: row.safety ?? undefined,
+    populationValue: row.population_value ?? undefined,
+    areaValue: row.area_value ?? undefined,
+    dailyCostValue: row.dailyCost_value ?? undefined
+  })) as Province[];
+
+  if (!provincesByRegionCache) {
+    provincesByRegionCache = new Map<string, Province[]>();
+  }
+  provincesByRegionCache.set(regionId, provinces);
+  if (!provincesCache) {
+    provincesCache = new Map<string, Province>();
+  }
+  for (const province of provinces) {
+    provincesCache.set(province.id, province);
+  }
+  return provinces;
+}
+
+export function getProvinceIndex(): Array<{ id: string; name: string; regionId: string; regionName: string; dailyCostValue: number | null; populationValue: number | null; safety: number | null }> {
+  if (provinceIndexCache) return provinceIndexCache;
+
+  const rows = db.prepare(`
+    SELECT
+      p.id as id,
+      p.name as name,
+      p.region_id as regionId,
+      r.name as regionName,
+      p.dailyCost_value as dailyCostValue,
+      p.population_value as populationValue,
+      p.safety as safety
+    FROM provinces p
+    JOIN regions r ON r.id = p.region_id
+    ORDER BY p.name ASC
+  `).all() as Array<{ id: string; name: string; regionId: string; regionName: string; dailyCostValue: number | null; populationValue: number | null; safety: number | null }>;
+
+  provinceIndexCache = rows;
+  return provinceIndexCache;
+}
+
+export function getArchiveProvinces(params: {
+  regionIds?: string[];
+  ids?: string[];
+  sortBy?: string;
+  offset?: number;
+  limit?: number;
+}) {
+  const { regionIds, ids, sortBy = 'name', offset = 0, limit = 60 } = params;
+
+  if (Array.isArray(ids) && ids.length === 0) {
+    return { rows: [], total: 0 };
+  }
+
+  const where: string[] = [];
+  const queryParams: Array<string | number> = [];
+
+  if (ids && ids.length > 0) {
+    where.push(`p.id IN (${ids.map(() => '?').join(',')})`);
+    queryParams.push(...ids);
+  }
+
+  if (regionIds && regionIds.length > 0) {
+    where.push(`p.region_id IN (${regionIds.map(() => '?').join(',')})`);
+    queryParams.push(...regionIds);
+  }
+
+  const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+  const sortMap: Record<string, string> = {
+    name: 'p.name COLLATE NOCASE ASC',
+    'cost-high': 'COALESCE(p.dailyCost_value, 0) DESC',
+    'cost-low': 'COALESCE(p.dailyCost_value, 0) ASC',
+    'safety-high': 'COALESCE(p.safety, 0) DESC',
+    'safety-low': 'COALESCE(p.safety, 0) ASC',
+    'pop-high': 'COALESCE(p.population_value, 0) DESC',
+    'pop-low': 'COALESCE(p.population_value, 0) ASC',
+  };
+  const orderBy = sortMap[sortBy] || sortMap.name;
+
+  const countRow = db.prepare(`SELECT COUNT(*) as total FROM provinces p ${whereClause}`).get(...queryParams) as { total: number };
+  const rows = db.prepare(`
+    SELECT
+      p.id as id,
+      p.name as name,
+      p.region_id as regionId,
+      p.image as image,
+      p.dist as dist,
+      p.tam as tam,
+      p.population as population,
+      p.population_value as populationValue,
+      p.area as area,
+      p.area_value as areaValue,
+      p.dailyCost as dailyCost,
+      p.dailyCost_value as dailyCostValue,
+      p.safety as safety
+    FROM provinces p
+    ${whereClause}
+    ORDER BY ${orderBy}
+    LIMIT ? OFFSET ?
+  `).all(...queryParams, limit, offset) as ArchiveProvinceRow[];
+
+  return {
+    rows: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      regionId: row.regionId,
+      image: row.image || '',
+      dist: row.dist,
+      tam: row.tam,
+      population: row.population ?? undefined,
+      area: row.area ?? undefined,
+      dailyCost: row.dailyCost ?? undefined,
+      safety: row.safety ?? undefined,
+      populationValue: row.populationValue ?? undefined,
+      areaValue: row.areaValue ?? undefined,
+      dailyCostValue: row.dailyCostValue ?? undefined
+    })),
+    total: countRow.total
+  };
+}
+
+export function seedDatabase(initialRegions: Region[]) {
+    regionsCache = null;
+    regionSummaryCache = null;
+    provincesCache = null;
+    provincesByRegionCache = null;
+    provinceIndexCache = null;
+    // Check main counts
     const regionCount = db.prepare('SELECT count(*) as count FROM regions').get() as { count: number };
     const provinceCount = db.prepare('SELECT count(*) as count FROM provinces').get() as { count: number };
     
@@ -113,38 +620,39 @@ export function seedDatabase(initialRegions: any[]) {
     const expectedProvinces = initialRegions.reduce((sum, r) => sum + r.subProvinces.length, 0);
     const expectedRegions = initialRegions.length;
     
-    // Only skip if we have ALL the data
+    // Quick check to skip if everything looks populated (simple heuristic)
     if (regionCount.count >= expectedRegions && provinceCount.count >= expectedProvinces) {
-        console.log(`✓ Database already has complete data (${regionCount.count} regions, ${provinceCount.count} provinces), skipping...`);
-        return; 
+        console.log(`✓ Database checks out (${regionCount.count} regions, ${provinceCount.count} provinces). Skipping seed.`);
+        // Keep static theme columns in sync for existing DBs.
+        const updateTheme = db.prepare(`UPDATE regions SET color = ?, gradient = ? WHERE id = ?`);
+        db.transaction(() => {
+          for (const reg of initialRegions) {
+            updateTheme.run(reg.color, reg.gradient || null, reg.id);
+          }
+        })();
+        return;
     }
 
-    // Clear incomplete data and reseed
-    if (regionCount.count > 0 || provinceCount.count > 0) {
-        console.log(`⚠️ Incomplete data detected (${regionCount.count}/${expectedRegions} regions, ${provinceCount.count}/${expectedProvinces} provinces). Reseeding...`);
-        db.exec('DELETE FROM provinces;');
-        db.exec('DELETE FROM region_stats;');
-        db.exec('DELETE FROM regions;');
-    }
-
-    console.log('⏳ Seeding Database...');
+    console.log('⏳ Verifying and Seeding Database...');
     const insertRegion = db.prepare(`
-        INSERT INTO regions (id, name, engName, code, desc, color, gradient, image, safety, population, area, province_count)
-        VALUES (@id, @name, @engName, @code, @desc, @color, @gradient, @image, @safety, @population, @area, @province_count)
+        INSERT OR IGNORE INTO regions (id, name, engName, code, desc, color, gradient, image, safety, population, population_value, area, area_value, province_count)
+        VALUES (@id, @name, @engName, @code, @desc, @color, @gradient, @image, @safety, @population, @population_value, @area, @area_value, @province_count)
     `);
 
     const insertStats = db.prepare(`
-        INSERT INTO region_stats (region_id, dailyCost, monthlyCost, food, flora, attraction, nightlife)
-        VALUES (@region_id, @dailyCost, @monthlyCost, @food, @flora, @attraction, @nightlife)
+        INSERT OR IGNORE INTO region_stats (region_id, dailyCost, dailyCost_value, monthlyCost, monthlyCost_value, food, flora, attraction, nightlife)
+        VALUES (@region_id, @dailyCost, @dailyCost_value, @monthlyCost, @monthlyCost_value, @food, @flora, @attraction, @nightlife)
     `);
 
     const insertProvince = db.prepare(`
-        INSERT INTO provinces (id, region_id, name, image, dist, tam, serenity, entertainment, relax, population, area, dailyCost, safety)
-        VALUES (@id, @region_id, @name, @image, @dist, @tam, @serenity, @entertainment, @relax, @population, @area, @dailyCost, @safety)
+        INSERT OR IGNORE INTO provinces (id, region_id, name, image, dist, tam, serenity, entertainment, relax, population, population_value, area, area_value, dailyCost, dailyCost_value, safety)
+        VALUES (@id, @region_id, @name, @image, @dist, @tam, @serenity, @entertainment, @relax, @population, @population_value, @area, @area_value, @dailyCost, @dailyCost_value, @safety)
     `);
 
-    const insertMany = db.transaction((regions: any[]) => {
+    const insertMany = db.transaction((regions: Region[]) => {
         for (const reg of regions) {
+            const regionPopValue = parsePopulationValue(reg.summary.pop);
+            const regionAreaValue = parseAreaValue(reg.summary.area);
             insertRegion.run({
                 id: reg.id,
                 name: reg.name,
@@ -155,16 +663,21 @@ export function seedDatabase(initialRegions: any[]) {
                 gradient: reg.gradient,
                 image: reg.image,
                 safety: reg.safety,
-                // Map from summary object
                 population: reg.summary.pop,
+                population_value: regionPopValue,
                 area: reg.summary.area,
+                area_value: regionAreaValue,
                 province_count: reg.summary.provinces
             });
 
+            const regionDailyCostValue = parseCostValue(reg.stats.dailyCost);
+            const regionMonthlyCostValue = parseCostValue(reg.stats.monthlyCost);
             insertStats.run({
                 region_id: reg.id,
                 dailyCost: reg.stats.dailyCost,
+                dailyCost_value: regionDailyCostValue,
                 monthlyCost: reg.stats.monthlyCost,
+                monthlyCost_value: regionMonthlyCostValue,
                 food: reg.stats.food,
                 flora: reg.stats.flora,
                 attraction: reg.stats.attraction,
@@ -172,6 +685,7 @@ export function seedDatabase(initialRegions: any[]) {
             });
 
             for (const prov of reg.subProvinces) {
+                const dailyCost = prov.dailyCost || '300 ฿';
                 insertProvince.run({
                     id: prov.id,
                     region_id: reg.id,
@@ -183,8 +697,11 @@ export function seedDatabase(initialRegions: any[]) {
                     entertainment: prov.entertainment || 5,
                     relax: prov.relax || 5,
                     population: prov.population || null,
+                    population_value: parsePopulationValue(prov.population || null),
                     area: prov.area || null,
-                    dailyCost: prov.dailyCost || '300 ฿',
+                    area_value: parseAreaValue(prov.area || null),
+                    dailyCost: dailyCost,
+                    dailyCost_value: parseCostValue(dailyCost),
                     safety: prov.safety || 80
                 });
             }
@@ -192,15 +709,17 @@ export function seedDatabase(initialRegions: any[]) {
     });
 
     insertMany(initialRegions);
-    
-    // Count total provinces seeded
-    const totalProvinces = initialRegions.reduce((sum, r) => sum + r.subProvinces.length, 0);
-    console.log(`✓ Seeding Complete! (${initialRegions.length} regions, ${totalProvinces} provinces)`);
+    console.log('✓ Seeding process completed.');
 }
 
 // Force reseed database (for troubleshooting)
-export function forceReseedDatabase(initialRegions: any[]) {
+export function forceReseedDatabase(initialRegions: Region[]) {
     console.log('🔄 Force reseeding database...');
+    regionsCache = null;
+    regionSummaryCache = null;
+    provincesCache = null;
+    provincesByRegionCache = null;
+    provinceIndexCache = null;
     db.exec('DELETE FROM provinces;');
     db.exec('DELETE FROM region_stats;');
     db.exec('DELETE FROM regions;');

@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { BrowserRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { TravelGuidePage } from './TravelGuidePage';
 
 const meta = {

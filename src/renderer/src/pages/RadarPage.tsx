@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ThailandMap } from '../components/ThailandMap';
 import { RegionDashboard } from '../components/RegionDashboard';
 import { Region, Province, regionsData } from '../data/regions';
 import { searchProvince, getThaiProvinceName } from '../data/thaiProvinceNames';
 import { Search, Users, Maximize, Building, MapPin } from 'lucide-react';
+import { measureAsync } from '../utils/perf';
 
 // Local image mapping for regions (override DB URLs)
 const regionImageMap: Record<string, string> = regionsData.reduce((acc, r) => {
@@ -22,26 +23,58 @@ export const RadarPage = () => {
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>('central');
   const [mapMode, setMapMode] = useState<'region' | 'province'>('region');
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
+  const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string; regionId: string; regionName: string }>>([]);
+  const [loadingProvinceRegionId, setLoadingProvinceRegionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const loadedRegionIdsRef = useRef<Set<string>>(new Set());
+  const regionsRef = useRef<Region[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         if (window.api && window.api.db) {
-          const data = await window.api.db.getRegions();
-          // Override images with local files
-          const dataWithLocalImages = data.map((region: Region) => ({
+          const [regionSummaries, provinceSearchIndex] = await Promise.all([
+            window.api.db.getRegionSummaries
+              ? measureAsync('db:getRegionSummaries@RadarPage', () => window.api.db.getRegionSummaries())
+              : measureAsync('db:getRegions@RadarPage', () => window.api.db.getRegions()),
+            window.api.db.getProvinceIndex
+              ? measureAsync('db:getProvinceIndex@RadarPage', () => window.api.db.getProvinceIndex())
+              : Promise.resolve([])
+          ]);
+          const dataWithLocalImages = regionSummaries.map((region: Region) => ({
             ...region,
             image: regionImageMap[region.id] || region.image
           }));
           setRegions(dataWithLocalImages);
+          if (provinceSearchIndex.length > 0) {
+            setProvinceIndex(provinceSearchIndex);
+          } else {
+            const fallbackIndex = dataWithLocalImages.flatMap((region: Region) =>
+              (region.subProvinces || []).map((prov: Province) => ({
+                id: prov.id,
+                name: prov.name,
+                regionId: region.id,
+                regionName: region.name
+              }))
+            );
+            setProvinceIndex(fallbackIndex);
+          }
         } else {
           console.warn('DB API not found, running in browser mode.');
-          // Use static data as fallback
           setRegions(regionsData);
+          const fallbackIndex = regionsData.flatMap((region) =>
+            (region.subProvinces || []).map((prov) => ({
+              id: prov.id,
+              name: prov.name,
+              regionId: region.id,
+              regionName: region.name
+            }))
+          );
+          setProvinceIndex(fallbackIndex);
         }
       } catch (error) {
         console.error('Failed to load regions:', error);
@@ -50,26 +83,35 @@ export const RadarPage = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    regionsRef.current = regions;
+  }, [regions]);
+
   const activeData = regions.find(r => r.id === selectedRegionId);
+  const isProvinceFocus = mapMode === 'province' && !!selectedProvince;
+  const getProvincePopulation = (prov: Province | null) => {
+    if (!prov) return null;
+    if (prov.population) return prov.population;
+    if (typeof prov.populationValue === 'number') return prov.populationValue.toLocaleString();
+    return null;
+  };
+  const getProvinceArea = (prov: Province | null) => {
+    if (!prov) return null;
+    if (prov.area) return prov.area;
+    if (typeof prov.areaValue === 'number') return prov.areaValue.toLocaleString();
+    return null;
+  };
 
   // Get all provinces for search
-  const allProvinces = useMemo(() => {
-    return regions.flatMap(region => 
-      (region.subProvinces || []).map(prov => ({
-        ...prov,
-        regionId: region.id,
-        regionName: region.name
-      }))
-    );
-  }, [regions]);
+  const allProvinces = useMemo(() => provinceIndex, [provinceIndex]);
 
   // Filter provinces based on search (supports Thai and English)
   const filteredProvinces = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    return allProvinces.filter(p => 
-      searchProvince(searchQuery, p.name)
-    ).slice(0, 6);
-  }, [searchQuery, allProvinces]);
+    if (!deferredSearchQuery.trim()) return [];
+    return allProvinces
+      .filter(p => searchProvince(deferredSearchQuery, p.name))
+      .slice(0, 6);
+  }, [deferredSearchQuery, allProvinces]);
 
   // Reset selected index when filtered results change
   useEffect(() => {
@@ -77,10 +119,34 @@ export const RadarPage = () => {
   }, [filteredProvinces.length]);
 
   // Handle search selection
-  const handleSearchSelect = (prov: typeof allProvinces[0]) => {
+  const loadRegionProvinces = async (regionId: string) => {
+    if (!window.api?.db?.getProvincesByRegion) {
+      return regionsRef.current.find((region) => region.id === regionId)?.subProvinces || [];
+    }
+    if (loadedRegionIdsRef.current.has(regionId)) {
+      return regionsRef.current.find((region) => region.id === regionId)?.subProvinces || [];
+    }
+    setLoadingProvinceRegionId(regionId);
+    try {
+      const provinces = await measureAsync(`db:getProvincesByRegion@RadarPage:${regionId}`, () =>
+        window.api.db.getProvincesByRegion(regionId)
+      );
+      setRegions((prev) =>
+        prev.map((region) => (region.id === regionId ? { ...region, subProvinces: provinces } : region))
+      );
+      loadedRegionIdsRef.current.add(regionId);
+      return provinces;
+    } finally {
+      setLoadingProvinceRegionId((prev) => (prev === regionId ? null : prev));
+    }
+  };
+
+  const handleSearchSelect = async (prov: typeof allProvinces[0]) => {
     setSelectedRegionId(prov.regionId);
-    setSelectedProvince(prov);
     setMapMode('province');
+    const provinces = await loadRegionProvinces(prov.regionId);
+    const fullProvince = provinces.find((p) => p.id === prov.id) || provinces.find((p) => p.name === prov.name) || null;
+    setSelectedProvince(fullProvince);
     setSearchQuery('');
     setShowSuggestions(false);
   };
@@ -115,9 +181,15 @@ export const RadarPage = () => {
   };
 
   const handleProvinceSelect = (prov: Province) => {
-    setSelectedProvince(prov);
+    setSelectedProvince((prev) => (prev?.id === prov.id ? null : prov));
     setMapMode('province');
   };
+
+  useEffect(() => {
+    if (mapMode === 'province' && selectedRegionId) {
+      loadRegionProvinces(selectedRegionId);
+    }
+  }, [mapMode, selectedRegionId]);
 
   // Navigate to Province Tactical Detail page
   const handleViewProvinceDetail = (regionId: string, provinceId: string) => {
@@ -135,6 +207,7 @@ export const RadarPage = () => {
             viewMode={mapMode} 
             selectedProvince={selectedProvince} 
             onSelectProvince={handleProvinceSelect} 
+            onClearProvince={() => setSelectedProvince(null)}
           />
         </div>
 
@@ -143,22 +216,24 @@ export const RadarPage = () => {
           <div className="absolute bottom-24 right-6 z-30 flex flex-col gap-2.5 animate-in fade-in slide-in-from-right-4 duration-500 items-end">
             <StatCard 
               icon={<Users size={18} />}
-              value={activeData.summary.pop}
+              value={isProvinceFocus ? (getProvincePopulation(selectedProvince) || activeData.summary.pop) : activeData.summary.pop}
               label="Population"
               colorClass="yellow"
             />
             <StatCard 
               icon={<Maximize size={18} />}
-              value={activeData.summary.area}
+              value={isProvinceFocus ? (getProvinceArea(selectedProvince) || activeData.summary.area) : activeData.summary.area}
               label="Area km²"
               colorClass="orange"
             />
-            <StatCard 
-              icon={<Building size={18} />}
-              value={String(activeData.summary.provinces)}
-              label="Provinces"
-              colorClass="amber"
-            />
+            {!isProvinceFocus && (
+              <StatCard 
+                icon={<Building size={18} />}
+                value={String(activeData.summary.provinces)}
+                label="Provinces"
+                colorClass="amber"
+              />
+            )}
           </div>
         )}
 
@@ -224,6 +299,7 @@ export const RadarPage = () => {
         selectedProvince={selectedProvince}
         onSelectProvince={handleProvinceSelect}
         onViewProvinceDetail={handleViewProvinceDetail}
+        loadingProvinceRegionId={loadingProvinceRegionId}
       />
     </>
   );

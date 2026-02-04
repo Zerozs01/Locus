@@ -1,15 +1,18 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { 
   Database, Search, Filter, ArrowUpDown, MapPin, Users, Maximize, 
   Shield, Wallet, X, ChevronDown, Scale, Grid, List, SlidersHorizontal,
   Sparkles, TrendingUp, TrendingDown, Check
 } from 'lucide-react';
 import { searchProvince } from '../data/thaiProvinceNames';
+import { measureAsync } from '../utils/perf';
+import { CachedImage } from '../components/CachedImage';
+import { regionTheme, type RegionId } from '../data/regionTheme';
 
 interface Province {
   id: string;
   name: string;
-  region_id: string;
+  regionId: string;
   image: string;
   dist: number;
   tam: number;
@@ -17,39 +20,31 @@ interface Province {
   area?: string;
   dailyCost?: string;
   safety?: number;
+  populationValue?: number;
+  areaValue?: number;
+  dailyCostValue?: number;
 }
 
-interface Region {
+interface ProvinceIndexItem {
   id: string;
   name: string;
-  engName: string;
-  color: string;
-  subProvinces: Province[];
+  regionId: string;
+  regionName: string;
+  dailyCostValue?: number | null;
+  populationValue?: number | null;
+  safety?: number | null;
 }
 
-// Region colors for tags
-const regionColors: Record<string, { bg: string; text: string; border: string }> = {
-  north: { bg: 'bg-rose-500/20', text: 'text-rose-400', border: 'border-rose-500/30' },
-  northeast: { bg: 'bg-pink-500/20', text: 'text-pink-400', border: 'border-pink-500/30' },
-  central: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/30' },
-  west: { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30' },
-  east: { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/30' },
-  south: { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/30' },
-};
-
-const regionNames: Record<string, string> = {
-  north: 'ภาคเหนือ',
-  northeast: 'ภาคอีสาน',
-  central: 'ภาคกลาง',
-  west: 'ภาคตะวันตก',
-  east: 'ภาคตะวันออก',
-  south: 'ภาคใต้',
-};
+const getRegionTheme = (regionId: string) => regionTheme[regionId as RegionId] || regionTheme.central;
 
 type SortOption = 'name' | 'cost-high' | 'cost-low' | 'safety-high' | 'safety-low' | 'pop-high' | 'pop-low';
 
 export function ArchiveView(): JSX.Element {
-  const [regions, setRegions] = useState<Region[]>([]);
+  const [provinceIndex, setProvinceIndex] = useState<ProvinceIndexItem[]>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('name');
@@ -58,97 +53,117 @@ export function ArchiveView(): JSX.Element {
   const [compareList, setCompareList] = useState<Province[]>([]);
   const [showComparePanel, setShowComparePanel] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const pageSize = 60;
 
-  // Fetch data from DB
+  // Fetch province search index (used for Thai/EN matching)
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchIndex = async () => {
       try {
-        if (window.api && window.api.db) {
-          const data = await window.api.db.getRegions();
-          setRegions(data);
+        if (window.api?.db?.getProvinceIndex) {
+          const data = await measureAsync('db:getProvinceIndex@ArchiveView', () => window.api.db.getProvinceIndex());
+          setProvinceIndex(data);
         }
       } catch (error) {
-        console.error('Failed to load regions:', error);
+        console.error('Failed to load province index:', error);
       }
     };
-    fetchData();
+    fetchIndex();
   }, []);
 
-  // Get all provinces with region info
-  const allProvinces = useMemo(() => {
-    return regions.flatMap(region => 
-      (region.subProvinces || []).map(prov => ({
-        ...prov,
-        regionId: region.id,
-        regionName: region.name,
-        regionEngName: region.engName,
-        regionColor: region.color
-      }))
-    );
-  }, [regions]);
-
-  // Parse cost string to number for sorting
-  const parseCost = (cost?: string): number => {
-    if (!cost) return 300;
-    const match = cost.match(/(\d+)/);
-    return match ? parseInt(match[1]) : 300;
-  };
-
-  // Parse population string to number
-  const parsePopulation = (pop?: string): number => {
-    if (!pop) return 0;
-    const match = pop.match(/([\d.]+)([KM]?)/i);
-    if (!match) return 0;
-    const num = parseFloat(match[1]);
-    const unit = match[2].toUpperCase();
-    if (unit === 'M') return num * 1000000;
-    if (unit === 'K') return num * 1000;
-    return num;
-  };
-
-  // Filter and sort provinces
-  const filteredProvinces = useMemo(() => {
-    let result = [...allProvinces];
-
-    // Filter by search (supports Thai and English)
-    if (searchQuery.trim()) {
-      result = result.filter(p => 
-        searchProvince(searchQuery, p.name)
-      );
-    }
-
-    // Filter by region
+  const searchActive = deferredSearchQuery.trim().length > 0;
+  const searchMatches = useMemo(() => {
+    if (!searchActive || provinceIndex.length === 0) return null;
+    let matches = provinceIndex.filter((p) => searchProvince(deferredSearchQuery, p.name));
     if (selectedRegions.length > 0) {
-      result = result.filter(p => selectedRegions.includes(p.regionId));
+      matches = matches.filter((p) => selectedRegions.includes(p.regionId));
     }
-
-    // Sort
+    const getCost = (item: ProvinceIndexItem) => item.dailyCostValue ?? 0;
+    const getPop = (item: ProvinceIndexItem) => item.populationValue ?? 0;
+    const getSafety = (item: ProvinceIndexItem) => item.safety ?? 0;
+    const sorted = [...matches];
     switch (sortBy) {
       case 'name':
-        result.sort((a, b) => a.name.localeCompare(b.name));
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case 'cost-high':
-        result.sort((a, b) => parseCost(b.dailyCost) - parseCost(a.dailyCost));
+        sorted.sort((a, b) => getCost(b) - getCost(a));
         break;
       case 'cost-low':
-        result.sort((a, b) => parseCost(a.dailyCost) - parseCost(b.dailyCost));
+        sorted.sort((a, b) => getCost(a) - getCost(b));
         break;
       case 'safety-high':
-        result.sort((a, b) => (b.safety || 80) - (a.safety || 80));
+        sorted.sort((a, b) => getSafety(b) - getSafety(a));
         break;
       case 'safety-low':
-        result.sort((a, b) => (a.safety || 80) - (b.safety || 80));
+        sorted.sort((a, b) => getSafety(a) - getSafety(b));
         break;
       case 'pop-high':
-        result.sort((a, b) => parsePopulation(b.population) - parsePopulation(a.population));
+        sorted.sort((a, b) => getPop(b) - getPop(a));
         break;
       case 'pop-low':
-        result.sort((a, b) => parsePopulation(a.population) - parsePopulation(b.population));
+        sorted.sort((a, b) => getPop(a) - getPop(b));
         break;
     }
+    return sorted;
+  }, [searchActive, deferredSearchQuery, provinceIndex, selectedRegions, sortBy]);
 
-    return result;
-  }, [allProvinces, searchQuery, selectedRegions, sortBy]);
+  const pagedSearchIds = useMemo(() => {
+    if (!searchMatches) return null;
+    const start = page * pageSize;
+    const slice = searchMatches.slice(start, start + pageSize);
+    return slice.map((p) => p.id);
+  }, [searchMatches, page, pageSize]);
+
+  // Reset paging when filters change
+  useEffect(() => {
+    setPage(0);
+    setProvinces([]);
+  }, [sortBy, selectedRegions, deferredSearchQuery]);
+
+  // Fetch provinces page (server-side filter/sort)
+  useEffect(() => {
+    const fetchPage = async () => {
+      if (!window.api?.db?.getArchiveProvinces) return;
+      if (searchActive && provinceIndex.length === 0) return;
+      if (searchActive && searchMatches && searchMatches.length === 0) {
+        setProvinces([]);
+        setTotalCount(0);
+        return;
+      }
+
+      if (searchActive && (!pagedSearchIds || pagedSearchIds.length === 0)) {
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number } = {
+          sortBy,
+          offset: page * pageSize,
+          limit: pageSize
+        };
+        if (!searchActive && selectedRegions.length > 0) {
+          params.regionIds = selectedRegions;
+        }
+        if (searchActive && pagedSearchIds) {
+          params.ids = pagedSearchIds;
+        }
+
+        const result = await measureAsync('db:getArchiveProvinces@ArchiveView', () => window.api.db.getArchiveProvinces(params));
+        const rows = searchActive && pagedSearchIds
+          ? [...result.rows].sort((a, b) => pagedSearchIds.indexOf(a.id) - pagedSearchIds.indexOf(b.id))
+          : result.rows;
+        setProvinces((prev) => (page === 0 ? rows : [...prev, ...rows]));
+        setTotalCount(searchActive && searchMatches ? searchMatches.length : result.total);
+      } catch (error) {
+        console.error('Failed to load provinces:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPage();
+  }, [page, sortBy, selectedRegions, searchActive, searchMatches, pagedSearchIds, provinceIndex.length]);
 
   // Toggle region filter
   const toggleRegion = (regionId: string) => {
@@ -160,7 +175,7 @@ export function ArchiveView(): JSX.Element {
   };
 
   // Toggle compare
-  const toggleCompare = (province: Province & { regionId: string }) => {
+  const toggleCompare = (province: Province) => {
     setCompareList(prev => {
       const exists = prev.find(p => p.id === province.id);
       if (exists) {
@@ -186,7 +201,7 @@ export function ArchiveView(): JSX.Element {
   ];
 
   return (
-    <div className="h-full flex flex-col bg-[#020305] overflow-hidden">
+    <div className="h-full w-full flex-1 min-w-0 flex flex-col bg-[#020305] overflow-hidden">
       {/* Header */}
       <div className="shrink-0 px-8 py-6 border-b border-white/5">
         <div className="flex items-center justify-between">
@@ -196,7 +211,7 @@ export function ArchiveView(): JSX.Element {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white tracking-tight">Geo-Archive</h1>
-              <p className="text-sm text-slate-500">Province gallery with smart filters • {filteredProvinces.length} of {allProvinces.length} provinces</p>
+              <p className="text-sm text-slate-500">Province gallery with smart filters • {provinces.length} of {totalCount} provinces</p>
             </div>
           </div>
 
@@ -258,17 +273,17 @@ export function ArchiveView(): JSX.Element {
             {/* Region Tags */}
             <div className="flex items-center gap-2 flex-wrap">
               <Filter size={16} className="text-slate-500" />
-              {Object.entries(regionColors).map(([regionId, colors]) => (
+              {Object.entries(regionTheme).map(([regionId, theme]) => (
                 <button
                   key={regionId}
                   onClick={() => toggleRegion(regionId)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                     selectedRegions.includes(regionId)
-                      ? `${colors.bg} ${colors.text} ${colors.border}`
+                      ? `${theme.bg} ${theme.text} ${theme.border}`
                       : 'bg-white/5 text-slate-400 border-transparent hover:bg-white/10'
                   }`}
                 >
-                  {regionNames[regionId]}
+                  {theme.label}
                 </button>
               ))}
               {selectedRegions.length > 0 && (
@@ -315,8 +330,13 @@ export function ArchiveView(): JSX.Element {
       )}
 
       {/* Province Grid/List */}
-      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-        {filteredProvinces.length === 0 ? (
+      <div className="flex-1 overflow-y-auto p-6 custom-scrollbar w-full">
+        {isLoading && provinces.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-slate-500">
+            <Database size={48} className="mb-4 opacity-50" />
+            <p className="text-lg">กำลังโหลดจังหวัด...</p>
+          </div>
+        ) : provinces.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500">
             <Search size={48} className="mb-4 opacity-50" />
             <p className="text-lg">ไม่พบจังหวัดที่ตรงกับเงื่อนไข</p>
@@ -328,9 +348,9 @@ export function ArchiveView(): JSX.Element {
             </button>
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-            {filteredProvinces.map((province) => {
-              const colors = regionColors[province.regionId] || regionColors.central;
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
+            {provinces.map((province) => {
+              const theme = getRegionTheme(province.regionId);
               const inCompare = isInCompare(province.id);
               
               return (
@@ -342,16 +362,18 @@ export function ArchiveView(): JSX.Element {
                 >
                   {/* Image */}
                   <div className="relative h-32 overflow-hidden">
-                    <img
+                    <CachedImage
                       src={province.image}
                       alt={province.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0f1115] via-transparent to-transparent" />
                     
                     {/* Region Tag */}
-                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg text-[10px] font-bold ${colors.bg} ${colors.text} backdrop-blur-sm`}>
-                      {regionNames[province.regionId]}
+                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg text-[10px] font-bold ${theme.bg} ${theme.text} backdrop-blur-sm`}>
+                      {theme.label}
                     </div>
 
                     {/* Compare Toggle */}
@@ -396,22 +418,24 @@ export function ArchiveView(): JSX.Element {
           </div>
         ) : (
           // List View - Full Width
-          <div className="space-y-3">
-            {filteredProvinces.map((province) => {
-              const colors = regionColors[province.regionId] || regionColors.central;
+          <div className="space-y-3 w-full">
+            {provinces.map((province) => {
+              const theme = getRegionTheme(province.regionId);
               const inCompare = isInCompare(province.id);
               
               return (
                 <div
                   key={province.id}
-                  className={`group flex items-center gap-5 p-4 bg-[#0f1115] border rounded-2xl transition-all hover:bg-[#12151a] cursor-pointer w-full ${
+                  className={`group w-full flex items-center gap-5 p-4 bg-[#0f1115] border rounded-2xl transition-all hover:bg-[#12151a] cursor-pointer ${
                     inCompare ? 'border-cyan-500 ring-2 ring-cyan-500/20' : 'border-white/10 hover:border-white/20'
                   }`}
                 >
                   {/* Image */}
-                  <img
+                  <CachedImage
                     src={province.image}
                     alt={province.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-24 h-24 rounded-xl object-cover flex-shrink-0"
                   />
 
@@ -419,8 +443,8 @@ export function ArchiveView(): JSX.Element {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-bold text-white text-lg truncate">{province.name}</h3>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${colors.bg} ${colors.text}`}>
-                        {regionNames[province.regionId]}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${theme.bg} ${theme.text}`}>
+                        {theme.label}
                       </span>
                     </div>
                     <div className="flex items-center gap-6 mt-2 text-sm text-slate-400">
@@ -458,6 +482,20 @@ export function ArchiveView(): JSX.Element {
             })}
           </div>
         )}
+
+        {provinces.length < totalCount && (
+          <div className="flex items-center justify-center py-6">
+            <button
+              onClick={() => setPage((prev) => prev + 1)}
+              disabled={isLoading}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                isLoading ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+            >
+              {isLoading ? 'กำลังโหลด...' : 'โหลดเพิ่ม'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Compare Panel Overlay */}
@@ -485,22 +523,22 @@ export function ArchiveView(): JSX.Element {
             {/* Compare Grid */}
             <div className={`grid gap-6 ${compareList.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {compareList.map((province) => {
-                const colors = regionColors[(province as any).regionId] || regionColors.central;
+                const theme = getRegionTheme(province.regionId);
                 
                 return (
                   <div key={province.id} className="bg-[#0f1115] border border-white/10 rounded-2xl overflow-hidden">
                     {/* Image */}
                     <div className="relative h-40">
-                      <img src={province.image} alt={province.name} className="w-full h-full object-cover" />
+                      <CachedImage src={province.image} alt={province.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0f1115] via-transparent to-transparent" />
                       <button
-                        onClick={() => toggleCompare(province as Province & { regionId: string })}
+                        onClick={() => toggleCompare(province)}
                         className="absolute top-3 right-3 w-8 h-8 bg-red-500/80 rounded-lg flex items-center justify-center text-white hover:bg-red-500 transition-all"
                       >
                         <X size={16} />
                       </button>
-                      <div className={`absolute bottom-3 left-3 px-2 py-1 rounded-lg text-xs font-bold ${colors.bg} ${colors.text}`}>
-                        {regionNames[(province as any).regionId]}
+                      <div className={`absolute bottom-3 left-3 px-2 py-1 rounded-lg text-xs font-bold ${theme.bg} ${theme.text}`}>
+                        {theme.label}
                       </div>
                     </div>
 
@@ -560,9 +598,9 @@ export function ArchiveView(): JSX.Element {
           <div className="flex items-center gap-2">
             {compareList.map((p) => (
               <div key={p.id} className="relative group">
-                <img src={p.image} alt={p.name} className="w-10 h-10 rounded-lg object-cover border-2 border-cyan-500" />
+                <CachedImage src={p.image} alt={p.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-lg object-cover border-2 border-cyan-500" />
                 <button
-                  onClick={() => toggleCompare(p as Province & { regionId: string })}
+                  onClick={() => toggleCompare(p)}
                   className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <X size={10} className="text-white" />

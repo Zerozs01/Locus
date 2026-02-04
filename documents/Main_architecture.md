@@ -10,6 +10,7 @@ The system follows a specific **"Local-First, Cloud-Sync"** hybrid architecture.
 - **Knowledge Base (Long-term Memory):** LightRAG (running locally/Docker) for graph-based retrieval.
 - **Data Persistence:** Supabase (PostgreSQL) for structured data and chat history memory.
 - **Local Cache & Offline Data:** SQLite (Better-SQLite3) integrated directly into Electron for ultra-fast "Local-First" data access (Regions/Provinces).
+  - **IPC Access:** Preload exposes `db:getRegionSummaries`, `db:getRegions`, `db:getRegion`, `db:getProvincesByRegion`, `db:getProvince`, `db:getProvinceIndex`, `db:getArchiveProvinces`, `db:getStats` for renderer data loading.
 
 ## 2. Data Flow (Chat & Analysis)
 
@@ -29,7 +30,7 @@ The system uses a **"Tunneling"** method to communicate.
 ### Frontend
 - **Framework:** React 18 + TypeScript
 - **Styling:** TailwindCSS
-- **Map:** react-simple-maps + GeoJSON
+- **Map:** react-simple-maps + GeoJSON (region view), Leaflet (province detail)
 - **Routing:** React Router v6
 - **State:** React hooks (useState, useEffect, useMemo)
 
@@ -37,6 +38,10 @@ The system uses a **"Tunneling"** method to communicate.
 - **Runtime:** Electron
 - **Build:** electron-vite
 - **Database:** SQLite (better-sqlite3) with WAL mode
+- **Asset Protocol:** `locus://image?url=...` (on-demand image cache)
+  - **Cache Controls:** size-limited disk cache + clearable from Settings
+  - **Streaming:** range requests supported for large images
+  - **Reliability:** protocol registered before window creation + fallback image for invalid/failed URLs
 
 ### Backend/AI
 - **Automation:** n8n + Ngrok
@@ -48,6 +53,7 @@ The system uses a **"Tunneling"** method to communicate.
 | Route | Page | Description |
 |-------|------|-------------|
 | `/` | RadarPage | Main map view with region dashboard |
+| `/province/:regionId/:provinceId` | ProvinceTacticalPage | Province tactical detail with Leaflet map |
 | `/archive` | GeoArchivePage | Province gallery with compare mode |
 | `/travel-guide/:regionId` | TravelGuidePage | Transport routes & fare calculator |
 | `/intelligence` | IntelligencePage | AI chat with context support |
@@ -65,6 +71,10 @@ The system uses a **"Tunneling"** method to communicate.
 - **Region Mode:** Stats overview (costs, food, attractions)
 - **Province Mode:** 3-column gallery with cards
 - **Chat Integration:** Context-aware navigation to AI chat
+
+### Province Tactical (Detail Page)
+- **Interactive Map:** Leaflet map with markers and center pin
+- **Tabs:** Explore, Stay, Eat & Drink, Getting Around, Essentials
 
 ### AI Chat (Intelligence Page)
 - **Context Passing:** Receives region/province data from navigation state
@@ -85,6 +95,9 @@ For a single-user or small-group local-first app, Redis adds unnecessary complex
 
 - `src/renderer/src/services/n8nClient.ts`: Handles axios calls to n8n.
 - `src/renderer/src/pages/IntelligencePage.tsx`: Main AI chat interface.
+- `src/renderer/src/pages/ProvinceTacticalPage.tsx`: Province tactical detail page (Leaflet map).
+- `src/renderer/src/components/ProvinceMap.tsx`: Leaflet-based province map component.
 - `src/renderer/src/data/thaiProvinceNames.ts`: Thai-English province mapping.
 - `src/renderer/src/data/regions.ts`: Region/Province data structures.
+- `src/shared/regionTheme.ts`: Region color/gradient single source of truth.
 

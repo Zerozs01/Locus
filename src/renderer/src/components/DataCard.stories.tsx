@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { DataCard, Placeholder, LogItem } from './DataCard';
 import { Activity } from 'lucide-react';
 

@@ -1,37 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
   MapPin, 
-  CloudSun, 
   Phone, 
   Shield, 
-  Landmark, 
   Building2, 
   Utensils, 
   Car, 
   Plane,
+  Bus,
+  Train,
   AlertTriangle,
-  Heart,
   ChevronRight,
-  ExternalLink,
   Star,
-  Users,
-  Maximize,
   Wallet,
-  Loader2
+  Loader2,
+  Bed,
+  Coffee,
+  Camera,
+  Navigation,
+  Clock,
+  Thermometer,
+  Wifi,
+  MapPinned,
+  Hospital,
+  GraduationCap,
+  ShoppingBag,
+  Zap
 } from 'lucide-react';
 import { Province, Region } from '../data/regions';
+import ProvinceMap from '../components/ProvinceMap';
+import { measureAsync } from '../utils/perf';
 
 /**
- * Province Tactical Detail Page
- * หน้าข้อมูลจังหวัดแบบละเอียด (Micro-level)
- * ดึงข้อมูลจาก SQLite Database
+ * Province Tactical Detail Page - REDESIGNED
+ * เน้นสิ่งที่ผู้ใช้ต้องการจริงๆ พร้อมแผนที่ Interactive
  */
 export const ProvinceTacticalPage = () => {
   const { regionId, provinceId } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'admin' | 'safety' | 'logistics' | 'lifestyle'>('overview');
+  const [activeTab, setActiveTab] = useState<'explore' | 'stay' | 'eat' | 'travel' | 'essentials'>('explore');
   const [region, setRegion] = useState<Region | null>(null);
   const [province, setProvince] = useState<Province | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,13 +50,25 @@ export const ProvinceTacticalPage = () => {
     const fetchData = async () => {
       try {
         if (window.api && window.api.db) {
-          const regions = await window.api.db.getRegions();
-          const foundRegion = regions.find((r: Region) => r.id === regionId);
-          if (foundRegion) {
-            setRegion(foundRegion);
-            const foundProvince = foundRegion.subProvinces?.find((p: Province) => p.id === provinceId);
-            if (foundProvince) {
-              setProvince(foundProvince);
+          if (regionId && provinceId && window.api.db.getRegion) {
+            const [regionData, provinceData] = await measureAsync(
+              'db:getRegion+Province@ProvinceTacticalPage',
+              () => Promise.all([
+                window.api.db.getRegion(regionId),
+                window.api.db.getProvince(provinceId)
+              ])
+            );
+            if (regionData) setRegion(regionData);
+            if (provinceData) setProvince(provinceData);
+          } else {
+            const regions = await measureAsync('db:getRegions@ProvinceTacticalPage', () => window.api.db.getRegions());
+            const foundRegion = regions.find((r: Region) => r.id === regionId);
+            if (foundRegion) {
+              setRegion(foundRegion);
+              const foundProvince = foundRegion.subProvinces?.find((p: Province) => p.id === provinceId);
+              if (foundProvince) {
+                setProvince(foundProvince);
+              }
             }
           }
         }
@@ -60,6 +81,11 @@ export const ProvinceTacticalPage = () => {
     fetchData();
   }, [regionId, provinceId]);
 
+  const provinceData = useMemo(() => {
+    if (!region || !province) return null;
+    return generateProvinceData(province, region);
+  }, [province, region]);
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#050608]">
@@ -71,7 +97,7 @@ export const ProvinceTacticalPage = () => {
     );
   }
 
-  if (!region || !province) {
+  if (!region || !province || !provinceData) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#050608]">
         <div className="text-center">
@@ -89,119 +115,90 @@ export const ProvinceTacticalPage = () => {
     );
   }
 
-  // Extended data from province
-  const extendedData = {
-    thaiName: getThaiProvinceName(province.name),
-    slogan: getProvinceSlogan(province.name),
-    weather: { temp: '28°C', condition: 'Partly Cloudy', humidity: '65%' },
-    emergency: { police: '191', ambulance: '1669', fire: '199', tourist: '1155' },
-    districts: generateMockDistricts(province.dist),
-    safetyIndex: province.safety || 80,
-    attractions: generateMockAttractions(province.name),
-    restaurants: generateMockRestaurants(province.name),
-    hospitals: generateMockHospitals(province.name),
-  };
-
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: <Landmark size={16} /> },
-    { id: 'admin', label: 'Administration', icon: <Building2 size={16} /> },
-    { id: 'safety', label: 'Safety & Risks', icon: <Shield size={16} /> },
-    { id: 'logistics', label: 'Logistics', icon: <Car size={16} /> },
-    { id: 'lifestyle', label: 'Lifestyle', icon: <Heart size={16} /> },
+    { id: 'explore', label: 'Explore', icon: <Camera size={18} />, color: 'text-teal-400' },
+    { id: 'stay', label: 'Stay', icon: <Bed size={18} />, color: 'text-violet-400' },
+    { id: 'eat', label: 'Eat & Drink', icon: <Utensils size={18} />, color: 'text-amber-400' },
+    { id: 'travel', label: 'Getting Around', icon: <Navigation size={18} />, color: 'text-blue-400' },
+    { id: 'essentials', label: 'Essentials', icon: <Shield size={18} />, color: 'text-red-400' },
   ] as const;
 
   return (
-    <div className="flex-1 flex flex-col bg-[#050608] overflow-hidden">
-      {/* HERO HEADER */}
-      <div className="relative h-64 flex-shrink-0">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <img 
-            src={province.image} 
-            alt={province.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#050608] via-[#050608]/70 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#050608]/90 to-transparent" />
-        </div>
-
-        {/* Back Button */}
+    <div className="flex-1 flex bg-[#050608] overflow-hidden">
+      {/* LEFT: MAP SECTION */}
+      <div className="w-1/2 relative">
+        {/* Back Button Overlay */}
         <button 
           onClick={() => navigate('/')}
-          className="absolute top-12 left-6 z-20 flex items-center gap-2 px-3 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-sm rounded-lg border border-white/10 text-white transition-all group"
+          className="absolute top-4 left-4 z-[1000] flex items-center gap-2 px-3 py-2 bg-black/70 hover:bg-black/90 backdrop-blur-sm rounded-lg border border-white/10 text-white transition-all group"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
           <span className="text-sm font-medium">Back to Radar</span>
         </button>
 
-        {/* Province Info */}
-        <div className="absolute bottom-6 left-6 right-6 z-10">
-          <div className="flex items-end justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`px-2 py-0.5 text-xs font-mono rounded ${region.color} bg-white/10 border border-white/20`}>
-                  {region.code}
-                </span>
-                <span className="text-slate-400 text-sm">{region.engName} Region</span>
-              </div>
-              <h1 className="text-4xl font-black text-white mb-1">{province.name}</h1>
-              <p className="text-xl text-slate-300">{extendedData.thaiName}</p>
-              {extendedData.slogan && (
-                <p className="text-sm text-slate-400 italic mt-1">"{extendedData.slogan}"</p>
-              )}
-            </div>
+        {/* Province Info Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 z-[1000] p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`px-2 py-0.5 text-xs font-mono rounded ${region.color} bg-white/10 border border-white/20`}>
+              {region.code}
+            </span>
+            <span className="text-slate-400 text-sm">{region.engName} Region</span>
+          </div>
+          <h1 className="text-3xl font-black text-white">{province.name}</h1>
+          <p className="text-lg text-slate-300">{provinceData.thaiName}</p>
+          {provinceData.slogan && (
+            <p className="text-sm text-cyan-400 italic mt-1">"{provinceData.slogan}"</p>
+          )}
+        </div>
 
-            {/* Quick Stats */}
-            <div className="flex gap-4">
-              <QuickStat icon={<CloudSun size={20} />} label="Weather" value={extendedData.weather.temp} sub={extendedData.weather.condition} />
-              <QuickStat icon={<Shield size={20} />} label="Safety" value={`${extendedData.safetyIndex}%`} sub="Index" color="emerald" />
-              <QuickStat icon={<Phone size={20} />} label="Emergency" value="191" sub="Police" color="red" />
-            </div>
+        {/* Interactive Map */}
+        <ProvinceMap 
+          provinceName={province.name}
+          markers={provinceData.mapMarkers}
+          zoom={12}
+        />
+      </div>
+
+      {/* RIGHT: CONTENT SECTION */}
+      <div className="w-1/2 flex flex-col border-l border-white/10">
+        {/* Quick Stats Bar */}
+        <div className="flex-shrink-0 p-4 bg-[#0a0c10] border-b border-white/10">
+          <div className="flex items-center gap-4">
+            <QuickBadge icon={<Thermometer size={16} />} value={provinceData.weather.temp} label={provinceData.weather.condition} color="amber" />
+            <QuickBadge icon={<Shield size={16} />} value={`${provinceData.safetyIndex}%`} label="Safe" color="emerald" />
+            <QuickBadge icon={<Wallet size={16} />} value={provinceData.dailyCost} label="/day" color="cyan" />
+            <QuickBadge icon={<Phone size={16} />} value="191" label="Police" color="red" />
           </div>
         </div>
-      </div>
 
-      {/* TAB NAVIGATION */}
-      <div className="flex-shrink-0 border-b border-white/10 bg-[#0a0c10]">
-        <div className="flex gap-1 px-6">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2 ${
-                activeTab === tab.id 
-                  ? 'text-cyan-400 border-cyan-400 bg-cyan-500/10' 
-                  : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
+        {/* Tab Navigation */}
+        <div className="flex-shrink-0 border-b border-white/10 bg-[#08090c]">
+          <div className="flex">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 text-sm font-medium transition-all border-b-2 ${
+                  activeTab === tab.id 
+                    ? `${tab.color} border-current bg-white/5` 
+                    : 'text-slate-500 border-transparent hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {tab.icon}
+                <span className="hidden xl:inline">{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* TAB CONTENT */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {activeTab === 'overview' && (
-          <OverviewTab province={province} region={region} extendedData={extendedData} />
-        )}
-        {activeTab === 'admin' && (
-          <AdminTab districts={extendedData.districts} province={province} />
-        )}
-        {activeTab === 'safety' && (
-          <SafetyTab safetyIndex={extendedData.safetyIndex} province={province} />
-        )}
-        {activeTab === 'logistics' && (
-          <LogisticsTab province={province} />
-        )}
-        {activeTab === 'lifestyle' && (
-          <LifestyleTab 
-            attractions={extendedData.attractions}
-            restaurants={extendedData.restaurants}
-            hospitals={extendedData.hospitals}
-          />
-        )}
+        {/* Tab Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {activeTab === 'explore' && <ExploreTab data={provinceData} />}
+          {activeTab === 'stay' && <StayTab data={provinceData} />}
+          {activeTab === 'eat' && <EatTab data={provinceData} />}
+          {activeTab === 'travel' && <TravelTab data={provinceData} />}
+          {activeTab === 'essentials' && <EssentialsTab data={provinceData} province={province} />}
+        </div>
       </div>
     </div>
   );
@@ -209,471 +206,766 @@ export const ProvinceTacticalPage = () => {
 
 // ==================== TAB COMPONENTS ====================
 
-interface OverviewTabProps {
-  province: Province;
-  region: Region;
-  extendedData: any;
-}
-
-const OverviewTab = ({ province, region, extendedData }: OverviewTabProps) => (
-  <div className="grid grid-cols-3 gap-6">
-    {/* Main Info */}
-    <div className="col-span-2 space-y-6">
-      <InfoCard title="Province Overview">
-        <p className="text-slate-300 leading-relaxed">
-          {province.name} ({extendedData.thaiName}) is a province in the {region.engName} region of Thailand. 
-          It comprises {province.dist} districts and {province.tam} sub-districts (tambons).
-          {province.population && ` The province has a population of approximately ${province.population}.`}
-          {province.area && ` The total area covers ${province.area} km².`}
-        </p>
-      </InfoCard>
-
-      <InfoCard title="Quick Statistics">
-        <div className="grid grid-cols-3 gap-4">
-          <StatBox label="Population" value={province.population || 'N/A'} icon={<Users size={20} />} />
-          <StatBox label="Area" value={`${province.area || 'N/A'} km²`} icon={<Maximize size={20} />} />
-          <StatBox label="Districts" value={String(province.dist)} icon={<Building2 size={20} />} />
-          <StatBox label="Sub-districts" value={String(province.tam)} icon={<MapPin size={20} />} />
-          <StatBox label="Daily Cost" value={province.dailyCost || '300 ฿'} icon={<Wallet size={20} />} />
-          <StatBox label="Safety Index" value={`${extendedData.safetyIndex}%`} icon={<Shield size={20} />} />
-        </div>
-      </InfoCard>
-    </div>
-
-    {/* Side Panel */}
-    <div className="space-y-6">
-      <InfoCard title="Emergency Contacts" variant="alert">
-        <div className="space-y-3">
-          <EmergencyContact label="Police" number={extendedData.emergency.police} />
-          <EmergencyContact label="Ambulance" number={extendedData.emergency.ambulance} />
-          <EmergencyContact label="Fire" number={extendedData.emergency.fire} />
-          <EmergencyContact label="Tourist Police" number={extendedData.emergency.tourist} />
-        </div>
-      </InfoCard>
-
-      <InfoCard title="Current Weather">
-        <div className="flex items-center gap-4">
-          <CloudSun size={48} className="text-amber-400" />
-          <div>
-            <div className="text-3xl font-bold text-white">{extendedData.weather.temp}</div>
-            <div className="text-sm text-slate-400">{extendedData.weather.condition}</div>
-            <div className="text-xs text-slate-500">Humidity: {extendedData.weather.humidity}</div>
-          </div>
-        </div>
-      </InfoCard>
-    </div>
-  </div>
-);
-
-interface AdminTabProps {
-  districts: Array<{ name: string; tambons: number }>;
-  province: Province;
-}
-
-const AdminTab = ({ districts, province }: AdminTabProps) => (
-  <div className="space-y-6">
-    <InfoCard title={`Administrative Divisions (${province.dist} Districts)`}>
-      <div className="grid grid-cols-2 gap-3">
-        {districts.map((district, idx) => (
-          <div 
+const ExploreTab = ({ data }: { data: ProvinceData }) => (
+  <div className="space-y-4">
+    {/* Top Attractions */}
+    <ContentCard 
+      title="Top Attractions" 
+      icon={<Camera size={18} />}
+      color="teal"
+    >
+      <div className="space-y-3">
+        {data.attractions.map((item, idx) => (
+          <PlaceCard 
             key={idx}
-            className="flex items-center justify-between p-3 bg-[#0f1115] rounded-lg border border-white/5 hover:border-cyan-500/30 transition-colors cursor-pointer group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-cyan-400 text-sm font-bold">
-                {idx + 1}
-              </div>
-              <div>
-                <div className="text-white font-medium">{district.name}</div>
-                <div className="text-xs text-slate-500">{district.tambons} Tambons</div>
-              </div>
-            </div>
-            <ChevronRight size={16} className="text-slate-600 group-hover:text-cyan-400 transition-colors" />
-          </div>
-        ))}
-      </div>
-    </InfoCard>
-  </div>
-);
-
-interface SafetyTabProps {
-  safetyIndex: number;
-  province: Province;
-}
-
-const SafetyTab = ({ safetyIndex, province }: SafetyTabProps) => (
-  <div className="grid grid-cols-2 gap-6">
-    <InfoCard title="Safety Overview">
-      <div className="flex items-center gap-6 mb-6">
-        <div className="relative w-32 h-32">
-          <svg className="w-full h-full transform -rotate-90">
-            <circle cx="64" cy="64" r="56" stroke="#1f2937" strokeWidth="8" fill="none" />
-            <circle 
-              cx="64" cy="64" r="56" 
-              stroke={safetyIndex >= 80 ? '#10b981' : safetyIndex >= 60 ? '#f59e0b' : '#ef4444'}
-              strokeWidth="8" 
-              fill="none"
-              strokeDasharray={`${safetyIndex * 3.52} 352`}
-              strokeLinecap="round"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-3xl font-black text-white">{safetyIndex}%</span>
-          </div>
-        </div>
-        <div>
-          <h3 className="text-xl font-bold text-white mb-2">
-            {safetyIndex >= 80 ? 'Very Safe' : safetyIndex >= 60 ? 'Moderately Safe' : 'Exercise Caution'}
-          </h3>
-          <p className="text-slate-400 text-sm">
-            Based on crime statistics, traffic incidents, and natural disaster risks.
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <SafetyBar label="Crime Rate" value={100 - (province.serenity * 8)} color="red" />
-        <SafetyBar label="Traffic Safety" value={province.relax * 9} color="amber" />
-        <SafetyBar label="Natural Disasters" value={85} color="emerald" />
-        <SafetyBar label="Healthcare Access" value={province.entertainment > 5 ? 90 : 70} color="cyan" />
-      </div>
-    </InfoCard>
-
-    <InfoCard title="Risk Areas & Alerts" variant="alert">
-      <div className="space-y-3">
-        <AlertItem 
-          level="low" 
-          title="General Safety"
-          description="No major safety concerns reported in the past month."
-        />
-        <AlertItem 
-          level="medium" 
-          title="Traffic Advisory"
-          description="Exercise caution on mountain roads during rainy season."
-        />
-        <AlertItem 
-          level="info" 
-          title="Tourist Tips"
-          description="Keep valuables secure in crowded tourist areas."
-        />
-      </div>
-    </InfoCard>
-  </div>
-);
-
-const LogisticsTab = ({ province }: { province: Province }) => (
-  <div className="grid grid-cols-2 gap-6">
-    <InfoCard title="Transportation Hubs">
-      <div className="space-y-4">
-        <TransportItem 
-          icon={<Plane size={20} />}
-          type="Airport"
-          name={`${province.name} International Airport`}
-          distance="15 km from city center"
-          available={province.entertainment > 6}
-        />
-        <TransportItem 
-          icon={<Car size={20} />}
-          type="Bus Terminal"
-          name={`${province.name} Bus Terminal`}
-          distance="City center"
-          available={true}
-        />
-        <TransportItem 
-          icon={<Car size={20} />}
-          type="Train Station"
-          name={`${province.name} Railway Station`}
-          distance="3 km from city center"
-          available={province.dist > 10}
-        />
-      </div>
-    </InfoCard>
-
-    <InfoCard title="Major Routes">
-      <div className="space-y-3">
-        <RouteItem route="Highway 1" description="Main north-south arterial road" />
-        <RouteItem route="Route 11" description="Connects to neighboring provinces" />
-        <RouteItem route="Local Ring Road" description="Bypass around city center" />
-      </div>
-    </InfoCard>
-  </div>
-);
-
-interface LifestyleTabProps {
-  attractions: Array<{ name: string; type: string; rating: number }>;
-  restaurants: Array<{ name: string; cuisine: string; price: string }>;
-  hospitals: Array<{ name: string; type: string }>;
-}
-
-const LifestyleTab = ({ attractions, restaurants, hospitals }: LifestyleTabProps) => (
-  <div className="grid grid-cols-3 gap-6">
-    <InfoCard title="Top Attractions">
-      <div className="space-y-3">
-        {attractions.map((item, idx) => (
-          <PlaceItem 
-            key={idx}
+            rank={idx + 1}
             name={item.name}
-            sub={item.type}
+            type={item.type}
             rating={item.rating}
-            icon={<Landmark size={16} />}
+            description={item.description}
+            openHours={item.openHours}
+            price={item.price}
           />
         ))}
       </div>
-    </InfoCard>
+    </ContentCard>
 
-    <InfoCard title="Recommended Restaurants">
-      <div className="space-y-3">
-        {restaurants.map((item, idx) => (
-          <PlaceItem 
-            key={idx}
-            name={item.name}
-            sub={`${item.cuisine} • ${item.price}`}
-            icon={<Utensils size={16} />}
-          />
+    {/* Activities */}
+    <ContentCard 
+      title="Popular Activities" 
+      icon={<Zap size={18} />}
+      color="amber"
+    >
+      <div className="grid grid-cols-2 gap-2">
+        {data.activities.map((activity, idx) => (
+          <ActivityChip key={idx} name={activity.name} icon={activity.icon} />
         ))}
       </div>
-    </InfoCard>
+    </ContentCard>
 
-    <InfoCard title="Healthcare Facilities">
-      <div className="space-y-3">
-        {hospitals.map((item, idx) => (
-          <PlaceItem 
-            key={idx}
-            name={item.name}
-            sub={item.type}
-            icon={<Heart size={16} />}
-          />
+    {/* Best Time to Visit */}
+    <ContentCard 
+      title="Best Time to Visit" 
+      icon={<Clock size={18} />}
+      color="violet"
+    >
+      <div className="grid grid-cols-3 gap-2">
+        {data.seasons.map((season, idx) => (
+          <SeasonCard key={idx} {...season} />
         ))}
       </div>
-    </InfoCard>
+    </ContentCard>
+  </div>
+);
+
+const StayTab = ({ data }: { data: ProvinceData }) => (
+  <div className="space-y-4">
+    {/* Accommodation by Budget */}
+    <ContentCard 
+      title="Budget Friendly" 
+      icon={<Bed size={18} />}
+      color="emerald"
+      badge="฿"
+    >
+      <div className="space-y-2">
+        {data.accommodation.budget.map((item, idx) => (
+          <AccommodationCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+
+    <ContentCard 
+      title="Mid-Range" 
+      icon={<Bed size={18} />}
+      color="blue"
+      badge="฿฿"
+    >
+      <div className="space-y-2">
+        {data.accommodation.midRange.map((item, idx) => (
+          <AccommodationCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+
+    <ContentCard 
+      title="Luxury" 
+      icon={<Bed size={18} />}
+      color="violet"
+      badge="฿฿฿"
+    >
+      <div className="space-y-2">
+        {data.accommodation.luxury.map((item, idx) => (
+          <AccommodationCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+
+    {/* Areas to Stay */}
+    <ContentCard 
+      title="Best Areas to Stay" 
+      icon={<MapPinned size={18} />}
+      color="cyan"
+    >
+      <div className="space-y-2">
+        {data.stayAreas.map((area, idx) => (
+          <AreaCard key={idx} {...area} />
+        ))}
+      </div>
+    </ContentCard>
+  </div>
+);
+
+const EatTab = ({ data }: { data: ProvinceData }) => (
+  <div className="space-y-4">
+    {/* Local Must-Try */}
+    <ContentCard 
+      title="Local Must-Try Dishes" 
+      icon={<Utensils size={18} />}
+      color="amber"
+    >
+      <div className="grid grid-cols-2 gap-2">
+        {data.localDishes.map((dish, idx) => (
+          <DishCard key={idx} {...dish} />
+        ))}
+      </div>
+    </ContentCard>
+
+    {/* Recommended Restaurants */}
+    <ContentCard 
+      title="Top Restaurants" 
+      icon={<Star size={18} />}
+      color="rose"
+    >
+      <div className="space-y-2">
+        {data.restaurants.map((item, idx) => (
+          <RestaurantCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+
+    {/* Cafes & Coffee */}
+    <ContentCard 
+      title="Cafes & Coffee Shops" 
+      icon={<Coffee size={18} />}
+      color="amber"
+    >
+      <div className="space-y-2">
+        {data.cafes.map((item, idx) => (
+          <CafeCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+
+    {/* Night Markets */}
+    <ContentCard 
+      title="Night Markets & Street Food" 
+      icon={<ShoppingBag size={18} />}
+      color="violet"
+    >
+      <div className="space-y-2">
+        {data.nightMarkets.map((item, idx) => (
+          <MarketCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+  </div>
+);
+
+const TravelTab = ({ data }: { data: ProvinceData }) => (
+  <div className="space-y-4">
+    {/* Getting There */}
+    <ContentCard 
+      title="Getting There" 
+      icon={<Navigation size={18} />}
+      color="blue"
+    >
+      <div className="space-y-3">
+        {data.gettingThere.map((item, idx) => (
+          <TransportOptionCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+
+    {/* Getting Around */}
+    <ContentCard 
+      title="Getting Around" 
+      icon={<Car size={18} />}
+      color="cyan"
+    >
+      <div className="grid grid-cols-2 gap-2">
+        {data.gettingAround.map((item, idx) => (
+          <LocalTransportCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+
+    {/* Day Trips */}
+    <ContentCard 
+      title="Day Trips Nearby" 
+      icon={<MapPin size={18} />}
+      color="emerald"
+    >
+      <div className="space-y-2">
+        {data.dayTrips.map((item, idx) => (
+          <DayTripCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+  </div>
+);
+
+const EssentialsTab = ({ data, province }: { data: ProvinceData; province: Province }) => (
+  <div className="space-y-4">
+    {/* Emergency Contacts */}
+    <ContentCard 
+      title="Emergency Contacts" 
+      icon={<Phone size={18} />}
+      color="red"
+    >
+      <div className="grid grid-cols-2 gap-2">
+        <EmergencyCard label="Police" number="191" />
+        <EmergencyCard label="Ambulance" number="1669" />
+        <EmergencyCard label="Fire" number="199" />
+        <EmergencyCard label="Tourist Police" number="1155" />
+      </div>
+    </ContentCard>
+
+    {/* Healthcare */}
+    <ContentCard 
+      title="Hospitals & Clinics" 
+      icon={<Hospital size={18} />}
+      color="rose"
+    >
+      <div className="space-y-2">
+        {data.hospitals.map((item, idx) => (
+          <HospitalCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+
+    {/* Safety Info */}
+    <ContentCard 
+      title="Safety Information" 
+      icon={<Shield size={18} />}
+      color="emerald"
+    >
+      <div className="space-y-3">
+        <SafetyMeter value={data.safetyIndex} />
+        <div className="space-y-2">
+          {data.safetyTips.map((tip, idx) => (
+            <SafetyTip key={idx} {...tip} />
+          ))}
+        </div>
+      </div>
+    </ContentCard>
+
+    {/* Practical Info */}
+    <ContentCard 
+      title="Practical Information" 
+      icon={<GraduationCap size={18} />}
+      color="cyan"
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <InfoItem icon={<Wifi size={16} />} label="WiFi" value="Widely available" />
+        <InfoItem icon={<Car size={16} />} label="Gas Stations" value="Common on main roads" />
+        <InfoItem icon={<Wallet size={16} />} label="ATMs" value="In all districts" />
+        <InfoItem icon={<Building2 size={16} />} label="Districts" value={`${province.dist} districts`} />
+      </div>
+    </ContentCard>
   </div>
 );
 
 // ==================== HELPER COMPONENTS ====================
 
-const InfoCard = ({ title, children, variant }: { title: string; children: React.ReactNode; variant?: 'alert' }) => (
-  <div className={`rounded-xl border p-5 ${
-    variant === 'alert' 
-      ? 'bg-amber-500/5 border-amber-500/20' 
-      : 'bg-[#0a0c10] border-white/5'
-  }`}>
-    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">{title}</h3>
-    {children}
-  </div>
-);
-
-const StatBox = ({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) => (
-  <div className="bg-[#0f1115] rounded-lg p-4 border border-white/5">
-    <div className="flex items-center gap-2 text-slate-500 mb-2">
-      {icon}
-      <span className="text-xs uppercase tracking-wider">{label}</span>
-    </div>
-    <div className="text-2xl font-bold text-white">{value}</div>
-  </div>
-);
-
-const QuickStat = ({ icon, label, value, sub, color = 'cyan' }: { icon: React.ReactNode; label: string; value: string; sub: string; color?: string }) => {
+const QuickBadge = ({ icon, value, label, color }: { icon: React.ReactNode; value: string; label: string; color: string }) => {
   const colors: Record<string, string> = {
-    cyan: 'bg-cyan-500/20 text-cyan-400',
-    emerald: 'bg-emerald-500/20 text-emerald-400',
-    red: 'bg-red-500/20 text-red-400',
+    amber: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    emerald: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    cyan: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+    red: 'bg-red-500/20 text-red-400 border-red-500/30',
   };
   return (
-    <div className="bg-black/40 backdrop-blur-sm rounded-lg p-3 border border-white/10 min-w-[100px]">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${colors[color]}`}>
-        {icon}
-      </div>
-      <div className="text-lg font-bold text-white">{value}</div>
-      <div className="text-xs text-slate-400">{sub}</div>
+    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${colors[color]}`}>
+      {icon}
+      <span className="font-bold">{value}</span>
+      <span className="text-xs opacity-70">{label}</span>
     </div>
   );
 };
 
-const EmergencyContact = ({ label, number }: { label: string; number: string }) => (
-  <div className="flex items-center justify-between p-2 bg-[#0f1115] rounded-lg">
-    <span className="text-sm text-slate-400">{label}</span>
+const ContentCard = ({ 
+  title, 
+  icon, 
+  children, 
+  color = 'cyan',
+  badge
+}: { 
+  title: string; 
+  icon: React.ReactNode; 
+  children: React.ReactNode; 
+  color?: string;
+  badge?: string;
+}) => {
+  const colors: Record<string, string> = {
+    teal: 'text-teal-400',
+    amber: 'text-amber-400',
+    violet: 'text-violet-400',
+    blue: 'text-blue-400',
+    red: 'text-red-400',
+    emerald: 'text-emerald-400',
+    cyan: 'text-cyan-400',
+    rose: 'text-rose-400',
+  };
+  return (
+    <div className="rounded-xl bg-[#0a0c10] border border-white/5 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/[0.02]">
+        <div className="flex items-center gap-2">
+          <span className={colors[color]}>{icon}</span>
+          <h3 className="font-semibold text-white">{title}</h3>
+        </div>
+        {badge && (
+          <span className="text-xs font-bold text-amber-400 bg-amber-500/20 px-2 py-1 rounded">{badge}</span>
+        )}
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
+};
+
+const PlaceCard = ({ rank, name, type, rating, description, openHours, price }: {
+  rank: number;
+  name: string;
+  type: string;
+  rating: number;
+  description?: string;
+  openHours?: string;
+  price?: string;
+}) => (
+  <div className="flex gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
+    <div className="w-8 h-8 rounded-lg bg-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-sm flex-shrink-0">
+      {rank}
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-white truncate">{name}</h4>
+        <div className="flex items-center gap-1 text-amber-400">
+          <Star size={12} fill="currentColor" />
+          <span className="text-xs font-medium">{rating}</span>
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">{type}</p>
+      {description && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{description}</p>}
+      <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+        {openHours && <span className="flex items-center gap-1"><Clock size={10} /> {openHours}</span>}
+        {price && <span className="text-emerald-400">{price}</span>}
+      </div>
+    </div>
+    <ChevronRight size={16} className="text-slate-600 group-hover:text-teal-400 transition-colors self-center" />
+  </div>
+);
+
+const ActivityChip = ({ name, icon }: { name: string; icon: string }) => (
+  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 cursor-pointer transition-colors">
+    <span className="text-lg">{icon}</span>
+    <span className="text-sm text-slate-300">{name}</span>
+  </div>
+);
+
+const SeasonCard = ({ name, months, rating, description }: { name: string; months: string; rating: 'best' | 'good' | 'avoid'; description: string }) => {
+  const ratingColors = {
+    best: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400',
+    good: 'bg-amber-500/20 border-amber-500/30 text-amber-400',
+    avoid: 'bg-red-500/20 border-red-500/30 text-red-400',
+  };
+  return (
+    <div className={`p-3 rounded-lg border ${ratingColors[rating]}`}>
+      <div className="font-medium text-white text-sm">{name}</div>
+      <div className="text-xs opacity-70 mb-1">{months}</div>
+      <div className="text-xs mt-1">{description}</div>
+    </div>
+  );
+};
+
+const AccommodationCard = ({ name, price, rating, area }: { name: string; price: string; rating: number; area: string }) => (
+  <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
+    <div>
+      <h4 className="font-medium text-white text-sm">{name}</h4>
+      <p className="text-xs text-slate-500">{area}</p>
+    </div>
+    <div className="text-right">
+      <div className="text-emerald-400 font-semibold text-sm">{price}</div>
+      <div className="flex items-center gap-1 text-amber-400 text-xs">
+        <Star size={10} fill="currentColor" />
+        {rating}
+      </div>
+    </div>
+  </div>
+);
+
+const AreaCard = ({ name, description, forWho }: { name: string; description: string; forWho: string }) => (
+  <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+    <div className="flex items-center justify-between mb-1">
+      <h4 className="font-medium text-white text-sm">{name}</h4>
+      <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded">{forWho}</span>
+    </div>
+    <p className="text-xs text-slate-400">{description}</p>
+  </div>
+);
+
+const DishCard = ({ name, description, price }: { name: string; description: string; price: string }) => (
+  <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
+    <h4 className="font-medium text-white text-sm">{name}</h4>
+    <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+    <p className="text-xs text-amber-400 mt-1">{price}</p>
+  </div>
+);
+
+const RestaurantCard = ({ name, cuisine, price, rating, specialty }: { name: string; cuisine: string; price: string; rating: number; specialty?: string }) => (
+  <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
+    <div>
+      <h4 className="font-medium text-white text-sm">{name}</h4>
+      <p className="text-xs text-slate-500">{cuisine} • {price}</p>
+      {specialty && <p className="text-xs text-amber-400 mt-0.5">Try: {specialty}</p>}
+    </div>
+    <div className="flex items-center gap-1 text-amber-400">
+      <Star size={12} fill="currentColor" />
+      <span className="text-sm font-medium">{rating}</span>
+    </div>
+  </div>
+);
+
+const CafeCard = ({ name, vibe, wifi, specialty }: { name: string; vibe: string; wifi: boolean; specialty: string }) => (
+  <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
+    <div className="flex items-center justify-between">
+      <h4 className="font-medium text-white text-sm">{name}</h4>
+      {wifi && <Wifi size={14} className="text-emerald-400" />}
+    </div>
+    <p className="text-xs text-slate-500">{vibe}</p>
+    <p className="text-xs text-amber-400 mt-1">☕ {specialty}</p>
+  </div>
+);
+
+const MarketCard = ({ name, openHours, bestFor }: { name: string; openHours: string; bestFor: string }) => (
+  <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
+    <h4 className="font-medium text-white text-sm">{name}</h4>
+    <div className="flex items-center gap-2 mt-1">
+      <span className="text-xs text-slate-500 flex items-center gap-1"><Clock size={10} /> {openHours}</span>
+    </div>
+    <p className="text-xs text-violet-400 mt-1">{bestFor}</p>
+  </div>
+);
+
+const TransportOptionCard = ({ type, name, duration, price, frequency, icon }: { 
+  type: string; name: string; duration: string; price: string; frequency: string; icon: React.ReactNode 
+}) => (
+  <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02]">
+    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
+      {icon}
+    </div>
+    <div className="flex-1">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-white text-sm">{type}</h4>
+        <span className="text-emerald-400 text-sm font-semibold">{price}</span>
+      </div>
+      <p className="text-xs text-slate-400">{name}</p>
+      <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+        <span>⏱ {duration}</span>
+        <span>{frequency}</span>
+      </div>
+    </div>
+  </div>
+);
+
+const LocalTransportCard = ({ name, price, description, icon }: { name: string; price: string; description: string; icon: React.ReactNode }) => (
+  <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+    <div className="flex items-center gap-2 mb-2">
+      <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+        {icon}
+      </div>
+      <h4 className="font-medium text-white text-sm">{name}</h4>
+    </div>
+    <p className="text-xs text-slate-400">{description}</p>
+    <p className="text-xs text-emerald-400 mt-1">{price}</p>
+  </div>
+);
+
+const DayTripCard = ({ destination, distance, highlights }: { destination: string; distance: string; highlights: string }) => (
+  <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
+    <div>
+      <h4 className="font-medium text-white text-sm">{destination}</h4>
+      <p className="text-xs text-slate-500">{highlights}</p>
+    </div>
+    <div className="text-right">
+      <span className="text-xs text-cyan-400">{distance}</span>
+    </div>
+  </div>
+);
+
+const EmergencyCard = ({ label, number }: { label: string; number: string }) => (
+  <div className="flex items-center justify-between p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+    <span className="text-sm text-slate-300">{label}</span>
     <span className="text-lg font-bold text-red-400 font-mono">{number}</span>
   </div>
 );
 
-const SafetyBar = ({ label, value, color }: { label: string; value: number; color: string }) => {
-  const colors: Record<string, string> = {
-    red: 'bg-red-500',
-    amber: 'bg-amber-500',
-    emerald: 'bg-emerald-500',
-    cyan: 'bg-cyan-500',
-  };
-  return (
-    <div>
-      <div className="flex justify-between text-sm mb-1">
-        <span className="text-slate-400">{label}</span>
-        <span className="text-white font-medium">{value}%</span>
-      </div>
-      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-        <div className={`h-full ${colors[color]} rounded-full transition-all`} style={{ width: `${value}%` }} />
+const HospitalCard = ({ name, type, address, phone }: { name: string; type: string; address: string; phone: string }) => (
+  <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
+    <div className="flex items-center justify-between">
+      <h4 className="font-medium text-white text-sm">{name}</h4>
+      <span className={`text-xs px-2 py-0.5 rounded ${type === 'Public' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-violet-500/20 text-violet-400'}`}>
+        {type}
+      </span>
+    </div>
+    <p className="text-xs text-slate-500 mt-1">{address}</p>
+    <p className="text-xs text-cyan-400 mt-1">📞 {phone}</p>
+  </div>
+);
+
+const SafetyMeter = ({ value }: { value: number }) => (
+  <div className="flex items-center gap-4">
+    <div className="relative w-20 h-20">
+      <svg className="w-full h-full transform -rotate-90">
+        <circle cx="40" cy="40" r="32" stroke="#1f2937" strokeWidth="6" fill="none" />
+        <circle 
+          cx="40" cy="40" r="32" 
+          stroke={value >= 80 ? '#10b981' : value >= 60 ? '#f59e0b' : '#ef4444'}
+          strokeWidth="6" 
+          fill="none"
+          strokeDasharray={`${value * 2.01} 201`}
+          strokeLinecap="round"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xl font-black text-white">{value}%</span>
       </div>
     </div>
-  );
-};
+    <div>
+      <h4 className="text-lg font-bold text-white">
+        {value >= 80 ? 'Very Safe' : value >= 60 ? 'Generally Safe' : 'Exercise Caution'}
+      </h4>
+      <p className="text-xs text-slate-400">Based on crime rates, traffic, and natural disaster risks</p>
+    </div>
+  </div>
+);
 
-const AlertItem = ({ level, title, description }: { level: 'low' | 'medium' | 'high' | 'info'; title: string; description: string }) => {
-  const styles: Record<string, { bg: string; border: string; icon: string }> = {
-    low: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', icon: 'text-emerald-400' },
-    medium: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', icon: 'text-amber-400' },
-    high: { bg: 'bg-red-500/10', border: 'border-red-500/30', icon: 'text-red-400' },
-    info: { bg: 'bg-cyan-500/10', border: 'border-cyan-500/30', icon: 'text-cyan-400' },
+const SafetyTip = ({ level, title, description }: { level: 'good' | 'warning' | 'info'; title: string; description: string }) => {
+  const colors = {
+    good: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+    warning: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+    info: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400',
   };
-  const s = styles[level];
+  const icons = { good: '✓', warning: '⚠', info: 'ℹ' };
   return (
-    <div className={`p-3 rounded-lg border ${s.bg} ${s.border}`}>
+    <div className={`p-3 rounded-lg border ${colors[level]}`}>
       <div className="flex items-start gap-2">
-        <AlertTriangle size={16} className={s.icon} />
+        <span>{icons[level]}</span>
         <div>
-          <div className="text-sm font-medium text-white">{title}</div>
-          <div className="text-xs text-slate-400">{description}</div>
+          <h4 className="font-medium text-white text-sm">{title}</h4>
+          <p className="text-xs text-slate-400">{description}</p>
         </div>
       </div>
     </div>
   );
 };
 
-const TransportItem = ({ icon, type, name, distance, available }: { icon: React.ReactNode; type: string; name: string; distance: string; available: boolean }) => (
-  <div className={`p-3 rounded-lg border ${available ? 'bg-[#0f1115] border-white/5' : 'bg-white/5 border-white/5 opacity-50'}`}>
-    <div className="flex items-start gap-3">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${available ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/10 text-slate-500'}`}>
-        {icon}
-      </div>
-      <div className="flex-1">
-        <div className="text-xs text-slate-500 uppercase">{type}</div>
-        <div className="text-white font-medium">{name}</div>
-        <div className="text-xs text-slate-400">{distance}</div>
-      </div>
-      {!available && <span className="text-xs text-slate-500 px-2 py-1 bg-white/5 rounded">N/A</span>}
-    </div>
-  </div>
-);
-
-const RouteItem = ({ route, description }: { route: string; description: string }) => (
-  <div className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors">
-    <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center text-amber-400">
-      <Car size={16} />
-    </div>
+const InfoItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
+  <div className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.02]">
+    <span className="text-slate-400">{icon}</span>
     <div>
-      <div className="text-white font-medium">{route}</div>
-      <div className="text-xs text-slate-400">{description}</div>
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-sm text-white">{value}</p>
     </div>
   </div>
 );
 
-const PlaceItem = ({ name, sub, icon, rating }: { name: string; sub: string; icon: React.ReactNode; rating?: number }) => (
-  <div className="flex items-center justify-between p-2 hover:bg-white/5 rounded-lg transition-colors group cursor-pointer">
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-slate-400 group-hover:text-cyan-400 transition-colors">
-        {icon}
-      </div>
-      <div>
-        <div className="text-white font-medium text-sm">{name}</div>
-        <div className="text-xs text-slate-500">{sub}</div>
-      </div>
-    </div>
-    {rating && (
-      <div className="flex items-center gap-1 text-amber-400">
-        <Star size={12} fill="currentColor" />
-        <span className="text-xs font-medium">{rating}</span>
-      </div>
-    )}
-    <ExternalLink size={14} className="text-slate-600 group-hover:text-cyan-400 transition-colors" />
-  </div>
-);
+// ==================== DATA TYPES & GENERATORS ====================
 
-// ==================== MOCK DATA GENERATORS ====================
+interface ProvinceData {
+  thaiName: string;
+  slogan: string;
+  weather: { temp: string; condition: string; humidity: string };
+  safetyIndex: number;
+  dailyCost: string;
+  attractions: Array<{ name: string; type: string; rating: number; description?: string; openHours?: string; price?: string }>;
+  activities: Array<{ name: string; icon: string }>;
+  seasons: Array<{ name: string; months: string; rating: 'best' | 'good' | 'avoid'; description: string }>;
+  accommodation: {
+    budget: Array<{ name: string; price: string; rating: number; area: string }>;
+    midRange: Array<{ name: string; price: string; rating: number; area: string }>;
+    luxury: Array<{ name: string; price: string; rating: number; area: string }>;
+  };
+  stayAreas: Array<{ name: string; description: string; forWho: string }>;
+  localDishes: Array<{ name: string; description: string; price: string }>;
+  restaurants: Array<{ name: string; cuisine: string; price: string; rating: number; specialty?: string }>;
+  cafes: Array<{ name: string; vibe: string; wifi: boolean; specialty: string }>;
+  nightMarkets: Array<{ name: string; openHours: string; bestFor: string }>;
+  gettingThere: Array<{ type: string; name: string; duration: string; price: string; frequency: string; icon: React.ReactNode }>;
+  gettingAround: Array<{ name: string; price: string; description: string; icon: React.ReactNode }>;
+  dayTrips: Array<{ destination: string; distance: string; highlights: string }>;
+  hospitals: Array<{ name: string; type: string; address: string; phone: string }>;
+  safetyTips: Array<{ level: 'good' | 'warning' | 'info'; title: string; description: string }>;
+  mapMarkers: Array<{ lat: number; lng: number; title: string; type: 'attraction' | 'restaurant' | 'hotel' | 'hospital' | 'transport' }>;
+}
 
-// Thai names mapping by English province name
+// Thai names mapping
 const thaiProvinceNames: Record<string, string> = {
   'Chiang Mai': 'เชียงใหม่', 'Chiang Rai': 'เชียงราย', 'Nan': 'น่าน', 'Phrae': 'แพร่', 
-  'Mae Hong Son': 'แม่ฮ่องสอน', 'Lamphun': 'ลำพูน', 'Lampang': 'ลำปาง', 'Phayao': 'พะเยา', 'Uttaradit': 'อุตรดิตถ์',
-  'Khon Kaen': 'ขอนแก่น', 'Nakhon Ratchasima': 'นครราชสีมา', 'Ubon Ratchathani': 'อุบลราชธานี', 
-  'Udon Thani': 'อุดรธานี', 'Buri Ram': 'บุรีรัมย์', 'Surin': 'สุรินทร์', 'Si Sa Ket': 'ศรีสะเกษ',
-  'Roi Et': 'ร้อยเอ็ด', 'Kalasin': 'กาฬสินธุ์', 'Maha Sarakham': 'มหาสารคาม', 'Nakhon Phanom': 'นครพนม',
-  'Sakon Nakhon': 'สกลนคร', 'Mukdahan': 'มุกดาหาร', 'Yasothon': 'ยโสธร', 'Amnat Charoen': 'อำนาจเจริญ',
-  'Nong Khai': 'หนองคาย', 'Loei': 'เลย', 'Nong Bua Lam Phu': 'หนองบัวลำภู', 'Bueng Kan': 'บึงกาฬ',
-  'Chaiyaphum': 'ชัยภูมิ',
-  'Bangkok Metropolis': 'กรุงเทพมหานคร', 'Nonthaburi': 'นนทบุรี', 'Samut Prakan': 'สมุทรปราการ', 
-  'Pathum Thani': 'ปทุมธานี', 'Nakhon Pathom': 'นครปฐม', 'Samut Sakhon': 'สมุทรสาคร',
-  'Phra Nakhon Si Ayutthaya': 'พระนครศรีอยุธยา', 'Ang Thong': 'อ่างทอง', 'Lop Buri': 'ลพบุรี',
-  'Sing Buri': 'สิงห์บุรี', 'Chai Nat': 'ชัยนาท', 'Saraburi': 'สระบุรี', 'Suphan Buri': 'สุพรรณบุรี',
-  'Nakhon Nayok': 'นครนายก', 'Prachin Buri': 'ปราจีนบุรี', 'Sa Kaeo': 'สระแก้ว',
-  'Kamphaeng Phet': 'กำแพงเพชร', 'Phichit': 'พิจิตร', 'Phitsanulok': 'พิษณุโลก', 'Sukhothai': 'สุโขทัย',
-  'Tak': 'ตาก', 'Nakhon Sawan': 'นครสวรรค์', 'Uthai Thani': 'อุทัยธานี', 'Phetchabun': 'เพชรบูรณ์',
-  'Kanchanaburi': 'กาญจนบุรี', 'Ratchaburi': 'ราชบุรี',
-  'Phetchaburi': 'เพชรบุรี', 'Prachuap Khiri Khan': 'ประจวบคีรีขันธ์', 'Samut Songkhram': 'สมุทรสงคราม',
-  'Chon Buri': 'ชลบุรี', 'Rayong': 'ระยอง', 'Chanthaburi': 'จันทบุรี', 'Trat': 'ตราด',
-  'Phuket': 'ภูเก็ต', 'Surat Thani': 'สุราษฎร์ธานี', 'Krabi': 'กระบี่', 'Nakhon Si Thammarat': 'นครศรีธรรมราช',
-  'Songkhla': 'สงขลา', 'Pattani': 'ปัตตานี', 'Yala': 'ยะลา', 'Narathiwat': 'นราธิวาส',
-  'Chumphon': 'ชุมพร', 'Ranong': 'ระนอง', 'Phang Nga': 'พังงา', 'Trang': 'ตรัง', 
-  'Satun': 'สตูล', 'Phatthalung': 'พัทลุง',
-  'Chachoengsao': 'ฉะเชิงเทรา',
+  'Mae Hong Son': 'แม่ฮ่องสอน', 'Lamphun': 'ลำพูน', 'Lampang': 'ลำปาง',
+  'Khon Kaen': 'ขอนแก่น', 'Korat': 'โคราช', 'Ubon': 'อุบลราชธานี', 'Udon Thani': 'อุดรธานี',
+  'Bangkok': 'กรุงเทพฯ', 'Bangkok Metropolis': 'กรุงเทพมหานคร',
+  'Phuket': 'ภูเก็ต', 'Krabi': 'กระบี่', 'Surat Thani': 'สุราษฎร์ธานี',
+  'Chon Buri': 'ชลบุรี', 'Rayong': 'ระยอง', 'Kanchanaburi': 'กาญจนบุรี',
 };
 
-// Province slogans mapping by English name
 const provinceSlogans: Record<string, string> = {
   'Chiang Mai': 'ดอยสุเทพคู่บ้าน ศาสนาพุทธล้านนา',
   'Chiang Rai': 'เหนือสุดแดนสยาม ชายแดนสามแผ่นดิน',
-  'Nan': 'เมืองเก่าที่มีชีวิต ศิลปกรรมล้านนาตะวันออก',
-  'Bangkok Metropolis': 'กรุงเทพฯ ดุจเทพสร้าง เมืองศูนย์กลางการปกครอง',
   'Phuket': 'ไข่มุกแห่งอันดามัน',
-  'Khon Kaen': 'พระธาตุขามแก่น เสียงแคนดอกคูน ศูนย์รวมผ้าไหม',
-  'Nakhon Ratchasima': 'เมืองหญิงกล้า ผ้าไหมดี หมี่โคราช ปราสาทหิน',
-  'Chon Buri': 'ทะเลงาม ข้าวหลามอร่อย หอยใหญ่ ไร่องุ่น',
-  'Surat Thani': 'เมืองร้อยเกาะ เงาะอร่อย หอยนางรม',
-  'Krabi': 'เมืองถ้ำ ทะเล หาดทราย ป่าชายเลน',
-  'Nakhon Si Thammarat': 'เมืองพระ ธาตุทองคำ ข้าวหลาม ร้อยเกาะ',
-  'Songkhla': 'นกน้ำเพลินตา สมิหลางามล้ำ น้ำตกสวย',
-  'Ayutthaya': 'ราชธานีเก่า อู่ข้าว อู่น้ำ เลิศล้ำกานท์กวี',
-  'Sukhothai': 'มรดกโลกล้ำเลิศ กำเนิดลายสือไทย',
-  'Kanchanaburi': 'แคว้นโบราณ ด่านเจดีย์ มณีเมืองกาญจน์',
+  'Bangkok': 'กรุงเทพฯ ดุจเทพสร้าง',
+  'Khon Kaen': 'พระธาตุขามแก่น เสียงแคนดอกคูน',
 };
 
-function getThaiProvinceName(name: string): string {
-  return thaiProvinceNames[name] || name;
-}
-
-function getProvinceSlogan(name: string): string {
-  return provinceSlogans[name] || '';
-}
-
-function generateMockDistricts(count: number): Array<{ name: string; tambons: number }> {
-  const districtNames = ['Mueang', 'Bang', 'Nong', 'Mae', 'San', 'Chiang', 'Doi', 'Tha', 'Khlong', 'Phra'];
-  const suffixes = ['Sak', 'Khun', 'Luang', 'Noi', 'Yai', 'Klang', 'Tai', 'Nuea'];
+function generateProvinceData(province: Province, region: Region): ProvinceData {
+  const coords = getProvinceCoords(province.name);
   
-  return Array.from({ length: Math.min(count, 20) }, (_, i) => ({
-    name: `${districtNames[i % districtNames.length]} ${suffixes[i % suffixes.length]}`,
-    tambons: Math.floor(Math.random() * 15) + 5,
-  }));
+  return {
+    thaiName: thaiProvinceNames[province.name] || province.name,
+    slogan: provinceSlogans[province.name] || '',
+    weather: { temp: '28°C', condition: 'Partly Cloudy', humidity: '65%' },
+    safetyIndex: province.safety || 82,
+    dailyCost: province.dailyCost || '350 ฿',
+    
+    attractions: [
+      { name: `${province.name} Old City`, type: 'Historical Site', rating: 4.8, description: 'Ancient walled city with rich history and beautiful temples', openHours: '6:00 - 18:00', price: 'Free' },
+      { name: `Wat ${province.name}`, type: 'Temple', rating: 4.7, description: 'Iconic temple with stunning architecture', openHours: '5:00 - 17:00', price: '30 ฿' },
+      { name: `${province.name} Night Market`, type: 'Market', rating: 4.5, description: 'Vibrant night market with local crafts and food', openHours: '17:00 - 23:00', price: 'Free' },
+      { name: `${province.name} National Park`, type: 'Nature', rating: 4.6, description: 'Beautiful natural scenery and hiking trails', openHours: '8:00 - 16:30', price: '200 ฿' },
+    ],
+    
+    activities: [
+      { name: 'Temple Hopping', icon: '🛕' },
+      { name: 'Street Food Tour', icon: '🍜' },
+      { name: 'Cooking Class', icon: '👨‍🍳' },
+      { name: 'Night Market', icon: '🛍️' },
+      { name: 'Trekking', icon: '🥾' },
+      { name: 'Local Crafts', icon: '🎨' },
+    ],
+    
+    seasons: [
+      { name: 'Cool Season', months: 'Nov - Feb', rating: 'best', description: 'Perfect weather, festivals' },
+      { name: 'Hot Season', months: 'Mar - May', rating: 'good', description: 'Very hot, Songkran' },
+      { name: 'Rainy Season', months: 'Jun - Oct', rating: 'avoid', description: 'Heavy rain, green scenery' },
+    ],
+    
+    accommodation: {
+      budget: [
+        { name: `${province.name} Backpackers`, price: '250-400 ฿', rating: 4.2, area: 'Old City' },
+        { name: 'Green Hostel', price: '300-500 ฿', rating: 4.0, area: 'City Center' },
+      ],
+      midRange: [
+        { name: `${province.name} Boutique`, price: '1,200-2,000 ฿', rating: 4.5, area: 'Old City' },
+        { name: 'Riverside Hotel', price: '1,500-2,500 ฿', rating: 4.4, area: 'Riverside' },
+      ],
+      luxury: [
+        { name: `${province.name} Grand Resort`, price: '5,000-12,000 ฿', rating: 4.8, area: 'Mountain View' },
+        { name: 'Royal Heritage', price: '8,000-15,000 ฿', rating: 4.9, area: 'Old City' },
+      ],
+    },
+    
+    stayAreas: [
+      { name: 'Old City', description: 'Historic center with temples, walking distance to everything', forWho: 'First-timers' },
+      { name: 'Riverside', description: 'Peaceful area with scenic views and upscale restaurants', forWho: 'Couples' },
+      { name: 'Night Bazaar Area', description: 'Close to shopping and nightlife', forWho: 'Shoppers' },
+    ],
+    
+    localDishes: [
+      { name: getLocalDish(region.id, 0), description: 'Regional specialty noodle dish', price: '40-60 ฿' },
+      { name: getLocalDish(region.id, 1), description: 'Famous local curry', price: '50-80 ฿' },
+      { name: getLocalDish(region.id, 2), description: 'Traditional street food', price: '30-50 ฿' },
+      { name: getLocalDish(region.id, 3), description: 'Popular dessert', price: '20-40 ฿' },
+    ],
+    
+    restaurants: [
+      { name: `The ${province.name} Kitchen`, cuisine: 'Northern Thai', price: '$$', rating: 4.6, specialty: 'Khao Soi' },
+      { name: 'River View Terrace', cuisine: 'Thai-International', price: '$$$', rating: 4.5, specialty: 'Sunset dinner' },
+      { name: 'Local Flavors', cuisine: 'Street Food Style', price: '$', rating: 4.4, specialty: 'Sai Oua' },
+    ],
+    
+    cafes: [
+      { name: 'Coffee Mountain', vibe: 'Cozy, mountain views', wifi: true, specialty: 'Thai drip coffee' },
+      { name: 'Art House Cafe', vibe: 'Artsy, quiet workspace', wifi: true, specialty: 'Pour over' },
+      { name: 'Garden Brew', vibe: 'Outdoor, pet-friendly', wifi: true, specialty: 'Cold brew' },
+    ],
+    
+    nightMarkets: [
+      { name: `${province.name} Walking Street`, openHours: 'Sun 16:00-22:00', bestFor: 'Local crafts & souvenirs' },
+      { name: 'Night Bazaar', openHours: 'Daily 18:00-23:00', bestFor: 'Food & shopping' },
+    ],
+    
+    gettingThere: [
+      { type: 'By Air', name: `${province.name} International Airport`, duration: '1h from BKK', price: '800-3,000 ฿', frequency: '20+ daily flights', icon: <Plane size={20} /> },
+      { type: 'By Bus', name: 'Mo Chit Terminal', duration: '9-10 hours', price: '400-700 ฿', frequency: 'Every 30 min', icon: <Bus size={20} /> },
+      { type: 'By Train', name: 'Hua Lamphong', duration: '12-14 hours', price: '250-1,500 ฿', frequency: '5 trains daily', icon: <Train size={20} /> },
+    ],
+    
+    gettingAround: [
+      { name: 'Songthaew', price: '20-40 ฿', description: 'Red trucks, shared rides in city', icon: <Car size={18} /> },
+      { name: 'Grab/Bolt', price: '50-150 ฿', description: 'Convenient app-based service', icon: <Car size={18} /> },
+      { name: 'Motorbike Rental', price: '200-300 ฿/day', description: 'Freedom to explore', icon: <Car size={18} /> },
+      { name: 'Bicycle', price: '50-100 ฿/day', description: 'Eco-friendly, Old City best', icon: <Car size={18} /> },
+    ],
+    
+    dayTrips: [
+      { destination: 'Doi Inthanon', distance: '100 km', highlights: "Thailand's highest peak, waterfalls" },
+      { destination: 'Elephant Sanctuary', distance: '60 km', highlights: 'Ethical elephant experience' },
+      { destination: 'Hot Springs', distance: '40 km', highlights: 'Natural hot springs, relaxation' },
+    ],
+    
+    hospitals: [
+      { name: `${province.name} Hospital`, type: 'Public', address: 'City Center', phone: '053-xxx-xxx' },
+      { name: `${province.name} Ram Hospital`, type: 'Private', address: 'Near Airport', phone: '053-xxx-xxx' },
+    ],
+    
+    safetyTips: [
+      { level: 'good', title: 'Generally Safe', description: 'Low crime rate, tourist-friendly area' },
+      { level: 'warning', title: 'Traffic Caution', description: 'Be careful when crossing roads, especially at night' },
+      { level: 'info', title: 'Scam Awareness', description: 'Use metered taxis or Grab, negotiate prices beforehand' },
+    ],
+    
+    mapMarkers: generateMapMarkers(province.name, coords),
+  };
 }
 
-function generateMockAttractions(provinceName: string): Array<{ name: string; type: string; rating: number }> {
-  return [
-    { name: `${provinceName} Old City`, type: 'Historical Site', rating: 4.8 },
-    { name: `Wat ${provinceName}`, type: 'Temple', rating: 4.6 },
-    { name: `${provinceName} Night Market`, type: 'Market', rating: 4.5 },
-    { name: `${provinceName} National Park`, type: 'Nature', rating: 4.7 },
-  ];
+function getProvinceCoords(name: string): { lat: number; lng: number } {
+  const coords: Record<string, { lat: number; lng: number }> = {
+    'Chiang Mai': { lat: 18.7883, lng: 98.9853 },
+    'Chiang Rai': { lat: 19.9105, lng: 99.8406 },
+    'Bangkok': { lat: 13.7563, lng: 100.5018 },
+    'Phuket': { lat: 7.8804, lng: 98.3923 },
+  };
+  return coords[name] || { lat: 13.7563, lng: 100.5018 };
 }
 
-function generateMockRestaurants(provinceName: string): Array<{ name: string; cuisine: string; price: string }> {
-  return [
-    { name: `The ${provinceName} Kitchen`, cuisine: 'Local Thai', price: '$$' },
-    { name: `Green Garden`, cuisine: 'Vegetarian', price: '$' },
-    { name: `River View Restaurant`, cuisine: 'Seafood', price: '$$$' },
-    { name: `Street Food Corner`, cuisine: 'Street Food', price: '$' },
-  ];
+function getLocalDish(regionId: string, index: number): string {
+  const dishes: Record<string, string[]> = {
+    'north': ['Khao Soi', 'Sai Oua', 'Kaeng Hung Le', 'Khanom Jeen Nam Ngiao'],
+    'northeast': ['Som Tam', 'Larb', 'Kai Yang', 'Sticky Rice'],
+    'central': ['Pad Thai', 'Tom Yum', 'Green Curry', 'Mango Sticky Rice'],
+    'south': ['Massaman Curry', 'Kanom Jeen', 'Roti', 'Thai Tea'],
+    'east': ['Seafood', 'Pla Pao', 'Som Tam', 'Kai Yang'],
+    'west': ['Kaeng Pa', 'Moo Hong', 'Nam Prik', 'Khao Chae'],
+  };
+  const regionDishes = dishes[regionId] || dishes['central'];
+  return regionDishes[index] || 'Local Specialty';
 }
 
-function generateMockHospitals(provinceName: string): Array<{ name: string; type: string }> {
+function generateMapMarkers(provinceName: string, center: { lat: number; lng: number }) {
+  // Generate markers around the center
   return [
-    { name: `${provinceName} Hospital`, type: 'Public Hospital' },
-    { name: `${provinceName} Ram Hospital`, type: 'Private Hospital' },
-    { name: `${provinceName} Medical Center`, type: 'Clinic' },
+    { lat: center.lat + 0.01, lng: center.lng + 0.005, title: `Wat ${provinceName}`, type: 'attraction' as const },
+    { lat: center.lat - 0.008, lng: center.lng + 0.012, title: 'Night Market', type: 'restaurant' as const },
+    { lat: center.lat + 0.005, lng: center.lng - 0.01, title: 'Central Hospital', type: 'hospital' as const },
+    { lat: center.lat - 0.015, lng: center.lng - 0.005, title: 'Bus Terminal', type: 'transport' as const },
+    { lat: center.lat + 0.02, lng: center.lng + 0.015, title: 'Grand Hotel', type: 'hotel' as const },
   ];
 }
