@@ -84,13 +84,7 @@ export function initDatabase() {
     );
   `);
 
-  // Create indexes for faster queries
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region ON provinces(region_id);`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_stats_region ON region_stats(region_id);`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_name ON provinces(name);`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_cost ON provinces(region_id, dailyCost_value);`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_population ON provinces(region_id, population_value);`);
-  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_safety ON provinces(region_id, safety);`);
+  // Indexes creation moved after column migrations to ensure columns exist
 
   // Migrations: ensure numeric columns exist for legacy DBs
   ensureColumn('regions', 'population_value', 'INTEGER');
@@ -102,6 +96,14 @@ export function initDatabase() {
   ensureColumn('provinces', 'dailyCost_value', 'INTEGER');
 
   backfillNumericColumns();
+
+  // Create indexes for faster queries
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region ON provinces(region_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_stats_region ON region_stats(region_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_name ON provinces(name);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_cost ON provinces(region_id, dailyCost_value);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_population ON provinces(region_id, population_value);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_safety ON provinces(region_id, safety);`);
 
   console.log('✓ Database ready at:', dbPath);
 }
