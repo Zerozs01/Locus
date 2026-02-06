@@ -27,7 +27,13 @@ import {
   Hospital,
   GraduationCap,
   ShoppingBag,
-  Zap
+  Zap,
+  Landmark,
+  Fuel,
+  Pill,
+  ExternalLink,
+  Copy,
+  ChevronDown
 } from 'lucide-react';
 import { Province, Region } from '../data/regions';
 import ProvinceMap from '../components/ProvinceMap';
@@ -208,11 +214,40 @@ export const ProvinceTacticalPage = () => {
 
 const ExploreTab = ({ data }: { data: ProvinceData }) => (
   <div className="space-y-4">
-    {/* Top Attractions */}
+    {/* Popular Activities - FIRST */}
+    <ContentCard 
+      title="Popular Activities" 
+      icon={<Zap size={18} />}
+      color="amber"
+      borderColor="amber"
+    >
+      <div className="grid grid-cols-2 gap-2">
+        {data.activities.map((activity, idx) => (
+          <ActivityChip key={idx} name={activity.name} icon={activity.icon} />
+        ))}
+      </div>
+    </ContentCard>
+
+    {/* Best Time to Visit - SECOND */}
+    <ContentCard 
+      title="Best Time to Visit" 
+      icon={<Clock size={18} />}
+      color="violet"
+      borderColor="violet"
+    >
+      <div className="grid grid-cols-3 gap-2">
+        {data.seasons.map((season, idx) => (
+          <SeasonCard key={idx} {...season} />
+        ))}
+      </div>
+    </ContentCard>
+
+    {/* Top Attractions - THIRD */}
     <ContentCard 
       title="Top Attractions" 
       icon={<Camera size={18} />}
       color="teal"
+      borderColor="teal"
     >
       <div className="space-y-3">
         {data.attractions.map((item, idx) => (
@@ -229,190 +264,251 @@ const ExploreTab = ({ data }: { data: ProvinceData }) => (
         ))}
       </div>
     </ContentCard>
-
-    {/* Activities */}
-    <ContentCard 
-      title="Popular Activities" 
-      icon={<Zap size={18} />}
-      color="amber"
-    >
-      <div className="grid grid-cols-2 gap-2">
-        {data.activities.map((activity, idx) => (
-          <ActivityChip key={idx} name={activity.name} icon={activity.icon} />
-        ))}
-      </div>
-    </ContentCard>
-
-    {/* Best Time to Visit */}
-    <ContentCard 
-      title="Best Time to Visit" 
-      icon={<Clock size={18} />}
-      color="violet"
-    >
-      <div className="grid grid-cols-3 gap-2">
-        {data.seasons.map((season, idx) => (
-          <SeasonCard key={idx} {...season} />
-        ))}
-      </div>
-    </ContentCard>
   </div>
 );
 
-const StayTab = ({ data }: { data: ProvinceData }) => (
-  <div className="space-y-4">
-    {/* Accommodation by Budget */}
-    <ContentCard 
-      title="Budget Friendly" 
-      icon={<Bed size={18} />}
-      color="emerald"
-      badge="฿"
-    >
-      <div className="space-y-2">
-        {data.accommodation.budget.map((item, idx) => (
-          <AccommodationCard key={idx} {...item} />
-        ))}
-      </div>
-    </ContentCard>
+const StayTab = ({ data }: { data: ProvinceData }) => {
+  const [openSections, setOpenSections] = useState({
+    budget: true,      // default ON
+    midRange: false,   // default OFF
+    luxury: false,     // default OFF
+    areas: true,       // default ON
+  });
 
-    <ContentCard 
-      title="Mid-Range" 
-      icon={<Bed size={18} />}
-      color="blue"
-      badge="฿฿"
-    >
-      <div className="space-y-2">
-        {data.accommodation.midRange.map((item, idx) => (
-          <AccommodationCard key={idx} {...item} />
-        ))}
-      </div>
-    </ContentCard>
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
-    <ContentCard 
-      title="Luxury" 
-      icon={<Bed size={18} />}
-      color="violet"
-      badge="฿฿฿"
-    >
-      <div className="space-y-2">
-        {data.accommodation.luxury.map((item, idx) => (
-          <AccommodationCard key={idx} {...item} />
-        ))}
-      </div>
-    </ContentCard>
+  // Calculate price ranges for summary
+  const getPriceRange = (items: Array<{ price: string }>) => {
+    if (items.length === 0) return 'N/A';
+    const prices = items.map(i => i.price);
+    return `${prices[0].split('-')[0]} - ${prices[prices.length - 1].split('-')[1] || prices[prices.length - 1]}`;
+  };
 
-    {/* Areas to Stay */}
-    <ContentCard 
-      title="Best Areas to Stay" 
-      icon={<MapPinned size={18} />}
-      color="cyan"
-    >
-      <div className="space-y-2">
-        {data.stayAreas.map((area, idx) => (
-          <AreaCard key={idx} {...area} />
-        ))}
-      </div>
-    </ContentCard>
-  </div>
-);
+  return (
+    <div className="space-y-4">
+      {/* Budget Friendly - Default OPEN */}
+      <CollapsibleSection
+        title="Budget Friendly"
+        icon={<Bed size={18} />}
+        badge="฿"
+        highlightColor="emerald"
+        isOpen={openSections.budget}
+        onToggle={() => toggleSection('budget')}
+        summary={`${data.accommodation.budget.length} options • ${getPriceRange(data.accommodation.budget)}`}
+      >
+        <div className="space-y-2">
+          {data.accommodation.budget.map((item, idx) => (
+            <AccommodationCard key={idx} {...item} />
+          ))}
+        </div>
+      </CollapsibleSection>
 
-const EatTab = ({ data }: { data: ProvinceData }) => (
-  <div className="space-y-4">
-    {/* Local Must-Try */}
-    <ContentCard 
-      title="Local Must-Try Dishes" 
-      icon={<Utensils size={18} />}
-      color="amber"
-    >
-      <div className="grid grid-cols-2 gap-2">
-        {data.localDishes.map((dish, idx) => (
-          <DishCard key={idx} {...dish} />
-        ))}
-      </div>
-    </ContentCard>
+      {/* Mid-Range - Default CLOSED */}
+      <CollapsibleSection
+        title="Mid-Range"
+        icon={<Bed size={18} />}
+        badge="฿฿"
+        highlightColor="blue"
+        isOpen={openSections.midRange}
+        onToggle={() => toggleSection('midRange')}
+        summary={`${data.accommodation.midRange.length} options • ${getPriceRange(data.accommodation.midRange)}`}
+      >
+        <div className="space-y-2">
+          {data.accommodation.midRange.map((item, idx) => (
+            <AccommodationCard key={idx} {...item} />
+          ))}
+        </div>
+      </CollapsibleSection>
 
-    {/* Recommended Restaurants */}
-    <ContentCard 
-      title="Top Restaurants" 
-      icon={<Star size={18} />}
-      color="rose"
-    >
-      <div className="space-y-2">
-        {data.restaurants.map((item, idx) => (
-          <RestaurantCard key={idx} {...item} />
-        ))}
-      </div>
-    </ContentCard>
+      {/* Luxury - Default CLOSED */}
+      <CollapsibleSection
+        title="Luxury"
+        icon={<Bed size={18} />}
+        badge="฿฿฿"
+        highlightColor="violet"
+        isOpen={openSections.luxury}
+        onToggle={() => toggleSection('luxury')}
+        summary={`${data.accommodation.luxury.length} options • ${getPriceRange(data.accommodation.luxury)}`}
+      >
+        <div className="space-y-2">
+          {data.accommodation.luxury.map((item, idx) => (
+            <AccommodationCard key={idx} {...item} />
+          ))}
+        </div>
+      </CollapsibleSection>
 
-    {/* Cafes & Coffee */}
-    <ContentCard 
-      title="Cafes & Coffee Shops" 
-      icon={<Coffee size={18} />}
-      color="amber"
-    >
-      <div className="space-y-2">
-        {data.cafes.map((item, idx) => (
-          <CafeCard key={idx} {...item} />
-        ))}
-      </div>
-    </ContentCard>
+      {/* Best Areas to Stay - Default OPEN */}
+      <CollapsibleSection
+        title="Best Areas to Stay"
+        icon={<MapPinned size={18} />}
+        highlightColor="cyan"
+        isOpen={openSections.areas}
+        onToggle={() => toggleSection('areas')}
+        summary={`${data.stayAreas.length} recommended areas`}
+      >
+        <div className="space-y-2">
+          {data.stayAreas.map((area, idx) => (
+            <AreaCard key={idx} {...area} />
+          ))}
+        </div>
+      </CollapsibleSection>
+    </div>
+  );
+};
 
-    {/* Night Markets */}
-    <ContentCard 
-      title="Night Markets & Street Food" 
-      icon={<ShoppingBag size={18} />}
-      color="violet"
-    >
-      <div className="space-y-2">
-        {data.nightMarkets.map((item, idx) => (
-          <MarketCard key={idx} {...item} />
-        ))}
-      </div>
-    </ContentCard>
-  </div>
-);
+const EatTab = ({ data }: { data: ProvinceData }) => {
+  const [showCafes, setShowCafes] = useState(false);
+  const [showMalls, setShowMalls] = useState(false);
+  const [showMarkets, setShowMarkets] = useState(false);
 
-const TravelTab = ({ data }: { data: ProvinceData }) => (
-  <div className="space-y-4">
-    {/* Getting There */}
-    <ContentCard 
-      title="Getting There" 
-      icon={<Navigation size={18} />}
-      color="blue"
-    >
-      <div className="space-y-3">
-        {data.gettingThere.map((item, idx) => (
-          <TransportOptionCard key={idx} {...item} />
-        ))}
-      </div>
-    </ContentCard>
+  return (
+    <div className="space-y-4">
+      {/* Local Must-Try Dishes */}
+      <ContentCard 
+        title="Local Must-Try Dishes" 
+        icon={<Utensils size={18} />}
+        color="amber"
+        borderColor="amber"
+      >
+        <div className="grid grid-cols-2 gap-2">
+          {data.localDishes.map((dish, idx) => (
+            <DishCard key={idx} {...dish} />
+          ))}
+        </div>
+      </ContentCard>
 
-    {/* Getting Around */}
-    <ContentCard 
-      title="Getting Around" 
-      icon={<Car size={18} />}
-      color="cyan"
-    >
-      <div className="grid grid-cols-2 gap-2">
-        {data.gettingAround.map((item, idx) => (
-          <LocalTransportCard key={idx} {...item} />
-        ))}
-      </div>
-    </ContentCard>
+      {/* Top Restaurants */}
+      <ContentCard 
+        title="Top Restaurants" 
+        icon={<Star size={18} />}
+        color="rose"
+        borderColor="rose"
+      >
+        <div className="space-y-2">
+          {data.restaurants.map((item, idx) => (
+            <RestaurantCard key={idx} {...item} />
+          ))}
+        </div>
+      </ContentCard>
 
-    {/* Day Trips */}
-    <ContentCard 
-      title="Day Trips Nearby" 
-      icon={<MapPin size={18} />}
-      color="emerald"
-    >
-      <div className="space-y-2">
-        {data.dayTrips.map((item, idx) => (
-          <DayTripCard key={idx} {...item} />
-        ))}
+      {/* Shopping Malls - Toggle Default OFF */}
+      <CollapsibleSection
+        title="Shopping Malls"
+        icon={<Building2 size={18} />}
+        highlightColor="cyan"
+        isOpen={showMalls}
+        onToggle={() => setShowMalls(!showMalls)}
+        summary={`${data.malls.length} malls nearby`}
+      >
+        <div className="space-y-2">
+          {data.malls.map((item, idx) => (
+            <MallCard key={idx} {...item} />
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Night Markets & Street Food - Toggle Default OFF */}
+      <CollapsibleSection
+        title="Night Markets & Street Food"
+        icon={<ShoppingBag size={18} />}
+        highlightColor="violet"
+        isOpen={showMarkets}
+        onToggle={() => setShowMarkets(!showMarkets)}
+        summary={`${data.nightMarkets.length} markets`}
+      >
+        <div className="space-y-2">
+          {data.nightMarkets.map((item, idx) => (
+            <MarketCard key={idx} {...item} />
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Cafes & Coffee Shops - Toggle Default OFF */}
+      <CollapsibleSection
+        title="Cafes & Coffee Shops"
+        icon={<Coffee size={18} />}
+        highlightColor="emerald"
+        isOpen={showCafes}
+        onToggle={() => setShowCafes(!showCafes)}
+        summary={`${data.cafes.length} cafes with WiFi`}
+      >
+        <div className="space-y-2">
+          {data.cafes.map((item, idx) => (
+            <CafeCard key={idx} {...item} />
+          ))}
+        </div>
+      </CollapsibleSection>
+    </div>
+  );
+};
+
+const TravelTab = ({ data }: { data: ProvinceData }) => {
+  const [showBanks, setShowBanks] = useState(false);
+
+  return (
+    <div className="space-y-4">
+      {/* Getting Around - FIRST with border highlight */}
+      <ContentCard 
+        title="Getting Around" 
+        icon={<Car size={18} />}
+        color="cyan"
+        borderColor="cyan"
+      >
+        <div className="grid grid-cols-2 gap-2">
+          {data.gettingAround.map((item, idx) => (
+            <LocalTransportCard key={idx} {...item} />
+          ))}
+        </div>
+      </ContentCard>
+
+      {/* Gas Stations - with border highlight */}
+      <ContentCard 
+        title="Gas Stations" 
+        icon={<Fuel size={18} />}
+        color="amber"
+        borderColor="amber"
+        badge={`${data.gasStations.filter(g => g.is24h).length} open 24h`}
+      >
+        <div className="space-y-2">
+          {data.gasStations.map((item, idx) => (
+            <GasStationCard key={idx} {...item} />
+          ))}
+        </div>
+      </ContentCard>
+
+      {/* Banks & ATM - Toggle Default OFF */}
+      <CollapsibleSection
+        title="Banks & ATM"
+        icon={<Landmark size={18} />}
+        highlightColor="blue"
+        isOpen={showBanks}
+        onToggle={() => setShowBanks(!showBanks)}
+        summary={`${data.banks.length} locations nearby`}
+      >
+        <div className="space-y-2">
+          {data.banks.map((item, idx) => (
+            <BankCard key={idx} {...item} />
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Info Note */}
+      <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+        <div className="flex items-start gap-3">
+          <Navigation size={20} className="text-blue-400 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-white text-sm">Route Planning</h4>
+            <p className="text-xs text-slate-400 mt-1">
+              Select a destination on the map to see detailed travel options, estimated costs, and journey times.
+            </p>
+          </div>
+        </div>
       </div>
-    </ContentCard>
-  </div>
-);
+    </div>
+  );
+};
 
 const EssentialsTab = ({ data, province }: { data: ProvinceData; province: Province }) => (
   <div className="space-y-4">
@@ -443,6 +539,20 @@ const EssentialsTab = ({ data, province }: { data: ProvinceData; province: Provi
       </div>
     </ContentCard>
 
+    {/* Pharmacies - NEW */}
+    <ContentCard 
+      title="Pharmacies" 
+      icon={<Pill size={18} />}
+      color="emerald"
+      badge={`${data.pharmacies.filter(p => p.is24h).length} open 24h`}
+    >
+      <div className="space-y-2">
+        {data.pharmacies.map((item, idx) => (
+          <PharmacyCard key={idx} {...item} />
+        ))}
+      </div>
+    </ContentCard>
+
     {/* Safety Info */}
     <ContentCard 
       title="Safety Information" 
@@ -467,8 +577,8 @@ const EssentialsTab = ({ data, province }: { data: ProvinceData; province: Provi
     >
       <div className="grid grid-cols-2 gap-3">
         <InfoItem icon={<Wifi size={16} />} label="WiFi" value="Widely available" />
-        <InfoItem icon={<Car size={16} />} label="Gas Stations" value="Common on main roads" />
-        <InfoItem icon={<Wallet size={16} />} label="ATMs" value="In all districts" />
+        <InfoItem icon={<Landmark size={16} />} label="ATMs" value="In all districts" />
+        <InfoItem icon={<Fuel size={16} />} label="Gas Stations" value={`${data.gasStations.length} nearby`} />
         <InfoItem icon={<Building2 size={16} />} label="Districts" value={`${province.dist} districts`} />
       </div>
     </ContentCard>
@@ -498,15 +608,17 @@ const ContentCard = ({
   icon, 
   children, 
   color = 'cyan',
-  badge
+  badge,
+  borderColor
 }: { 
   title: string; 
   icon: React.ReactNode; 
   children: React.ReactNode; 
   color?: string;
   badge?: string;
+  borderColor?: 'amber' | 'violet' | 'teal' | 'rose' | 'emerald' | 'blue' | 'cyan';
 }) => {
-  const colors: Record<string, string> = {
+  const textColors: Record<string, string> = {
     teal: 'text-teal-400',
     amber: 'text-amber-400',
     violet: 'text-violet-400',
@@ -516,11 +628,22 @@ const ContentCard = ({
     cyan: 'text-cyan-400',
     rose: 'text-rose-400',
   };
+  
+  const borderColors: Record<string, string> = {
+    teal: 'border-teal-500/40',
+    amber: 'border-amber-500/40',
+    violet: 'border-violet-500/40',
+    blue: 'border-blue-500/40',
+    emerald: 'border-emerald-500/40',
+    cyan: 'border-cyan-500/40',
+    rose: 'border-rose-500/40',
+  };
+
   return (
-    <div className="rounded-xl bg-[#0a0c10] border border-white/5 overflow-hidden">
+    <div className={`rounded-xl bg-[#0a0c10] ${borderColor ? `border-2 ${borderColors[borderColor]}` : 'border border-white/5'} overflow-hidden`}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/[0.02]">
         <div className="flex items-center gap-2">
-          <span className={colors[color]}>{icon}</span>
+          <span className={textColors[color]}>{icon}</span>
           <h3 className="font-semibold text-white">{title}</h3>
         </div>
         {badge && (
@@ -528,6 +651,90 @@ const ContentCard = ({
         )}
       </div>
       <div className="p-4">{children}</div>
+    </div>
+  );
+};
+
+// Collapsible Section Component for Stay Tab
+const CollapsibleSection = ({ 
+  title, 
+  icon, 
+  children, 
+  highlightColor,
+  badge,
+  isOpen,
+  onToggle,
+  summary
+}: { 
+  title: string; 
+  icon: React.ReactNode; 
+  children: React.ReactNode; 
+  highlightColor: 'emerald' | 'blue' | 'violet' | 'cyan';
+  badge?: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  summary: string;
+}) => {
+  const borderColors: Record<string, string> = {
+    emerald: 'border-emerald-500/40',
+    blue: 'border-blue-500/40',
+    violet: 'border-violet-500/40',
+    cyan: 'border-cyan-500/40',
+  };
+  
+  const textColors: Record<string, string> = {
+    emerald: 'text-emerald-400',
+    blue: 'text-blue-400',
+    violet: 'text-violet-400',
+    cyan: 'text-cyan-400',
+  };
+
+  const bgColors: Record<string, string> = {
+    emerald: 'bg-emerald-500/10',
+    blue: 'bg-blue-500/10',
+    violet: 'bg-violet-500/10',
+    cyan: 'bg-cyan-500/10',
+  };
+
+  const badgeColors: Record<string, string> = {
+    emerald: 'bg-emerald-500/20 text-emerald-400',
+    blue: 'bg-blue-500/20 text-blue-400',
+    violet: 'bg-violet-500/20 text-violet-400',
+    cyan: 'bg-cyan-500/20 text-cyan-400',
+  };
+
+  return (
+    <div className={`rounded-xl bg-[#0a0c10] border-2 ${borderColors[highlightColor]} overflow-hidden transition-all`}>
+      {/* Header - Always visible & clickable */}
+      <button 
+        onClick={onToggle}
+        className={`w-full flex items-center justify-between px-4 py-3 ${isOpen ? bgColors[highlightColor] : 'bg-white/[0.02]'} transition-colors hover:bg-white/[0.05]`}
+      >
+        <div className="flex items-center gap-3">
+          <span className={textColors[highlightColor]}>{icon}</span>
+          <h3 className="font-semibold text-white">{title}</h3>
+          {badge && (
+            <span className={`text-xs font-bold px-2 py-0.5 rounded ${badgeColors[highlightColor]}`}>{badge}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Summary shown when collapsed */}
+          {!isOpen && (
+            <span className="text-xs text-slate-400">{summary}</span>
+          )}
+          <ChevronDown 
+            size={18} 
+            className={`${textColors[highlightColor]} transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+          />
+        </div>
+      </button>
+      
+      {/* Content - Collapsible */}
+      {isOpen && (
+        <div className="p-4 border-t border-white/5 animate-in slide-in-from-top-2 duration-200">
+          {children}
+        </div>
+      )}
     </div>
   );
 };
@@ -655,6 +862,22 @@ const MarketCard = ({ name, openHours, bestFor }: { name: string; openHours: str
   </div>
 );
 
+// MallCard for Shopping Malls
+const MallCard = ({ name, address, openHours, features }: { name: string; address: string; openHours: string; features: string[] }) => (
+  <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
+    <h4 className="font-medium text-white text-sm">{name}</h4>
+    <p className="text-xs text-slate-500 mt-0.5">{address}</p>
+    <div className="flex items-center gap-2 mt-1">
+      <span className="text-xs text-slate-500 flex items-center gap-1"><Clock size={10} /> {openHours}</span>
+    </div>
+    <div className="flex flex-wrap gap-1 mt-2">
+      {features.map((feature, i) => (
+        <span key={i} className="px-1.5 py-0.5 text-xs bg-cyan-500/10 text-cyan-400 rounded">{feature}</span>
+      ))}
+    </div>
+  </div>
+);
+
 const TransportOptionCard = ({ type, name, duration, price, frequency, icon }: { 
   type: string; name: string; duration: string; price: string; frequency: string; icon: React.ReactNode 
 }) => (
@@ -748,6 +971,157 @@ const SafetyMeter = ({ value }: { value: number }) => (
   </div>
 );
 
+// ==================== NEW ESSENTIAL CARDS ====================
+
+const PharmacyCard = ({ name, chain, is24h, address, phone, coordinates }: { 
+  name: string; chain: string; is24h: boolean; address: string; phone: string; coordinates?: { lat: number; lng: number } 
+}) => {
+  const handleOpenMaps = () => {
+    if (coordinates) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`, '_blank');
+    } else {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address)}`, '_blank');
+    }
+  };
+  
+  const handleCopyAddress = () => {
+    navigator.clipboard.writeText(address);
+  };
+
+  return (
+    <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-emerald-500/30 transition-colors group">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h4 className="font-medium text-white text-sm">{name}</h4>
+            {is24h && (
+              <span className="px-1.5 py-0.5 text-xs font-bold bg-emerald-500/20 text-emerald-400 rounded">24h</span>
+            )}
+          </div>
+          <p className="text-xs text-slate-500">{chain}</p>
+          <p className="text-xs text-slate-400 mt-1">{address}</p>
+          <p className="text-xs text-cyan-400 mt-1">📞 {phone}</p>
+        </div>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button 
+            onClick={handleCopyAddress}
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+            title="Copy address"
+          >
+            <Copy size={14} />
+          </button>
+          <button 
+            onClick={handleOpenMaps}
+            className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition-colors"
+            title="Open in Google Maps"
+          >
+            <ExternalLink size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const BankCard = ({ name, type, address, openHours, services, coordinates }: { 
+  name: string; type: 'bank' | 'exchange'; address: string; openHours: string; services: string[]; coordinates?: { lat: number; lng: number } 
+}) => {
+  const handleOpenMaps = () => {
+    if (coordinates) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`, '_blank');
+    } else {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address)}`, '_blank');
+    }
+  };
+
+  return (
+    <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-blue-500/30 transition-colors group">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h4 className="font-medium text-white text-sm">{name}</h4>
+            <span className={`px-1.5 py-0.5 text-xs font-bold rounded ${
+              type === 'exchange' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'
+            }`}>
+              {type === 'exchange' ? '💱 Exchange' : '🏦 Bank'}
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-1">{address}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-slate-500 flex items-center gap-1">
+              <Clock size={10} /> {openHours}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1 mt-2">
+            {services.map((service, i) => (
+              <span key={i} className="px-1.5 py-0.5 text-xs bg-white/5 text-slate-400 rounded">{service}</span>
+            ))}
+          </div>
+        </div>
+        <button 
+          onClick={handleOpenMaps}
+          className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition-colors opacity-0 group-hover:opacity-100"
+          title="Open in Google Maps"
+        >
+          <ExternalLink size={14} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const GasStationCard = ({ name, brand, is24h, address, services, coordinates }: { 
+  name: string; brand: string; is24h: boolean; address: string; services: string[]; coordinates?: { lat: number; lng: number } 
+}) => {
+  const brandColors: Record<string, string> = {
+    'PTT': 'bg-blue-500/20 text-blue-400',
+    'Shell': 'bg-yellow-500/20 text-yellow-400',
+    'Esso': 'bg-red-500/20 text-red-400',
+    'Caltex': 'bg-red-500/20 text-red-400',
+    'Bangchak': 'bg-green-500/20 text-green-400',
+    'default': 'bg-slate-500/20 text-slate-400',
+  };
+
+  const handleOpenMaps = () => {
+    if (coordinates) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`, '_blank');
+    } else {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address)}`, '_blank');
+    }
+  };
+
+  return (
+    <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-amber-500/30 transition-colors group">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h4 className="font-medium text-white text-sm">{name}</h4>
+            <span className={`px-1.5 py-0.5 text-xs font-bold rounded ${brandColors[brand] || brandColors['default']}`}>
+              {brand}
+            </span>
+            {is24h && (
+              <span className="px-1.5 py-0.5 text-xs font-bold bg-emerald-500/20 text-emerald-400 rounded">24h</span>
+            )}
+          </div>
+          <p className="text-xs text-slate-400 mt-1">{address}</p>
+          <div className="flex flex-wrap gap-1 mt-2">
+            {services.map((service, i) => (
+              <span key={i} className="px-1.5 py-0.5 text-xs bg-white/5 text-slate-400 rounded">{service}</span>
+            ))}
+          </div>
+        </div>
+        <button 
+          onClick={handleOpenMaps}
+          className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 transition-colors opacity-0 group-hover:opacity-100"
+          title="Open in Google Maps"
+        >
+          <ExternalLink size={14} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const SafetyTip = ({ level, title, description }: { level: 'good' | 'warning' | 'info'; title: string; description: string }) => {
   const colors = {
     good: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
@@ -799,11 +1173,15 @@ interface ProvinceData {
   restaurants: Array<{ name: string; cuisine: string; price: string; rating: number; specialty?: string }>;
   cafes: Array<{ name: string; vibe: string; wifi: boolean; specialty: string }>;
   nightMarkets: Array<{ name: string; openHours: string; bestFor: string }>;
+  malls: Array<{ name: string; address: string; openHours: string; features: string[] }>;
   gettingThere: Array<{ type: string; name: string; duration: string; price: string; frequency: string; icon: React.ReactNode }>;
   gettingAround: Array<{ name: string; price: string; description: string; icon: React.ReactNode }>;
   dayTrips: Array<{ destination: string; distance: string; highlights: string }>;
   hospitals: Array<{ name: string; type: string; address: string; phone: string }>;
   safetyTips: Array<{ level: 'good' | 'warning' | 'info'; title: string; description: string }>;
+  banks: Array<{ name: string; type: 'bank' | 'exchange'; address: string; openHours: string; services: string[]; coordinates?: { lat: number; lng: number } }>;
+  gasStations: Array<{ name: string; brand: string; is24h: boolean; address: string; services: string[]; coordinates?: { lat: number; lng: number } }>;
+  pharmacies: Array<{ name: string; chain: string; is24h: boolean; address: string; phone: string; coordinates?: { lat: number; lng: number } }>;
   mapMarkers: Array<{ lat: number; lng: number; title: string; type: 'attraction' | 'restaurant' | 'hotel' | 'hospital' | 'transport' }>;
 }
 
@@ -902,6 +1280,13 @@ function generateProvinceData(province: Province, region: Region): ProvinceData 
       { name: 'Night Bazaar', openHours: 'Daily 18:00-23:00', bestFor: 'Food & shopping' },
     ],
     
+    // Shopping Malls
+    malls: [
+      { name: `Central ${province.name}`, address: 'Downtown Area', openHours: '10:00-21:00', features: ['Cinema', 'Food Court', 'Supermarket', 'ATM'] },
+      { name: `Maya Lifestyle`, address: 'Near Night Bazaar', openHours: '10:00-22:00', features: ['Rooftop Bar', 'Fashion', 'Electronics'] },
+      { name: 'Airport Plaza', address: 'Near Airport', openHours: '10:30-21:30', features: ['Department Store', 'Dining', 'Entertainment'] },
+    ],
+    
     gettingThere: [
       { type: 'By Air', name: `${province.name} International Airport`, duration: '1h from BKK', price: '800-3,000 ฿', frequency: '20+ daily flights', icon: <Plane size={20} /> },
       { type: 'By Bus', name: 'Mo Chit Terminal', duration: '9-10 hours', price: '400-700 ฿', frequency: 'Every 30 min', icon: <Bus size={20} /> },
@@ -930,6 +1315,98 @@ function generateProvinceData(province: Province, region: Region): ProvinceData 
       { level: 'good', title: 'Generally Safe', description: 'Low crime rate, tourist-friendly area' },
       { level: 'warning', title: 'Traffic Caution', description: 'Be careful when crossing roads, especially at night' },
       { level: 'info', title: 'Scam Awareness', description: 'Use metered taxis or Grab, negotiate prices beforehand' },
+    ],
+    
+    // NEW: Banks & Currency Exchange
+    banks: [
+      { 
+        name: 'Bangkok Bank', 
+        type: 'bank', 
+        address: `${province.name} Central Branch, Main Road`, 
+        openHours: 'Mon-Fri 08:30-15:30', 
+        services: ['ATM', 'Currency Exchange', 'Wire Transfer'],
+        coordinates: { lat: coords.lat + 0.002, lng: coords.lng + 0.003 }
+      },
+      { 
+        name: 'Kasikorn Bank', 
+        type: 'bank', 
+        address: `${province.name} Old City Branch`, 
+        openHours: 'Mon-Fri 08:30-15:30', 
+        services: ['ATM', 'Currency Exchange'],
+        coordinates: { lat: coords.lat - 0.003, lng: coords.lng + 0.001 }
+      },
+      { 
+        name: 'SuperRich Exchange', 
+        type: 'exchange', 
+        address: 'Night Bazaar Area', 
+        openHours: 'Daily 09:00-21:00', 
+        services: ['Best Rates', 'Multiple Currencies'],
+        coordinates: { lat: coords.lat + 0.001, lng: coords.lng - 0.002 }
+      },
+    ],
+    
+    // NEW: Gas Stations
+    gasStations: [
+      { 
+        name: 'PTT Station - Highway', 
+        brand: 'PTT', 
+        is24h: true, 
+        address: `Highway 11, Near ${province.name} Airport`, 
+        services: ['Cafe Amazon', 'Jiffy', 'EV Charging', 'Car Wash'],
+        coordinates: { lat: coords.lat + 0.015, lng: coords.lng + 0.01 }
+      },
+      { 
+        name: 'Shell - City Center', 
+        brand: 'Shell', 
+        is24h: true, 
+        address: 'Main Road, City Center', 
+        services: ['Shell Select', 'V-Power'],
+        coordinates: { lat: coords.lat - 0.005, lng: coords.lng + 0.008 }
+      },
+      { 
+        name: 'Bangchak - Outer Ring', 
+        brand: 'Bangchak', 
+        is24h: false, 
+        address: 'Outer Ring Road (06:00-22:00)', 
+        services: ['Inthanin Coffee', 'Mini Mart'],
+        coordinates: { lat: coords.lat + 0.02, lng: coords.lng - 0.01 }
+      },
+    ],
+    
+    // NEW: Pharmacies
+    pharmacies: [
+      { 
+        name: 'Boots - Central Mall', 
+        chain: 'Boots', 
+        is24h: false, 
+        address: `Central ${province.name}, Ground Floor`, 
+        phone: '053-xxx-111',
+        coordinates: { lat: coords.lat + 0.001, lng: coords.lng + 0.002 }
+      },
+      { 
+        name: 'Watsons - Night Bazaar', 
+        chain: 'Watsons', 
+        is24h: false, 
+        address: 'Night Bazaar Road', 
+        phone: '053-xxx-222',
+        coordinates: { lat: coords.lat - 0.002, lng: coords.lng - 0.001 }
+      },
+      { 
+        name: 'Fascino 24h Pharmacy', 
+        chain: 'Fascino', 
+        is24h: true, 
+        address: 'Near Hospital, Open 24 hours', 
+        phone: '053-xxx-333',
+        coordinates: { lat: coords.lat + 0.003, lng: coords.lng - 0.003 }
+      },
+      { 
+        name: 'Pure Pharmacy', 
+        chain: 'Independent', 
+        is24h: true, 
+        address: 'Old City Gate, Open 24 hours', 
+        phone: '053-xxx-444',
+        coordinates: { lat: coords.lat - 0.001, lng: coords.lng + 0.004 }
+      },
     ],
     
     mapMarkers: generateMapMarkers(province.name, coords),
