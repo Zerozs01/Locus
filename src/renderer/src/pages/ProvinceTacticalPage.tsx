@@ -510,80 +510,104 @@ const TravelTab = ({ data }: { data: ProvinceData }) => {
   );
 };
 
-const EssentialsTab = ({ data, province }: { data: ProvinceData; province: Province }) => (
-  <div className="space-y-4">
-    {/* Emergency Contacts */}
-    <ContentCard 
-      title="Emergency Contacts" 
-      icon={<Phone size={18} />}
-      color="red"
-    >
-      <div className="grid grid-cols-2 gap-2">
-        <EmergencyCard label="Police" number="191" />
-        <EmergencyCard label="Ambulance" number="1669" />
-        <EmergencyCard label="Fire" number="199" />
-        <EmergencyCard label="Tourist Police" number="1155" />
-      </div>
-    </ContentCard>
+const EssentialsTab = ({ data, province }: { data: ProvinceData; province: Province }) => {
+  const [showPharmacies, setShowPharmacies] = useState(false);
 
-    {/* Healthcare */}
-    <ContentCard 
-      title="Hospitals & Clinics" 
-      icon={<Hospital size={18} />}
-      color="rose"
-    >
-      <div className="space-y-2">
-        {data.hospitals.map((item, idx) => (
-          <HospitalCard key={idx} {...item} />
-        ))}
-      </div>
-    </ContentCard>
-
-    {/* Pharmacies - NEW */}
-    <ContentCard 
-      title="Pharmacies" 
-      icon={<Pill size={18} />}
-      color="emerald"
-      badge={`${data.pharmacies.filter(p => p.is24h).length} open 24h`}
-    >
-      <div className="space-y-2">
-        {data.pharmacies.map((item, idx) => (
-          <PharmacyCard key={idx} {...item} />
-        ))}
-      </div>
-    </ContentCard>
-
-    {/* Safety Info */}
-    <ContentCard 
-      title="Safety Information" 
-      icon={<Shield size={18} />}
-      color="emerald"
-    >
-      <div className="space-y-3">
-        <SafetyMeter value={data.safetyIndex} />
+  return (
+    <div className="space-y-4">
+      {/* Hospitals & Clinics - FIRST with border highlight */}
+      <ContentCard 
+        title="Hospitals & Clinics" 
+        icon={<Hospital size={18} />}
+        color="rose"
+        borderColor="rose"
+      >
         <div className="space-y-2">
-          {data.safetyTips.map((tip, idx) => (
-            <SafetyTip key={idx} {...tip} />
+          {data.hospitals.map((item, idx) => (
+            <HospitalCard key={idx} {...item} />
           ))}
         </div>
-      </div>
-    </ContentCard>
+      </ContentCard>
 
-    {/* Practical Info */}
-    <ContentCard 
-      title="Practical Information" 
-      icon={<GraduationCap size={18} />}
-      color="cyan"
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <InfoItem icon={<Wifi size={16} />} label="WiFi" value="Widely available" />
-        <InfoItem icon={<Landmark size={16} />} label="ATMs" value="In all districts" />
-        <InfoItem icon={<Fuel size={16} />} label="Gas Stations" value={`${data.gasStations.length} nearby`} />
-        <InfoItem icon={<Building2 size={16} />} label="Districts" value={`${province.dist} districts`} />
-      </div>
-    </ContentCard>
-  </div>
-);
+      {/* Emergency Contacts - with local numbers */}
+      <ContentCard 
+        title="Emergency Contacts" 
+        icon={<Phone size={18} />}
+        color="red"
+        borderColor="rose"
+      >
+        <div className="space-y-3">
+          {/* Universal Emergency Numbers */}
+          <div className="grid grid-cols-2 gap-2">
+            <EmergencyCard label="Police" number="191" />
+            <EmergencyCard label="Ambulance" number="1669" />
+            <EmergencyCard label="Fire" number="199" />
+            <EmergencyCard label="Tourist Police" number="1155" />
+          </div>
+          
+          {/* Local Provincial Numbers */}
+          {data.emergencyContacts && data.emergencyContacts.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-white/10">
+              <p className="text-xs text-slate-400 mb-2">📍 Local {province.name} Numbers</p>
+              <div className="space-y-2">
+                {data.emergencyContacts.map((contact, idx) => (
+                  <LocalEmergencyCard key={idx} {...contact} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </ContentCard>
+
+      {/* Pharmacies - Toggle Default OFF with border highlight */}
+      <CollapsibleSection
+        title="Pharmacies"
+        icon={<Pill size={18} />}
+        highlightColor="emerald"
+        isOpen={showPharmacies}
+        onToggle={() => setShowPharmacies(!showPharmacies)}
+        summary={`${data.pharmacies.length} pharmacies • ${data.pharmacies.filter(p => p.is24h).length} open 24h`}
+      >
+        <div className="space-y-2">
+          {data.pharmacies.map((item, idx) => (
+            <PharmacyCard key={idx} {...item} />
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Safety Info */}
+      <ContentCard 
+        title="Safety Information" 
+        icon={<Shield size={18} />}
+        color="emerald"
+        borderColor="emerald"
+      >
+        <div className="space-y-3">
+          <SafetyMeter value={data.safetyIndex} />
+          <div className="space-y-2">
+            {data.safetyTips.map((tip, idx) => (
+              <SafetyTip key={idx} {...tip} />
+            ))}
+          </div>
+        </div>
+      </ContentCard>
+
+      {/* Practical Info */}
+      <ContentCard 
+        title="Practical Information" 
+        icon={<GraduationCap size={18} />}
+        color="cyan"
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <InfoItem icon={<Wifi size={16} />} label="WiFi" value="Widely available" />
+          <InfoItem icon={<Landmark size={16} />} label="ATMs" value="In all districts" />
+          <InfoItem icon={<Fuel size={16} />} label="Gas Stations" value={`${data.gasStations.length} nearby`} />
+          <InfoItem icon={<Building2 size={16} />} label="Districts" value={`${province.dist} districts`} />
+        </div>
+      </ContentCard>
+    </div>
+  );
+};
 
 // ==================== HELPER COMPONENTS ====================
 
@@ -931,6 +955,26 @@ const EmergencyCard = ({ label, number }: { label: string; number: string }) => 
   </div>
 );
 
+// Local Emergency Contact Card for province-specific numbers
+const LocalEmergencyCard = ({ agency, phone, description }: { agency: string; phone: string; description?: string }) => (
+  <div className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 transition-colors">
+    <div>
+      <h4 className="font-medium text-white text-sm">{agency}</h4>
+      {description && <p className="text-xs text-slate-500">{description}</p>}
+    </div>
+    <div className="flex items-center gap-2">
+      <span className="text-sm font-mono text-cyan-400">{phone}</span>
+      <button 
+        onClick={() => navigator.clipboard.writeText(phone)}
+        className="p-1 rounded bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+        title="Copy number"
+      >
+        <Copy size={12} />
+      </button>
+    </div>
+  </div>
+);
+
 const HospitalCard = ({ name, type, address, phone }: { name: string; type: string; address: string; phone: string }) => (
   <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
     <div className="flex items-center justify-between">
@@ -1178,6 +1222,7 @@ interface ProvinceData {
   gettingAround: Array<{ name: string; price: string; description: string; icon: React.ReactNode }>;
   dayTrips: Array<{ destination: string; distance: string; highlights: string }>;
   hospitals: Array<{ name: string; type: string; address: string; phone: string }>;
+  emergencyContacts: Array<{ agency: string; phone: string; description?: string }>;
   safetyTips: Array<{ level: 'good' | 'warning' | 'info'; title: string; description: string }>;
   banks: Array<{ name: string; type: 'bank' | 'exchange'; address: string; openHours: string; services: string[]; coordinates?: { lat: number; lng: number } }>;
   gasStations: Array<{ name: string; brand: string; is24h: boolean; address: string; services: string[]; coordinates?: { lat: number; lng: number } }>;
@@ -1202,6 +1247,51 @@ const provinceSlogans: Record<string, string> = {
   'Bangkok': 'กรุงเทพฯ ดุจเทพสร้าง',
   'Khon Kaen': 'พระธาตุขามแก่น เสียงแคนดอกคูน',
 };
+
+// Province-specific emergency contacts with real phone numbers
+const provinceEmergencyData: Record<string, Array<{ agency: string; phone: string; description?: string }>> = {
+  'Chiang Mai': [
+    { agency: 'สภ.เมืองเชียงใหม่', phone: '053-276-458', description: 'Mueang Chiang Mai Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวเชียงใหม่', phone: '053-248-974', description: 'Tourist Police Division' },
+    { agency: 'รพ.มหาราชนครเชียงใหม่', phone: '053-945-555', description: 'Maharaj Nakorn Hospital (24h ER)' },
+    { agency: 'หน่วยกู้ชีพเชียงใหม่', phone: '053-112-155', description: 'Emergency Medical Service' },
+  ],
+  'Chiang Rai': [
+    { agency: 'สภ.เมืองเชียงราย', phone: '053-744-571', description: 'Mueang Chiang Rai Police Station' },
+    { agency: 'ตำรวจภูธรจังหวัดเชียงราย', phone: '053-711-444', description: 'Provincial Police' },
+    { agency: 'รพ.เชียงรายประชานุเคราะห์', phone: '053-711-300', description: 'Chiangrai Prachanukroh Hospital' },
+  ],
+  'Phuket': [
+    { agency: 'ตำรวจภูธรจังหวัดภูเก็ต', phone: '076-212-046', description: 'Phuket Provincial Police' },
+    { agency: 'สภ.ถลาง', phone: '076-313-919', description: 'Thalang Police Station' },
+    { agency: 'สภ.ป่าตอง', phone: '076-342-716', description: 'Patong Police Station' },
+    { agency: 'รพ.วชิระภูเก็ต', phone: '076-361-234', description: 'Vachira Phuket Hospital (24h ER)' },
+  ],
+  'Bangkok': [
+    { agency: 'สายด่วน สตช.', phone: '1599', description: 'Royal Thai Police Hotline' },
+    { agency: 'กู้ชีพกรุงเทพฯ', phone: '1554', description: 'Bangkok EMS' },
+    { agency: 'ศูนย์บริการข้อมูล กทม.', phone: '1555', description: 'BMA Call Center' },
+    { agency: 'สายด่วนจราจร', phone: '1197', description: 'Traffic Police Hotline' },
+  ],
+  'Khon Kaen': [
+    { agency: 'สภ.เมืองขอนแก่น', phone: '043-333-133', description: 'Mueang Khon Kaen Police Station' },
+    { agency: 'รพ.ขอนแก่น', phone: '043-336-789', description: 'Khon Kaen Hospital' },
+    { agency: 'หน่วยกู้ชีพขอนแก่น', phone: '043-238-111', description: 'Emergency Medical Service' },
+  ],
+};
+
+function getProvinceEmergencyContacts(provinceName: string): Array<{ agency: string; phone: string; description?: string }> {
+  // Return province-specific contacts if available, otherwise return generic contacts
+  if (provinceEmergencyData[provinceName]) {
+    return provinceEmergencyData[provinceName];
+  }
+  
+  // Default contacts for provinces without specific data
+  return [
+    { agency: `สถานีตำรวจภูธร${provinceName}`, phone: '191', description: 'Provincial Police Station' },
+    { agency: `โรงพยาบาล${provinceName}`, phone: '1669', description: 'Provincial Hospital' },
+  ];
+}
 
 function generateProvinceData(province: Province, region: Region): ProvinceData {
   const coords = getProvinceCoords(province.name);
@@ -1310,6 +1400,9 @@ function generateProvinceData(province: Province, region: Region): ProvinceData 
       { name: `${province.name} Hospital`, type: 'Public', address: 'City Center', phone: '053-xxx-xxx' },
       { name: `${province.name} Ram Hospital`, type: 'Private', address: 'Near Airport', phone: '053-xxx-xxx' },
     ],
+    
+    // Provincial Emergency Contacts with real numbers
+    emergencyContacts: getProvinceEmergencyContacts(province.name),
     
     safetyTips: [
       { level: 'good', title: 'Generally Safe', description: 'Low crime rate, tourist-friendly area' },
