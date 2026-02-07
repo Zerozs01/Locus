@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Loader2, WifiOff, RefreshCw } from 'lucide-react';
@@ -15,6 +15,13 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// Export handle type for ref usage
+export interface ProvinceMapHandle {
+  flyTo: (lat: number, lng: number, zoom?: number) => void;
+  panTo: (lat: number, lng: number) => void;
+  highlightMarker: (lat: number, lng: number) => void;
+}
+
 interface ProvinceMapProps {
   provinceName: string;
   lat?: number;
@@ -28,6 +35,7 @@ interface ProvinceMapProps {
   }>;
   className?: string;
   theme?: 'voyager' | 'positron' | 'dark' | 'osm';
+  onMarkerClick?: (marker: { lat: number; lng: number; title: string; type: string }) => void;
 }
 
 // Map tile providers - สีสันที่ดีกว่า
@@ -217,18 +225,20 @@ const provinceCoordinates: Record<string, { lat: number; lng: number }> = {
 // Default Thailand center
 const defaultCoords = { lat: 13.7563, lng: 100.5018 };
 
-export const ProvinceMap = ({ 
+export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({ 
   provinceName, 
   lat, 
   lng, 
   zoom = 12, 
   markers = [],
   className = '',
-  theme = 'voyager' // ใช้ Voyager เป็น default - สีสันดีกว่า
-}: ProvinceMapProps) => {
+  theme = 'voyager', // ใช้ Voyager เป็น default - สีสันดีกว่า
+  onMarkerClick
+}, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const highlightLayerRef = useRef<L.LayerGroup | null>(null);
   const loadingTimeoutRef = useRef<number | null>(null);
   const hasLoadedRef = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -239,6 +249,74 @@ export const ProvinceMap = ({
   const coords = lat && lng 
     ? { lat, lng } 
     : provinceCoordinates[provinceName] || defaultCoords;
+
+  // Expose methods to parent component via ref
+  useImperativeHandle(ref, () => ({
+    // Fly to location with smooth animation (like Google Maps)
+    flyTo: (targetLat: number, targetLng: number, targetZoom?: number) => {
+      const map = mapInstanceRef.current;
+      if (map) {
+        map.flyTo([targetLat, targetLng], targetZoom || 16, {
+          duration: 1.5, // Animation duration in seconds
+          easeLinearity: 0.25,
+        });
+        // Add highlight effect at destination
+        highlightLocation(targetLat, targetLng);
+      }
+    },
+    // Pan to location without zoom change
+    panTo: (targetLat: number, targetLng: number) => {
+      const map = mapInstanceRef.current;
+      if (map) {
+        map.panTo([targetLat, targetLng], {
+          animate: true,
+          duration: 1,
+        });
+      }
+    },
+    // Highlight a specific location with pulse effect
+    highlightMarker: (targetLat: number, targetLng: number) => {
+      highlightLocation(targetLat, targetLng);
+    },
+  }));
+
+  // Create highlight effect at a location
+  const highlightLocation = (targetLat: number, targetLng: number) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    // Clear previous highlight
+    if (highlightLayerRef.current) {
+      highlightLayerRef.current.clearLayers();
+    } else {
+      highlightLayerRef.current = L.layerGroup().addTo(map);
+    }
+
+    // Create pulsing circle effect
+    const pulseIcon = L.divIcon({
+      className: 'highlight-pulse',
+      html: `
+        <div class="pulse-ring"></div>
+        <div class="pulse-core"></div>
+      `,
+      iconSize: [60, 60],
+      iconAnchor: [30, 30],
+    });
+
+    const highlightMarker = L.marker([targetLat, targetLng], { 
+      icon: pulseIcon,
+      zIndexOffset: 1000 
+    });
+    
+    highlightLayerRef.current.addLayer(highlightMarker);
+
+    // Remove highlight after animation
+    setTimeout(() => {
+      if (highlightLayerRef.current) {
+        highlightLayerRef.current.clearLayers();
+      }
+    }, 3000);
+  };
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -424,6 +502,39 @@ export const ProvinceMap = ({
           0%, 100% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.05); opacity: 0.9; }
         }
+        @keyframes highlight-pulse {
+          0% { transform: scale(0.5); opacity: 1; }
+          100% { transform: scale(2.5); opacity: 0; }
+        }
+        @keyframes highlight-core-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.2); }
+        }
+        .highlight-pulse {
+          pointer-events: none;
+        }
+        .pulse-ring {
+          position: absolute;
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background: rgba(6, 182, 212, 0.3);
+          animation: highlight-pulse 1.5s ease-out infinite;
+        }
+        .pulse-core {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 16px;
+          height: 16px;
+          margin-top: -8px;
+          margin-left: -8px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #06b6d4, #0891b2);
+          border: 3px solid white;
+          box-shadow: 0 2px 10px rgba(6, 182, 212, 0.5);
+          animation: highlight-core-pulse 1s ease-in-out infinite;
+        }
         .leaflet-popup-content-wrapper {
           border-radius: 12px;
           box-shadow: 0 4px 15px rgba(0,0,0,0.15);
@@ -434,7 +545,7 @@ export const ProvinceMap = ({
       `}</style>
     </div>
   );
-};
+});
 
 // Legend Item Component
 const LegendItem = ({ color, label }: { color: string; label: string }) => (

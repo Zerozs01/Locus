@@ -209,7 +209,7 @@ export const RegionDashboard = ({
                  className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar mt-2 pr-1 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full h-full'}`}
                  style={{ maxHeight: 'calc(100% - 80px)' }}
                >
-                  <div className="grid grid-cols-3 gap-4 pb-8">
+                  <div className="grid grid-cols-3 gap-4 pb-7">
                     {isActive && reg.subProvinces.length === 0 && loadingProvinceRegionId === reg.id ? (
                       <div className="col-span-3 text-center text-sm text-slate-500 py-10">
                         กำลังโหลดจังหวัด...

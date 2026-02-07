@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
-  MapPin, 
   Phone, 
   Shield, 
   Building2, 
@@ -33,10 +32,11 @@ import {
   Pill,
   ExternalLink,
   Copy,
-  ChevronDown
+  ChevronDown,
+  Crosshair
 } from 'lucide-react';
 import { Province, Region } from '../data/regions';
-import ProvinceMap from '../components/ProvinceMap';
+import ProvinceMap, { ProvinceMapHandle } from '../components/ProvinceMap';
 import { measureAsync } from '../utils/perf';
 
 /**
@@ -50,6 +50,17 @@ export const ProvinceTacticalPage = () => {
   const [region, setRegion] = useState<Region | null>(null);
   const [province, setProvince] = useState<Province | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Ref for ProvinceMap to trigger fly animations
+  const mapRef = useRef<ProvinceMapHandle>(null);
+  
+  // Handler to fly to a specific location on the map
+  const handleFlyToLocation = (lat: number, lng: number, title?: string) => {
+    if (mapRef.current) {
+      mapRef.current.flyTo(lat, lng, 16);
+      console.log(`Flying to: ${title || 'location'} (${lat}, ${lng})`);
+    }
+  };
   
   // Fetch data from DB
   useEffect(() => {
@@ -159,6 +170,7 @@ export const ProvinceTacticalPage = () => {
 
         {/* Interactive Map */}
         <ProvinceMap 
+          ref={mapRef}
           provinceName={province.name}
           markers={provinceData.mapMarkers}
           zoom={12}
@@ -199,11 +211,11 @@ export const ProvinceTacticalPage = () => {
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {activeTab === 'explore' && <ExploreTab data={provinceData} />}
-          {activeTab === 'stay' && <StayTab data={provinceData} />}
-          {activeTab === 'eat' && <EatTab data={provinceData} />}
-          {activeTab === 'travel' && <TravelTab data={provinceData} />}
-          {activeTab === 'essentials' && <EssentialsTab data={provinceData} province={province} />}
+          {activeTab === 'explore' && <ExploreTab data={provinceData} onFlyTo={handleFlyToLocation} />}
+          {activeTab === 'stay' && <StayTab data={provinceData} onFlyTo={handleFlyToLocation} />}
+          {activeTab === 'eat' && <EatTab data={provinceData} onFlyTo={handleFlyToLocation} />}
+          {activeTab === 'travel' && <TravelTab data={provinceData} onFlyTo={handleFlyToLocation} />}
+          {activeTab === 'essentials' && <EssentialsTab data={provinceData} province={province} onFlyTo={handleFlyToLocation} />}
         </div>
       </div>
     </div>
@@ -212,7 +224,10 @@ export const ProvinceTacticalPage = () => {
 
 // ==================== TAB COMPONENTS ====================
 
-const ExploreTab = ({ data }: { data: ProvinceData }) => (
+// Type for fly-to callback
+type FlyToHandler = (lat: number, lng: number, title?: string) => void;
+
+const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandler }) => (
   <div className="space-y-4">
     {/* Popular Activities - FIRST */}
     <ContentCard 
@@ -260,6 +275,8 @@ const ExploreTab = ({ data }: { data: ProvinceData }) => (
             description={item.description}
             openHours={item.openHours}
             price={item.price}
+            coordinates={item.coordinates}
+            onFlyTo={onFlyTo}
           />
         ))}
       </div>
@@ -267,7 +284,7 @@ const ExploreTab = ({ data }: { data: ProvinceData }) => (
   </div>
 );
 
-const StayTab = ({ data }: { data: ProvinceData }) => {
+const StayTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandler }) => {
   const [openSections, setOpenSections] = useState({
     budget: true,      // default ON
     midRange: false,   // default OFF
@@ -300,7 +317,7 @@ const StayTab = ({ data }: { data: ProvinceData }) => {
       >
         <div className="space-y-2">
           {data.accommodation.budget.map((item, idx) => (
-            <AccommodationCard key={idx} {...item} />
+            <AccommodationCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </CollapsibleSection>
@@ -317,7 +334,7 @@ const StayTab = ({ data }: { data: ProvinceData }) => {
       >
         <div className="space-y-2">
           {data.accommodation.midRange.map((item, idx) => (
-            <AccommodationCard key={idx} {...item} />
+            <AccommodationCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </CollapsibleSection>
@@ -334,7 +351,7 @@ const StayTab = ({ data }: { data: ProvinceData }) => {
       >
         <div className="space-y-2">
           {data.accommodation.luxury.map((item, idx) => (
-            <AccommodationCard key={idx} {...item} />
+            <AccommodationCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </CollapsibleSection>
@@ -350,7 +367,7 @@ const StayTab = ({ data }: { data: ProvinceData }) => {
       >
         <div className="space-y-2">
           {data.stayAreas.map((area, idx) => (
-            <AreaCard key={idx} {...area} />
+            <AreaCard key={idx} {...area} onFlyTo={onFlyTo} />
           ))}
         </div>
       </CollapsibleSection>
@@ -358,7 +375,7 @@ const StayTab = ({ data }: { data: ProvinceData }) => {
   );
 };
 
-const EatTab = ({ data }: { data: ProvinceData }) => {
+const EatTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandler }) => {
   const [showCafes, setShowCafes] = useState(false);
   const [showMalls, setShowMalls] = useState(false);
   const [showMarkets, setShowMarkets] = useState(false);
@@ -388,7 +405,7 @@ const EatTab = ({ data }: { data: ProvinceData }) => {
       >
         <div className="space-y-2">
           {data.restaurants.map((item, idx) => (
-            <RestaurantCard key={idx} {...item} />
+            <RestaurantCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </ContentCard>
@@ -404,7 +421,7 @@ const EatTab = ({ data }: { data: ProvinceData }) => {
       >
         <div className="space-y-2">
           {data.malls.map((item, idx) => (
-            <MallCard key={idx} {...item} />
+            <MallCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </CollapsibleSection>
@@ -420,7 +437,7 @@ const EatTab = ({ data }: { data: ProvinceData }) => {
       >
         <div className="space-y-2">
           {data.nightMarkets.map((item, idx) => (
-            <MarketCard key={idx} {...item} />
+            <MarketCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </CollapsibleSection>
@@ -436,7 +453,7 @@ const EatTab = ({ data }: { data: ProvinceData }) => {
       >
         <div className="space-y-2">
           {data.cafes.map((item, idx) => (
-            <CafeCard key={idx} {...item} />
+            <CafeCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </CollapsibleSection>
@@ -444,7 +461,7 @@ const EatTab = ({ data }: { data: ProvinceData }) => {
   );
 };
 
-const TravelTab = ({ data }: { data: ProvinceData }) => {
+const TravelTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandler }) => {
   const [showBanks, setShowBanks] = useState(false);
 
   return (
@@ -473,7 +490,7 @@ const TravelTab = ({ data }: { data: ProvinceData }) => {
       >
         <div className="space-y-2">
           {data.gasStations.map((item, idx) => (
-            <GasStationCard key={idx} {...item} />
+            <GasStationCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </ContentCard>
@@ -489,7 +506,7 @@ const TravelTab = ({ data }: { data: ProvinceData }) => {
       >
         <div className="space-y-2">
           {data.banks.map((item, idx) => (
-            <BankCard key={idx} {...item} />
+            <BankCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </CollapsibleSection>
@@ -510,7 +527,7 @@ const TravelTab = ({ data }: { data: ProvinceData }) => {
   );
 };
 
-const EssentialsTab = ({ data, province }: { data: ProvinceData; province: Province }) => {
+const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData; province: Province; onFlyTo?: FlyToHandler }) => {
   const [showPharmacies, setShowPharmacies] = useState(false);
 
   return (
@@ -524,7 +541,7 @@ const EssentialsTab = ({ data, province }: { data: ProvinceData; province: Provi
       >
         <div className="space-y-2">
           {data.hospitals.map((item, idx) => (
-            <HospitalCard key={idx} {...item} />
+            <HospitalCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </ContentCard>
@@ -570,7 +587,7 @@ const EssentialsTab = ({ data, province }: { data: ProvinceData; province: Provi
       >
         <div className="space-y-2">
           {data.pharmacies.map((item, idx) => (
-            <PharmacyCard key={idx} {...item} />
+            <PharmacyCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
         </div>
       </CollapsibleSection>
@@ -763,7 +780,7 @@ const CollapsibleSection = ({
   );
 };
 
-const PlaceCard = ({ rank, name, type, rating, description, openHours, price }: {
+const PlaceCard = ({ rank, name, type, rating, description, openHours, price, coordinates, onFlyTo }: {
   rank: number;
   name: string;
   type: string;
@@ -771,29 +788,52 @@ const PlaceCard = ({ rank, name, type, rating, description, openHours, price }: 
   description?: string;
   openHours?: string;
   price?: string;
-}) => (
-  <div className="flex gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
-    <div className="w-8 h-8 rounded-lg bg-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-sm flex-shrink-0">
-      {rank}
-    </div>
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center justify-between">
-        <h4 className="font-medium text-white truncate">{name}</h4>
-        <div className="flex items-center gap-1 text-amber-400">
-          <Star size={12} fill="currentColor" />
-          <span className="text-xs font-medium">{rating}</span>
+  coordinates?: { lat: number; lng: number };
+  onFlyTo?: FlyToHandler;
+}) => {
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
+    }
+  };
+
+  return (
+    <div className="flex gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
+      <div className="w-8 h-8 rounded-lg bg-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-sm flex-shrink-0">
+        {rank}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-white truncate">{name}</h4>
+          <div className="flex items-center gap-2">
+            {/* Fly-to button */}
+            {coordinates && onFlyTo && (
+              <button
+                onClick={handleFlyTo}
+                className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95"
+                title={`Fly to ${name} on map`}
+              >
+                <Crosshair size={14} />
+              </button>
+            )}
+            <div className="flex items-center gap-1 text-amber-400">
+              <Star size={12} fill="currentColor" />
+              <span className="text-xs font-medium">{rating}</span>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-slate-500">{type}</p>
+        {description && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{description}</p>}
+        <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+          {openHours && <span className="flex items-center gap-1"><Clock size={10} /> {openHours}</span>}
+          {price && <span className="text-emerald-400">{price}</span>}
         </div>
       </div>
-      <p className="text-xs text-slate-500">{type}</p>
-      {description && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{description}</p>}
-      <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
-        {openHours && <span className="flex items-center gap-1"><Clock size={10} /> {openHours}</span>}
-        {price && <span className="text-emerald-400">{price}</span>}
-      </div>
+      <ChevronRight size={16} className="text-slate-600 group-hover:text-teal-400 transition-colors self-center" />
     </div>
-    <ChevronRight size={16} className="text-slate-600 group-hover:text-teal-400 transition-colors self-center" />
-  </div>
-);
+  );
+};
 
 const ActivityChip = ({ name, icon }: { name: string; icon: string }) => (
   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 cursor-pointer transition-colors">
@@ -817,31 +857,75 @@ const SeasonCard = ({ name, months, rating, description }: { name: string; month
   );
 };
 
-const AccommodationCard = ({ name, price, rating, area }: { name: string; price: string; rating: number; area: string }) => (
-  <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
-    <div>
-      <h4 className="font-medium text-white text-sm">{name}</h4>
-      <p className="text-xs text-slate-500">{area}</p>
-    </div>
-    <div className="text-right">
-      <div className="text-emerald-400 font-semibold text-sm">{price}</div>
-      <div className="flex items-center gap-1 text-amber-400 text-xs">
-        <Star size={10} fill="currentColor" />
-        {rating}
+const AccommodationCard = ({ name, price, rating, area, coordinates, onFlyTo }: { 
+  name: string; price: string; rating: number; area: string; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
+}) => {
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
+      <div>
+        <h4 className="font-medium text-white text-sm">{name}</h4>
+        <p className="text-xs text-slate-500">{area}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        {coordinates && onFlyTo && (
+          <button
+            onClick={handleFlyTo}
+            className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
+            title={`Fly to ${name} on map`}
+          >
+            <Crosshair size={14} />
+          </button>
+        )}
+        <div className="text-right">
+          <div className="text-emerald-400 font-semibold text-sm">{price}</div>
+          <div className="flex items-center gap-1 text-amber-400 text-xs">
+            <Star size={10} fill="currentColor" />
+            {rating}
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-const AreaCard = ({ name, description, forWho }: { name: string; description: string; forWho: string }) => (
-  <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
-    <div className="flex items-center justify-between mb-1">
-      <h4 className="font-medium text-white text-sm">{name}</h4>
-      <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded">{forWho}</span>
+const AreaCard = ({ name, description, forWho, coordinates, onFlyTo }: { 
+  name: string; description: string; forWho: string; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
+}) => {
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
+    }
+  };
+
+  return (
+    <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5 group">
+      <div className="flex items-center justify-between mb-1">
+        <h4 className="font-medium text-white text-sm">{name}</h4>
+        <div className="flex items-center gap-2">
+          {coordinates && onFlyTo && (
+            <button
+              onClick={handleFlyTo}
+              className="p-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
+              title={`Fly to ${name} on map`}
+            >
+              <Crosshair size={12} />
+            </button>
+          )}
+          <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded">{forWho}</span>
+        </div>
+      </div>
+      <p className="text-xs text-slate-400">{description}</p>
     </div>
-    <p className="text-xs text-slate-400">{description}</p>
-  </div>
-);
+  );
+};
 
 const DishCard = ({ name, description, price }: { name: string; description: string; price: string }) => (
   <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
@@ -851,56 +935,144 @@ const DishCard = ({ name, description, price }: { name: string; description: str
   </div>
 );
 
-const RestaurantCard = ({ name, cuisine, price, rating, specialty }: { name: string; cuisine: string; price: string; rating: number; specialty?: string }) => (
-  <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
-    <div>
-      <h4 className="font-medium text-white text-sm">{name}</h4>
-      <p className="text-xs text-slate-500">{cuisine} • {price}</p>
-      {specialty && <p className="text-xs text-amber-400 mt-0.5">Try: {specialty}</p>}
-    </div>
-    <div className="flex items-center gap-1 text-amber-400">
-      <Star size={12} fill="currentColor" />
-      <span className="text-sm font-medium">{rating}</span>
-    </div>
-  </div>
-);
+const RestaurantCard = ({ name, cuisine, price, rating, specialty, coordinates, onFlyTo }: { 
+  name: string; cuisine: string; price: string; rating: number; specialty?: string; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
+}) => {
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
+    }
+  };
 
-const CafeCard = ({ name, vibe, wifi, specialty }: { name: string; vibe: string; wifi: boolean; specialty: string }) => (
-  <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
-    <div className="flex items-center justify-between">
-      <h4 className="font-medium text-white text-sm">{name}</h4>
-      {wifi && <Wifi size={14} className="text-emerald-400" />}
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
+      <div>
+        <h4 className="font-medium text-white text-sm">{name}</h4>
+        <p className="text-xs text-slate-500">{cuisine} • {price}</p>
+        {specialty && <p className="text-xs text-amber-400 mt-0.5">Try: {specialty}</p>}
+      </div>
+      <div className="flex items-center gap-2">
+        {coordinates && onFlyTo && (
+          <button
+            onClick={handleFlyTo}
+            className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
+            title={`Fly to ${name} on map`}
+          >
+            <Crosshair size={14} />
+          </button>
+        )}
+        <div className="flex items-center gap-1 text-amber-400">
+          <Star size={12} fill="currentColor" />
+          <span className="text-sm font-medium">{rating}</span>
+        </div>
+      </div>
     </div>
-    <p className="text-xs text-slate-500">{vibe}</p>
-    <p className="text-xs text-amber-400 mt-1">☕ {specialty}</p>
-  </div>
-);
+  );
+};
 
-const MarketCard = ({ name, openHours, bestFor }: { name: string; openHours: string; bestFor: string }) => (
-  <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
-    <h4 className="font-medium text-white text-sm">{name}</h4>
-    <div className="flex items-center gap-2 mt-1">
-      <span className="text-xs text-slate-500 flex items-center gap-1"><Clock size={10} /> {openHours}</span>
+const CafeCard = ({ name, vibe, wifi, specialty, coordinates, onFlyTo }: { 
+  name: string; vibe: string; wifi: boolean; specialty: string; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
+}) => {
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
+    }
+  };
+
+  return (
+    <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-white text-sm">{name}</h4>
+        <div className="flex items-center gap-2">
+          {coordinates && onFlyTo && (
+            <button
+              onClick={handleFlyTo}
+              className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
+              title={`Fly to ${name} on map`}
+            >
+              <Crosshair size={14} />
+            </button>
+          )}
+          {wifi && <Wifi size={14} className="text-emerald-400" />}
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">{vibe}</p>
+      <p className="text-xs text-amber-400 mt-1">☕ {specialty}</p>
     </div>
-    <p className="text-xs text-violet-400 mt-1">{bestFor}</p>
-  </div>
-);
+  );
+};
+
+const MarketCard = ({ name, openHours, bestFor, coordinates, onFlyTo }: { 
+  name: string; openHours: string; bestFor: string; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
+}) => {
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
+    }
+  };
+
+  return (
+    <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-white text-sm">{name}</h4>
+        {coordinates && onFlyTo && (
+          <button
+            onClick={handleFlyTo}
+            className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
+            title={`Fly to ${name} on map`}
+          >
+            <Crosshair size={14} />
+          </button>
+        )}
+      </div>
+      <div className="flex items-center gap-2 mt-1">
+        <span className="text-xs text-slate-500 flex items-center gap-1"><Clock size={10} /> {openHours}</span>
+      </div>
+      <p className="text-xs text-violet-400 mt-1">{bestFor}</p>
+    </div>
+  );
+};
 
 // MallCard for Shopping Malls
-const MallCard = ({ name, address, openHours, features }: { name: string; address: string; openHours: string; features: string[] }) => (
-  <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer">
-    <h4 className="font-medium text-white text-sm">{name}</h4>
-    <p className="text-xs text-slate-500 mt-0.5">{address}</p>
-    <div className="flex items-center gap-2 mt-1">
-      <span className="text-xs text-slate-500 flex items-center gap-1"><Clock size={10} /> {openHours}</span>
+const MallCard = ({ name, address, openHours, features, coordinates, onFlyTo }: { 
+  name: string; address: string; openHours: string; features: string[]; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
+}) => {
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
+    }
+  };
+
+  return (
+    <div className="p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-white text-sm">{name}</h4>
+        {coordinates && onFlyTo && (
+          <button
+            onClick={handleFlyTo}
+            className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
+            title={`Fly to ${name} on map`}
+          >
+            <Crosshair size={14} />
+          </button>
+        )}
+      </div>
+      <p className="text-xs text-slate-500 mt-0.5">{address}</p>
+      <div className="flex items-center gap-2 mt-1">
+        <span className="text-xs text-slate-500 flex items-center gap-1"><Clock size={10} /> {openHours}</span>
+      </div>
+      <div className="flex flex-wrap gap-1 mt-2">
+        {features.map((feature, i) => (
+          <span key={i} className="px-1.5 py-0.5 text-xs bg-cyan-500/10 text-cyan-400 rounded">{feature}</span>
+        ))}
+      </div>
     </div>
-    <div className="flex flex-wrap gap-1 mt-2">
-      {features.map((feature, i) => (
-        <span key={i} className="px-1.5 py-0.5 text-xs bg-cyan-500/10 text-cyan-400 rounded">{feature}</span>
-      ))}
-    </div>
-  </div>
-);
+  );
+};
 
 const TransportOptionCard = ({ type, name, duration, price, frequency, icon }: { 
   type: string; name: string; duration: string; price: string; frequency: string; icon: React.ReactNode 
@@ -975,18 +1147,40 @@ const LocalEmergencyCard = ({ agency, phone, description }: { agency: string; ph
   </div>
 );
 
-const HospitalCard = ({ name, type, address, phone }: { name: string; type: string; address: string; phone: string }) => (
-  <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
-    <div className="flex items-center justify-between">
-      <h4 className="font-medium text-white text-sm">{name}</h4>
-      <span className={`text-xs px-2 py-0.5 rounded ${type === 'Public' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-violet-500/20 text-violet-400'}`}>
-        {type}
-      </span>
+const HospitalCard = ({ name, type, address, phone, coordinates, onFlyTo }: { 
+  name: string; type: string; address: string; phone: string; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
+}) => {
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
+    }
+  };
+
+  return (
+    <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5 group">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-white text-sm">{name}</h4>
+        <div className="flex items-center gap-2">
+          {coordinates && onFlyTo && (
+            <button
+              onClick={handleFlyTo}
+              className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
+              title={`Fly to ${name} on map`}
+            >
+              <Crosshair size={14} />
+            </button>
+          )}
+          <span className={`text-xs px-2 py-0.5 rounded ${type === 'Public' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-violet-500/20 text-violet-400'}`}>
+            {type}
+          </span>
+        </div>
+      </div>
+      <p className="text-xs text-slate-500 mt-1">{address}</p>
+      <p className="text-xs text-cyan-400 mt-1">📞 {phone}</p>
     </div>
-    <p className="text-xs text-slate-500 mt-1">{address}</p>
-    <p className="text-xs text-cyan-400 mt-1">📞 {phone}</p>
-  </div>
-);
+  );
+};
 
 const SafetyMeter = ({ value }: { value: number }) => (
   <div className="flex items-center gap-4">
@@ -1017,8 +1211,8 @@ const SafetyMeter = ({ value }: { value: number }) => (
 
 // ==================== NEW ESSENTIAL CARDS ====================
 
-const PharmacyCard = ({ name, chain, is24h, address, phone, coordinates }: { 
-  name: string; chain: string; is24h: boolean; address: string; phone: string; coordinates?: { lat: number; lng: number } 
+const PharmacyCard = ({ name, chain, is24h, address, phone, coordinates, onFlyTo }: { 
+  name: string; chain: string; is24h: boolean; address: string; phone: string; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
 }) => {
   const handleOpenMaps = () => {
     if (coordinates) {
@@ -1030,6 +1224,13 @@ const PharmacyCard = ({ name, chain, is24h, address, phone, coordinates }: {
   
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(address);
+  };
+
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
+    }
   };
 
   return (
@@ -1047,6 +1248,16 @@ const PharmacyCard = ({ name, chain, is24h, address, phone, coordinates }: {
           <p className="text-xs text-cyan-400 mt-1">📞 {phone}</p>
         </div>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Fly-to button */}
+          {coordinates && onFlyTo && (
+            <button 
+              onClick={handleFlyTo}
+              className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95"
+              title={`Fly to ${name} on map`}
+            >
+              <Crosshair size={14} />
+            </button>
+          )}
           <button 
             onClick={handleCopyAddress}
             className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
@@ -1067,14 +1278,21 @@ const PharmacyCard = ({ name, chain, is24h, address, phone, coordinates }: {
   );
 };
 
-const BankCard = ({ name, type, address, openHours, services, coordinates }: { 
-  name: string; type: 'bank' | 'exchange'; address: string; openHours: string; services: string[]; coordinates?: { lat: number; lng: number } 
+const BankCard = ({ name, type, address, openHours, services, coordinates, onFlyTo }: { 
+  name: string; type: 'bank' | 'exchange'; address: string; openHours: string; services: string[]; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
 }) => {
   const handleOpenMaps = () => {
     if (coordinates) {
       window.open(`https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`, '_blank');
     } else {
       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address)}`, '_blank');
+    }
+  };
+
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
     }
   };
 
@@ -1102,20 +1320,31 @@ const BankCard = ({ name, type, address, openHours, services, coordinates }: {
             ))}
           </div>
         </div>
-        <button 
-          onClick={handleOpenMaps}
-          className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition-colors opacity-0 group-hover:opacity-100"
-          title="Open in Google Maps"
-        >
-          <ExternalLink size={14} />
-        </button>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {coordinates && onFlyTo && (
+            <button 
+              onClick={handleFlyTo}
+              className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95"
+              title={`Fly to ${name} on map`}
+            >
+              <Crosshair size={14} />
+            </button>
+          )}
+          <button 
+            onClick={handleOpenMaps}
+            className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition-colors"
+            title="Open in Google Maps"
+          >
+            <ExternalLink size={14} />
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-const GasStationCard = ({ name, brand, is24h, address, services, coordinates }: { 
-  name: string; brand: string; is24h: boolean; address: string; services: string[]; coordinates?: { lat: number; lng: number } 
+const GasStationCard = ({ name, brand, is24h, address, services, coordinates, onFlyTo }: { 
+  name: string; brand: string; is24h: boolean; address: string; services: string[]; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
 }) => {
   const brandColors: Record<string, string> = {
     'PTT': 'bg-blue-500/20 text-blue-400',
@@ -1131,6 +1360,13 @@ const GasStationCard = ({ name, brand, is24h, address, services, coordinates }: 
       window.open(`https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`, '_blank');
     } else {
       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address)}`, '_blank');
+    }
+  };
+
+  const handleFlyTo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (coordinates && onFlyTo) {
+      onFlyTo(coordinates.lat, coordinates.lng, name);
     }
   };
 
@@ -1154,13 +1390,24 @@ const GasStationCard = ({ name, brand, is24h, address, services, coordinates }: 
             ))}
           </div>
         </div>
-        <button 
-          onClick={handleOpenMaps}
-          className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 transition-colors opacity-0 group-hover:opacity-100"
-          title="Open in Google Maps"
-        >
-          <ExternalLink size={14} />
-        </button>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {coordinates && onFlyTo && (
+            <button 
+              onClick={handleFlyTo}
+              className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95"
+              title={`Fly to ${name} on map`}
+            >
+              <Crosshair size={14} />
+            </button>
+          )}
+          <button 
+            onClick={handleOpenMaps}
+            className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 transition-colors"
+            title="Open in Google Maps"
+          >
+            <ExternalLink size={14} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1204,24 +1451,24 @@ interface ProvinceData {
   weather: { temp: string; condition: string; humidity: string };
   safetyIndex: number;
   dailyCost: string;
-  attractions: Array<{ name: string; type: string; rating: number; description?: string; openHours?: string; price?: string }>;
+  attractions: Array<{ name: string; type: string; rating: number; description?: string; openHours?: string; price?: string; coordinates?: { lat: number; lng: number } }>;
   activities: Array<{ name: string; icon: string }>;
   seasons: Array<{ name: string; months: string; rating: 'best' | 'good' | 'avoid'; description: string }>;
   accommodation: {
-    budget: Array<{ name: string; price: string; rating: number; area: string }>;
-    midRange: Array<{ name: string; price: string; rating: number; area: string }>;
-    luxury: Array<{ name: string; price: string; rating: number; area: string }>;
+    budget: Array<{ name: string; price: string; rating: number; area: string; coordinates?: { lat: number; lng: number } }>;
+    midRange: Array<{ name: string; price: string; rating: number; area: string; coordinates?: { lat: number; lng: number } }>;
+    luxury: Array<{ name: string; price: string; rating: number; area: string; coordinates?: { lat: number; lng: number } }>;
   };
-  stayAreas: Array<{ name: string; description: string; forWho: string }>;
+  stayAreas: Array<{ name: string; description: string; forWho: string; coordinates?: { lat: number; lng: number } }>;
   localDishes: Array<{ name: string; description: string; price: string }>;
-  restaurants: Array<{ name: string; cuisine: string; price: string; rating: number; specialty?: string }>;
-  cafes: Array<{ name: string; vibe: string; wifi: boolean; specialty: string }>;
-  nightMarkets: Array<{ name: string; openHours: string; bestFor: string }>;
-  malls: Array<{ name: string; address: string; openHours: string; features: string[] }>;
+  restaurants: Array<{ name: string; cuisine: string; price: string; rating: number; specialty?: string; coordinates?: { lat: number; lng: number } }>;
+  cafes: Array<{ name: string; vibe: string; wifi: boolean; specialty: string; coordinates?: { lat: number; lng: number } }>;
+  nightMarkets: Array<{ name: string; openHours: string; bestFor: string; coordinates?: { lat: number; lng: number } }>;
+  malls: Array<{ name: string; address: string; openHours: string; features: string[]; coordinates?: { lat: number; lng: number } }>;
   gettingThere: Array<{ type: string; name: string; duration: string; price: string; frequency: string; icon: React.ReactNode }>;
   gettingAround: Array<{ name: string; price: string; description: string; icon: React.ReactNode }>;
   dayTrips: Array<{ destination: string; distance: string; highlights: string }>;
-  hospitals: Array<{ name: string; type: string; address: string; phone: string }>;
+  hospitals: Array<{ name: string; type: string; address: string; phone: string; coordinates?: { lat: number; lng: number } }>;
   emergencyContacts: Array<{ agency: string; phone: string; description?: string }>;
   safetyTips: Array<{ level: 'good' | 'warning' | 'info'; title: string; description: string }>;
   banks: Array<{ name: string; type: 'bank' | 'exchange'; address: string; openHours: string; services: string[]; coordinates?: { lat: number; lng: number } }>;
@@ -1304,10 +1551,10 @@ function generateProvinceData(province: Province, region: Region): ProvinceData 
     dailyCost: province.dailyCost || '350 ฿',
     
     attractions: [
-      { name: `${province.name} Old City`, type: 'Historical Site', rating: 4.8, description: 'Ancient walled city with rich history and beautiful temples', openHours: '6:00 - 18:00', price: 'Free' },
-      { name: `Wat ${province.name}`, type: 'Temple', rating: 4.7, description: 'Iconic temple with stunning architecture', openHours: '5:00 - 17:00', price: '30 ฿' },
-      { name: `${province.name} Night Market`, type: 'Market', rating: 4.5, description: 'Vibrant night market with local crafts and food', openHours: '17:00 - 23:00', price: 'Free' },
-      { name: `${province.name} National Park`, type: 'Nature', rating: 4.6, description: 'Beautiful natural scenery and hiking trails', openHours: '8:00 - 16:30', price: '200 ฿' },
+      { name: `${province.name} Old City`, type: 'Historical Site', rating: 4.8, description: 'Ancient walled city with rich history and beautiful temples', openHours: '6:00 - 18:00', price: 'Free', coordinates: { lat: coords.lat + 0.005, lng: coords.lng + 0.003 } },
+      { name: `Wat ${province.name}`, type: 'Temple', rating: 4.7, description: 'Iconic temple with stunning architecture', openHours: '5:00 - 17:00', price: '30 ฿', coordinates: { lat: coords.lat + 0.01, lng: coords.lng + 0.005 } },
+      { name: `${province.name} Night Market`, type: 'Market', rating: 4.5, description: 'Vibrant night market with local crafts and food', openHours: '17:00 - 23:00', price: 'Free', coordinates: { lat: coords.lat - 0.008, lng: coords.lng + 0.012 } },
+      { name: `${province.name} National Park`, type: 'Nature', rating: 4.6, description: 'Beautiful natural scenery and hiking trails', openHours: '8:00 - 16:30', price: '200 ฿', coordinates: { lat: coords.lat + 0.025, lng: coords.lng - 0.015 } },
     ],
     
     activities: [
@@ -1327,23 +1574,23 @@ function generateProvinceData(province: Province, region: Region): ProvinceData 
     
     accommodation: {
       budget: [
-        { name: `${province.name} Backpackers`, price: '250-400 ฿', rating: 4.2, area: 'Old City' },
-        { name: 'Green Hostel', price: '300-500 ฿', rating: 4.0, area: 'City Center' },
+        { name: `${province.name} Backpackers`, price: '250-400 ฿', rating: 4.2, area: 'Old City', coordinates: { lat: coords.lat + 0.002, lng: coords.lng - 0.001 } },
+        { name: 'Green Hostel', price: '300-500 ฿', rating: 4.0, area: 'City Center', coordinates: { lat: coords.lat - 0.001, lng: coords.lng + 0.003 } },
       ],
       midRange: [
-        { name: `${province.name} Boutique`, price: '1,200-2,000 ฿', rating: 4.5, area: 'Old City' },
-        { name: 'Riverside Hotel', price: '1,500-2,500 ฿', rating: 4.4, area: 'Riverside' },
+        { name: `${province.name} Boutique`, price: '1,200-2,000 ฿', rating: 4.5, area: 'Old City', coordinates: { lat: coords.lat + 0.003, lng: coords.lng + 0.002 } },
+        { name: 'Riverside Hotel', price: '1,500-2,500 ฿', rating: 4.4, area: 'Riverside', coordinates: { lat: coords.lat - 0.005, lng: coords.lng - 0.008 } },
       ],
       luxury: [
-        { name: `${province.name} Grand Resort`, price: '5,000-12,000 ฿', rating: 4.8, area: 'Mountain View' },
-        { name: 'Royal Heritage', price: '8,000-15,000 ฿', rating: 4.9, area: 'Old City' },
+        { name: `${province.name} Grand Resort`, price: '5,000-12,000 ฿', rating: 4.8, area: 'Mountain View', coordinates: { lat: coords.lat + 0.02, lng: coords.lng - 0.01 } },
+        { name: 'Royal Heritage', price: '8,000-15,000 ฿', rating: 4.9, area: 'Old City', coordinates: { lat: coords.lat + 0.001, lng: coords.lng + 0.001 } },
       ],
     },
     
     stayAreas: [
-      { name: 'Old City', description: 'Historic center with temples, walking distance to everything', forWho: 'First-timers' },
-      { name: 'Riverside', description: 'Peaceful area with scenic views and upscale restaurants', forWho: 'Couples' },
-      { name: 'Night Bazaar Area', description: 'Close to shopping and nightlife', forWho: 'Shoppers' },
+      { name: 'Old City', description: 'Historic center with temples, walking distance to everything', forWho: 'First-timers', coordinates: { lat: coords.lat + 0.002, lng: coords.lng + 0.001 } },
+      { name: 'Riverside', description: 'Peaceful area with scenic views and upscale restaurants', forWho: 'Couples', coordinates: { lat: coords.lat - 0.005, lng: coords.lng - 0.01 } },
+      { name: 'Night Bazaar Area', description: 'Close to shopping and nightlife', forWho: 'Shoppers', coordinates: { lat: coords.lat - 0.002, lng: coords.lng + 0.008 } },
     ],
     
     localDishes: [
@@ -1354,27 +1601,27 @@ function generateProvinceData(province: Province, region: Region): ProvinceData 
     ],
     
     restaurants: [
-      { name: `The ${province.name} Kitchen`, cuisine: 'Northern Thai', price: '$$', rating: 4.6, specialty: 'Khao Soi' },
-      { name: 'River View Terrace', cuisine: 'Thai-International', price: '$$$', rating: 4.5, specialty: 'Sunset dinner' },
-      { name: 'Local Flavors', cuisine: 'Street Food Style', price: '$', rating: 4.4, specialty: 'Sai Oua' },
+      { name: `The ${province.name} Kitchen`, cuisine: 'Northern Thai', price: '$$', rating: 4.6, specialty: 'Khao Soi', coordinates: { lat: coords.lat + 0.004, lng: coords.lng - 0.002 } },
+      { name: 'River View Terrace', cuisine: 'Thai-International', price: '$$$', rating: 4.5, specialty: 'Sunset dinner', coordinates: { lat: coords.lat - 0.006, lng: coords.lng - 0.009 } },
+      { name: 'Local Flavors', cuisine: 'Street Food Style', price: '$', rating: 4.4, specialty: 'Sai Oua', coordinates: { lat: coords.lat + 0.001, lng: coords.lng + 0.005 } },
     ],
     
     cafes: [
-      { name: 'Coffee Mountain', vibe: 'Cozy, mountain views', wifi: true, specialty: 'Thai drip coffee' },
-      { name: 'Art House Cafe', vibe: 'Artsy, quiet workspace', wifi: true, specialty: 'Pour over' },
-      { name: 'Garden Brew', vibe: 'Outdoor, pet-friendly', wifi: true, specialty: 'Cold brew' },
+      { name: 'Coffee Mountain', vibe: 'Cozy, mountain views', wifi: true, specialty: 'Thai drip coffee', coordinates: { lat: coords.lat + 0.008, lng: coords.lng - 0.003 } },
+      { name: 'Art House Cafe', vibe: 'Artsy, quiet workspace', wifi: true, specialty: 'Pour over', coordinates: { lat: coords.lat + 0.002, lng: coords.lng + 0.006 } },
+      { name: 'Garden Brew', vibe: 'Outdoor, pet-friendly', wifi: true, specialty: 'Cold brew', coordinates: { lat: coords.lat - 0.003, lng: coords.lng + 0.004 } },
     ],
     
     nightMarkets: [
-      { name: `${province.name} Walking Street`, openHours: 'Sun 16:00-22:00', bestFor: 'Local crafts & souvenirs' },
-      { name: 'Night Bazaar', openHours: 'Daily 18:00-23:00', bestFor: 'Food & shopping' },
+      { name: `${province.name} Walking Street`, openHours: 'Sun 16:00-22:00', bestFor: 'Local crafts & souvenirs', coordinates: { lat: coords.lat - 0.001, lng: coords.lng + 0.002 } },
+      { name: 'Night Bazaar', openHours: 'Daily 18:00-23:00', bestFor: 'Food & shopping', coordinates: { lat: coords.lat - 0.002, lng: coords.lng + 0.008 } },
     ],
     
     // Shopping Malls
     malls: [
-      { name: `Central ${province.name}`, address: 'Downtown Area', openHours: '10:00-21:00', features: ['Cinema', 'Food Court', 'Supermarket', 'ATM'] },
-      { name: `Maya Lifestyle`, address: 'Near Night Bazaar', openHours: '10:00-22:00', features: ['Rooftop Bar', 'Fashion', 'Electronics'] },
-      { name: 'Airport Plaza', address: 'Near Airport', openHours: '10:30-21:30', features: ['Department Store', 'Dining', 'Entertainment'] },
+      { name: `Central ${province.name}`, address: 'Downtown Area', openHours: '10:00-21:00', features: ['Cinema', 'Food Court', 'Supermarket', 'ATM'], coordinates: { lat: coords.lat + 0.003, lng: coords.lng + 0.005 } },
+      { name: `Maya Lifestyle`, address: 'Near Night Bazaar', openHours: '10:00-22:00', features: ['Rooftop Bar', 'Fashion', 'Electronics'], coordinates: { lat: coords.lat - 0.002, lng: coords.lng + 0.009 } },
+      { name: 'Airport Plaza', address: 'Near Airport', openHours: '10:30-21:30', features: ['Department Store', 'Dining', 'Entertainment'], coordinates: { lat: coords.lat + 0.018, lng: coords.lng + 0.012 } },
     ],
     
     gettingThere: [
@@ -1397,8 +1644,8 @@ function generateProvinceData(province: Province, region: Region): ProvinceData 
     ],
     
     hospitals: [
-      { name: `${province.name} Hospital`, type: 'Public', address: 'City Center', phone: '053-xxx-xxx' },
-      { name: `${province.name} Ram Hospital`, type: 'Private', address: 'Near Airport', phone: '053-xxx-xxx' },
+      { name: `${province.name} Hospital`, type: 'Public', address: 'City Center', phone: '053-xxx-xxx', coordinates: { lat: coords.lat + 0.004, lng: coords.lng - 0.003 } },
+      { name: `${province.name} Ram Hospital`, type: 'Private', address: 'Near Airport', phone: '053-xxx-xxx', coordinates: { lat: coords.lat + 0.016, lng: coords.lng + 0.01 } },
     ],
     
     // Provincial Emergency Contacts with real numbers
