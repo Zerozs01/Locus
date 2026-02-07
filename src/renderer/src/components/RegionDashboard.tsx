@@ -106,9 +106,11 @@ export const RegionDashboard = ({
           <div 
             key={reg.id} 
             onClick={() => onSelectRegion(reg.id)} 
+            data-region={reg.id}
+            data-active={isActive}
             className={`
-              group relative transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden border-l-4 border-l-transparent border-b border-white/5
-              ${isActive ? 'flex-[10] border-l-transparent' : `flex-[1] hover:flex-[1.2] opacity-60 hover:opacity-100 ${hoverStyle.border} ${hoverStyle.glow} hover:shadow-lg`}
+              region-card group relative transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden
+              ${isActive ? 'flex-[10]' : `flex-[1] hover:flex-[1.2] opacity-60 hover:opacity-100 bg-[#0f1115]/20`}
             `}
           >
             {/* Background */}
