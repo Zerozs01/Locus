@@ -576,6 +576,150 @@ const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData; provin
         </div>
       </ContentCard>
 
+      {/* Tourist Services (New) */}
+      {(data.immigration || data.tatOffice || data.touristPolice) && (
+        <ContentCard 
+          title="Tourist Services" 
+          icon={<Shield size={18} />}
+          color="cyan"
+          borderColor="cyan"
+        >
+          <div className="space-y-3">
+            {data.immigration && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 transition-colors group">
+                <div className="flex-1">
+                  <h4 className="font-medium text-white text-sm">{data.immigration.name}</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">{data.immigration.address}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a href={`tel:${data.immigration.phone}`} className="p-2 rounded-full bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors">
+                    <Phone size={14} />
+                  </a>
+                  {data.immigration.coordinates && onFlyTo && (
+                    <button 
+                      onClick={() => onFlyTo(data.immigration!.coordinates!.lat, data.immigration!.coordinates!.lng, data.immigration!.name)}
+                      className="p-2 rounded-full bg-white/5 text-slate-400 hover:text-cyan-400 hover:bg-white/10 transition-colors"
+                    >
+                      <Crosshair size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {data.touristPolice && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 transition-colors group">
+                <div className="flex-1">
+                  <h4 className="font-medium text-white text-sm">{data.touristPolice.name}</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">{data.touristPolice.address}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a href={`tel:${data.touristPolice.phone.split('/')[0].trim()}`} className="p-2 rounded-full bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors">
+                    <Phone size={14} />
+                  </a>
+                  {data.touristPolice.coordinates && onFlyTo && (
+                    <button 
+                      onClick={() => onFlyTo(data.touristPolice!.coordinates!.lat, data.touristPolice!.coordinates!.lng, data.touristPolice!.name)}
+                      className="p-2 rounded-full bg-white/5 text-slate-400 hover:text-cyan-400 hover:bg-white/10 transition-colors"
+                    >
+                      <Crosshair size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {data.tatOffice && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 transition-colors group">
+                <div className="flex-1">
+                  <h4 className="font-medium text-white text-sm">{data.tatOffice.name}</h4>
+                  <p className="text-xs text-cyan-400 mt-0.5">{data.tatOffice.phone}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a href={`tel:${data.tatOffice.phone}`} className="p-2 rounded-full bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors">
+                    <Phone size={14} />
+                  </a>
+                  {data.tatOffice.coordinates && onFlyTo && (
+                    <button 
+                      onClick={() => onFlyTo(data.tatOffice!.coordinates!.lat, data.tatOffice!.coordinates!.lng, data.tatOffice!.name)}
+                      className="p-2 rounded-full bg-white/5 text-slate-400 hover:text-cyan-400 hover:bg-white/10 transition-colors"
+                    >
+                      <Crosshair size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </ContentCard>
+      )}
+
+      {/* Transport Hubs (New) */}
+      {data.transportHubs && (data.transportHubs.airport || data.transportHubs.busTerminal || data.transportHubs.trainStation) && (
+        <ContentCard 
+          title="Transport Hubs" 
+          icon={<Bus size={18} />}
+          color="amber"
+          borderColor="amber"
+        >
+          <div className="space-y-3">
+            {data.transportHubs.airport && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-amber-500/30 transition-colors group">
+                <div className="flex items-center gap-3">
+                   <div className="p-2 rounded bg-amber-500/10 text-amber-500"><Plane size={16} /></div>
+                   <div>
+                      <h4 className="font-medium text-white text-sm">{data.transportHubs.airport.name}</h4>
+                      <p className="text-xs text-slate-400 mt-0.5">{data.transportHubs.airport.phone}</p>
+                   </div>
+                </div>
+                <div className="flex items-center gap-2">
+                   <a href={`tel:${data.transportHubs.airport.phone}`} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-amber-400 hover:bg-white/10 transition-colors"><Phone size={14}/></a>
+                   {data.transportHubs.airport.coordinates && onFlyTo && (
+                     <button onClick={() => onFlyTo(data.transportHubs!.airport!.coordinates!.lat, data.transportHubs!.airport!.coordinates!.lng, data.transportHubs!.airport!.name)} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-cyan-400 hover:bg-white/10 transition-colors"><Crosshair size={14}/></button>
+                   )}
+                </div>
+              </div>
+            )}
+            
+            {data.transportHubs.busTerminal && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-amber-500/30 transition-colors group">
+                <div className="flex items-center gap-3">
+                   <div className="p-2 rounded bg-amber-500/10 text-amber-500"><Bus size={16} /></div>
+                   <div>
+                      <h4 className="font-medium text-white text-sm">{data.transportHubs.busTerminal.name}</h4>
+                      <p className="text-xs text-slate-400 mt-0.5">{data.transportHubs.busTerminal.phone}</p>
+                   </div>
+                </div>
+                <div className="flex items-center gap-2">
+                   <a href={`tel:${data.transportHubs.busTerminal.phone}`} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-amber-400 hover:bg-white/10 transition-colors"><Phone size={14}/></a>
+                   {data.transportHubs.busTerminal.coordinates && onFlyTo && (
+                     <button onClick={() => onFlyTo(data.transportHubs!.busTerminal!.coordinates!.lat, data.transportHubs!.busTerminal!.coordinates!.lng, data.transportHubs!.busTerminal!.name)} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-cyan-400 hover:bg-white/10 transition-colors"><Crosshair size={14}/></button>
+                   )}
+                </div>
+              </div>
+            )}
+
+            {data.transportHubs.trainStation && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5 hover:border-amber-500/30 transition-colors group">
+                <div className="flex items-center gap-3">
+                   <div className="p-2 rounded bg-amber-500/10 text-amber-500"><Train size={16} /></div>
+                   <div>
+                      <h4 className="font-medium text-white text-sm">{data.transportHubs.trainStation.name}</h4>
+                      <p className="text-xs text-slate-400 mt-0.5">{data.transportHubs.trainStation.phone}</p>
+                   </div>
+                </div>
+                <div className="flex items-center gap-2">
+                   <a href={`tel:${data.transportHubs.trainStation.phone}`} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-amber-400 hover:bg-white/10 transition-colors"><Phone size={14}/></a>
+                   {data.transportHubs.trainStation.coordinates && onFlyTo && (
+                     <button onClick={() => onFlyTo(data.transportHubs!.trainStation!.coordinates!.lat, data.transportHubs!.trainStation!.coordinates!.lng, data.transportHubs!.trainStation!.name)} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-cyan-400 hover:bg-white/10 transition-colors"><Crosshair size={14}/></button>
+                   )}
+                </div>
+              </div>
+            )}
+          </div>
+        </ContentCard>
+      )}
+
       {/* Pharmacies - Toggle Default OFF with border highlight */}
       <CollapsibleSection
         title="Pharmacies"
@@ -1474,6 +1618,15 @@ interface ProvinceData {
   banks: Array<{ name: string; type: 'bank' | 'exchange'; address: string; openHours: string; services: string[]; coordinates?: { lat: number; lng: number } }>;
   gasStations: Array<{ name: string; brand: string; is24h: boolean; address: string; services: string[]; coordinates?: { lat: number; lng: number } }>;
   pharmacies: Array<{ name: string; chain: string; is24h: boolean; address: string; phone: string; coordinates?: { lat: number; lng: number } }>;
+  // New Essential Contacts
+  immigration?: { name: string; address: string; phone: string; coordinates?: { lat: number; lng: number } };
+  tatOffice?: { name: string; phone: string; coordinates?: { lat: number; lng: number } };
+  touristPolice?: { name: string; phone: string; address: string; coordinates?: { lat: number; lng: number } };
+  transportHubs?: {
+    airport?: { name: string; phone: string; coordinates?: { lat: number; lng: number } };
+    busTerminal?: { name: string; phone: string; coordinates?: { lat: number; lng: number } };
+    trainStation?: { name: string; phone: string; coordinates?: { lat: number; lng: number } };
+  };
   mapMarkers: Array<{ lat: number; lng: number; title: string; type: 'attraction' | 'restaurant' | 'hotel' | 'hospital' | 'transport' }>;
 }
 
@@ -1521,9 +1674,112 @@ const provinceEmergencyData: Record<string, Array<{ agency: string; phone: strin
     { agency: 'สายด่วนจราจร', phone: '1197', description: 'Traffic Police Hotline' },
   ],
   'Khon Kaen': [
-    { agency: 'สภ.เมืองขอนแก่น', phone: '043-333-133', description: 'Mueang Khon Kaen Police Station' },
-    { agency: 'รพ.ขอนแก่น', phone: '043-336-789', description: 'Khon Kaen Hospital' },
-    { agency: 'หน่วยกู้ชีพขอนแก่น', phone: '043-238-111', description: 'Emergency Medical Service' },
+    { agency: 'สภ.เมืองขอนแก่น', phone: '043-221-162', description: 'Mueang Khon Kaen Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวขอนแก่น', phone: '043-465-385', description: 'Khon Kaen Tourist Police' },
+    { agency: 'รพ.ขอนแก่น', phone: '043-009-900', description: 'Khon Kaen Hospital' },
+  ],
+  'Udon Thani': [
+    { agency: 'สภ.เมืองอุดรธานี', phone: '042-221-077', description: 'Mueang Udon Thani Police Station' },
+  ],
+  'Surat Thani': [
+    { agency: 'สภ.เมืองสุราษฎร์ธานี', phone: '077-272-095', description: 'Mueang Surat Thani Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวสุราษฎร์ธานี', phone: '077-200-037', description: 'Surat Thani Tourist Police' },
+    { agency: 'รพ.สุราษฎร์ธานี', phone: '077-952-900', description: 'Suratthani Hospital (ER ext. 6120)' },
+  ],
+  'Songkhla': [
+    { agency: 'สภ.เมืองสงขลา', phone: '074-307-092', description: 'Mueang Songkhla Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวหาดใหญ่', phone: '074-220-778', description: 'Hat Yai Tourist Police' },
+    { agency: 'รพ.สงขลา', phone: '074-338-100', description: 'Songkhla Hospital' },
+  ],
+  'Bangkok Metropolis': [
+     { agency: 'กองบัญชาการตำรวจนครบาล', phone: '02-280-5005', description: 'Metropolitan Police Bureau' },
+     { agency: 'รพ.ตํารวจ', phone: '02-207-6000', description: 'Police General Hospital' },
+     { agency: 'ศูนย์เอราวัณ (กทม.)', phone: '1669', description: 'Erawan Emergency Medical Center' },
+     { agency: 'สวพ.91', phone: '1644', description: 'Traffic Police & Lost Items' },
+  ],
+  // Batch 2: Major Tourist & Regional Hubs
+  'Chon Buri': [
+    { agency: 'สภ.เมืองชลบุรี', phone: '038-287-111', description: 'Mueang Chonburi Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวพัทยา', phone: '061-146-1155', description: 'Pattaya Tourist Police' },
+    { agency: 'รพ.ชลบุรี', phone: '038-931-000', description: 'Chonburi Hospital (ER ext. 1520)' },
+  ],
+  'Rayong': [
+    { agency: 'สภ.เมืองระยอง', phone: '038-611-111', description: 'Mueang Rayong Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวระยอง', phone: '038-651-669', description: 'Rayong Tourist Police' },
+    { agency: 'รพ.ระยอง', phone: '038-998-555', description: 'Rayong Hospital' },
+  ],
+  'Kanchanaburi': [
+    { agency: 'สภ.เมืองกาญจนบุรี', phone: '034-620-711', description: 'Mueang Kanchanaburi Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวกาญจนบุรี', phone: '034-512-795', description: 'Tourist Police' },
+    { agency: 'รพ.พหลพลพยุหเสนา', phone: '034-622-999', description: 'Phaholpolpayuhasena Hospital' },
+  ],
+  'Prachuap Khiri Khan': [
+    { agency: 'สภ.เมืองประจวบฯ', phone: '032-603-991', description: 'Provincial Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวหัวหิน', phone: '032-516-219', description: 'Hua Hin Tourist Police' },
+    { agency: 'รพ.ประจวบคีรีขันธ์', phone: '032-601-800', description: 'Prachuap Khiri Khan Hospital' },
+  ],
+  'Nan': [
+    { agency: 'สภ.เมืองน่าน', phone: '054-710-033', description: 'Mueang Nan Police Station' },
+    { agency: 'รพ.น่าน', phone: '054-719-000', description: 'Nan Hospital' },
+  ],
+  'Krabi': [
+    { agency: 'สภ.เมืองกระบี่', phone: '075-611-082', description: 'Mueang Krabi Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวกระบี่', phone: '075-637-208', description: 'Krabi Tourist Police' },
+    { agency: 'รพ.กระบี่', phone: '075-626-700', description: 'Krabi Hospital' },
+  ],
+  'Phang Nga': [
+    { agency: 'สภ.เมืองพังงา', phone: '076-412-073', description: 'Mueang Phang Nga Police Station' },
+    { agency: 'รพ.พังงา', phone: '076-412-032', description: 'Phang Nga Hospital' },
+  ],
+  'Nakhon Ratchasima': [
+    { agency: 'สภ.เมืองนครราชสีมา', phone: '044-259-420', description: 'Mueang Nakhon Ratchasima Police Station' },
+    { agency: 'รพ.มหาราชนครราชสีมา', phone: '044-235-000', description: 'Maharaj Nakhon Ratchasima Hospital' },
+  ],
+  'Ubon Ratchathani': [
+    { agency: 'สภ.เมืองอุบลราชธานี', phone: '045-254-621', description: 'Mueang Ubon Ratchathani Police Station' },
+    { agency: 'รพ.สรรพสิทธิประสงค์', phone: '045-319-200', description: 'Sappasitthiprasong Hospital' },
+  ],
+  // Batch 3: Cultural & Cross-Border Hubs
+  'Phra Nakhon Si Ayutthaya': [
+    { agency: 'สภ.พระนครศรีอยุธยา', phone: '035-243-444', description: 'Phra Nakhon Si Ayutthaya Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวอยุธยา', phone: '035-242-352', description: 'Ayutthaya Tourist Police' },
+    { agency: 'รพ.พระนครศรีอยุธยา', phone: '035-241-555', description: 'Phra Nakhon Si Ayutthaya Hospital' },
+  ],
+  'Sukhothai': [
+    { agency: 'สภ.เมืองสุโขทัย', phone: '055-613-112', description: 'Mueang Sukhothai Police Station' },
+    { agency: 'รพ.สุโขทัย', phone: '055-611-333', description: 'Sukhothai Hospital' },
+  ],
+  'Mae Hong Son': [
+    { agency: 'สภ.เมืองแม่ฮ่องสอน', phone: '053-695-019', description: 'Mueang Mae Hong Son Police Station' },
+    { agency: 'รพ.ศรีสังวาลย์', phone: '1669', description: 'Srisangwan Hospital' },
+  ],
+  'Phitsanulok': [
+    { agency: 'สภ.เมืองพิษณุโลก', phone: '055-258-777', description: 'Mueang Phitsanulok Police Station' },
+    { agency: 'รพ.พุทธชินราช', phone: '055-270-300', description: 'Buddhachinaraj Phitsanulok Hospital' },
+  ],
+  'Nakhon Si Thammarat': [
+    { agency: 'สภ.เมืองนครศรีธรรมราช', phone: '075-356-005', description: 'Mueang Nakhon Si Thammarat Police Station' },
+    { agency: 'รพ.มหาราชนครศรีธรรมราช', phone: '075-340-250', description: 'Maharaj Nakhon Si Thammarat Hospital' },
+  ],
+  'Trang': [
+    { agency: 'ตำรวจภูธรจังหวัดตรัง', phone: '075-572-022', description: 'Trang Provincial Police' },
+    { agency: 'รพ.ตรัง', phone: '075-201-500', description: 'Trang Hospital' },
+  ],
+  'Satun': [
+    { agency: 'สภ.เมืองสตูล', phone: '191', description: 'Satun Police' },
+    { agency: 'รพ.สตูล', phone: '074-723-500', description: 'Satun Hospital' },
+  ],
+  'Nong Khai': [
+    { agency: 'สภ.เมืองหนองคาย', phone: '042-412-710', description: 'Mueang Nong Khai Police Station' },
+    { agency: 'รพ.หนองคาย', phone: '1669', description: 'Nong Khai Hospital' },
+  ],
+  'Buriram': [
+    { agency: 'สภ.เมืองบุรีรัมย์', phone: '044-612-240', description: 'Mueang Buriram Police Station' },
+    { agency: 'รพ.บุรีรัมย์', phone: '044-615-002', description: 'Buriram Hospital' },
+  ],
+  'Lop Buri': [
+    { agency: 'สภ.เมืองลพบุรี', phone: '036-421-189', description: 'Mueang Lopburi Police Station' },
+    { agency: 'รพ.อานันทมหิดล', phone: '036-785-911', description: 'Ananda Mahidol Hospital' },
   ],
 };
 
@@ -1540,16 +1796,246 @@ function getProvinceEmergencyContacts(provinceName: string): Array<{ agency: str
   ];
 }
 
+// Placeholder for provinceEssentialData, assuming it will be defined elsewhere
+const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
+  'Chiang Mai': {
+    immigration: { name: 'Chiang Mai Immigration Office', address: '71 Moo 3, Suthep, Mueang Chiang Mai', phone: '053-201-755', coordinates: { lat: 18.767, lng: 98.975 } },
+    tatOffice: { name: 'TAT Chiang Mai Office', phone: '053-248-604', coordinates: { lat: 18.788, lng: 99.003 } },
+    touristPolice: { name: 'Chiang Mai Tourist Police', phone: '1155', address: 'Charoen Prathet Rd', coordinates: { lat: 18.784, lng: 99.002 } },
+    transportHubs: {
+      airport: { name: 'Chiang Mai International Airport (CNX)', phone: '053-922-000', coordinates: { lat: 18.767, lng: 98.962 } },
+      busTerminal: { name: 'Arcade Bus Terminal 3', phone: '053-242-664', coordinates: { lat: 18.800, lng: 99.017 } },
+      trainStation: { name: 'Chiang Mai Railway Station', phone: '053-245-363', coordinates: { lat: 18.785, lng: 99.013 } },
+    },
+  },
+  'Phuket': {
+    immigration: { name: 'Phuket Immigration Office', address: '482 Phuket Rd, Talat Yai', phone: '076-221-905', coordinates: { lat: 7.868, lng: 98.393 } },
+    tatOffice: { name: 'TAT Phuket Office', phone: '076-211-036', coordinates: { lat: 7.882, lng: 98.390 } },
+    touristPolice: { name: 'Phuket Tourist Police', phone: '1155', address: 'Yaowarat Rd', coordinates: { lat: 7.886, lng: 98.388 } },
+    transportHubs: {
+      airport: { name: 'Phuket International Airport (HKT)', phone: '076-351-166', coordinates: { lat: 8.113, lng: 98.306 } },
+      busTerminal: { name: 'Phuket Bus Terminal 2', phone: '076-261-494', coordinates: { lat: 7.917, lng: 98.396 } },
+    },
+  },
+  'Bangkok': {
+    immigration: { name: 'Immigration Bureau (Chaengwattana)', address: '120 Moo 3, Chaengwattana Rd', phone: '1178', coordinates: { lat: 13.890, lng: 100.570 } },
+    tatOffice: { name: 'TAT Head Office', phone: '1672', coordinates: { lat: 13.760, lng: 100.540 } },
+    touristPolice: { name: 'Tourist Police HQ', phone: '1155', address: 'Suvarnabhumi Airport', coordinates: { lat: 13.690, lng: 100.750 } },
+    transportHubs: {
+      airport: { name: 'Suvarnabhumi Airport (BKK)', phone: '02-132-1888', coordinates: { lat: 13.690, lng: 100.750 } },
+      busTerminal: { name: 'Mo Chit 2 Bus Terminal', phone: '02-936-2852', coordinates: { lat: 13.810, lng: 100.550 } },
+      trainStation: { name: 'Krung Thep Aphiwat Central Terminal', phone: '1690', coordinates: { lat: 13.800, lng: 100.540 } },
+    },
+  },
+  'Bangkok Metropolis': {
+    immigration: { name: 'Immigration Division 1 (Chaeng Watthana)', address: '120 Chaeng Watthana 7 Rd.', phone: '02-141-9889', coordinates: { lat: 13.896, lng: 100.565 } },
+    tatOffice: { name: 'TAT Head Office', phone: '1672', coordinates: { lat: 13.750, lng: 100.560 } },
+    touristPolice: { name: 'Tourist Police HQ (Suvarnabhumi)', phone: '1155', address: 'Suvarnabhumi Airport', coordinates: { lat: 13.690, lng: 100.750 } },
+    transportHubs: {
+      airport: { name: 'Suvarnabhumi Airport (BKK)', phone: '02-132-1888', coordinates: { lat: 13.690, lng: 100.750 } },
+      busTerminal: { name: 'Mo Chit Bus Terminal (Chatuchak)', phone: '02-936-2841', coordinates: { lat: 13.813, lng: 100.548 } },
+      trainStation: { name: 'Krung Thep Aphiwat Central Terminal', phone: '1690', coordinates: { lat: 13.803, lng: 100.540 } },
+    },
+  },
+  'Khon Kaen': {
+    immigration: { name: 'Khon Kaen Immigration Office', address: '197 Moo 13 Mittraphap Rd, Non Thon', phone: '043-306-642' },
+    tatOffice: { name: 'TAT Khon Kaen Office', phone: '043-227-714' },
+    touristPolice: { name: 'Khon Kaen Tourist Police', phone: '043-465-385', address: 'Khon Kaen' },
+    transportHubs: {
+      airport: { name: 'Khon Kaen Airport', phone: '043-468-170' },
+      busTerminal: { name: 'Khon Kaen Bus Terminal 3', phone: '043-471-585' },
+      trainStation: { name: 'Khon Kaen Railway Station', phone: '043-221-112' },
+    }
+  },
+  'Udon Thani': {
+    immigration: { name: 'Udon Thani Immigration Office', address: 'Udon Thani', phone: '042-249-982' },
+    tatOffice: { name: 'TAT Udon Thani Office', phone: '042-325-407' },
+    transportHubs: {
+      airport: { name: 'Udonthani Int\'l Airport', phone: '042-244-426' },
+    }
+  },
+  'Surat Thani': {
+    immigration: { name: 'Surat Thani Immigration Office', address: '41/12 Moo 2, Thung Rang, Kanchanadit', phone: '077-380-881' },
+    tatOffice: { name: 'TAT Surat Thani Office', phone: '077-288-817' },
+    touristPolice: { name: 'Surat Thani Tourist Police', phone: '077-200-037', address: 'Surat Thani' },
+    transportHubs: {
+      airport: { name: 'Surat Thani Int\'l Airport', phone: '077-441-230' },
+      busTerminal: { name: 'Surat Thani Bus Terminal', phone: '077-287-988' },
+      trainStation: { name: 'Surat Thani Railway Station (Phunphin)', phone: '077-311-213' },
+    }
+  },
+  'Songkhla': {
+    immigration: { name: 'Songkhla Immigration Office', address: '103 Phetkasem Rd, Hat Yai', phone: '074-257-019' },
+    tatOffice: { name: 'TAT Hat Yai Office', phone: '074-231-055' },
+    touristPolice: { name: 'Hat Yai Tourist Police', phone: '074-220-778', address: 'Hat Yai' },
+    transportHubs: {
+      airport: { name: 'Hat Yai Int\'l Airport', phone: '074-227-000' },
+      trainStation: { name: 'Hat Yai Junction Railway Station', phone: '074-238-001' },
+    }
+  },
+  
+  // Batch 2: Major Tourist & Regional Hubs
+  'Chon Buri': {
+    immigration: { name: 'Chonburi Immigration (Pattaya)', address: '75/265 Moo 12, Jomtien Beach Rd', phone: '038-252-750' },
+    tatOffice: { name: 'TAT Pattaya Office', phone: '038-427-667' },
+    touristPolice: { name: 'Pattaya Tourist Police', phone: '1155 / 061-146-1155', address: 'Pattaya' },
+  },
+  'Rayong': {
+    immigration: { name: 'Rayong Immigration Office', address: '5 Moo 5, Sukhumvit Rd, Huay Pong', phone: '038-684-544' },
+    touristPolice: { name: 'Rayong Tourist Police', phone: '038-651-669', address: 'Rayong' },
+    transportHubs: {
+      airport: { name: 'U-Tapao Rayong-Pattaya Int\'l Airport', phone: '038-245-595' },
+    }
+  },
+  'Kanchanaburi': {
+    immigration: { name: 'Kanchanaburi Immigration Office', address: '100/22, Mae Nam Mae Klong Rd', phone: '034-564-279' },
+    touristPolice: { name: 'Kanchanaburi Tourist Police', phone: '034-512-795' },
+    transportHubs: {
+      trainStation: { name: 'Kanchanaburi Railway Station', phone: '1690' },
+    }
+  },
+  'Prachuap Khiri Khan': {
+    immigration: { name: 'Prachuap/Hua Hin Immigration', address: '439 Moo 1, Thap Tai, Hua Hin', phone: '032-520-617' },
+    touristPolice: { name: 'Hua Hin Tourist Police', phone: '032-516-219', address: 'Hua Hin' },
+    transportHubs: {
+      airport: { name: 'Hua Hin Airport', phone: '032-520-169' },
+      trainStation: { name: 'Hua Hin Railway Station', phone: '1690' },
+    }
+  },
+  'Chiang Rai': {
+    immigration: { name: 'Chiang Rai Immigration Office', address: '117 Moo 10, Wiang Phang Kham, Mae Sai', phone: '053-731-008' },
+    touristPolice: { name: 'Chiang Rai Tourist Police', phone: '053-152-547' },
+    transportHubs: {
+      airport: { name: 'Chiang Rai Int\'l Airport (Mae Fah Luang)', phone: '053-798-000' },
+    }
+  },
+  'Nan': {
+    immigration: { name: 'Nan Immigration Office', address: '557 Moo 11, Nan-Phayao Rd', phone: '054-716-138' },
+    transportHubs: {
+      airport: { name: 'Nan Nakhon Airport', phone: '054-710-270' },
+    }
+  },
+  'Krabi': {
+    immigration: { name: 'Krabi Immigration Office', address: 'Krabi Province', phone: '075-663-543' },
+    tatOffice: { name: 'TAT Krabi Office', phone: '075-622-163' },
+    touristPolice: { name: 'Krabi Tourist Police', phone: '075-637-208' },
+    transportHubs: {
+      airport: { name: 'Krabi Int\'l Airport', phone: '075-701-470' },
+    }
+  },
+  'Phang Nga': {
+    immigration: { name: 'Phang Nga Immigration Office', address: '88 Moo 1, Phetkasem Rd, Bang Toei', phone: '076-679-306' },
+    tatOffice: { name: 'TAT Phang Nga Office', phone: '076-413-400' },
+  },
+  'Nakhon Ratchasima': {
+    immigration: { name: 'Nakhon Ratchasima Immigration', address: 'Nakhon Ratchasima', phone: '044-221-661' },
+    touristPolice: { name: 'Nakhon Ratchasima Tourist Police', phone: '044-370-356' },
+    transportHubs: {
+      trainStation: { name: 'Nakhon Ratchasima Railway Station', phone: '1690' },
+    }
+  },
+  'Ubon Ratchathani': {
+    immigration: { name: 'Ubon Ratchathani Immigration', address: '189 Moo 10, Sirindhorn', phone: '045-366-000' },
+    touristPolice: { name: 'Ubon Tourist Police', phone: '045-251-451' },
+    transportHubs: {
+      airport: { name: 'Ubon Ratchathani Airport', phone: '045-245-612' },
+    }
+  },
+  
+  // Batch 3: Cultural & Cross-Border Hubs
+  'Phra Nakhon Si Ayutthaya': {
+    immigration: { name: 'Ayutthaya Immigration Office', address: '134 Uthong Rd., Ho Rattanachai', phone: '035-328-411' },
+    tatOffice: { name: 'TAT Ayutthaya Office', phone: '035-246-076' },
+    touristPolice: { name: 'Ayutthaya Tourist Police', phone: '035-242-352' },
+    transportHubs: {
+      busTerminal: { name: 'Ayutthaya Bus Terminal', phone: 'N/A' },
+      trainStation: { name: 'Ayutthaya Railway Station', phone: '1690' },
+    }
+  },
+  'Sukhothai': {
+    immigration: { name: 'Sukhothai Immigration Office', address: 'Nikorn Kasem Rd., Thani', phone: '055-610-112' },
+    tatOffice: { name: 'TAT Sukhothai Office', phone: '055-616-228' },
+    transportHubs: {
+      airport: { name: 'Sukhothai Airport', phone: '055-647-230' },
+    }
+  },
+  'Mae Hong Son': {
+    immigration: { name: 'Mae Hong Son Immigration Office', address: '202 Moo 11, Pang Mu', phone: '053-612-106' },
+    tatOffice: { name: 'TAT Mae Hong Son Office', phone: '053-612-982' },
+    touristPolice: { name: 'Mae Hong Son Tourist Police', phone: '053-699-444' },
+    transportHubs: {
+      airport: { name: 'Mae Hong Son Airport', phone: '053-611-273' },
+    }
+  },
+  'Phitsanulok': {
+    immigration: { name: 'Phitsanulok Immigration Office', address: '887/4-5 Borom Trailokkanart Rd.', phone: '055-247-722' },
+    tatOffice: { name: 'TAT Phitsanulok Office', phone: '055-252-742' },
+    touristPolice: { name: 'Phitsanulok Tourist Police', phone: '055-002-399' },
+    transportHubs: {
+      airport: { name: 'Phitsanulok Airport', phone: '055-258-070' },
+    }
+  },
+  'Nakhon Si Thammarat': {
+    immigration: { name: 'Nakhon Si Thammarat Immigration', address: '99/34 Wachirawut Rd., Tha Wang', phone: '075-450-491' },
+    tatOffice: { name: 'TAT Nakhon Si Thammarat Office', phone: '075-346-515' },
+    transportHubs: {
+      airport: { name: 'Nakhon Si Thammarat Airport', phone: '075-802-191' },
+    }
+  },
+  'Trang': {
+    immigration: { name: 'Trang Immigration Office', address: '270 Trang-Khaphum Rd., Kantang', phone: '075-251-030' },
+    tatOffice: { name: 'TAT Trang Office', phone: '075-215-867' },
+    touristPolice: { name: 'Trang Tourist Police', phone: '093-580-6596' },
+    transportHubs: {
+      airport: { name: 'Trang Airport', phone: '075-210-224' },
+    }
+  },
+  'Satun': {
+    immigration: { name: 'Satun Immigration Office', address: '1 Buri Wanich Rd., Phiman', phone: '074-711-080' },
+    transportHubs: {
+      busTerminal: { name: 'Satun Bus Terminal', phone: 'N/A' },
+    }
+  },
+  'Nong Khai': {
+    immigration: { name: 'Nong Khai Immigration Office', address: '106 Moo 7, Chalerm Phra Kiat Rd.', phone: '042-990-935' },
+    tatOffice: { name: 'TAT Udon Thani (covers Nong Khai)', phone: '042-325-406' },
+    touristPolice: { name: 'Tourist Police Udon Thani (covers Nong Khai)', phone: '042-328-189' },
+  },
+  'Buriram': {
+    immigration: { name: 'Buriram Immigration Office', address: 'Buriram Provincial Govt Center', phone: '044-666-903' },
+    tatOffice: { name: 'TAT Buriram Office', phone: '044-634-268' },
+    touristPolice: { name: 'Tourist Police (Regional)', phone: '044-370-356' },
+    transportHubs: {
+      airport: { name: 'Buriram Airport', phone: '044-606-155' },
+    }
+  },
+  'Lop Buri': {
+    immigration: { name: 'Lopburi Immigration Office', address: '88/88 Phrapiya Rd., Talay Chupson', phone: '036-424-686' },
+    touristPolice: { name: 'Lopburi Tourist Police', phone: '036-424-515' },
+  },
+};
+
+
+
 function generateProvinceData(province: Province, region: Region): ProvinceData {
   const coords = getProvinceCoords(province.name);
   
+  // Get Real Essential Contacts
+  const essentialData = provinceEssentialData[province.name] || {};
+
   return {
     thaiName: thaiProvinceNames[province.name] || province.name,
     slogan: provinceSlogans[province.name] || '',
-    weather: { temp: '28°C', condition: 'Partly Cloudy', humidity: '65%' },
-    safetyIndex: province.safety || 82,
-    dailyCost: province.dailyCost || '350 ฿',
+    weather: { temp: '32°', condition: 'Sunny', humidity: '65%' },
+    safetyIndex: 92,
+    dailyCost: '800 ฿',
     
+    // Spread essential data
+    immigration: essentialData.immigration,
+    tatOffice: essentialData.tatOffice,
+    touristPolice: essentialData.touristPolice,
+    transportHubs: essentialData.transportHubs,
+
     attractions: [
       { name: `${province.name} Old City`, type: 'Historical Site', rating: 4.8, description: 'Ancient walled city with rich history and beautiful temples', openHours: '6:00 - 18:00', price: 'Free', coordinates: { lat: coords.lat + 0.005, lng: coords.lng + 0.003 } },
       { name: `Wat ${province.name}`, type: 'Temple', rating: 4.7, description: 'Iconic temple with stunning architecture', openHours: '5:00 - 17:00', price: '30 ฿', coordinates: { lat: coords.lat + 0.01, lng: coords.lng + 0.005 } },
