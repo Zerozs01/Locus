@@ -1781,6 +1781,49 @@ const provinceEmergencyData: Record<string, Array<{ agency: string; phone: strin
     { agency: 'สภ.เมืองลพบุรี', phone: '036-421-189', description: 'Mueang Lopburi Police Station' },
     { agency: 'รพ.อานันทมหิดล', phone: '036-785-911', description: 'Ananda Mahidol Hospital' },
   ],
+  // Batch 4: Northeast (Isan)
+  'Loei': [
+    { agency: 'สภ.เมืองเลย', phone: '042-811-254', description: 'Mueang Loei Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวเลย', phone: '042-861-164', description: 'Loei Tourist Police' },
+    { agency: 'รพ.เลย', phone: '042-835-600', description: 'Loei Hospital' },
+  ],
+  'Sakon Nakhon': [
+    { agency: 'สภ.เมืองสกลนคร', phone: '042-711-506', description: 'Mueang Sakon Nakhon Police Station' },
+    { agency: 'รพ.สกลนคร', phone: '042-712-301', description: 'Sakon Nakhon Hospital' },
+  ],
+  'Nakhon Phanom': [
+    { agency: 'สภ.เมืองนครพนม', phone: '042-511-266', description: 'Mueang Nakhon Phanom Police Station' },
+    { agency: 'ตำรวจท่องเที่ยวนครพนม', phone: '042-515-773', description: 'Tourist Police' },
+    { agency: 'รพ.นครพนม', phone: '042-523-111', description: 'Nakhon Phanom Hospital' },
+  ],
+  'Mukdahan': [
+    { agency: 'ตำรวจภูธรจังหวัดมุกดาหาร', phone: '042-611-455', description: 'Mukdahan Provincial Police' },
+    { agency: 'รพ.มุกดาหาร', phone: '042-611-040', description: 'Mukdahan Hospital' },
+  ],
+  'Surin': [
+    { agency: 'สภ.เมืองสุรินทร์', phone: '044-511-007', description: 'Mueang Surin Police Station' },
+    { agency: 'รพ.สุรินทร์', phone: '044-511-757', description: 'Surin Hospital' },
+  ],
+  'Sisaket': [
+    { agency: 'ตำรวจภูธรจังหวัดศรีสะเกษ', phone: '045-611-555', description: 'Sisaket Provincial Police' },
+    { agency: 'รพ.ศรีสะเกษ', phone: '045-611-503', description: 'Sisaket Hospital' },
+  ],
+  'Roi Et': [
+    { agency: 'สภ.เมืองร้อยเอ็ด', phone: '043-511-777', description: 'Mueang Roi Et Police Station' },
+    { agency: 'รพ.ร้อยเอ็ด', phone: '043-511-712', description: 'Roi Et Hospital' },
+  ],
+  'Kalasin': [
+    { agency: 'ตำรวจภูธรจังหวัดกาฬสินธุ์', phone: '043-812-528', description: 'Kalasin Provincial Police' },
+    { agency: 'รพ.กาฬสินธุ์', phone: '043-811-010', description: 'Kalasin Hospital' },
+  ],
+  'Yasothon': [
+    { agency: 'ตำรวจภูธรจังหวัดยโสธร', phone: '045-711-684', description: 'Yasothon Provincial Police' },
+    { agency: 'รพ.ยโสธร', phone: '045-711-020', description: 'Yasothon Hospital' },
+  ],
+  'Maha Sarakham': [
+    { agency: 'ตำรวจภูธรจังหวัดมหาสารคาม', phone: '043-711-098', description: 'Maha Sarakham Provincial Police' },
+    { agency: 'รพ.มหาสารคาม', phone: '043-712-000', description: 'Mahasarakham Hospital' },
+  ],
 };
 
 function getProvinceEmergencyContacts(provinceName: string): Array<{ agency: string; phone: string; description?: string }> {
@@ -1889,7 +1932,7 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
   },
   'Kanchanaburi': {
     immigration: { name: 'Kanchanaburi Immigration Office', address: '100/22, Mae Nam Mae Klong Rd', phone: '034-564-279' },
-    touristPolice: { name: 'Kanchanaburi Tourist Police', phone: '034-512-795' },
+    touristPolice: { name: 'Kanchanaburi Tourist Police', phone: '034-512-795', address: 'Kanchanaburi' },
     transportHubs: {
       trainStation: { name: 'Kanchanaburi Railway Station', phone: '1690' },
     }
@@ -1904,13 +1947,14 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
   },
   'Chiang Rai': {
     immigration: { name: 'Chiang Rai Immigration Office', address: '117 Moo 10, Wiang Phang Kham, Mae Sai', phone: '053-731-008' },
-    touristPolice: { name: 'Chiang Rai Tourist Police', phone: '053-152-547' },
+    touristPolice: { name: 'Chiang Rai Tourist Police', phone: '053-152-547', address: 'Chiang Rai' },
     transportHubs: {
       airport: { name: 'Chiang Rai Int\'l Airport (Mae Fah Luang)', phone: '053-798-000' },
     }
   },
   'Nan': {
     immigration: { name: 'Nan Immigration Office', address: '557 Moo 11, Nan-Phayao Rd', phone: '054-716-138' },
+    touristPolice: { name: 'Tourist Police Nan', phone: '1155', address: 'Nan' },
     transportHubs: {
       airport: { name: 'Nan Nakhon Airport', phone: '054-710-270' },
     }
@@ -1918,7 +1962,7 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
   'Krabi': {
     immigration: { name: 'Krabi Immigration Office', address: 'Krabi Province', phone: '075-663-543' },
     tatOffice: { name: 'TAT Krabi Office', phone: '075-622-163' },
-    touristPolice: { name: 'Krabi Tourist Police', phone: '075-637-208' },
+    touristPolice: { name: 'Krabi Tourist Police', phone: '075-637-208', address: 'Ao Nang' },
     transportHubs: {
       airport: { name: 'Krabi Int\'l Airport', phone: '075-701-470' },
     }
@@ -1926,17 +1970,18 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
   'Phang Nga': {
     immigration: { name: 'Phang Nga Immigration Office', address: '88 Moo 1, Phetkasem Rd, Bang Toei', phone: '076-679-306' },
     tatOffice: { name: 'TAT Phang Nga Office', phone: '076-413-400' },
+    touristPolice: { name: 'Phang Nga Tourist Police', phone: '1155', address: 'Khao Lak' },
   },
   'Nakhon Ratchasima': {
     immigration: { name: 'Nakhon Ratchasima Immigration', address: 'Nakhon Ratchasima', phone: '044-221-661' },
-    touristPolice: { name: 'Nakhon Ratchasima Tourist Police', phone: '044-370-356' },
+    touristPolice: { name: 'Nakhon Ratchasima Tourist Police', phone: '044-370-356', address: 'Nakhon Ratchasima' },
     transportHubs: {
       trainStation: { name: 'Nakhon Ratchasima Railway Station', phone: '1690' },
     }
   },
   'Ubon Ratchathani': {
     immigration: { name: 'Ubon Ratchathani Immigration', address: '189 Moo 10, Sirindhorn', phone: '045-366-000' },
-    touristPolice: { name: 'Ubon Tourist Police', phone: '045-251-451' },
+    touristPolice: { name: 'Ubon Tourist Police', phone: '045-251-451', address: 'Ubon Ratchathani' },
     transportHubs: {
       airport: { name: 'Ubon Ratchathani Airport', phone: '045-245-612' },
     }
@@ -1946,7 +1991,7 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
   'Phra Nakhon Si Ayutthaya': {
     immigration: { name: 'Ayutthaya Immigration Office', address: '134 Uthong Rd., Ho Rattanachai', phone: '035-328-411' },
     tatOffice: { name: 'TAT Ayutthaya Office', phone: '035-246-076' },
-    touristPolice: { name: 'Ayutthaya Tourist Police', phone: '035-242-352' },
+    touristPolice: { name: 'Ayutthaya Tourist Police', phone: '035-242-352', address: 'Ayutthaya' },
     transportHubs: {
       busTerminal: { name: 'Ayutthaya Bus Terminal', phone: 'N/A' },
       trainStation: { name: 'Ayutthaya Railway Station', phone: '1690' },
@@ -1962,7 +2007,7 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
   'Mae Hong Son': {
     immigration: { name: 'Mae Hong Son Immigration Office', address: '202 Moo 11, Pang Mu', phone: '053-612-106' },
     tatOffice: { name: 'TAT Mae Hong Son Office', phone: '053-612-982' },
-    touristPolice: { name: 'Mae Hong Son Tourist Police', phone: '053-699-444' },
+    touristPolice: { name: 'Mae Hong Son Tourist Police', phone: '053-699-444', address: 'Mae Hong Son' },
     transportHubs: {
       airport: { name: 'Mae Hong Son Airport', phone: '053-611-273' },
     }
@@ -1970,7 +2015,7 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
   'Phitsanulok': {
     immigration: { name: 'Phitsanulok Immigration Office', address: '887/4-5 Borom Trailokkanart Rd.', phone: '055-247-722' },
     tatOffice: { name: 'TAT Phitsanulok Office', phone: '055-252-742' },
-    touristPolice: { name: 'Phitsanulok Tourist Police', phone: '055-002-399' },
+    touristPolice: { name: 'Phitsanulok Tourist Police', phone: '055-002-399', address: 'Phitsanulok' },
     transportHubs: {
       airport: { name: 'Phitsanulok Airport', phone: '055-258-070' },
     }
@@ -1985,7 +2030,7 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
   'Trang': {
     immigration: { name: 'Trang Immigration Office', address: '270 Trang-Khaphum Rd., Kantang', phone: '075-251-030' },
     tatOffice: { name: 'TAT Trang Office', phone: '075-215-867' },
-    touristPolice: { name: 'Trang Tourist Police', phone: '093-580-6596' },
+    touristPolice: { name: 'Trang Tourist Police', phone: '093-580-6596', address: 'Trang' },
     transportHubs: {
       airport: { name: 'Trang Airport', phone: '075-210-224' },
     }
@@ -1999,19 +2044,141 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
   'Nong Khai': {
     immigration: { name: 'Nong Khai Immigration Office', address: '106 Moo 7, Chalerm Phra Kiat Rd.', phone: '042-990-935' },
     tatOffice: { name: 'TAT Udon Thani (covers Nong Khai)', phone: '042-325-406' },
-    touristPolice: { name: 'Tourist Police Udon Thani (covers Nong Khai)', phone: '042-328-189' },
+    touristPolice: { name: 'Tourist Police Udon Thani (covers Nong Khai)', phone: '042-328-189', address: 'Udon Thani/Nong Khai' },
   },
   'Buriram': {
     immigration: { name: 'Buriram Immigration Office', address: 'Buriram Provincial Govt Center', phone: '044-666-903' },
     tatOffice: { name: 'TAT Buriram Office', phone: '044-634-268' },
-    touristPolice: { name: 'Tourist Police (Regional)', phone: '044-370-356' },
+    touristPolice: { name: 'Tourist Police (Regional)', phone: '044-370-356', address: 'N/A' },
     transportHubs: {
       airport: { name: 'Buriram Airport', phone: '044-606-155' },
     }
   },
   'Lop Buri': {
     immigration: { name: 'Lopburi Immigration Office', address: '88/88 Phrapiya Rd., Talay Chupson', phone: '036-424-686' },
-    touristPolice: { name: 'Lopburi Tourist Police', phone: '036-424-515' },
+    touristPolice: { name: 'Lopburi Tourist Police', phone: '036-424-515', address: 'Lopburi' },
+  },
+  
+  // Batch 4: Northeast (Isan)
+  'Loei': {
+    immigration: { name: 'Loei Immigration Office', address: 'Mueang Loei', phone: '042-812-862' },
+    tatOffice: { name: 'TAT Loei Office', phone: '042-812-812' },
+    touristPolice: { name: 'Loei Tourist Police', phone: '042-861-164', address: 'Loei' },
+    transportHubs: {
+      airport: { name: 'Loei Airport', phone: '042-811-520' },
+      busTerminal: { name: 'Loei Bus Terminal', phone: '1490' },
+    }
+  },
+  'Sakon Nakhon': {
+    immigration: { name: 'Sakon Nakhon Immigration Office', address: 'Opposite Rajabhat Univ.', phone: '042-717-040' },
+    tatOffice: { name: 'TAT Nakhon Phanom (covers Sakon)', phone: '042-513-490' },
+    transportHubs: {
+      airport: { name: 'Sakon Nakhon Airport', phone: '042-724-044' },
+    }
+  },
+  'Nakhon Phanom': {
+    immigration: { name: 'Nakhon Phanom Immigration Office', address: 'Mueang Nakhon Phanom', phone: '042-550-111' },
+    tatOffice: { name: 'TAT Nakhon Phanom Office', phone: '042-513-490' },
+    touristPolice: { name: 'Nakhon Phanom Tourist Police', phone: '042-515-773', address: 'Nakhon Phanom' },
+    transportHubs: {
+      airport: { name: 'Nakhon Phanom Airport', phone: '042-531-586' },
+    }
+  },
+  'Mukdahan': {
+    immigration: { name: 'Mukdahan Immigration Office', address: 'Mueang Mukdahan', phone: '042-674-090' },
+    tatOffice: { name: 'TAT Nakhon Phanom (covers Mukdahan)', phone: '042-513-490' },
+  },
+  'Surin': {
+    immigration: { name: 'Surin Immigration Office', address: 'Mueang Surin', phone: '044-512-544' },
+    tatOffice: { name: 'TAT Surin Office', phone: '044-514-447' },
+    transportHubs: {
+      trainStation: { name: 'Surin Railway Station', phone: '1690' },
+    }
+  },
+  'Sisaket': {
+    immigration: { name: 'Sisaket Immigration Office', address: 'Mueang Sisaket', phone: '045-618-411' },
+    tatOffice: { name: 'TAT Surin (covers Sisaket)', phone: '044-514-447' },
+    transportHubs: {
+      trainStation: { name: 'Sisaket Railway Station', phone: '1690' },
+    }
+  },
+  'Roi Et': {
+    immigration: { name: 'Roi Et Immigration Office', address: 'Mueang Roi Et', phone: '043-511-700' },
+    tatOffice: { name: 'TAT Khon Kaen (covers Roi Et)', phone: '043-227-714' },
+    transportHubs: {
+      airport: { name: 'Roi Et Airport', phone: '043-518-246' },
+    }
+  },
+  'Kalasin': {
+    immigration: { name: 'Kalasin Immigration Office', address: 'Mueang Kalasin', phone: '043-812-591' },
+    tatOffice: { name: 'TAT Khon Kaen (covers Kalasin)', phone: '043-227-714' },
+  },
+  'Yasothon': {
+    immigration: { name: 'Yasothon Immigration Office', address: 'Mueang Yasothon', phone: '045-711-333' },
+    tatOffice: { name: 'TAT Ubon Ratchathani (covers Yasothon)', phone: '045-243-770' },
+  },
+  'Maha Sarakham': {
+    immigration: { name: 'Maha Sarakham Immigration Office', address: 'Mueang Maha Sarakham', phone: '043-971-035' },
+    tatOffice: { name: 'TAT Khon Kaen (covers Maha Sarakham)', phone: '043-227-714' },
+  },
+  
+  // Batch 5: Central & Lower North
+  'Nakhon Sawan': {
+    immigration: { name: 'Nakhon Sawan Immigration', address: '153 Moo 9, Nakhon Sawan Tok', phone: '056-881-518' },
+    tatOffice: { name: 'TAT Nakhon Sawan Office', phone: '056-221-811' },
+    touristPolice: { name: 'Tourist Police Hotline', phone: '1155', address: 'Nakhon Sawan' },
+    transportHubs: {
+      busTerminal: { name: 'Nakhon Sawan Bus Terminal', phone: '1490' },
+      trainStation: { name: 'Nakhon Sawan Railway Station', phone: '1690' },
+    }
+  },
+  'Phichit': {
+    immigration: { name: 'Phichit Immigration', address: '52/36 Nok Thang Rotfai Rd', phone: '056-613-428' },
+    tatOffice: { name: 'TAT Nakhon Sawan (covers Phichit)', phone: '056-221-811' },
+    touristPolice: { name: 'Tourist Police Hotline', phone: '1155', address: 'N/A' },
+    transportHubs: {
+      trainStation: { name: 'Phichit Railway Station', phone: '1690' },
+    }
+  },
+  'Kamphaeng Phet': {
+    immigration: { name: 'Kamphaeng Phet Immigration', address: '208 Moo 3, Song Tham', phone: '055-712-209' },
+    tatOffice: { name: 'TAT Sukhothai (covers Kamphaeng Phet)', phone: '055-616-228' },
+    touristPolice: { name: 'Tourist Police Hotline', phone: '1155', address: 'N/A' },
+  },
+  'Uthai Thani': {
+    immigration: { name: 'Uthai Thani Immigration', address: '191 Moo 1, Tha Pho', phone: '056-510-623' },
+    tatOffice: { name: 'TAT Uthai Thani Office', phone: '056-514-651' },
+    touristPolice: { name: 'Tourist Police Hotline', phone: '1155', address: 'N/A' },
+  },
+  'Chai Nat': {
+    immigration: { name: 'Chai Nat Immigration', address: 'Nai Mueang', phone: '056-410-802' },
+    tatOffice: { name: 'TAT Suphan Buri (covers Chai Nat)', phone: '035-525-867' },
+    touristPolice: { name: 'Tourist Police Hotline', phone: '1155', address: 'N/A' },
+  },
+  'Sing Buri': {
+    immigration: { name: 'Sing Buri Immigration', address: '115 Moo 3, Phrom Buri', phone: '036-510-960' },
+    tatOffice: { name: 'TAT Lop Buri (covers Sing Buri)', phone: '036-770-096' },
+    touristPolice: { name: 'Tourist Police Hotline', phone: '1155', address: 'N/A' },
+  },
+  'Ang Thong': {
+    immigration: { name: 'Ang Thong Immigration', address: '1 Moo 8, San Chao Rong Thong', phone: '035-610-773' },
+    tatOffice: { name: 'TAT Suphan Buri (covers Ang Thong)', phone: '035-525-867' },
+    touristPolice: { name: 'Tourist Police Hotline', phone: '1155', address: 'N/A' },
+  },
+  'Saraburi': {
+    immigration: { name: 'Saraburi Immigration', address: '1 Moo 7, Suan Dok Mai', phone: '036-225-368' },
+    tatOffice: { name: 'TAT Lop Buri (covers Saraburi)', phone: '036-770-096' },
+    touristPolice: { name: 'Tourist Police Hotline', phone: '1155', address: 'N/A' },
+  },
+  'Suphan Buri': {
+    immigration: { name: 'Suphan Buri Immigration', address: '99/328 Moo 5, Phai Khwang', phone: '035-440-464' },
+    tatOffice: { name: 'TAT Suphan Buri Office', phone: '035-525-867' },
+    touristPolice: { name: 'Tourist Police Hotline', phone: '1155', address: 'N/A' },
+  },
+  'Nakhon Nayok': {
+    immigration: { name: 'Nakhon Nayok Immigration', address: 'Mueang Nakhon Nayok', phone: '037-315-689' }, // Search filled
+    tatOffice: { name: 'TAT Nakhon Nayok Office', phone: '037-312-282' },
+    touristPolice: { name: 'Tourist Police Hotline', phone: '1155', address: 'N/A' },
   },
 };
 
