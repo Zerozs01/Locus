@@ -138,16 +138,19 @@ export function ArchiveView(): JSX.Element {
 
       setIsLoading(true);
       try {
-        const params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number } = {
-          sortBy,
-          offset: page * pageSize,
-          limit: pageSize
-        };
-        if (!searchActive && selectedRegions.length > 0) {
-          params.regionIds = selectedRegions;
-        }
+        const params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number } = { sortBy };
+
         if (searchActive && pagedSearchIds) {
           params.ids = pagedSearchIds;
+          // ids already represent this page slice, so offset must stay at 0.
+          params.offset = 0;
+          params.limit = pagedSearchIds.length;
+        } else {
+          params.offset = page * pageSize;
+          params.limit = pageSize;
+          if (selectedRegions.length > 0) {
+            params.regionIds = selectedRegions;
+          }
         }
 
         const result = await measureAsync('db:getArchiveProvinces@ArchiveView', () => window.api.db.getArchiveProvinces(params));

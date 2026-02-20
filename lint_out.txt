@@ -1,0 +1,12 @@
+﻿
+C:\Users\beelink\Downloads\Code\University\Locus\src\renderer\src\pages\ProvinceTactical\tabs\EssentialsTab.tsx
+  231:6  error  Parsing error: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+
+C:\Users\beelink\Downloads\Code\University\Locus\src\renderer\src\pages\ProvinceTactical\tabs\StayTab.tsx
+  146:2  error  Parsing error: '}' expected
+
+C:\Users\beelink\Downloads\Code\University\Locus\src\renderer\src\pages\ProvinceTactical\tabs\TravelTab.tsx
+  70:12  error  Parsing error: JSX expressions must have one parent element
+
+✖ 3 problems (3 errors, 0 warnings)
+

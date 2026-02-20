@@ -27,6 +27,10 @@ declare global {
         getImageCacheStats: () => Promise<{ fileCount: number; totalBytes: number; path: string }>
         clearImageCache: () => Promise<{ fileCount: number; totalBytes: number; path: string }>
       }
+      config: {
+        get: () => Promise<Record<string, string>>
+        set: (values: Record<string, string>) => Promise<void>
+      }
     }
   }
 }

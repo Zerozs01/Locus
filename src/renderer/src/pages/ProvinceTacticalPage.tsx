@@ -50,6 +50,8 @@ export const ProvinceTacticalPage = () => {
   const [region, setRegion] = useState<Region | null>(null);
   const [province, setProvince] = useState<Province | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(450);
+  const isDraggingRef = useRef(false);
   
   // Ref for ProvinceMap to trigger fly animations
   const mapRef = useRef<ProvinceMapHandle>(null);
@@ -61,6 +63,39 @@ export const ProvinceTacticalPage = () => {
       console.log(`Flying to: ${title || 'location'} (${lat}, ${lng})`);
     }
   };
+
+  const startDrag = () => {
+    isDraggingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    const handleDrag = (e: MouseEvent) => {
+      if (isDraggingRef.current) {
+        const minWidth = 350;
+        const maxWidth = 800;
+        const newWidth = window.innerWidth - e.clientX;
+        if (newWidth >= minWidth && newWidth <= maxWidth) {
+          setSidebarWidth(newWidth);
+        }
+      }
+    };
+    const stopDrag = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+      }
+    };
+    
+    window.addEventListener('mousemove', handleDrag);
+    window.addEventListener('mouseup', stopDrag);
+    return () => {
+      window.removeEventListener('mousemove', handleDrag);
+      window.removeEventListener('mouseup', stopDrag);
+    };
+  }, []);
   
   // Fetch data from DB
   useEffect(() => {
@@ -143,7 +178,7 @@ export const ProvinceTacticalPage = () => {
   return (
     <div className="flex-1 flex bg-[#050608] overflow-hidden">
       {/* LEFT: MAP SECTION */}
-      <div className="w-1/2 relative">
+      <div className="relative" style={{ flex: 1, minWidth: 0 }}>
         {/* Back Button Overlay */}
         <button 
           onClick={() => navigate('/')}
@@ -177,15 +212,23 @@ export const ProvinceTacticalPage = () => {
         />
       </div>
 
+      {/* DRAGGABLE DIVIDER */}
+      <div 
+        onMouseDown={startDrag}
+        className="w-1 bg-white/10 hover:bg-cyan-500/50 cursor-col-resize hover:w-1.5 transition-all z-[1001] active:bg-cyan-500 flex-shrink-0"
+      />
+
       {/* RIGHT: CONTENT SECTION */}
-      <div className="w-1/2 flex flex-col border-l border-white/10">
+      <div 
+        className="flex flex-col bg-[#050608] z-10"
+        style={{ width: sidebarWidth, flexShrink: 0 }}
+      >
         {/* Quick Stats Bar */}
         <div className="flex-shrink-0 p-4 bg-[#0a0c10] border-b border-white/10">
           <div className="flex items-center gap-4">
             <QuickBadge icon={<Thermometer size={16} />} value={provinceData.weather.temp} label={provinceData.weather.condition} color="amber" />
             <QuickBadge icon={<Shield size={16} />} value={`${provinceData.safetyIndex}%`} label="Safe" color="emerald" />
             <QuickBadge icon={<Wallet size={16} />} value={provinceData.dailyCost} label="/day" color="cyan" />
-            <QuickBadge icon={<Phone size={16} />} value="191" label="Police" color="red" />
           </div>
         </div>
 
@@ -532,7 +575,37 @@ const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData; provin
 
   return (
     <div className="space-y-4">
-      {/* Hospitals & Clinics - FIRST with border highlight */}
+      {/* Emergency Contacts - with local numbers */}
+      <ContentCard 
+        title="Emergency Contacts" 
+        icon={<Phone size={18} />}
+        color="red"
+        borderColor="rose"
+      >
+        <div className="space-y-3">
+          {/* Local Provincial Numbers */}
+          {data.emergencyContacts && data.emergencyContacts.length > 0 && (
+            <div className="mb-3 pb-3 border-b border-white/10">
+              <p className="text-xs text-slate-400 mb-2">📍 Local {province.name} Numbers</p>
+              <div className="space-y-2">
+                {data.emergencyContacts.map((contact, idx) => (
+                  <LocalEmergencyCard key={idx} {...contact} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Universal Emergency Numbers */}
+          <div className="grid grid-cols-2 gap-2">
+            <EmergencyCard label="Police" number="191" />
+            <EmergencyCard label="Ambulance" number="1669" />
+            <EmergencyCard label="Fire" number="199" />
+            <EmergencyCard label="Tourist Police" number="1155" />
+          </div>
+        </div>
+      </ContentCard>
+
+      {/* Hospitals & Clinics */}
       <ContentCard 
         title="Hospitals & Clinics" 
         icon={<Hospital size={18} />}
@@ -543,36 +616,6 @@ const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData; provin
           {data.hospitals.map((item, idx) => (
             <HospitalCard key={idx} {...item} onFlyTo={onFlyTo} />
           ))}
-        </div>
-      </ContentCard>
-
-      {/* Emergency Contacts - with local numbers */}
-      <ContentCard 
-        title="Emergency Contacts" 
-        icon={<Phone size={18} />}
-        color="red"
-        borderColor="rose"
-      >
-        <div className="space-y-3">
-          {/* Universal Emergency Numbers */}
-          <div className="grid grid-cols-2 gap-2">
-            <EmergencyCard label="Police" number="191" />
-            <EmergencyCard label="Ambulance" number="1669" />
-            <EmergencyCard label="Fire" number="199" />
-            <EmergencyCard label="Tourist Police" number="1155" />
-          </div>
-          
-          {/* Local Provincial Numbers */}
-          {data.emergencyContacts && data.emergencyContacts.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <p className="text-xs text-slate-400 mb-2">📍 Local {province.name} Numbers</p>
-              <div className="space-y-2">
-                {data.emergencyContacts.map((contact, idx) => (
-                  <LocalEmergencyCard key={idx} {...contact} />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </ContentCard>
 
@@ -1218,27 +1261,6 @@ const MallCard = ({ name, address, openHours, features, coordinates, onFlyTo }: 
   );
 };
 
-const TransportOptionCard = ({ type, name, duration, price, frequency, icon }: { 
-  type: string; name: string; duration: string; price: string; frequency: string; icon: React.ReactNode 
-}) => (
-  <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02]">
-    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
-      {icon}
-    </div>
-    <div className="flex-1">
-      <div className="flex items-center justify-between">
-        <h4 className="font-medium text-white text-sm">{type}</h4>
-        <span className="text-emerald-400 text-sm font-semibold">{price}</span>
-      </div>
-      <p className="text-xs text-slate-400">{name}</p>
-      <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-        <span>⏱ {duration}</span>
-        <span>{frequency}</span>
-      </div>
-    </div>
-  </div>
-);
-
 const LocalTransportCard = ({ name, price, description, icon }: { name: string; price: string; description: string; icon: React.ReactNode }) => (
   <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5">
     <div className="flex items-center gap-2 mb-2">
@@ -1249,18 +1271,6 @@ const LocalTransportCard = ({ name, price, description, icon }: { name: string; 
     </div>
     <p className="text-xs text-slate-400">{description}</p>
     <p className="text-xs text-emerald-400 mt-1">{price}</p>
-  </div>
-);
-
-const DayTripCard = ({ destination, distance, highlights }: { destination: string; distance: string; highlights: string }) => (
-  <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
-    <div>
-      <h4 className="font-medium text-white text-sm">{destination}</h4>
-      <p className="text-xs text-slate-500">{highlights}</p>
-    </div>
-    <div className="text-right">
-      <span className="text-xs text-cyan-400">{distance}</span>
-    </div>
   </div>
 );
 
@@ -1826,10 +1836,23 @@ const provinceEmergencyData: Record<string, Array<{ agency: string; phone: strin
   ],
 };
 
+const provinceDataAliases: Record<string, string> = {
+  'Bangkok Metropolis': 'Bangkok',
+  'Buri Ram': 'Buriram',
+  'Si Sa Ket': 'Sisaket',
+  'Phangnga': 'Phang Nga'
+};
+
+function normalizeProvinceDataKey(provinceName: string): string {
+  return provinceDataAliases[provinceName] || provinceName;
+}
+
 function getProvinceEmergencyContacts(provinceName: string): Array<{ agency: string; phone: string; description?: string }> {
+  const normalizedName = normalizeProvinceDataKey(provinceName);
+
   // Return province-specific contacts if available, otherwise return generic contacts
-  if (provinceEmergencyData[provinceName]) {
-    return provinceEmergencyData[provinceName];
+  if (provinceEmergencyData[normalizedName]) {
+    return provinceEmergencyData[normalizedName];
   }
   
   // Default contacts for provinces without specific data
@@ -2186,13 +2209,14 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
 
 function generateProvinceData(province: Province, region: Region): ProvinceData {
   const coords = getProvinceCoords(province.name);
+  const dataKey = normalizeProvinceDataKey(province.name);
   
   // Get Real Essential Contacts
-  const essentialData = provinceEssentialData[province.name] || {};
+  const essentialData = provinceEssentialData[dataKey] || {};
 
   return {
     thaiName: thaiProvinceNames[province.name] || province.name,
-    slogan: provinceSlogans[province.name] || '',
+    slogan: provinceSlogans[dataKey] || provinceSlogans[province.name] || '',
     weather: { temp: '32°', condition: 'Sunny', humidity: '65%' },
     safetyIndex: 92,
     dailyCost: '800 ฿',

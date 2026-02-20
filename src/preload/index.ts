@@ -19,6 +19,10 @@ const api = {
   assets: {
     getImageCacheStats: () => ipcRenderer.invoke('assets:getImageCacheStats'),
     clearImageCache: () => ipcRenderer.invoke('assets:clearImageCache')
+  },
+  config: {
+    get: () => ipcRenderer.invoke('config:get'),
+    set: (values: Record<string, string>) => ipcRenderer.invoke('config:set', values)
   }
 }
 

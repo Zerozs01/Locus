@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats } from './database/db'
 import { initialRegions } from './database/initialData'
+import { readRuntimeConfig, writeRuntimeConfig } from './config/runtimeConfig'
 import { createHash } from 'crypto'
 import { promises as fs } from 'fs'
 import path from 'path'
@@ -356,6 +357,14 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('assets:clearImageCache', () => {
      return clearImageCache();
+  })
+
+  ipcMain.handle('config:get', () => {
+    return readRuntimeConfig()
+  })
+
+  ipcMain.handle('config:set', (_, values: Record<string, unknown>) => {
+    return writeRuntimeConfig(values)
   })
 
   createWindow()

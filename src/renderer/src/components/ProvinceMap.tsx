@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Loader2, WifiOff, RefreshCw } from 'lucide-react';
+import { Loader2, WifiOff, RefreshCw, CheckSquare, Square } from 'lucide-react';
+import thailandGeo from '../data/thailand-geo.json';
 
 // Fix Leaflet default marker icon issue
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -244,6 +245,18 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [visibleFilters, setVisibleFilters] = useState<Set<string>>(
+    new Set(['attraction', 'restaurant', 'hotel', 'hospital', 'transport'])
+  );
+
+  const toggleFilter = (type: string) => {
+    setVisibleFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  };
 
   // Get coordinates for province
   const coords = lat && lng 
@@ -419,10 +432,17 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     layer.clearLayers();
 
     markers.forEach(marker => {
+      if (!visibleFilters.has(marker.type)) return;
+
       const icon = markerIcons[marker.type] || markerIcons.attraction;
-      L.marker([marker.lat, marker.lng], { icon })
-        .addTo(layer)
-        .bindPopup(`
+      const leafletMarker = L.marker([marker.lat, marker.lng], { icon })
+        .addTo(layer!);
+
+      if (onMarkerClick) {
+        leafletMarker.on('click', () => onMarkerClick(marker));
+      }
+
+      leafletMarker.bindPopup(`
           <div style="font-family: system-ui; min-width: 150px;">
             <strong style="font-size: 14px; color: #1f2937;">${marker.title}</strong>
             <div style="color: ${markerTypeColors[marker.type]}; font-size: 12px; margin-top: 4px;">
@@ -440,7 +460,37 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           <div style="color: #06b6d4; font-size: 12px; margin-top: 4px;">📍 Province Center</div>
         </div>
       `);
-  }, [markers, coords.lat, coords.lng, provinceName, retryCount, theme]);
+  }, [markers, coords.lat, coords.lng, provinceName, retryCount, theme, visibleFilters]);
+
+  // Province Boundary Layer Effect
+  const boundaryLayerRef = useRef<L.GeoJSON | null>(null);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || isLoading) return;
+
+    if (boundaryLayerRef.current) {
+      map.removeLayer(boundaryLayerRef.current);
+      boundaryLayerRef.current = null;
+    }
+
+    const feature = (thailandGeo.features as any[]).find(
+      (f) => f.properties.name === provinceName || f.properties.name === provinceName.replace(' Metropolis', '')
+    );
+
+    if (feature) {
+      boundaryLayerRef.current = L.geoJSON(feature, {
+        style: {
+          color: '#06b6d4', // Cyan border
+          weight: 3,
+          opacity: 0.9,
+          fillColor: '#06b6d4',
+          fillOpacity: 0.05,
+          dashArray: '6, 6'
+        }
+      }).addTo(map);
+    }
+  }, [provinceName, isLoading]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -484,15 +534,25 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         </div>
       )}
 
-      {/* Map Legend */}
+      {/* Map Legend (Filter Toggle) */}
       <div className="absolute bottom-4 right-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-slate-200">
-        <div className="text-xs font-semibold text-slate-700 mb-2">Legend</div>
+        <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center justify-between">
+          <span>Filters</span>
+          {visibleFilters.size < 5 && (
+            <button 
+              onClick={() => setVisibleFilters(new Set(['attraction', 'restaurant', 'hotel', 'hospital', 'transport']))}
+              className="text-[10px] text-cyan-600 hover:text-cyan-800"
+            >
+              Show All
+            </button>
+          )}
+        </div>
         <div className="space-y-1.5">
-          <LegendItem color="#14b8a6" label="Attractions" />
-          <LegendItem color="#f59e0b" label="Restaurants" />
-          <LegendItem color="#8b5cf6" label="Hotels" />
-          <LegendItem color="#ef4444" label="Hospitals" />
-          <LegendItem color="#3b82f6" label="Transport" />
+          <LegendItem color="#14b8a6" label="Attractions" type="attraction" isActive={visibleFilters.has('attraction')} onToggle={() => toggleFilter('attraction')} />
+          <LegendItem color="#f59e0b" label="Restaurants" type="restaurant" isActive={visibleFilters.has('restaurant')} onToggle={() => toggleFilter('restaurant')} />
+          <LegendItem color="#8b5cf6" label="Hotels" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />
+          <LegendItem color="#ef4444" label="Hospitals" type="hospital" isActive={visibleFilters.has('hospital')} onToggle={() => toggleFilter('hospital')} />
+          <LegendItem color="#3b82f6" label="Transport" type="transport" isActive={visibleFilters.has('transport')} onToggle={() => toggleFilter('transport')} />
         </div>
       </div>
 
@@ -547,15 +607,23 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   );
 });
 
-// Legend Item Component
-const LegendItem = ({ color, label }: { color: string; label: string }) => (
-  <div className="flex items-center gap-2">
+// Legend Item Component (Filter Toggle)
+const LegendItem = ({ color, label, type, isActive, onToggle }: { color: string; label: string; type: string; isActive: boolean; onToggle: () => void }) => (
+  <button 
+    onClick={onToggle}
+    className={`flex items-center gap-2 w-full text-left transition-opacity hover:opacity-80 ${isActive ? 'opacity-100' : 'opacity-40'}`}
+  >
+    {isActive ? (
+      <CheckSquare size={14} className="text-slate-500" />
+    ) : (
+      <Square size={14} className="text-slate-300" />
+    )}
     <div 
-      className="w-3 h-3 rounded-full" 
+      className="w-3 h-3 rounded-full flex-shrink-0" 
       style={{ backgroundColor: color }}
     />
-    <span className="text-xs text-slate-600">{label}</span>
-  </div>
+    <span className={`text-xs ${isActive ? 'text-slate-800 font-medium' : 'text-slate-500 line-through'}`}>{label}</span>
+  </button>
 );
 
 export default ProvinceMap;
