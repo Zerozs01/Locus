@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ComposableMap, Geographies, Geography, ZoomableGroup, Annotation } from 'react-simple-maps';
 import { Province } from '../data/regions';
 import { regionTheme, mapBaseColors, type RegionId } from '../data/regionTheme';
@@ -114,7 +115,7 @@ const regionLabelPositions: Record<string, [number, number]> = {
   south: [99.4, 8.4],
 };
 
-export const ThailandMap = ({ 
+export const ThailandMap = memo(({ 
   activeId, 
   onSelectRegion, 
   viewMode,
@@ -230,7 +231,7 @@ export const ThailandMap = ({
                         strokeWidth: isSelectedProvince ? 0.8 : 0.3,
                         outline: 'none',
                         opacity: opacity,
-                        transition: 'all 0.3s ease',
+                        transition: 'fill 120ms linear, opacity 120ms linear, stroke 120ms linear',
                       },
                       hover: {
                         fill: isSelectedProvince ? fillColor : (isRegionActive ? colors.active : colors.hover),
@@ -284,4 +285,4 @@ export const ThailandMap = ({
       </ComposableMap>
     </div>
   );
-};
+});

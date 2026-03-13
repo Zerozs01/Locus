@@ -111,18 +111,28 @@ Use the prompt below to gather data for the remaining provinces.
 
 **Prompt Template:**
 
-```text
-Requesting "Essential Data" in the original JSON format for the following Thai provinces [Batch X]:
-
-1. [Province 1]
-2. [Province 2]
-...
-
-Required Fields:
-- Immigration Office (Name, Address, Phone)
-- Transport Hubs (Airport, Bus Terminal, Train Station - use "N/A" if none)
-- Tourist Services (TAT Office, Tourist Police)
-- Local Emergency (Provincial Police Station - local number, Provincial Hospital - ER number)
-
-Focus on verified contact numbers and official names.
 ```
+
+## 6. UI/UX Refactor & Map Enhancements (2026-03-13)
+
+Successfully completed a major UI/UX overhaul for the **ProvinceTacticalPage** to improve usability and aesthetics.
+
+### Key Changes:
+- **Map Section**:
+    - **Search Bar**: Relocated to the bottom-left, integrated with province info to avoid overlap with top filters. Added "Directions" button.
+    - **Filters**: Replaced legacy legend with premium "Filter Pills" (Attractions, Food, Stay, Transit).
+    - **Controls**: Removed +/- zoom buttons (users prefer mouse wheel); resized markers from 36px to 26px.
+- **Sidebar (Content) Section**:
+    - **Tabs Refactor**: Reduced to 3 main categories (**Explore**, **Transit**, **Essentials**).
+    - **Sub-pages**: "Stay" and "Food" are now sub-pages accessible via buttons in the "Explore" tab, providing a clean drill-down UX.
+    - **Layout**: Increased default sidebar width to 500px for better readability of the 3-column stats row.
+    - **Stats**: Moved Weather, Safety, and Cost stats from Header to inside the Explore tab.
+- **Performance**: Integrated `measureAsync` for DB fetch monitoring.
+
+## 7. Next Steps for Copilot
+
+1. **Search Logic**: Implement actual filtering/search logic for the Search Bar (currently UI only).
+2. **Transit Routing**: Enhance the "Transit" tab with actual route data if available.
+3. **Data Filling**: Continue Batch 5 of Essential Data acquisition for the remaining provinces.
+4. **Marker Interactivity**: Ensure clicking markers in the map opens the relevant sub-page or scrolls to the item in the sidebar.
+

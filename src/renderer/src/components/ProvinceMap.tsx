@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Loader2, WifiOff, RefreshCw, CheckSquare, Square } from 'lucide-react';
@@ -226,6 +226,34 @@ const provinceCoordinates: Record<string, { lat: number; lng: number }> = {
 // Default Thailand center
 const defaultCoords = { lat: 13.7563, lng: 100.5018 };
 
+type SearchPlace = {
+  lat: number;
+  lng: number;
+  title: string;
+  type: string;
+  subtitle?: string;
+  keywords?: string;
+  source: 'local' | 'geocode';
+};
+
+const bangkokFallbackPlaces: SearchPlace[] = [
+  { title: 'สยาม', subtitle: 'Siam', lat: 13.7466, lng: 100.5347, type: 'district', keywords: 'siam สยาม square สยามสแควร์', source: 'local' },
+  { title: 'จตุจักร', subtitle: 'Chatuchak', lat: 13.7998, lng: 100.5510, type: 'district', keywords: 'chatuchak จตุจักร weekend market ตลาดนัด', source: 'local' },
+  { title: 'อโศก', subtitle: 'Asok', lat: 13.7374, lng: 100.5603, type: 'district', keywords: 'asok อโศก สุขุมวิท', source: 'local' },
+  { title: 'เยาวราช', subtitle: 'Yaowarat', lat: 13.7397, lng: 100.5101, type: 'district', keywords: 'yaowarat เยาวราช ไชน่าทาวน์ chinatown', source: 'local' },
+  { title: 'สีลม', subtitle: 'Silom', lat: 13.7279, lng: 100.5311, type: 'district', keywords: 'silom สีลม sathorn สาทร', source: 'local' },
+  { title: 'สนามบินสุวรรณภูมิ', subtitle: 'Suvarnabhumi Airport', lat: 13.6900, lng: 100.7501, type: 'transport', keywords: 'bkk airport สุวรรณภูมิ สนามบิน', source: 'local' },
+];
+
+const compileSearchRegex = (query: string): RegExp => {
+  try {
+    return new RegExp(query, 'i');
+  } catch {
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(escaped, 'i');
+  }
+};
+
 export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({ 
   provinceName, 
   lat, 
@@ -248,6 +276,12 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const [visibleFilters, setVisibleFilters] = useState<Set<string>>(
     new Set<string>()
   );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+  const [remoteSuggestions, setRemoteSuggestions] = useState<SearchPlace[]>([]);
+  const [isRemoteSearching, setIsRemoteSearching] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
 
   const toggleFilter = (type: string) => {
     setVisibleFilters(prev => {
@@ -262,6 +296,209 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const coords = lat && lng 
     ? { lat, lng } 
     : provinceCoordinates[provinceName] || defaultCoords;
+
+  const searchablePlaces = useMemo<SearchPlace[]>(() => {
+    const normalizedProvinceName = provinceName === 'Bangkok Metropolis' ? 'Bangkok' : provinceName;
+    const places: SearchPlace[] = [
+      {
+        title: normalizedProvinceName,
+        lat: coords.lat,
+        lng: coords.lng,
+        type: 'province',
+        subtitle: 'Province center',
+        source: 'local',
+      },
+      ...(normalizedProvinceName === 'Bangkok' ? bangkokFallbackPlaces : []),
+      ...markers.map(marker => ({
+        title: marker.title,
+        lat: marker.lat,
+        lng: marker.lng,
+        type: marker.type,
+        source: 'local' as const,
+      })),
+    ];
+
+    const seen = new Set<string>();
+    return places.filter(place => {
+      const dedupeKey = `${place.title.toLowerCase()}_${place.lat.toFixed(5)}_${place.lng.toFixed(5)}`;
+      if (seen.has(dedupeKey)) return false;
+      seen.add(dedupeKey);
+      return true;
+    });
+  }, [provinceName, coords.lat, coords.lng, markers]);
+
+  const searchSuggestions = useMemo(() => {
+    const q = searchQuery.trim();
+    if (!q) return [];
+
+    const regex = compileSearchRegex(q);
+    const merged = [...searchablePlaces, ...remoteSuggestions];
+    const seen = new Set<string>();
+    const qLower = q.toLowerCase();
+    const qWords = q.split(/\s+/);
+
+    const isMatch = (place: SearchPlace): boolean => {
+      const title = place.title.toLowerCase();
+      const subtitle = (place.subtitle || '').toLowerCase();
+      const keywords = (place.keywords || '').toLowerCase();
+      
+      // Regex match (highest priority)
+      if (regex.test(place.title) || regex.test(subtitle) || regex.test(keywords)) return true;
+      
+      // Keyword word-by-word match (local sources priority)
+      if (place.source === 'local' && qWords.some(word => title.includes(word) || subtitle.includes(word))) return true;
+      
+      // Substring match as fallback
+      if (title.includes(qLower) || subtitle.includes(qLower)) return true;
+      
+      return false;
+    };
+
+    return merged
+      .filter(isMatch)
+      .filter(place => {
+        const dedupeKey = `${place.title.toLowerCase()}_${place.lat.toFixed(5)}_${place.lng.toFixed(5)}`;
+        if (seen.has(dedupeKey)) return false;
+        seen.add(dedupeKey);
+        return true;
+      })
+      .sort((a, b) => {
+        // Prioritize local sources
+        if (a.source !== b.source) {
+          return a.source === 'local' ? -1 : 1;
+        }
+        // Then by string length (shorter = likely more relevant)
+        return a.title.length - b.title.length;
+      })
+      .slice(0, 8);
+  }, [searchQuery, searchablePlaces, remoteSuggestions]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setRemoteSuggestions([]);
+      setIsRemoteSearching(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      const map = mapInstanceRef.current;
+      const bounds = map?.getBounds();
+      const viewBox = bounds
+        ? `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`
+        : `${coords.lng - 0.5},${coords.lat + 0.4},${coords.lng + 0.5},${coords.lat - 0.4}`;
+
+      setIsRemoteSearching(true);
+      const controller = new AbortController();
+      const fetchTimeoutHandle = window.setTimeout(() => controller.abort(), 1800);
+
+      try {
+        const normalizedProvinceName = provinceName === 'Bangkok Metropolis' ? 'Bangkok' : provinceName;
+        const queries = [query, `${query} ${normalizedProvinceName}`];
+        const responses = await Promise.all(
+          queries.map(async (q) => {
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=th,en&countrycodes=th&addressdetails=1&namedetails=1&viewbox=${encodeURIComponent(viewBox)}&q=${encodeURIComponent(q)}`;
+            try {
+              const response = await fetch(url, { signal: controller.signal });
+              if (!response.ok) return [];
+              const data: Array<{
+                lat: string;
+                lon: string;
+                display_name: string;
+                name?: string;
+                type?: string;
+                namedetails?: Record<string, string>;
+              }> = await response.json();
+              return data;
+            } catch {
+              return [];
+            }
+          })
+        );
+        window.clearTimeout(fetchTimeoutHandle);
+
+        const mapped: SearchPlace[] = responses
+          .flat()
+          .map(item => {
+            const thaiName = item.namedetails?.['name:th'] || item.namedetails?.name;
+            const title = (thaiName || item.name || item.display_name.split(',')[0] || '').trim();
+            return {
+              title,
+              subtitle: item.display_name,
+              keywords: [item.display_name, item.name, thaiName].filter(Boolean).join(' '),
+              lat: Number(item.lat),
+              lng: Number(item.lon),
+              type: item.type || 'place',
+              source: 'geocode' as const,
+            };
+          })
+          .filter(item => item.title && Number.isFinite(item.lat) && Number.isFinite(item.lng));
+
+        setRemoteSuggestions(mapped);
+      } catch {
+        window.clearTimeout(fetchTimeoutHandle);
+        setRemoteSuggestions([]);
+      } finally {
+        setIsRemoteSearching(false);
+      }
+    }, 750);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchQuery, provinceName, coords.lat, coords.lng, markers]);
+
+  useEffect(() => {
+    setSelectedSuggestionIndex(0);
+  }, [searchSuggestions.length]);
+
+  const flyToSearchPlace = (place: SearchPlace) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    map.flyTo([place.lat, place.lng], 16, {
+      duration: 1.7,
+      easeLinearity: 0.25,
+    });
+    highlightLocation(place.lat, place.lng);
+    setSearchQuery(place.title);
+    setShowSuggestions(false);
+  };
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSelectedSuggestionIndex(prev => Math.min(prev + 1, Math.max(searchSuggestions.length - 1, 0)));
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSelectedSuggestionIndex(prev => Math.max(prev - 1, 0));
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (searchSuggestions.length > 0) {
+        const index = Math.min(selectedSuggestionIndex, searchSuggestions.length - 1);
+        flyToSearchPlace(searchSuggestions[index]);
+      }
+    }
+
+    if (event.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Expose methods to parent component via ref
   useImperativeHandle(ref, () => ({
@@ -544,6 +781,66 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         <FilterPill color="#8b5cf6" label="Hotels" icon="🏨" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />
         <FilterPill color="#ef4444" label="Hospitals" icon="🏥" type="hospital" isActive={visibleFilters.has('hospital')} onToggle={() => toggleFilter('hospital')} />
         <FilterPill color="#3b82f6" label="Transport" icon="🚌" type="transport" isActive={visibleFilters.has('transport')} onToggle={() => toggleFilter('transport')} />
+      </div>
+
+      {/* Place Search */}
+      <div ref={searchBoxRef} className="absolute bottom-40 left-5 z-[1000] w-[min(420px,calc(100%-2.5rem))] pointer-events-auto">
+        {(showSuggestions && searchQuery.trim()) && (
+          <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-[#0f1115] border border-white/10 border-b-0 rounded-t-xl rounded-b-none overflow-hidden shadow-2xl z-50">
+            {searchSuggestions.length > 0 ? (
+              searchSuggestions.map((place, index) => (
+                <button
+                  key={`${place.title}-${place.lat}-${place.lng}-${index}`}
+                  onClick={() => flyToSearchPlace(place)}
+                  onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                  className={`w-full text-left px-4 py-2.5 border-b border-white/5 last:border-0 transition-colors ${index === selectedSuggestionIndex ? 'bg-cyan-500/15' : 'hover:bg-white/5'}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-medium text-white truncate">{place.title}</div>
+                    {index === selectedSuggestionIndex && (
+                      <span className="text-[10px] text-slate-500 bg-white/5 px-2 py-0.5 rounded">Enter</span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-400 truncate">
+                    {place.source === 'geocode' ? 'Map data' : place.type}
+                    {place.subtitle ? ` • ${place.subtitle}` : ''}
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-3 text-sm text-slate-400">
+                {isRemoteSearching ? 'Searching places...' : 'No matching places'}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className={`relative bg-[#0b1018]/95 border border-white/15 backdrop-blur-md flex items-center p-3.5 shadow-2xl transition-all w-full ${(showSuggestions && searchQuery.trim()) ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl'}`}>
+          <span className="text-slate-400 ml-2 mr-3">🔎</span>
+          <input
+            value={searchQuery}
+            onChange={(event) => {
+              setSearchQuery(event.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="ค้นหาสถานที่ (regex)..."
+            className="bg-transparent border-none outline-none text-sm text-yellow-400 w-full placeholder:text-slate-500 font-medium"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setShowSuggestions(false);
+                setRemoteSuggestions([]);
+              }}
+              className="text-slate-500 hover:text-white transition-colors mr-2"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* CSS for pulse animation */}

@@ -143,10 +143,12 @@ export const ProvinceTacticalPage = () => {
   const tabs = [
     { id: 'explore', label: 'Explore', icon: <Camera size={18} />, color: 'text-teal-400' },
     { id: 'stay', label: 'Stay', icon: <Bed size={18} />, color: 'text-violet-400' },
-    { id: 'eat', label: 'Eat & Drink', icon: <Utensils size={18} />, color: 'text-amber-400' },
+    { id: 'eat', label: 'Food', icon: <Utensils size={18} />, color: 'text-amber-400' },
     { id: 'travel', label: 'transit', icon: <Navigation size={18} />, color: 'text-blue-400' },
     { id: 'essentials', label: 'Essentials', icon: <Shield size={18} />, color: 'text-red-400' },
   ] as const;
+
+  const displayProvinceName = province.name === 'Bangkok Metropolis' ? 'Bangkok' : province.name;
 
   return (
     <div className="flex-1 flex bg-[#050608] overflow-hidden">
@@ -163,17 +165,16 @@ export const ProvinceTacticalPage = () => {
 
         {/* Province Info Overlay */}
         <div className="absolute bottom-0 left-0 right-0 z-[1000] p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
-          <div className="flex items-center gap-2 mb-2">
+          <h1 className="text-3xl font-black text-white leading-tight">
+            {displayProvinceName} <span className="text-slate-300 text-2xl font-bold">{provinceData.thaiName}</span>
+          </h1>
+          <p className="text-sm mt-1 flex items-center gap-2 flex-wrap">
             <span className={`px-2 py-0.5 text-xs font-mono rounded ${region.color} bg-white/10 border border-white/20`}>
               {region.code}
             </span>
-            <span className="text-slate-400 text-sm">{region.engName} Region</span>
-          </div>
-          <h1 className="text-3xl font-black text-white">{province.name}</h1>
-          <p className="text-lg text-slate-300">{provinceData.thaiName}</p>
-          {provinceData.slogan && (
-            <p className="text-sm text-cyan-400 italic mt-1">"{provinceData.slogan}"</p>
-          )}
+            <span className="text-slate-400">{region.engName} Region</span>
+            {provinceData.slogan && <span className="text-cyan-400 italic">"{provinceData.slogan}"</span>}
+          </p>
         </div>
 
         {/* Interactive Map */}

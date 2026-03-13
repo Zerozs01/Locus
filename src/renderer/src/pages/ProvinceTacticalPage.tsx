@@ -170,10 +170,12 @@ export const ProvinceTacticalPage = () => {
   const tabs = [
     { id: 'explore', label: 'Explore', icon: <Camera size={18} />, color: 'text-teal-400' },
     { id: 'stay', label: 'Stay', icon: <Bed size={18} />, color: 'text-violet-400' },
-    { id: 'eat', label: 'Eat & Drink', icon: <Utensils size={18} />, color: 'text-amber-400' },
+    { id: 'eat', label: 'Food', icon: <Utensils size={18} />, color: 'text-amber-400' },
     { id: 'travel', label: 'transit', icon: <Navigation size={18} />, color: 'text-blue-400' },
     { id: 'essentials', label: 'Essentials', icon: <Shield size={18} />, color: 'text-red-400' },
   ] as const;
+
+  const displayProvinceName = province.name === 'Bangkok Metropolis' ? 'Bangkok' : province.name;
 
   return (
     <div className="flex-1 flex bg-[#050608] overflow-hidden">
@@ -189,18 +191,19 @@ export const ProvinceTacticalPage = () => {
         </button>
 
         {/* Province Info Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 z-[1000] p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`px-2 py-0.5 text-xs font-mono rounded ${region.color} bg-white/10 border border-white/20`}>
-              {region.code}
-            </span>
-            <span className="text-slate-400 text-sm">{region.engName} Region</span>
+        <div className="absolute bottom-0 left-0 right-0 z-[1000] p-6 pb-8 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none">
+          <div className="flex flex-col pointer-events-none drop-shadow-lg">
+            <h1 className="text-4xl font-black text-white drop-shadow-2xl tracking-tight leading-none">
+              {displayProvinceName} <span className="text-slate-200 text-3xl font-bold">{provinceData.thaiName}</span>
+            </h1>
+            <p className="text-sm mt-2 flex items-center gap-2 flex-wrap">
+              <span className={`px-2 py-0.5 text-xs font-mono rounded ${region.color} bg-white/10 border border-white/20 shadow-sm`}>
+                {region.code}
+              </span>
+              <span className="text-slate-300">{region.engName} Region</span>
+              {provinceData.slogan && <span className="text-teal-300 italic">"{provinceData.slogan}"</span>}
+            </p>
           </div>
-          <h1 className="text-3xl font-black text-white">{province.name}</h1>
-          <p className="text-lg text-slate-300">{provinceData.thaiName}</p>
-          {provinceData.slogan && (
-            <p className="text-sm text-cyan-400 italic mt-1">"{provinceData.slogan}"</p>
-          )}
         </div>
 
         {/* Interactive Map */}
@@ -228,7 +231,7 @@ export const ProvinceTacticalPage = () => {
         {/* Tab Navigation */}
         <div className="flex-shrink-0 border-b border-white/10 bg-[#08090c] pt-2 pr-[140px] xl:pr-[120px]">
           <div className="flex overflow-x-auto min-h-[50px] items-end" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
-            {tabs.map((tab) => (
+            {tabs.filter(t => t.id !== 'stay' && t.id !== 'eat').map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -247,9 +250,9 @@ export const ProvinceTacticalPage = () => {
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {activeTab === 'explore' && <ExploreTab data={provinceData} onFlyTo={handleFlyToLocation} />}
-          {activeTab === 'stay' && <StayTab data={provinceData} onFlyTo={handleFlyToLocation} />}
-          {activeTab === 'eat' && <EatTab data={provinceData} onFlyTo={handleFlyToLocation} />}
+          {activeTab === 'explore' && <ExploreTab data={provinceData} onFlyTo={handleFlyToLocation} onNavigateTab={setActiveTab} />}
+          {activeTab === 'stay' && <StayTab data={provinceData} onFlyTo={handleFlyToLocation} onNavigateTab={setActiveTab} />}
+          {activeTab === 'eat' && <EatTab data={provinceData} onFlyTo={handleFlyToLocation} onNavigateTab={setActiveTab} />}
           {activeTab === 'travel' && <TravelTab data={provinceData} onFlyTo={handleFlyToLocation} />}
           {activeTab === 'essentials' && <EssentialsTab data={provinceData} province={province} onFlyTo={handleFlyToLocation} />}
         </div>
@@ -263,7 +266,7 @@ export const ProvinceTacticalPage = () => {
 // Type for fly-to callback
 type FlyToHandler = (lat: number, lng: number, title?: string) => void;
 
-const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandler }) => (
+const ExploreTab = ({ data, onFlyTo, onNavigateTab }: { data: ProvinceData; onFlyTo?: FlyToHandler; onNavigateTab?: (t:string)=>void }) => (
   <div className="space-y-4">
     {/* Quick Stats Bar */}
     <div className="flex items-center justify-between gap-2 overflow-x-auto bg-gradient-to-br from-white/5 to-transparent p-4 rounded-xl border border-white/10 shadow-lg" style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}>
@@ -272,6 +275,31 @@ const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHand
       <QuickBadge icon={<Shield size={16} />} value={`${data.safetyIndex}%`} label="Safe" color="emerald" />
       <div className="hidden sm:block w-px h-8 bg-white/10"></div>
       <QuickBadge icon={<Wallet size={16} />} value={data.dailyCost} label="/day" color="cyan" />
+    </div>
+
+    {/* Stay & Eat Sub-navigation Buttons */}
+    <div className="grid grid-cols-2 gap-3 mt-4">
+      <button 
+        onClick={() => onNavigateTab ? onNavigateTab('stay') : null}
+        className="flex items-center justify-between p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 transition-all group"
+      >
+        <div className="flex items-center gap-2">
+          <Bed size={18} className="text-violet-400" />
+          <span className="font-semibold text-white">Find Hotels</span>
+        </div>
+        <ChevronRight size={16} className="text-violet-400 group-hover:translate-x-1 transition-transform" />
+      </button>
+      
+      <button 
+        onClick={() => onNavigateTab ? onNavigateTab('eat') : null}
+        className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all group"
+      >
+        <div className="flex items-center gap-2">
+          <Utensils size={18} className="text-amber-400" />
+          <span className="font-semibold text-white">Find Food</span>
+        </div>
+        <ChevronRight size={16} className="text-amber-400 group-hover:translate-x-1 transition-transform" />
+      </button>
     </div>
 
     {/* Popular Activities - FIRST */}
