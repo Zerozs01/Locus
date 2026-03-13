@@ -144,7 +144,7 @@ export const ProvinceTacticalPage = () => {
     { id: 'explore', label: 'Explore', icon: <Camera size={18} />, color: 'text-teal-400' },
     { id: 'stay', label: 'Stay', icon: <Bed size={18} />, color: 'text-violet-400' },
     { id: 'eat', label: 'Eat & Drink', icon: <Utensils size={18} />, color: 'text-amber-400' },
-    { id: 'travel', label: 'Getting Around', icon: <Navigation size={18} />, color: 'text-blue-400' },
+    { id: 'travel', label: 'transit', icon: <Navigation size={18} />, color: 'text-blue-400' },
     { id: 'essentials', label: 'Essentials', icon: <Shield size={18} />, color: 'text-red-400' },
   ] as const;
 

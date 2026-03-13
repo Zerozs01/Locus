@@ -1,5 +1,6 @@
 import { Region, Province } from '../../data/regions';
 import { ProvinceData } from './types';
+import { Plane, Bus, Train, Car } from 'lucide-react';
 
 // Thai names mapping
 const thaiProvinceNames: Record<string, string> = {
@@ -575,7 +576,7 @@ export function generateProvinceData(province: Province, region: Region): Provin
   // Get Real Essential Contacts
   const essentialData = provinceEssentialData[dataKey] || {};
 
-  return {
+  const data: any = {
     thaiName: thaiProvinceNames[province.name] || province.name,
     slogan: provinceSlogans[dataKey] || provinceSlogans[province.name] || '',
     weather: { temp: '32°', condition: 'Sunny', humidity: '65%' },
@@ -787,8 +788,66 @@ export function generateProvinceData(province: Province, region: Region): Provin
       },
     ],
     
-    mapMarkers: generateMapMarkers(province.name, coords),
+    mapMarkers: [],
   };
+
+  const mapMarkers: ProvinceData['mapMarkers'] = [];
+
+  const addMarkers = (items: any[] | undefined, type: 'attraction' | 'restaurant' | 'hotel' | 'hospital' | 'transport') => {
+    if (!items) return;
+    items.forEach(item => {
+      if (item.coordinates) {
+        mapMarkers.push({
+          lat: item.coordinates.lat,
+          lng: item.coordinates.lng,
+          title: item.name,
+          type
+        });
+      }
+    });
+  };
+
+  const addMarker = (item: any | undefined, type: 'attraction' | 'restaurant' | 'hotel' | 'hospital' | 'transport') => {
+    if (item && item.coordinates) {
+      mapMarkers.push({
+        lat: item.coordinates.lat,
+        lng: item.coordinates.lng,
+        title: item.name,
+        type
+      });
+    }
+  };
+
+  addMarkers(data.attractions, 'attraction');
+  addMarkers(data.malls, 'attraction');
+  addMarkers(data.restaurants, 'restaurant');
+  addMarkers(data.cafes, 'restaurant');
+  addMarkers(data.nightMarkets, 'restaurant');
+  
+  if (data.accommodation) {
+    addMarkers(data.accommodation.budget, 'hotel');
+    addMarkers(data.accommodation.midRange, 'hotel');
+    addMarkers(data.accommodation.luxury, 'hotel');
+  }
+  
+  addMarkers(data.stayAreas, 'hotel');
+  addMarkers(data.hospitals, 'hospital');
+  addMarkers(data.pharmacies, 'hospital');
+  addMarkers(data.banks, 'attraction'); 
+  addMarkers(data.gasStations, 'transport');
+
+  addMarker(data.immigration, 'attraction');
+  addMarker(data.tatOffice, 'attraction');
+  addMarker(data.touristPolice, 'hospital');
+  
+  if (data.transportHubs) {
+    addMarker(data.transportHubs.airport, 'transport');
+    addMarker(data.transportHubs.busTerminal, 'transport');
+    addMarker(data.transportHubs.trainStation, 'transport');
+  }
+
+  data.mapMarkers = mapMarkers;
+  return data as ProvinceData;
 }
 
 function getProvinceCoords(name: string): { lat: number; lng: number } {
@@ -814,14 +873,4 @@ function getLocalDish(regionId: string, index: number): string {
   return regionDishes[index] || 'Local Specialty';
 }
 
-function generateMapMarkers(provinceName: string, center: { lat: number; lng: number }) {
-  // Generate markers around the center
-  return [
-    { lat: center.lat + 0.01, lng: center.lng + 0.005, title: `Wat ${provinceName}`, type: 'attraction' as const },
-    { lat: center.lat - 0.008, lng: center.lng + 0.012, title: 'Night Market', type: 'restaurant' as const },
-    { lat: center.lat + 0.005, lng: center.lng - 0.01, title: 'Central Hospital', type: 'hospital' as const },
-    { lat: center.lat - 0.015, lng: center.lng - 0.005, title: 'Bus Terminal', type: 'transport' as const },
-    { lat: center.lat + 0.02, lng: center.lng + 0.015, title: 'Grand Hotel', type: 'hotel' as const },
-  ];
-}
 

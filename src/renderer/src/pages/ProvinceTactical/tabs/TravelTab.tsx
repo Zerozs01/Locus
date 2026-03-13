@@ -43,9 +43,9 @@ export const TravelTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fly
 
   return (
     <div className="space-y-4">
-      {/* Getting Around - FIRST with border highlight */}
+      {/*  transit - FIRST with border highlight */}
       <Helpers.ContentCard 
-        title="Getting Around" 
+        title="transit" 
         icon={<Car size={18} />}
         color="cyan"
         borderColor="cyan"

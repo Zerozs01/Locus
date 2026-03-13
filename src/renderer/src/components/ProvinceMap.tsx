@@ -66,43 +66,43 @@ const tileProviders = {
 const markerIcons: Record<string, L.DivIcon> = {
   attraction: L.divIcon({
     className: 'custom-marker',
-    html: `<div style="background: linear-gradient(135deg, #14b8a6, #0d9488); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(20,184,166,0.4);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+    html: `<div style="background: linear-gradient(135deg, #14b8a6, #0d9488); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 3px 10px rgba(20,184,166,0.4);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
     </div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
   }),
   restaurant: L.divIcon({
     className: 'custom-marker',
-    html: `<div style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(245,158,11,0.4);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+    html: `<div style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 3px 10px rgba(245,158,11,0.4);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
     </div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
   }),
   hotel: L.divIcon({
     className: 'custom-marker',
-    html: `<div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(139,92,246,0.4);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg>
+    html: `<div style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 3px 10px rgba(139,92,246,0.4);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg>
     </div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
   }),
   hospital: L.divIcon({
     className: 'custom-marker',
-    html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(239,68,68,0.4);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+    html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 3px 10px rgba(239,68,68,0.4);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
     </div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
   }),
   transport: L.divIcon({
     className: 'custom-marker',
-    html: `<div style="background: linear-gradient(135deg, #3b82f6, #2563eb); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 3px 10px rgba(59,130,246,0.4);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/></svg>
+    html: `<div style="background: linear-gradient(135deg, #3b82f6, #2563eb); width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 3px 10px rgba(59,130,246,0.4);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/></svg>
     </div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
   }),
 };
 
@@ -246,7 +246,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [visibleFilters, setVisibleFilters] = useState<Set<string>>(
-    new Set(['attraction', 'restaurant', 'hotel', 'hospital', 'transport'])
+    new Set<string>()
   );
 
   const toggleFilter = (type: string) => {
@@ -352,7 +352,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       const map = L.map(mapRef.current, {
         center: [coords.lat, coords.lng],
         zoom: zoom,
-        zoomControl: true,
+        zoomControl: false,
         attributionControl: true,
       });
       mapInstanceRef.current = map;
@@ -534,30 +534,25 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         </div>
       )}
 
-      {/* Map Legend (Filter Toggle) */}
-      <div className="absolute bottom-4 right-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-slate-200">
-        <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center justify-between">
-          <span>Filters</span>
-          {visibleFilters.size < 5 && (
-            <button 
-              onClick={() => setVisibleFilters(new Set(['attraction', 'restaurant', 'hotel', 'hospital', 'transport']))}
-              className="text-[10px] text-cyan-600 hover:text-cyan-800"
-            >
-              Show All
-            </button>
-          )}
-        </div>
-        <div className="space-y-1.5">
-          <LegendItem color="#14b8a6" label="Attractions" type="attraction" isActive={visibleFilters.has('attraction')} onToggle={() => toggleFilter('attraction')} />
-          <LegendItem color="#f59e0b" label="Restaurants" type="restaurant" isActive={visibleFilters.has('restaurant')} onToggle={() => toggleFilter('restaurant')} />
-          <LegendItem color="#8b5cf6" label="Hotels" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />
-          <LegendItem color="#ef4444" label="Hospitals" type="hospital" isActive={visibleFilters.has('hospital')} onToggle={() => toggleFilter('hospital')} />
-          <LegendItem color="#3b82f6" label="Transport" type="transport" isActive={visibleFilters.has('transport')} onToggle={() => toggleFilter('transport')} />
-        </div>
+      {/* Map Filter Pills */}
+      <div 
+        className="absolute top-4 right-4 z-[1000] flex gap-2 max-w-[calc(100%-80px)] overflow-x-auto pointer-events-auto p-1 items-start"
+        style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}
+      >
+        <FilterPill color="#14b8a6" label="Attractions" icon="🎯" type="attraction" isActive={visibleFilters.has('attraction')} onToggle={() => toggleFilter('attraction')} />
+        <FilterPill color="#f59e0b" label="Restaurants" icon="🍜" type="restaurant" isActive={visibleFilters.has('restaurant')} onToggle={() => toggleFilter('restaurant')} />
+        <FilterPill color="#8b5cf6" label="Hotels" icon="🏨" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />
+        <FilterPill color="#ef4444" label="Hospitals" icon="🏥" type="hospital" isActive={visibleFilters.has('hospital')} onToggle={() => toggleFilter('hospital')} />
+        <FilterPill color="#3b82f6" label="Transport" icon="🚌" type="transport" isActive={visibleFilters.has('transport')} onToggle={() => toggleFilter('transport')} />
       </div>
 
       {/* CSS for pulse animation */}
       <style>{`
+        /* Hide scrollbar for FilterPills */
+        div::-webkit-scrollbar {
+          display: none;
+        }
+
         @keyframes pulse {
           0%, 100% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.05); opacity: 0.9; }
@@ -591,7 +586,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           margin-left: -8px;
           border-radius: 50%;
           background: linear-gradient(135deg, #06b6d4, #0891b2);
-          border: 3px solid white;
+          border: 2px solid white;
           box-shadow: 0 2px 10px rgba(6, 182, 212, 0.5);
           animation: highlight-core-pulse 1s ease-in-out infinite;
         }
@@ -607,22 +602,19 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   );
 });
 
-// Legend Item Component (Filter Toggle)
-const LegendItem = ({ color, label, type, isActive, onToggle }: { color: string; label: string; type: string; isActive: boolean; onToggle: () => void }) => (
+// Map Filter Pill Component
+const FilterPill = ({ color, label, icon, isActive, onToggle }: { color: string; label: string; icon: string; isActive: boolean; onToggle: () => void; type?: string }) => (
   <button 
     onClick={onToggle}
-    className={`flex items-center gap-2 w-full text-left transition-opacity hover:opacity-80 ${isActive ? 'opacity-100' : 'opacity-40'}`}
+    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all shadow-md border whitespace-nowrap ${
+      isActive 
+        ? 'bg-white text-slate-800' 
+        : 'bg-white text-slate-500 hover:bg-slate-50 border-slate-200'
+    }`}
+    style={{ borderColor: isActive ? color : undefined, borderWidth: isActive ? '2px' : '1px' }}
   >
-    {isActive ? (
-      <CheckSquare size={14} className="text-slate-500" />
-    ) : (
-      <Square size={14} className="text-slate-300" />
-    )}
-    <div 
-      className="w-3 h-3 rounded-full flex-shrink-0" 
-      style={{ backgroundColor: color }}
-    />
-    <span className={`text-xs ${isActive ? 'text-slate-800 font-medium' : 'text-slate-500 line-through'}`}>{label}</span>
+    <span style={{ fontSize: '14px' }}>{icon}</span>
+    <span>{label}</span>
   </button>
 );
 

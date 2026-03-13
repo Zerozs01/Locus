@@ -50,7 +50,7 @@ export const ProvinceTacticalPage = () => {
   const [region, setRegion] = useState<Region | null>(null);
   const [province, setProvince] = useState<Province | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarWidth, setSidebarWidth] = useState(450);
+  const [sidebarWidth, setSidebarWidth] = useState(500);
   const isDraggingRef = useRef(false);
   
   // Ref for ProvinceMap to trigger fly animations
@@ -73,7 +73,7 @@ export const ProvinceTacticalPage = () => {
   useEffect(() => {
     const handleDrag = (e: MouseEvent) => {
       if (isDraggingRef.current) {
-        const minWidth = 350;
+        const minWidth = 400;
         const maxWidth = 800;
         const newWidth = window.innerWidth - e.clientX;
         if (newWidth >= minWidth && newWidth <= maxWidth) {
@@ -171,7 +171,7 @@ export const ProvinceTacticalPage = () => {
     { id: 'explore', label: 'Explore', icon: <Camera size={18} />, color: 'text-teal-400' },
     { id: 'stay', label: 'Stay', icon: <Bed size={18} />, color: 'text-violet-400' },
     { id: 'eat', label: 'Eat & Drink', icon: <Utensils size={18} />, color: 'text-amber-400' },
-    { id: 'travel', label: 'Getting Around', icon: <Navigation size={18} />, color: 'text-blue-400' },
+    { id: 'travel', label: 'transit', icon: <Navigation size={18} />, color: 'text-blue-400' },
     { id: 'essentials', label: 'Essentials', icon: <Shield size={18} />, color: 'text-red-400' },
   ] as const;
 
@@ -182,10 +182,10 @@ export const ProvinceTacticalPage = () => {
         {/* Back Button Overlay */}
         <button 
           onClick={() => navigate('/')}
-          className="absolute top-4 left-4 z-[1000] flex items-center gap-2 px-3 py-2 bg-black/70 hover:bg-black/90 backdrop-blur-sm rounded-lg border border-white/10 text-white transition-all group"
+          className="absolute top-4 left-4 z-[1000] flex items-center justify-center w-10 h-10 bg-black/50 hover:bg-cyan-600 backdrop-blur-md rounded-full border border-white/20 text-white transition-all shadow-lg group pointer-events-auto"
+          title="Back to Radar"
         >
-          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-medium">Back to Radar</span>
+          <ArrowLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
         </button>
 
         {/* Province Info Overlay */}
@@ -223,18 +223,11 @@ export const ProvinceTacticalPage = () => {
         className="flex flex-col bg-[#050608] z-10"
         style={{ width: sidebarWidth, flexShrink: 0 }}
       >
-        {/* Quick Stats Bar */}
-        <div className="flex-shrink-0 p-4 bg-[#0a0c10] border-b border-white/10">
-          <div className="flex items-center gap-4">
-            <QuickBadge icon={<Thermometer size={16} />} value={provinceData.weather.temp} label={provinceData.weather.condition} color="amber" />
-            <QuickBadge icon={<Shield size={16} />} value={`${provinceData.safetyIndex}%`} label="Safe" color="emerald" />
-            <QuickBadge icon={<Wallet size={16} />} value={provinceData.dailyCost} label="/day" color="cyan" />
-          </div>
-        </div>
+        {/* Quick Stats Bar moved to ExploreTab */}
 
         {/* Tab Navigation */}
-        <div className="flex-shrink-0 border-b border-white/10 bg-[#08090c]">
-          <div className="flex">
+        <div className="flex-shrink-0 border-b border-white/10 bg-[#08090c] pt-2 pr-[140px] xl:pr-[120px]">
+          <div className="flex overflow-x-auto min-h-[50px] items-end" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -272,6 +265,15 @@ type FlyToHandler = (lat: number, lng: number, title?: string) => void;
 
 const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandler }) => (
   <div className="space-y-4">
+    {/* Quick Stats Bar */}
+    <div className="flex items-center justify-between gap-2 overflow-x-auto bg-gradient-to-br from-white/5 to-transparent p-4 rounded-xl border border-white/10 shadow-lg" style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}>
+      <QuickBadge icon={<Thermometer size={16} />} value={data.weather.temp} label={data.weather.condition} color="amber" />
+      <div className="hidden sm:block w-px h-8 bg-white/10"></div>
+      <QuickBadge icon={<Shield size={16} />} value={`${data.safetyIndex}%`} label="Safe" color="emerald" />
+      <div className="hidden sm:block w-px h-8 bg-white/10"></div>
+      <QuickBadge icon={<Wallet size={16} />} value={data.dailyCost} label="/day" color="cyan" />
+    </div>
+
     {/* Popular Activities - FIRST */}
     <ContentCard 
       title="Popular Activities" 
@@ -509,9 +511,9 @@ const TravelTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandl
 
   return (
     <div className="space-y-4">
-      {/* Getting Around - FIRST with border highlight */}
+      {/* transit- FIRST with border highlight */}
       <ContentCard 
-        title="Getting Around" 
+        title="transit" 
         icon={<Car size={18} />}
         color="cyan"
         borderColor="cyan"
@@ -823,7 +825,7 @@ const QuickBadge = ({ icon, value, label, color }: { icon: React.ReactNode; valu
     red: 'bg-red-500/20 text-red-400 border-red-500/30',
   };
   return (
-    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${colors[color]}`}>
+    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border whitespace-nowrap flex-shrink-0 ${colors[color]}`}>
       {icon}
       <span className="font-bold">{value}</span>
       <span className="text-xs opacity-70">{label}</span>
@@ -2214,7 +2216,7 @@ function generateProvinceData(province: Province, region: Region): ProvinceData 
   // Get Real Essential Contacts
   const essentialData = provinceEssentialData[dataKey] || {};
 
-  return {
+  const data: any = {
     thaiName: thaiProvinceNames[province.name] || province.name,
     slogan: provinceSlogans[dataKey] || provinceSlogans[province.name] || '',
     weather: { temp: '32°', condition: 'Sunny', humidity: '65%' },
@@ -2426,8 +2428,66 @@ function generateProvinceData(province: Province, region: Region): ProvinceData 
       },
     ],
     
-    mapMarkers: generateMapMarkers(province.name, coords),
+        mapMarkers: []
   };
+
+  const mapMarkers: any[] = [];
+
+  const addMarkers = (items, type) => {
+    if (!items) return;
+    items.forEach(item => {
+      if (item.coordinates) {
+        mapMarkers.push({
+          lat: item.coordinates.lat,
+          lng: item.coordinates.lng,
+          title: item.name,
+          type
+        });
+      }
+    });
+  };
+
+  const addMarker = (item, type) => {
+    if (item && item.coordinates) {
+      mapMarkers.push({
+        lat: item.coordinates.lat,
+        lng: item.coordinates.lng,
+        title: item.name,
+        type
+      });
+    }
+  };
+
+  addMarkers(data.attractions, 'attraction');
+  addMarkers(data.malls, 'attraction');
+  addMarkers(data.restaurants, 'restaurant');
+  addMarkers(data.cafes, 'restaurant');
+  addMarkers(data.nightMarkets, 'restaurant');
+  
+  if (data.accommodation) {
+    addMarkers(data.accommodation.budget, 'hotel');
+    addMarkers(data.accommodation.midRange, 'hotel');
+    addMarkers(data.accommodation.luxury, 'hotel');
+  }
+  
+  addMarkers(data.stayAreas, 'hotel');
+  addMarkers(data.hospitals, 'hospital');
+  addMarkers(data.pharmacies, 'hospital');
+  addMarkers(data.banks, 'attraction'); 
+  addMarkers(data.gasStations, 'transport');
+
+  addMarker(data.immigration, 'attraction');
+  addMarker(data.tatOffice, 'attraction');
+  addMarker(data.touristPolice, 'hospital');
+  
+  if (data.transportHubs) {
+    addMarker(data.transportHubs.airport, 'transport');
+    addMarker(data.transportHubs.busTerminal, 'transport');
+    addMarker(data.transportHubs.trainStation, 'transport');
+  }
+
+  data.mapMarkers = mapMarkers;
+  return data as ProvinceData;
 }
 
 function getProvinceCoords(name: string): { lat: number; lng: number } {
@@ -2453,13 +2513,3 @@ function getLocalDish(regionId: string, index: number): string {
   return regionDishes[index] || 'Local Specialty';
 }
 
-function generateMapMarkers(provinceName: string, center: { lat: number; lng: number }) {
-  // Generate markers around the center
-  return [
-    { lat: center.lat + 0.01, lng: center.lng + 0.005, title: `Wat ${provinceName}`, type: 'attraction' as const },
-    { lat: center.lat - 0.008, lng: center.lng + 0.012, title: 'Night Market', type: 'restaurant' as const },
-    { lat: center.lat + 0.005, lng: center.lng - 0.01, title: 'Central Hospital', type: 'hospital' as const },
-    { lat: center.lat - 0.015, lng: center.lng - 0.005, title: 'Bus Terminal', type: 'transport' as const },
-    { lat: center.lat + 0.02, lng: center.lng + 0.015, title: 'Grand Hotel', type: 'hotel' as const },
-  ];
-}
