@@ -189,6 +189,13 @@ export const RadarPage = () => {
     setSelectedProvince(null);
   }, []);
 
+  const handleSelectProvinceByName = useCallback((name: string) => {
+    const provInfo = allProvinces.find(p => p.name === name || getThaiProvinceName(p.name) === name);
+    if (provInfo) {
+      handleSearchSelect(provInfo);
+    }
+  }, [allProvinces, handleSearchSelect]);
+
   useEffect(() => {
     if (mapMode === 'province' && selectedRegionId) {
       loadRegionProvinces(selectedRegionId);
@@ -212,6 +219,7 @@ export const RadarPage = () => {
             selectedProvince={selectedProvince} 
             onSelectProvince={handleProvinceSelect} 
             onClearProvince={handleClearProvince}
+            onSelectProvinceByName={handleSelectProvinceByName}
           />
         </div>
 

@@ -11,6 +11,7 @@ export interface ThailandMapProps {
   selectedProvince: Province | null;
   onSelectProvince: (prov: Province) => void;
   onClearProvince?: () => void;
+  onSelectProvinceByName?: (name: string) => void;
 }
 
 // Map provinces to their regions
@@ -120,7 +121,8 @@ export const ThailandMap = memo(({
   onSelectRegion, 
   viewMode,
   selectedProvince,
-  onClearProvince
+  onClearProvince,
+  onSelectProvinceByName
 }: ThailandMapProps) => {
 
   const getZoomCenter = (): { center: [number, number]; zoom: number } => {
@@ -146,15 +148,21 @@ export const ThailandMap = memo(({
   };
 
   const { center, zoom } = getZoomCenter();
-  const handleGeographyClick = (regionId: string) => {
-    if (viewMode === 'province' && selectedProvince) {
-      onClearProvince?.();
-      if (regionId !== activeId) {
-        onSelectRegion(regionId);
+  const handleGeographyClick = (regionId: string, provinceName: string) => {
+    if (viewMode === 'province') {
+      if (selectedProvince && selectedProvince.name === provinceName) {
+        onClearProvince?.();
+        return;
       }
-      return;
+      if (onSelectProvinceByName) {
+        onSelectProvinceByName(provinceName);
+        return;
+      }
     }
-    onSelectRegion(regionId);
+    // If we're in region mode OR we fall back
+    if (regionId !== activeId) {
+      onSelectRegion(regionId);
+    }
   };
 
   return (
@@ -223,7 +231,7 @@ export const ThailandMap = memo(({
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    onClick={() => handleGeographyClick(regionId)}
+                    onClick={() => handleGeographyClick(regionId, provinceName)}
                     style={{
                       default: {
                         fill: fillColor,

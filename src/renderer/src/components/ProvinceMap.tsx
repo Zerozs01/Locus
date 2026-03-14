@@ -234,6 +234,8 @@ type SearchPlace = {
   subtitle?: string;
   keywords?: string;
   source: 'local' | 'geocode';
+  boundingbox?: string[];
+  geojson?: any;
 };
 
 const bangkokFallbackPlaces: SearchPlace[] = [
@@ -338,18 +340,20 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     const qWords = q.split(/\s+/);
 
     const isMatch = (place: SearchPlace): boolean => {
-      const title = place.title.toLowerCase();
-      const subtitle = (place.subtitle || '').toLowerCase();
-      const keywords = (place.keywords || '').toLowerCase();
+      const title = place.title || '';
+      const subtitle = place.subtitle || '';
+      const keywords = place.keywords || '';
+      const titleLower = title.toLowerCase();
+      const subtitleLower = subtitle.toLowerCase();
       
       // Regex match (highest priority)
-      if (regex.test(place.title) || regex.test(subtitle) || regex.test(keywords)) return true;
+      if (regex.test(title) || regex.test(subtitle) || regex.test(keywords)) return true;
       
       // Keyword word-by-word match (local sources priority)
-      if (place.source === 'local' && qWords.some(word => title.includes(word) || subtitle.includes(word))) return true;
+      if (place.source === 'local' && qWords.some(word => titleLower.includes(word) || subtitleLower.includes(word))) return true;
       
       // Substring match as fallback
-      if (title.includes(qLower) || subtitle.includes(qLower)) return true;
+      if (titleLower.includes(qLower) || subtitleLower.includes(qLower)) return true;
       
       return false;
     };
@@ -357,7 +361,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     return merged
       .filter(isMatch)
       .filter(place => {
-        const dedupeKey = `${place.title.toLowerCase()}_${place.lat.toFixed(5)}_${place.lng.toFixed(5)}`;
+        const dedupeKey = `${(place.title || '').toLowerCase()}_${place.lat.toFixed(5)}_${place.lng.toFixed(5)}`;
         if (seen.has(dedupeKey)) return false;
         seen.add(dedupeKey);
         return true;
@@ -368,9 +372,9 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           return a.source === 'local' ? -1 : 1;
         }
         // Then by string length (shorter = likely more relevant)
-        return a.title.length - b.title.length;
+        return (a.title || '').length - (b.title || '').length;
       })
-      .slice(0, 8);
+      .slice(0, 15);
   }, [searchQuery, searchablePlaces, remoteSuggestions]);
 
   useEffect(() => {
@@ -390,35 +394,37 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
 
       setIsRemoteSearching(true);
       const controller = new AbortController();
-      const fetchTimeoutHandle = window.setTimeout(() => controller.abort(), 1800);
+      const fetchTimeoutHandle = window.setTimeout(() => controller.abort(), 4000);
 
       try {
-        const normalizedProvinceName = provinceName === 'Bangkok Metropolis' ? 'Bangkok' : provinceName;
-        const queries = [query, `${query} ${normalizedProvinceName}`];
-        const responses = await Promise.all(
-          queries.map(async (q) => {
-            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=th,en&countrycodes=th&addressdetails=1&namedetails=1&viewbox=${encodeURIComponent(viewBox)}&q=${encodeURIComponent(q)}`;
-            try {
-              const response = await fetch(url, { signal: controller.signal });
-              if (!response.ok) return [];
-              const data: Array<{
-                lat: string;
-                lon: string;
-                display_name: string;
-                name?: string;
-                type?: string;
-                namedetails?: Record<string, string>;
-              }> = await response.json();
-              return data;
-            } catch {
-              return [];
-            }
-          })
-        );
+        // Only use one query to prevent violating Nominatim's 1 req/sec policy.
+        // Viewbox already biases towards the current map area, so we don't necessarily need to append the province name.
+        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=15&accept-language=th,en&countrycodes=th&addressdetails=1&namedetails=1&polygon_geojson=1&viewbox=${encodeURIComponent(viewBox)}&q=${encodeURIComponent(query)}&email=locus.app.contact@gmail.com`;
+        
+        const response = await fetch(url, { 
+          signal: controller.signal,
+          headers: {
+            'Accept-Language': 'th,en',
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (!response.ok) throw new Error('Network error');
+        
+        const data: Array<{
+          lat: string;
+          lon: string;
+          display_name: string;
+          name?: string;
+          type?: string;
+          namedetails?: Record<string, string>;
+          boundingbox?: string[];
+          geojson?: any;
+        }> = await response.json();
+        
         window.clearTimeout(fetchTimeoutHandle);
 
-        const mapped: SearchPlace[] = responses
-          .flat()
+        const mapped: SearchPlace[] = data
           .map(item => {
             const thaiName = item.namedetails?.['name:th'] || item.namedetails?.name;
             const title = (thaiName || item.name || item.display_name.split(',')[0] || '').trim();
@@ -430,12 +436,14 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
               lng: Number(item.lon),
               type: item.type || 'place',
               source: 'geocode' as const,
+              boundingbox: item.boundingbox,
+              geojson: item.geojson,
             };
           })
           .filter(item => item.title && Number.isFinite(item.lat) && Number.isFinite(item.lng));
 
         setRemoteSuggestions(mapped);
-      } catch {
+      } catch (error) {
         window.clearTimeout(fetchTimeoutHandle);
         setRemoteSuggestions([]);
       } finally {
@@ -454,11 +462,24 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    map.flyTo([place.lat, place.lng], 16, {
-      duration: 1.7,
-      easeLinearity: 0.25,
-    });
-    highlightLocation(place.lat, place.lng);
+    let bbox = place.boundingbox;
+
+    if (bbox) {
+      const [lat1, lat2, lon1, lon2] = bbox.map(Number);
+      map.flyToBounds([[lat1, lon1], [lat2, lon2]], {
+        duration: 1.7,
+        easeLinearity: 0.25,
+        padding: [50, 50],
+        maxZoom: 16
+      });
+    } else {
+      map.flyTo([place.lat, place.lng], 16, {
+        duration: 1.7,
+        easeLinearity: 0.25,
+      });
+    }
+    
+    highlightLocation(place.lat, place.lng, place.geojson, bbox);
     setSearchQuery(place.title);
     setShowSuggestions(false);
   };
@@ -531,7 +552,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   }));
 
   // Create highlight effect at a location
-  const highlightLocation = (targetLat: number, targetLng: number) => {
+  const highlightLocation = (targetLat: number, targetLng: number, geojson?: any, boundingbox?: string[]) => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
@@ -542,7 +563,35 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       highlightLayerRef.current = L.layerGroup().addTo(map);
     }
 
-    // Create pulsing circle effect
+    if (geojson && geojson.type !== 'Point') {
+      const polygon = L.geoJSON(geojson, {
+        style: {
+          color: '#0ea5e9', // cyan-500
+          weight: 3,
+          opacity: 0.8,
+          fillColor: '#0ea5e9',
+          fillOpacity: 0.2,
+          dashArray: '5, 5'
+        }
+      });
+      highlightLayerRef.current.addLayer(polygon);
+    } else if (boundingbox) {
+      const [lat1, lat2, lon1, lon2] = boundingbox.map(Number);
+      // Only draw rectangle if it has some area (not a tiny single point bounding box)
+      if (Math.abs(lat2 - lat1) > 0.0001 || Math.abs(lon2 - lon1) > 0.0001) {
+        const rect = L.rectangle([[lat1, lon1], [lat2, lon2]], {
+          color: '#0ea5e9',
+          weight: 3,
+          opacity: 0.8,
+          fillColor: '#0ea5e9',
+          fillOpacity: 0.2,
+          dashArray: '5, 5'
+        });
+        highlightLayerRef.current.addLayer(rect);
+      }
+    }
+
+    // Always draw pulsing circle at the center point
     const pulseIcon = L.divIcon({
       className: 'highlight-pulse',
       html: `
@@ -559,13 +608,6 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     });
     
     highlightLayerRef.current.addLayer(highlightMarker);
-
-    // Remove highlight after animation
-    setTimeout(() => {
-      if (highlightLayerRef.current) {
-        highlightLayerRef.current.clearLayers();
-      }
-    }, 3000);
   };
 
   useEffect(() => {
@@ -784,7 +826,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       </div>
 
       {/* Place Search */}
-      <div ref={searchBoxRef} className="absolute bottom-40 left-5 z-[1000] w-[min(420px,calc(100%-2.5rem))] pointer-events-auto">
+      <div ref={searchBoxRef} className="absolute bottom-28 left-5 z-[1000] w-[min(420px,calc(100%-2.5rem))] pointer-events-auto">
         {(showSuggestions && searchQuery.trim()) && (
           <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-[#0f1115] border border-white/10 border-b-0 rounded-t-xl rounded-b-none overflow-hidden shadow-2xl z-50">
             {searchSuggestions.length > 0 ? (
