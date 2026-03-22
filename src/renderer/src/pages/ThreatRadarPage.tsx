@@ -14,10 +14,10 @@ const regionImageMap: Record<string, string> = regionsData.reduce((acc, r) => {
 }, {} as Record<string, string>);
 
 /**
- * Radar Page - Main Map View (หน้าแรก)
- * แสดงแผนที่ประเทศไทย + Region Dashboard
+ * Threat Radar Page - Survival Mode
+ * แสดงแผนที่ประเทศไทย + Region Dashboard (Threat Assessment)
  */
-export const RadarPage = () => {
+export const ThreatRadarPage = () => {
   const navigate = useNavigate();
   const [regions, setRegions] = useState<Region[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>('central');
@@ -229,20 +229,20 @@ export const RadarPage = () => {
             <StatCard 
               icon={<Users size={15} />}
               value={isProvinceFocus ? (getProvincePopulation(selectedProvince) || activeData.summary.pop) : activeData.summary.pop}
-              label="Population"
-              colorClass="yellow"
+              label="Living Targets"
+              colorClass="red"
             />
             <StatCard 
               icon={<Maximize size={15} />}
               value={isProvinceFocus ? (getProvinceArea(selectedProvince) || activeData.summary.area) : activeData.summary.area}
-              label="Area km²"
+              label="Hotzone Area"
               colorClass="orange"
             />
             {!isProvinceFocus && (
               <StatCard 
                 icon={<Building size={15} />}
                 value={String(activeData.summary.provinces)}
-                label="Provinces"
+                label="Sectors"
                 colorClass="amber"
               />
             )}
@@ -260,9 +260,9 @@ export const RadarPage = () => {
                     key={prov.id}
                     onClick={() => handleSearchSelect(prov)}
                     onMouseEnter={() => setSelectedIndex(index)}
-                    className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${index === selectedIndex ? 'bg-cyan-500/20' : 'hover:bg-white/5'}`}
+                    className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${index === selectedIndex ? 'bg-red-500/20' : 'hover:bg-white/5'}`}
                   >
-                    <MapPin size={16} className={`flex-shrink-0 ${index === selectedIndex ? 'text-cyan-400' : 'text-slate-500'}`} />
+                    <MapPin size={16} className={`flex-shrink-0 ${index === selectedIndex ? 'text-red-400' : 'text-slate-500'}`} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-white truncate">{prov.name}</div>
                       <div className="text-[10px] text-slate-500">{getThaiProvinceName(prov.name)} • {prov.regionName}</div>
@@ -275,9 +275,9 @@ export const RadarPage = () => {
               </div>
             )}
 
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/30 to-blue-600/30 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity duration-200"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600/30 to-orange-600/30 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity duration-200"></div>
             <div className="relative bg-[#0f1115] border border-white/10 rounded-xl flex items-center p-3.5 shadow-xl transition-colors duration-150 will-change-auto w-full">
-              <Search className="text-slate-400 ml-2 mr-3 group-focus-within:text-cyan-400 transition-colors" size={20} />
+              <Search className="text-slate-400 ml-2 mr-3 group-focus-within:text-red-500 transition-colors" size={20} />
               <input 
                 ref={searchInputRef}
                 value={searchQuery}
@@ -285,8 +285,8 @@ export const RadarPage = () => {
                 onKeyDown={handleSearchKeyDown}
                 onFocus={() => searchQuery && setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                className="bg-transparent border-none outline-none text-sm text-yellow-400 w-full placeholder:text-slate-500 font-medium"
-                placeholder="ค้นหาจังหวัด (TH/EN)..."
+                className="bg-transparent border-none outline-none text-sm text-red-400 w-full placeholder:text-slate-500 font-medium"
+                placeholder="สแกนหาพื้นที่เป้าหมาย (TH/EN)..."
               />
               {searchQuery && (
                 <button 
@@ -322,12 +322,12 @@ interface StatCardProps {
   icon: React.ReactNode;
   value: string;
   label: string;
-  colorClass: 'yellow' | 'orange' | 'amber';
+  colorClass: 'red' | 'orange' | 'amber';
 }
 
 const StatCard = ({ icon, value, label, colorClass }: StatCardProps) => {
   const colors = {
-    yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500', text: 'text-yellow-400', iconText: 'text-black' },
+    red: { border: 'border-red-500', bg: 'bg-red-500', text: 'text-red-400', iconText: 'text-white' },
     orange: { border: 'border-orange-500', bg: 'bg-orange-500', text: 'text-orange-400', iconText: 'text-white' },
     amber: { border: 'border-amber-700', bg: 'bg-amber-700', text: 'text-amber-500', iconText: 'text-white' },
   };

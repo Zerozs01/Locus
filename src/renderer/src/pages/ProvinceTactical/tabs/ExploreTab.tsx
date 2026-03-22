@@ -1,41 +1,9 @@
-import { useState } from 'react';
 import { 
-  ArrowLeft, 
-  Phone, 
-  Shield, 
-  Building2, 
-  Utensils, 
-  Car, 
-  Plane,
-  Bus,
-  Train,
-  AlertTriangle,
-  ChevronRight,
-  Star,
-  Wallet,
-  Loader2,
-  Bed,
-  Coffee,
-  Camera,
-  Navigation,
-  Clock,
-  Thermometer,
-  Wifi,
-  MapPinned,
-  Hospital,
-  GraduationCap,
-  ShoppingBag,
   Zap,
-  Landmark,
-  Fuel,
-  Pill,
-  ExternalLink,
-  Copy,
-  ChevronDown,
-  Crosshair
+  Camera,
+  Clock
 } from 'lucide-react';
 import { FlyToHandler, ProvinceData } from '../types';
-import { Province } from '../../data/regions';
 import * as Helpers from '../components/HelperComponents';
 
 export const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandler }) => (
@@ -93,4 +61,4 @@ export const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fl
       </div>
     </Helpers.ContentCard>
   </div>
-);
+);

@@ -4,41 +4,18 @@ import {
   ArrowLeft, 
   Phone, 
   Shield, 
-  Building2, 
   Utensils, 
-  Car, 
-  Plane,
-  Bus,
-  Train,
   AlertTriangle,
-  ChevronRight,
-  Star,
   Wallet,
   Loader2,
   Bed,
-  Coffee,
   Camera,
   Navigation,
-  Clock,
-  Thermometer,
-  Wifi,
-  MapPinned,
-  Hospital,
-  GraduationCap,
-  ShoppingBag,
-  Zap,
-  Landmark,
-  Fuel,
-  Pill,
-  ExternalLink,
-  Copy,
-  ChevronDown,
-  Crosshair
+  Thermometer
 } from 'lucide-react';
-import { Province, Region } from '../data/regions';
-import ProvinceMap, { ProvinceMapHandle } from '../components/ProvinceMap';
-import { measureAsync } from '../utils/perf';
-import { ProvinceData } from './types';
+import { Province, Region } from '../../data/regions';
+import ProvinceMap, { ProvinceMapHandle } from '../../components/ProvinceMap';
+import { measureAsync } from '../../utils/perf';
 import { generateProvinceData } from './data';
 import { ExploreTab } from './tabs/ExploreTab';
 import { StayTab } from './tabs/StayTab';

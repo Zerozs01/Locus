@@ -1,6 +1,6 @@
 // Page exports for Locus application
-export { RadarPage } from './RadarPage';
-export { ProvinceTacticalPage } from './ProvinceTacticalPage';
+export { ThreatRadarPage } from './ThreatRadarPage';
+export { ProvinceTacticalPage } from './ProvinceTactical';
 export { SettingsPage } from './SettingsPage';
 export { GeoArchivePage } from './GeoArchivePage';
 export { IntelligencePage } from './IntelligencePage';

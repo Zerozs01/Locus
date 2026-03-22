@@ -1,5 +1,5 @@
 import { Region, Province } from '../data/regions';
-import { Grid, MapPin, Map as MapIcon, MessageSquare, Coins, Wallet, Utensils, Flower2, Landmark, Music, Shield, ExternalLink, Bus } from 'lucide-react';
+import { Grid, MapPin, Map as MapIcon, MessageSquare, Coins, Wallet, Biohazard, Skull, Activity, ShieldAlert, Shield, ExternalLink, Route } from 'lucide-react';
 import { DetailCard } from './DetailCard';
 import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatProps } from './RegionalIntelBar';
 import { CachedImage } from './CachedImage';
@@ -133,8 +133,8 @@ export const RegionDashboard = memo(({
                      )}
                   </div>
                   {isActive && (
-                     <button onClick={(e) => { e.stopPropagation(); setMapMode(mapMode === 'region' ? 'province' : 'region'); }} className={`px-4 py-2 rounded-full border flex items-center gap-2 text-xs font-bold transition-all z-50 ${mapMode === 'province' ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-white/10 border-white/10 text-slate-300 hover:bg-white/20'}`}>
-                       {mapMode === 'province' ? <Grid size={14}/> : <MapPin size={14}/>} {mapMode === 'province' ? 'Region Stats' : 'View Provinces'}
+                     <button onClick={(e) => { e.stopPropagation(); setMapMode(mapMode === 'region' ? 'province' : 'region'); }} className={`px-4 py-2 rounded-full border flex items-center gap-2 text-xs font-bold transition-all z-50 ${mapMode === 'province' ? 'bg-red-600 border-red-500 text-white' : 'bg-red-900/30 border-red-500/30 text-red-200 hover:bg-red-800/50'}`}>
+                       {mapMode === 'province' ? <Grid size={14}/> : <MapPin size={14}/>} {mapMode === 'province' ? 'Threat Summary' : 'Scan Sectors'}
                      </button>
                   )}
                </div>
@@ -144,13 +144,13 @@ export const RegionDashboard = memo(({
               <div className="flex-1 overflow-y-auto mt-1 pr-2 opacity-100">
                   <p className="text-slate-300 font-light leading-relaxed mb-4 max-w-2xl border-l-2 border-white/10 pl-4">{reg.desc}</p>
                   <div className="grid grid-cols-4 gap-3 pb-3">
-                     <DetailCard icon={<Coins />} label="Daily Cost" value={reg.stats.dailyCost} sub="Avg/Person" bgClass={reg.gradient} textClass="text-emerald-300" />
-                     <DetailCard icon={<Wallet />} label="Monthly" value={reg.stats.monthlyCost} sub="Living Cost" bgClass={reg.gradient} textClass="text-emerald-300" />
-                     <DetailCard icon={<Utensils />} label="Signature Food" value={reg.stats.food} sub="Must Try" bgClass={reg.gradient} textClass="text-orange-300" />
-                     <DetailCard icon={<Flower2 />} label="Flora" value={reg.stats.flora} sub="Native Plant" bgClass={reg.gradient} textClass="text-rose-300" />
-                     <DetailCard icon={<Landmark />} label="Attraction" value={reg.stats.attraction} sub="Top Rated" bgClass={reg.gradient} textClass="text-cyan-300" />
-                     <DetailCard icon={<Music />} label="Nightlife" value={reg.stats.nightlife} sub="Hot Zone" bgClass={reg.gradient} textClass="text-purple-300" />
-                     <DetailCard icon={<Shield />} label="Safety Index" value={`${reg.safety}%`} sub="Status" bgClass={reg.gradient} textClass={reg.color} />
+                     <DetailCard icon={<Coins />} label="Ration Cost" value={reg.stats.dailyCost} sub="Avg/Day" bgClass={reg.gradient} textClass="text-emerald-300" />
+                     <DetailCard icon={<Wallet />} label="Stash Value" value={reg.stats.monthlyCost} sub="Resources" bgClass={reg.gradient} textClass="text-emerald-300" />
+                     <DetailCard icon={<Biohazard />} label="Contamination" value="Moderate" sub="Bio-Threat" bgClass={reg.gradient} textClass="text-green-400" />
+                     <DetailCard icon={<Skull />} label="Hostiles" value="High density" sub="Infecteds" bgClass={reg.gradient} textClass="text-red-400" />
+                     <DetailCard icon={<ShieldAlert />} label="Safe Zones" value={reg.stats.attraction} sub="Secured" bgClass={reg.gradient} textClass="text-cyan-300" />
+                     <DetailCard icon={<Activity />} label="Risk Level" value="Critical" sub="Hot Zone" bgClass={reg.gradient} textClass="text-orange-400" />
+                     <DetailCard icon={<Shield />} label="Survival Rate" value={`${reg.safety}%`} sub="Status" bgClass={reg.gradient} textClass={reg.color} />
                   </div>
                   
                   {/* Description & Buttons at Bottom */}
@@ -161,9 +161,9 @@ export const RegionDashboard = memo(({
                               e.stopPropagation(); 
                               navigate(`/travel-guide/${reg.id}`);
                            }}
-                           className="flex-1 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2"
+                           className="flex-1 py-3 bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 rounded-xl text-sm font-bold text-red-100 transition-all flex items-center justify-center gap-2"
                         >
-                           <Bus size={16} /> Travel Guide
+                           <Route size={16} /> Evac Routes
                         </button>
                         <button 
                            onClick={(e) => { 
@@ -235,7 +235,7 @@ export const RegionDashboard = memo(({
                              e.stopPropagation();
                              onSelectProvince(prov);
                            }}
-                           className={`bg-[#0f1115] border ${isSelected ? 'border-cyan-500' : 'border-white/10'} rounded-xl overflow-hidden group transition-all duration-300 hover:border-cyan-500/50 cursor-pointer`}
+                           className={`bg-[#0f1115] border ${isSelected ? 'border-red-500' : 'border-white/10'} rounded-xl overflow-hidden group transition-all duration-300 hover:border-red-500/50 cursor-pointer`}
                          >
                             <div className="relative h-28 overflow-hidden">
                                <CachedImage loading="lazy" decoding="async" src={prov.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={getDisplayName(prov.name)} />
@@ -260,9 +260,9 @@ export const RegionDashboard = memo(({
                                             onViewProvinceDetail(selectedRegionId, prov.id);
                                           }
                                         }}
-                                        className="w-full py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded transition-colors flex items-center justify-center gap-1 group"
+                                        className="w-full py-1.5 bg-red-800 hover:bg-red-600 text-white text-xs font-bold rounded transition-colors flex items-center justify-center gap-1 group"
                                      >
-                                        View Details
+                                        Tactical Map
                                         <ExternalLink size={12} className="group-hover:translate-x-0.5 transition-transform" />
                                      </button>
                                   </div>
