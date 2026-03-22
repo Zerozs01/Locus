@@ -4,7 +4,7 @@ import { DetailCard } from './DetailCard';
 import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatProps } from './RegionalIntelBar';
 import { CachedImage } from './CachedImage';
 import { useNavigate } from 'react-router-dom';
-import { useMemo, useRef, useEffect } from 'react';
+import { memo, useMemo, useRef, useEffect } from 'react';
 import { regionTheme, type RegionId } from '../data/regionTheme';
 
 // Display names for provinces with long official names (GeoJSON names → Display names)
@@ -59,7 +59,7 @@ export interface RegionDashboardProps {
   loadingProvinceRegionId?: string | null;
 }
 
-export const RegionDashboard = ({ 
+export const RegionDashboard = memo(({ 
   regions, 
   selectedRegionId, 
   onSelectRegion, 
@@ -106,14 +106,16 @@ export const RegionDashboard = ({
           <div 
             key={reg.id} 
             onClick={() => onSelectRegion(reg.id)} 
+            data-region={reg.id}
+            data-active={isActive}
             className={`
-              group relative transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden border-l-4 border-l-transparent border-b border-white/5
-              ${isActive ? 'flex-[10] border-l-transparent' : `flex-[1] hover:flex-[1.2] opacity-60 hover:opacity-100 ${hoverStyle.border} ${hoverStyle.glow} hover:shadow-lg`}
+              region-card group relative transition-[flex-grow,opacity] duration-300 ease-out cursor-pointer overflow-hidden
+              ${isActive ? 'flex-[10]' : `flex-[1] hover:flex-[1.2] opacity-60 hover:opacity-100 bg-[#0f1115]/20`}
             `}
           >
             {/* Background */}
             <div className="absolute inset-0 overflow-hidden">
-              <CachedImage loading="lazy" decoding="async" src={reg.image} className={`w-full h-full object-cover transition-transform duration-[1.5s] ${isActive ? 'scale-105' : 'grayscale scale-100 opacity-30'}`} alt={reg.name} />
+              <CachedImage loading="lazy" decoding="async" src={reg.image} className={`w-full h-full object-cover transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-30'}`} alt={reg.name} />
               <div className={`absolute inset-0 ${isActive ? 'bg-gradient-to-r from-black via-black/95 to-black/50' : 'bg-black/80 hover:bg-black/60 transition-colors'}`}></div>
             </div>
 
@@ -137,8 +139,9 @@ export const RegionDashboard = ({
                   )}
                </div>
 
-               {/* REGION STATS VIEW (Default) */}
-               <div className={`flex-1 overflow-y-auto mt-1 pr-2 transition-all duration-700 ${isActive && mapMode === 'region' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full'}`}>
+              {/* REGION STATS VIEW (Default) */}
+              {isActive && mapMode === 'region' && (
+              <div className="flex-1 overflow-y-auto mt-1 pr-2 opacity-100">
                   <p className="text-slate-300 font-light leading-relaxed mb-4 max-w-2xl border-l-2 border-white/10 pl-4">{reg.desc}</p>
                   <div className="grid grid-cols-4 gap-3 pb-3">
                      <DetailCard icon={<Coins />} label="Daily Cost" value={reg.stats.dailyCost} sub="Avg/Person" bgClass={reg.gradient} textClass="text-emerald-300" />
@@ -202,14 +205,16 @@ export const RegionDashboard = ({
                      <RegionalIntelBar climate={climate} stability={stability} mobility={mobility} />
                   </div>
                </div>
+               )}
 
                {/* PROVINCE GALLERY GRID (3 Columns) - Sorted A-Z with Scroll */}
+               {isActive && mapMode === 'province' && (
                <div
                  ref={isActive ? provinceListRef : undefined}
-                 className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar mt-2 pr-1 transition-all duration-700 ${isActive && mapMode === 'province' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none absolute w-full h-full'}`}
+                 className="flex-1 min-h-0 overflow-y-auto custom-scrollbar mt-2 pr-1 opacity-100"
                  style={{ maxHeight: 'calc(100% - 80px)' }}
                >
-                  <div className="grid grid-cols-3 gap-4 pb-8">
+                  <div className="grid grid-cols-3 gap-4 pb-7">
                     {isActive && reg.subProvinces.length === 0 && loadingProvinceRegionId === reg.id ? (
                       <div className="col-span-3 text-center text-sm text-slate-500 py-10">
                         กำลังโหลดจังหวัด...
@@ -268,6 +273,7 @@ export const RegionDashboard = ({
                     })}
                   </div>
                </div>
+               )}
 
             </div>
           </div>
@@ -275,4 +281,4 @@ export const RegionDashboard = ({
       })}
     </section>
   );
-};
+});

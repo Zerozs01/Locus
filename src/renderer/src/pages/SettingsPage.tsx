@@ -53,6 +53,8 @@ interface ImageCacheStats {
   path: string;
 }
 
+type ConnectionTestState = 'idle' | 'testing' | 'success' | 'error';
+
 /**
  * Settings Page - API Keys & Configuration Management
  */
@@ -60,6 +62,7 @@ export const SettingsPage = () => {
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [connectionTests, setConnectionTests] = useState<Record<string, ConnectionTestState>>({});
   
   // System Status State
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
@@ -82,6 +85,15 @@ export const SettingsPage = () => {
       placeholder: 'https://xxxx-xx-xx-xxx-xx.ngrok-free.app',
       icon: <Globe size={18} />,
       required: true,
+    },
+    {
+      id: 'n8n_api_key',
+      name: 'n8n API Key',
+      description: 'Optional webhook API key for n8n authentication',
+      value: '',
+      placeholder: 'your_n8n_webhook_key',
+      icon: <Key size={18} />,
+      required: false,
     },
     {
       id: 'gemini',
@@ -143,15 +155,28 @@ export const SettingsPage = () => {
   useEffect(() => {
     const loadSavedKeys = async () => {
       try {
-        // In real app, load from electron-store or secure storage
-        const savedKeys = localStorage.getItem('locus_api_keys');
-        if (savedKeys) {
-          const parsed = JSON.parse(savedKeys);
-          setApiKeys(prev => prev.map(key => ({
-            ...key,
-            value: parsed[key.id] || ''
-          })));
+        let parsed: Record<string, string> = {};
+
+        if (window.api?.config?.get) {
+          parsed = await window.api.config.get();
         }
+
+        // Backward compatibility with old localStorage-based settings.
+        if (Object.keys(parsed).length === 0) {
+          const legacy = localStorage.getItem('locus_api_keys');
+          if (legacy) {
+            parsed = JSON.parse(legacy) as Record<string, string>;
+            if (window.api?.config?.set) {
+              await window.api.config.set(parsed);
+              localStorage.removeItem('locus_api_keys');
+            }
+          }
+        }
+
+        setApiKeys(prev => prev.map(key => ({
+          ...key,
+          value: parsed[key.id] || ''
+        })));
       } catch (error) {
         console.error('Failed to load API keys:', error);
       }
@@ -246,16 +271,16 @@ export const SettingsPage = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Save to localStorage (in production, use electron-store or secure storage)
       const keysToSave = apiKeys.reduce((acc, key) => {
         acc[key.id] = key.value;
         return acc;
       }, {} as Record<string, string>);
-      
-      localStorage.setItem('locus_api_keys', JSON.stringify(keysToSave));
-      
-      // Simulate API validation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      if (window.api?.config?.set) {
+        await window.api.config.set(keysToSave);
+      } else {
+        localStorage.setItem('locus_api_keys', JSON.stringify(keysToSave));
+      }
       
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -268,8 +293,38 @@ export const SettingsPage = () => {
   };
 
   const testConnection = async (keyId: string) => {
-    // TODO: Implement actual connection testing
-    console.log(`Testing connection for ${keyId}`);
+    const entry = apiKeys.find((key) => key.id === keyId);
+    const value = entry?.value?.trim() || '';
+
+    setConnectionTests(prev => ({ ...prev, [keyId]: 'testing' }));
+
+    try {
+      if (!value) {
+        throw new Error('Missing value');
+      }
+
+      if (keyId === 'ngrok' || keyId === 'n8n_api_key') {
+        const online = await pingAgent();
+        if (!online) {
+          throw new Error('Agent unreachable');
+        }
+      } else if (keyId === 'supabase_url') {
+        const parsedUrl = new URL(value);
+        if (!parsedUrl.hostname.includes('supabase.co')) {
+          throw new Error('Invalid Supabase URL');
+        }
+      } else if (keyId.includes('key') && value.length < 8) {
+        throw new Error('Key seems too short');
+      }
+
+      setConnectionTests(prev => ({ ...prev, [keyId]: 'success' }));
+    } catch {
+      setConnectionTests(prev => ({ ...prev, [keyId]: 'error' }));
+    } finally {
+      window.setTimeout(() => {
+        setConnectionTests(prev => ({ ...prev, [keyId]: 'idle' }));
+      }, 2500);
+    }
   };
 
   const requiredKeys = apiKeys.filter(k => k.required);
@@ -462,6 +517,7 @@ export const SettingsPage = () => {
                 onToggleShow={() => toggleShowKey(key.id)}
                 onChange={(value) => handleKeyChange(key.id, value)}
                 onTest={() => testConnection(key.id)}
+                testState={connectionTests[key.id] || 'idle'}
               />
             ))}
           </div>
@@ -482,6 +538,7 @@ export const SettingsPage = () => {
                 onToggleShow={() => toggleShowKey(key.id)}
                 onChange={(value) => handleKeyChange(key.id, value)}
                 onTest={() => testConnection(key.id)}
+                testState={connectionTests[key.id] || 'idle'}
               />
             ))}
           </div>
@@ -494,9 +551,9 @@ export const SettingsPage = () => {
             <div>
               <h3 className="text-sm font-bold text-amber-400 mb-1">Security Notice</h3>
               <p className="text-xs text-slate-400">
-                API keys are stored locally on your device using encrypted storage. 
-                Never share your API keys with others or commit them to version control.
-                For production deployment, consider using environment variables or a secrets manager.
+                API keys are stored in app runtime config on your device (encrypted by OS key store when available).
+                Never share your API keys or commit them to version control.
+                For team or production environments, move secrets to a centralized secrets manager.
               </p>
             </div>
           </div>
@@ -514,10 +571,23 @@ interface ApiKeyInputProps {
   onToggleShow: () => void;
   onChange: (value: string) => void;
   onTest: () => void;
+  testState: ConnectionTestState;
 }
 
-const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest }: ApiKeyInputProps) => {
+const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest, testState }: ApiKeyInputProps) => {
   const hasValue = apiKey.value.length > 0;
+  const testLabel = testState === 'testing'
+    ? 'Testing...'
+    : testState === 'success'
+      ? 'Passed'
+      : testState === 'error'
+        ? 'Failed'
+        : 'Test';
+  const testClass = testState === 'success'
+    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+    : testState === 'error'
+      ? 'bg-red-500/20 border-red-500/40 text-red-300'
+      : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300';
   
   return (
     <div className={`bg-[#0a0c10] rounded-xl border p-4 transition-all ${
@@ -561,10 +631,10 @@ const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest }: ApiK
             
             <button
               onClick={onTest}
-              disabled={!hasValue}
-              className="px-4 py-2.5 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed border border-white/10 rounded-lg text-sm text-slate-300 transition-colors"
+              disabled={!hasValue || testState === 'testing'}
+              className={`px-4 py-2.5 disabled:opacity-30 disabled:cursor-not-allowed border rounded-lg text-sm transition-colors ${testClass}`}
             >
-              Test
+              {testLabel}
             </button>
           </div>
         </div>

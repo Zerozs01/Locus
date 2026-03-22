@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ComposableMap, Geographies, Geography, ZoomableGroup, Annotation } from 'react-simple-maps';
 import { Province } from '../data/regions';
 import { regionTheme, mapBaseColors, type RegionId } from '../data/regionTheme';
@@ -10,6 +11,7 @@ export interface ThailandMapProps {
   selectedProvince: Province | null;
   onSelectProvince: (prov: Province) => void;
   onClearProvince?: () => void;
+  onSelectProvinceByName?: (name: string) => void;
 }
 
 // Map provinces to their regions
@@ -114,12 +116,13 @@ const regionLabelPositions: Record<string, [number, number]> = {
   south: [99.4, 8.4],
 };
 
-export const ThailandMap = ({ 
+export const ThailandMap = memo(({ 
   activeId, 
   onSelectRegion, 
   viewMode,
   selectedProvince,
-  onClearProvince
+  onClearProvince,
+  onSelectProvinceByName
 }: ThailandMapProps) => {
 
   const getZoomCenter = (): { center: [number, number]; zoom: number } => {
@@ -145,15 +148,21 @@ export const ThailandMap = ({
   };
 
   const { center, zoom } = getZoomCenter();
-  const handleGeographyClick = (regionId: string) => {
-    if (viewMode === 'province' && selectedProvince) {
-      onClearProvince?.();
-      if (regionId !== activeId) {
-        onSelectRegion(regionId);
+  const handleGeographyClick = (regionId: string, provinceName: string) => {
+    if (viewMode === 'province') {
+      if (selectedProvince && selectedProvince.name === provinceName) {
+        onClearProvince?.();
+        return;
       }
-      return;
+      if (onSelectProvinceByName) {
+        onSelectProvinceByName(provinceName);
+        return;
+      }
     }
-    onSelectRegion(regionId);
+    // If we're in region mode OR we fall back
+    if (regionId !== activeId) {
+      onSelectRegion(regionId);
+    }
   };
 
   return (
@@ -222,7 +231,7 @@ export const ThailandMap = ({
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    onClick={() => handleGeographyClick(regionId)}
+                    onClick={() => handleGeographyClick(regionId, provinceName)}
                     style={{
                       default: {
                         fill: fillColor,
@@ -230,7 +239,7 @@ export const ThailandMap = ({
                         strokeWidth: isSelectedProvince ? 0.8 : 0.3,
                         outline: 'none',
                         opacity: opacity,
-                        transition: 'all 0.3s ease',
+                        transition: 'fill 120ms linear, opacity 120ms linear, stroke 120ms linear',
                       },
                       hover: {
                         fill: isSelectedProvince ? fillColor : (isRegionActive ? colors.active : colors.hover),
@@ -284,4 +293,4 @@ export const ThailandMap = ({
       </ComposableMap>
     </div>
   );
-};
+});

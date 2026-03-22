@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
+import { useState, useEffect, useMemo, useRef, useDeferredValue, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ThailandMap } from '../components/ThailandMap';
 import { RegionDashboard } from '../components/RegionDashboard';
@@ -119,7 +119,7 @@ export const RadarPage = () => {
   }, [filteredProvinces.length]);
 
   // Handle search selection
-  const loadRegionProvinces = async (regionId: string) => {
+  const loadRegionProvinces = useCallback(async (regionId: string) => {
     if (!window.api?.db?.getProvincesByRegion) {
       return regionsRef.current.find((region) => region.id === regionId)?.subProvinces || [];
     }
@@ -139,9 +139,9 @@ export const RadarPage = () => {
     } finally {
       setLoadingProvinceRegionId((prev) => (prev === regionId ? null : prev));
     }
-  };
+  }, []);
 
-  const handleSearchSelect = async (prov: typeof allProvinces[0]) => {
+  const handleSearchSelect = useCallback(async (prov: typeof allProvinces[0]) => {
     setSelectedRegionId(prov.regionId);
     setMapMode('province');
     const provinces = await loadRegionProvinces(prov.regionId);
@@ -149,7 +149,7 @@ export const RadarPage = () => {
     setSelectedProvince(fullProvince);
     setSearchQuery('');
     setShowSuggestions(false);
-  };
+  }, [loadRegionProvinces]);
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,60 +175,72 @@ export const RadarPage = () => {
     }
   };
 
-  const handleRegionSelect = (id: string) => {
+  const handleRegionSelect = useCallback((id: string) => {
     setSelectedRegionId(id);
     setSelectedProvince(null);
-  };
+  }, []);
 
-  const handleProvinceSelect = (prov: Province) => {
+  const handleProvinceSelect = useCallback((prov: Province) => {
     setSelectedProvince((prev) => (prev?.id === prov.id ? null : prov));
     setMapMode('province');
-  };
+  }, []);
+
+  const handleClearProvince = useCallback(() => {
+    setSelectedProvince(null);
+  }, []);
+
+  const handleSelectProvinceByName = useCallback((name: string) => {
+    const provInfo = allProvinces.find(p => p.name === name || getThaiProvinceName(p.name) === name);
+    if (provInfo) {
+      handleSearchSelect(provInfo);
+    }
+  }, [allProvinces, handleSearchSelect]);
 
   useEffect(() => {
     if (mapMode === 'province' && selectedRegionId) {
       loadRegionProvinces(selectedRegionId);
     }
-  }, [mapMode, selectedRegionId]);
+  }, [mapMode, selectedRegionId, loadRegionProvinces]);
 
   // Navigate to Province Tactical Detail page
-  const handleViewProvinceDetail = (regionId: string, provinceId: string) => {
+  const handleViewProvinceDetail = useCallback((regionId: string, provinceId: string) => {
     navigate(`/province/${regionId}/${provinceId}`);
-  };
+  }, [navigate]);
 
   return (
     <>
       {/* LEFT: RADAR MAP */}
       <section className="flex-[2] relative bg-[#050608] flex flex-col border-r border-white/5 z-10 overflow-hidden">
-        <div className="flex-1 relative flex items-center justify-center">
+        <div className="flex-1 relative flex items-center justify-center will-change-auto">
           <ThailandMap 
             activeId={selectedRegionId} 
             onSelectRegion={handleRegionSelect} 
             viewMode={mapMode} 
             selectedProvince={selectedProvince} 
             onSelectProvince={handleProvinceSelect} 
-            onClearProvince={() => setSelectedProvince(null)}
+            onClearProvince={handleClearProvince}
+            onSelectProvinceByName={handleSelectProvinceByName}
           />
         </div>
 
         {/* SUMMARY STATS - Positioned higher to avoid search bar */}
         {activeData && (
-          <div className="absolute bottom-24 right-6 z-30 flex flex-col gap-2.5 animate-in fade-in slide-in-from-right-4 duration-500 items-end">
+          <div className="absolute bottom-24 right-5 z-30 flex flex-col gap-2 animate-in fade-in slide-in-from-right-2 duration-200 items-end" style={{ animationFillMode: 'both' }}>
             <StatCard 
-              icon={<Users size={18} />}
+              icon={<Users size={15} />}
               value={isProvinceFocus ? (getProvincePopulation(selectedProvince) || activeData.summary.pop) : activeData.summary.pop}
               label="Population"
               colorClass="yellow"
             />
             <StatCard 
-              icon={<Maximize size={18} />}
+              icon={<Maximize size={15} />}
               value={isProvinceFocus ? (getProvinceArea(selectedProvince) || activeData.summary.area) : activeData.summary.area}
               label="Area km²"
               colorClass="orange"
             />
             {!isProvinceFocus && (
               <StatCard 
-                icon={<Building size={18} />}
+                icon={<Building size={15} />}
                 value={String(activeData.summary.provinces)}
                 label="Provinces"
                 colorClass="amber"
@@ -242,7 +254,7 @@ export const RadarPage = () => {
           <div className="relative group w-full">
             {/* Suggestions Overlay - Above search bar */}
             {showSuggestions && filteredProvinces.length > 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f1115] border border-white/10 rounded-xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
+              <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-[#0f1115] border border-white/10 rounded-t-xl rounded-b-none overflow-hidden shadow-2xl animate-in fade-in duration-150 z-50" style={{ animationFillMode: 'both' }}>
                 {filteredProvinces.map((prov, index) => (
                   <button
                     key={prov.id}
@@ -263,8 +275,8 @@ export const RadarPage = () => {
               </div>
             )}
 
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/30 to-blue-600/30 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
-            <div className="relative bg-[#0f1115] border border-white/10 rounded-xl flex items-center p-3.5 shadow-xl transition-all w-full">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/30 to-blue-600/30 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity duration-200"></div>
+            <div className="relative bg-[#0f1115] border border-white/10 rounded-xl flex items-center p-3.5 shadow-xl transition-colors duration-150 will-change-auto w-full">
               <Search className="text-slate-400 ml-2 mr-3 group-focus-within:text-cyan-400 transition-colors" size={20} />
               <input 
                 ref={searchInputRef}
@@ -322,11 +334,11 @@ const StatCard = ({ icon, value, label, colorClass }: StatCardProps) => {
   const c = colors[colorClass];
 
   return (
-    <div className={`flex items-center gap-3 bg-[#0f1115]/90 backdrop-blur-sm p-2.5 pr-5 pl-2.5 rounded-l-xl border-r-[3px] ${c.border} shadow-lg pointer-events-auto hover:-translate-x-2 transition-transform cursor-default group min-w-[160px] justify-between`}>
-      <div className={`${c.bg} p-2 rounded-lg shadow-lg ${c.iconText}`}>{icon}</div>
+    <div className={`flex items-center gap-2 bg-[#0f1115]/90 backdrop-blur-sm py-1.5 px-2.5 pr-3.5 rounded-l-lg border-r-2 ${c.border} shadow-lg pointer-events-auto hover:-translate-x-1 transition-transform duration-200 will-change-transform cursor-default group min-w-[132px] justify-between`}>
+      <div className={`${c.bg} p-1.5 rounded-md shadow-lg ${c.iconText}`}>{icon}</div>
       <div className="text-right">
-        <div className="text-xl font-black text-white leading-none">{value}</div>
-        <div className={`text-[10px] font-bold ${c.text} uppercase tracking-wider`}>{label}</div>
+        <div className="text-lg font-black text-white leading-none">{value}</div>
+        <div className={`text-[9px] font-bold ${c.text} uppercase tracking-wide`}>{label}</div>
       </div>
     </div>
   );
