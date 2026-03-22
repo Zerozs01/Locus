@@ -50,16 +50,16 @@ export const Sidebar = () => {
           onClick={() => navigate('/')}
         />
         <SidebarBtn 
-          icon={<Brain size={20}/>} 
-          label="Intelligence" 
-          active={isActive('/intelligence')}
-          onClick={() => navigate('/intelligence')}
-        />
-        <SidebarBtn 
           icon={<Database size={20}/>} 
           label="Geo-Archive" 
           active={isActive('/archive')}
           onClick={() => navigate('/archive')}
+        />
+        <SidebarBtn 
+          icon={<Brain size={20}/>} 
+          label="Intelligence" 
+          active={isActive('/intelligence')}
+          onClick={() => navigate('/intelligence')}
         />
         <SidebarBtn 
           icon={<Activity size={20}/>} 

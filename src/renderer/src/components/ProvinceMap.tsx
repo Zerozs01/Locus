@@ -397,50 +397,119 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       const fetchTimeoutHandle = window.setTimeout(() => controller.abort(), 4000);
 
       try {
-        // Only use one query to prevent violating Nominatim's 1 req/sec policy.
-        // Viewbox already biases towards the current map area, so we don't necessarily need to append the province name.
-        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=15&accept-language=th,en&countrycodes=th&addressdetails=1&namedetails=1&polygon_geojson=1&viewbox=${encodeURIComponent(viewBox)}&q=${encodeURIComponent(query)}&email=locus.app.contact@gmail.com`;
+        // --- LONGDO MAP API INTEGRATION ---
+        // 🔑 เรียกใช้ API Key จาก .env (เดี๋ยวเวอร์ชัน Product ค่อยเปลี่ยนให้ดึงจาก DB/Settings ที่ User กรอก)
+        console.log("ENV Key:", import.meta.env.VITE_LONGDO_MAP_API_KEY);
+        const LONGDO_API_KEY = import.meta.env.VITE_LONGDO_MAP_API_KEY || '3f3419bb3bbb76773847e8dfeb9c7c39';
+        let mapped: SearchPlace[] = [];
+        let useFallback = true;
         
-        const response = await fetch(url, { 
-          signal: controller.signal,
-          headers: {
-            'Accept-Language': 'th,en',
-            'Accept': 'application/json'
-          }
-        });
-        
-        if (!response.ok) throw new Error('Network error');
-        
-        const data: Array<{
-          lat: string;
-          lon: string;
-          display_name: string;
-          name?: string;
-          type?: string;
-          namedetails?: Record<string, string>;
-          boundingbox?: string[];
-          geojson?: any;
-        }> = await response.json();
-        
-        window.clearTimeout(fetchTimeoutHandle);
+        if (LONGDO_API_KEY) {
+          try {
+            const targetUrl = `https://search.longdo.com/mapsearch/json/search?keyword=${encodeURIComponent(query)}&limit=15&key=${LONGDO_API_KEY}`;
+            console.log("Fetching Longdo API (JSONP):", targetUrl);
+            
+            // สร้างท่อส่ง JSONP ทะลวงกำแพง CORS ของ Longdo เซิร์ฟเวอร์แบบ Native 100% ไม่พึ่ง Proxy ฟรี
+            const fetchJSONP = (url: string): Promise<any> => {
+              return new Promise((resolve, reject) => {
+                const callbackName = 'longdo_cb_' + Math.round(1000000 * Math.random());
+                const script = document.createElement('script');
+                script.src = `${url}&cb=${callbackName}`;
+                
+                // ถ้ายกเลิกคำค้นหา ให้หยุด resolve
+                controller.signal.addEventListener('abort', () => {
+                   script.remove();
+                   reject(new DOMException('Aborted', 'AbortError'));
+                });
 
-        const mapped: SearchPlace[] = data
-          .map(item => {
-            const thaiName = item.namedetails?.['name:th'] || item.namedetails?.name;
-            const title = (thaiName || item.name || item.display_name.split(',')[0] || '').trim();
-            return {
-              title,
-              subtitle: item.display_name,
-              keywords: [item.display_name, item.name, thaiName].filter(Boolean).join(' '),
-              lat: Number(item.lat),
-              lng: Number(item.lon),
-              type: item.type || 'place',
-              source: 'geocode' as const,
-              boundingbox: item.boundingbox,
-              geojson: item.geojson,
+                script.onerror = () => {
+                  script.remove();
+                  reject(new Error('JSONP failed'));
+                };
+                
+                (window as any)[callbackName] = (data: any) => {
+                  resolve(data);
+                  script.remove();
+                  delete (window as any)[callbackName];
+                };
+                document.body.appendChild(script);
+              });
             };
-          })
-          .filter(item => item.title && Number.isFinite(item.lat) && Number.isFinite(item.lng));
+
+            const result = await fetchJSONP(targetUrl);
+            
+            // Longdo ส่งกลับมาเป็น array หรือ object ที่มี data ก็รับได้หมด
+            const items = Array.isArray(result) ? result : result?.data;
+            if (items && Array.isArray(items)) {
+              console.log("Longdo API Success! Found:", items.length, "items");
+              mapped = items.map((item: any) => ({
+                  title: item.name || '',
+                  subtitle: [item.address, item.district, item.province].filter(Boolean).join(', '),
+                  keywords: item.name,
+                  lat: Number(item.lat),
+                  lng: Number(item.lon),
+                  type: item.type || 'place',
+                  source: 'geocode' as const,
+              })).filter((item: SearchPlace) => item.title && Number.isFinite(item.lat) && Number.isFinite(item.lng));
+              useFallback = false;
+            } else {
+               console.warn("Longdo API returned unexpected format:", result);
+            }
+          } catch (e: any) {
+            if (e.name === 'AbortError') {
+              // Ignore abort errors caused by typing too fast
+              return;
+            }
+            console.warn('Longdo API failed, falling back to OSM. Error:', e.message);
+          }
+        }
+
+        // --- FALLBACK (OSM Nominatim) ---
+        // ใช้เมื่อไม่มี API Key หรือการเรียก API Longdo ขัดข้อง
+        if (useFallback) {
+          const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=15&accept-language=th,en&countrycodes=th&addressdetails=1&namedetails=1&polygon_geojson=1&viewbox=${encodeURIComponent(viewBox)}&q=${encodeURIComponent(query)}&email=locus.app.contact@gmail.com`;
+          
+          const response = await fetch(url, { 
+            signal: controller.signal,
+            headers: {
+              'Accept-Language': 'th,en',
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (!response.ok) throw new Error('Network error');
+          
+          const data: Array<{
+            lat: string;
+            lon: string;
+            display_name: string;
+            name?: string;
+            type?: string;
+            namedetails?: Record<string, string>;
+            boundingbox?: string[];
+            geojson?: any;
+          }> = await response.json();
+          
+          window.clearTimeout(fetchTimeoutHandle);
+  
+          mapped = data
+            .map(item => {
+              const thaiName = item.namedetails?.['name:th'] || item.namedetails?.name;
+              const title = (thaiName || item.name || item.display_name.split(',')[0] || '').trim();
+              return {
+                title,
+                subtitle: item.display_name,
+                keywords: [item.display_name, item.name, thaiName].filter(Boolean).join(' '),
+                lat: Number(item.lat),
+                lng: Number(item.lon),
+                type: item.type || 'place',
+                source: 'geocode' as const,
+                boundingbox: item.boundingbox,
+                geojson: item.geojson,
+              };
+            })
+            .filter(item => item.title && Number.isFinite(item.lat) && Number.isFinite(item.lng));
+        }
 
         setRemoteSuggestions(mapped);
       } catch (error) {

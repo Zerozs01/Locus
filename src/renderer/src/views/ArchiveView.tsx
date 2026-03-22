@@ -363,29 +363,20 @@ export function ArchiveView(): JSX.Element {
                     inCompare ? 'border-cyan-500 ring-2 ring-cyan-500/20' : 'border-white/10 hover:border-white/20'
                   }`}
                 >
-                  {/* Image */}
-                  <div className="relative h-32 overflow-hidden">
-                    <CachedImage
-                      src={province.image}
-                      alt={province.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f1115] via-transparent to-transparent" />
-                    
+                  {/* Header Header */}
+                  <div className={`relative h-16 bg-gradient-to-r from-[#12151a] to-[#0f1115] overflow-hidden border-b border-white/5`}>
                     {/* Region Tag */}
-                    <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg text-[10px] font-bold ${theme.bg} ${theme.text} backdrop-blur-sm`}>
+                    <div className={`absolute top-4 left-3 px-2 py-1 rounded-lg text-[10px] font-bold ${theme.bg} ${theme.text}`}>
                       {theme.label}
                     </div>
 
                     {/* Compare Toggle */}
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleCompare(province); }}
-                      className={`absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                      className={`absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                         inCompare 
-                          ? 'bg-cyan-500 text-white' 
-                          : 'bg-black/50 text-white/50 hover:bg-cyan-500/50 hover:text-white backdrop-blur-sm'
+                          ? 'bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.5)]' 
+                          : 'bg-white/5 text-slate-400 hover:bg-cyan-500/20 hover:text-cyan-400'
                       }`}
                     >
                       <Scale size={14} />
@@ -433,14 +424,10 @@ export function ArchiveView(): JSX.Element {
                     inCompare ? 'border-cyan-500 ring-2 ring-cyan-500/20' : 'border-white/10 hover:border-white/20'
                   }`}
                 >
-                  {/* Image */}
-                  <CachedImage
-                    src={province.image}
-                    alt={province.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-24 h-24 rounded-xl object-cover flex-shrink-0"
-                  />
+                  {/* Icon */}
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl font-black ${theme.bg} ${theme.text} shadow-lg`}>
+                    {province.name.charAt(0)}
+                  </div>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
@@ -530,17 +517,15 @@ export function ArchiveView(): JSX.Element {
                 
                 return (
                   <div key={province.id} className="bg-[#0f1115] border border-white/10 rounded-2xl overflow-hidden">
-                    {/* Image */}
-                    <div className="relative h-40">
-                      <CachedImage src={province.image} alt={province.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0f1115] via-transparent to-transparent" />
+                    {/* Header */}
+                    <div className={`relative h-24 bg-[#12151a] border-b border-white/5`}>
                       <button
                         onClick={() => toggleCompare(province)}
-                        className="absolute top-3 right-3 w-8 h-8 bg-red-500/80 rounded-lg flex items-center justify-center text-white hover:bg-red-500 transition-all"
+                        className="absolute top-4 right-4 w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white transition-all"
                       >
                         <X size={16} />
                       </button>
-                      <div className={`absolute bottom-3 left-3 px-2 py-1 rounded-lg text-xs font-bold ${theme.bg} ${theme.text}`}>
+                      <div className={`absolute bottom-4 left-4 px-3 py-1.5 rounded-lg text-xs font-bold ${theme.bg} ${theme.text}`}>
                         {theme.label}
                       </div>
                     </div>
