@@ -16,14 +16,24 @@ The system follows a specific **"Local-First, Cloud-Sync"** hybrid architecture.
 
 The system uses a **"Tunneling"** method to communicate.
 
-1.  **Origin (Electron):** User presses send. The app initiates a POST request.
-2.  **Destination (Ngrok URL):** The request acts as if it's going to the internet (e.g., `https://xxxxx.ngrok-free.app/webhook/chat`).
-3.  **Tunneling (Ngrok -> Localhost):** Ngrok receives the request and **automatically forwards** it through the secure tunnel to your local machine port `5678`.
-4.  **Processing (n8n):**
+1.  **Origin (Renderer):** User presses send on `IntelligencePage.tsx` or `ChatOverlay.tsx`.
+2.  **IPC Bridge (Preload/Main):** Renderer does not call n8n directly. It uses `window.api.n8n.health()` / `window.api.n8n.chat()` exposed from preload.
+3.  **Destination (Ngrok URL):** Electron main process calls the configured tunnel endpoint (for example `https://xxxxx.ngrok-free.app/webhook/chat`).
+4.  **Tunneling (Ngrok -> Localhost):** Ngrok receives the request and **automatically forwards** it through the secure tunnel to your local machine port `5678`.
+5.  **Processing (n8n):**
     - **Trigger:** The n8n Webhook node (listening on port 5678) activates.
     - **Agent Node:** Queries AI Model.
     - **Tools:** Fetches data from Supabase/LightRAG.
-5.  **Return Trip:** n8n sends the JSON response back through the tunnel -> Ngrok -> Electron App.
+6.  **Return Trip:** n8n sends the JSON response back through the tunnel -> Ngrok -> Electron main -> Renderer store.
+
+### Current Chat Contract
+- Health check: `GET /webhook/health`
+- Chat request: `POST /webhook/chat`
+- Chat payload includes `message` and `sessionId`
+- Chat response should be a plain JSON object like:
+  ```json
+  { "output": "..." }
+  ```
 
 ## 3. Technology Stack
 
@@ -48,15 +58,20 @@ The system uses a **"Tunneling"** method to communicate.
 - **Database:** Supabase (PostgreSQL)
 - **AI/RAG:** LightRAG + OpenRouter/Gemini
 
+### Client-side Chat State
+- **Persistent UI History:** Local storage backed conversation store (`locus_intelligence_chat_v3`)
+- **Conversation Model:** multi-thread recent chats, active chat selection, delete-per-thread
+- **Message Rendering:** in-app lightweight markdown renderer (`MarkdownLite`)
+
 ## 4. Application Pages
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/` | RadarPage | Main map view with region dashboard |
+| `/` | ThreatRadarPage | Main map view with region dashboard |
 | `/province/:regionId/:provinceId` | ProvinceTacticalPage | Province tactical detail with Leaflet map |
 | `/archive` | GeoArchivePage | Province gallery with compare mode |
-| `/travel-guide/:regionId` | TravelGuidePage | Transport routes & fare calculator |
-| `/intelligence` | IntelligencePage | AI chat with context support |
+| `/travel-guide/:regionId` | TravelGuidePage | Hybrid travel routes with tactical overlay |
+| `/intelligence` | IntelligencePage | AI chat with context support and recent chats |
 | `/analytics` | AnalyticsPage | Data analytics dashboard |
 | `/settings` | SettingsPage | App configuration |
 
@@ -80,6 +95,9 @@ The system uses a **"Tunneling"** method to communicate.
 - **Context Passing:** Receives region/province data from navigation state
 - **Image Upload:** Drag & drop support
 - **Suggested Queries:** Dynamic based on context
+- **Recent Chats:** Multi-conversation history stored locally in app
+- **Background Reply Handling:** Pending reply can complete while user navigates to other pages in the app
+- **Markdown Rendering:** Basic headings, bullets, emphasis, line breaks rendered client-side
 
 ## 6. Why No Redis?
 
@@ -93,9 +111,14 @@ For a single-user or small-group local-first app, Redis adds unnecessary complex
 
 ## 7. Code Structure Ref
 
-- `src/renderer/src/services/n8nClient.ts`: Handles axios calls to n8n.
-- `src/renderer/src/pages/IntelligencePage.tsx`: Main AI chat interface.
-- `src/renderer/src/pages/ProvinceTacticalPage.tsx`: Province tactical detail page (Leaflet map).
+- `src/main/index.ts`: Electron main process, IPC handlers for `n8n:health` and `n8n:chat`.
+- `src/preload/index.ts`: exposes `window.api.n8n.*` bridge to renderer.
+- `src/renderer/src/services/n8nClient.ts`: Renderer-side n8n client and session id handling.
+- `src/renderer/src/services/intelligenceChatStore.ts`: Persistent multi-conversation chat store.
+- `src/renderer/src/pages/IntelligencePage.tsx`: Main AI chat interface with recent chats.
+- `src/renderer/src/components/ChatOverlay.tsx`: Overlay view sharing the same chat state.
+- `src/renderer/src/components/MarkdownLite.tsx`: Lightweight markdown renderer for chat output.
+- `src/renderer/src/pages/ProvinceTactical/index.tsx`: Province tactical detail page.
 - `src/renderer/src/components/ProvinceMap.tsx`: Leaflet-based province map component.
 - `src/renderer/src/data/thaiProvinceNames.ts`: Thai-English province mapping.
 - `src/renderer/src/data/regions.ts`: Region/Province data structures.
