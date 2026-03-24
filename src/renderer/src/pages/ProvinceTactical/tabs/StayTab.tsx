@@ -1,43 +1,10 @@
 import { useState } from 'react';
 import { 
-  ArrowLeft, 
-  Phone, 
-  Shield, 
-  Building2, 
-  Utensils, 
-  Car, 
-  Plane,
-  Bus,
-  Train,
-  AlertTriangle,
-  ChevronRight,
-  Star,
-  Wallet,
-  Loader2,
   Bed,
-  Coffee,
-  Camera,
-  Navigation,
-  Clock,
-  Thermometer,
-  Wifi,
-  MapPinned,
-  Hospital,
-  GraduationCap,
-  ShoppingBag,
-  Zap,
-  Landmark,
-  Fuel,
-  Pill,
-  ExternalLink,
-  Copy,
-  ChevronDown,
-  Crosshair
+  MapPinned
 } from 'lucide-react';
 import { FlyToHandler, ProvinceData } from '../types';
-import { Province } from '../../data/regions';
 import * as Helpers from '../components/HelperComponents';
-
 
 export const StayTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandler }) => {
   const [openSections, setOpenSections] = useState({
@@ -60,9 +27,8 @@ export const StayTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyTo
 
   return (
     <div className="space-y-4">
-      {/* Budget Friendly - Default OPEN */}
       <Helpers.CollapsibleSection
-        title="Budget Friendly"
+        title="Budget Stay / Rest Stops"
         icon={<Bed size={18} />}
         badge="฿"
         highlightColor="emerald"
@@ -77,9 +43,8 @@ export const StayTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyTo
         </div>
       </Helpers.CollapsibleSection>
 
-      {/* Mid-Range - Default CLOSED */}
       <Helpers.CollapsibleSection
-        title="Mid-Range"
+        title="Mid-Range Stay"
         icon={<Bed size={18} />}
         badge="฿฿"
         highlightColor="blue"
@@ -94,9 +59,8 @@ export const StayTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyTo
         </div>
       </Helpers.CollapsibleSection>
 
-      {/* Luxury - Default CLOSED */}
       <Helpers.CollapsibleSection
-        title="Luxury"
+        title="Premium Stay"
         icon={<Bed size={18} />}
         badge="฿฿฿"
         highlightColor="violet"
@@ -111,9 +75,8 @@ export const StayTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyTo
         </div>
       </Helpers.CollapsibleSection>
 
-      {/* Best Areas to Stay - Default OPEN */}
       <Helpers.CollapsibleSection
-        title="Best Areas to Stay"
+        title="Basecamp-Friendly Areas"
         icon={<MapPinned size={18} />}
         highlightColor="cyan"
         isOpen={openSections.areas}

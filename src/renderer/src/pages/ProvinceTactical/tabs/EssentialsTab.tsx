@@ -1,41 +1,21 @@
 import { useState } from 'react';
 import { 
-  ArrowLeft, 
   Phone, 
   Shield, 
   Building2, 
-  Utensils, 
-  Car, 
   Plane,
   Bus,
   Train,
-  AlertTriangle,
-  ChevronRight,
-  Star,
-  Wallet,
-  Loader2,
-  Bed,
-  Coffee,
-  Camera,
-  Navigation,
-  Clock,
-  Thermometer,
   Wifi,
-  MapPinned,
   Hospital,
   GraduationCap,
-  ShoppingBag,
-  Zap,
   Landmark,
   Fuel,
   Pill,
-  ExternalLink,
-  Copy,
-  ChevronDown,
   Crosshair
 } from 'lucide-react';
 import { FlyToHandler, ProvinceData } from '../types';
-import { Province } from '../../data/regions';
+import { Province } from '../../../data/regions';
 import * as Helpers from '../components/HelperComponents';
 
 export const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData; province: Province; onFlyTo?: FlyToHandler }) => {
@@ -43,7 +23,6 @@ export const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData;
 
   return (
     <div className="space-y-4">
-      {/* Hospitals & Clinics - FIRST with border highlight */}
       <Helpers.ContentCard 
         title="Hospitals & Clinics" 
         icon={<Hospital size={18} />}
@@ -57,7 +36,6 @@ export const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData;
         </div>
       </Helpers.ContentCard>
 
-      {/* Emergency Contacts - with local numbers */}
       <Helpers.ContentCard 
         title="Emergency Contacts" 
         icon={<Phone size={18} />}
@@ -87,10 +65,9 @@ export const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData;
         </div>
       </Helpers.ContentCard>
 
-      {/* Tourist Services (New) */}
       {(data.immigration || data.tatOffice || data.touristPolice) && (
         <Helpers.ContentCard 
-          title="Tourist Services" 
+          title="Visitor & Support Services" 
           icon={<Shield size={18} />}
           color="cyan"
           borderColor="cyan"
@@ -165,7 +142,6 @@ export const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData;
         </Helpers.ContentCard>
       )}
 
-      {/* Transport Hubs (New) */}
       {data.transportHubs && (data.transportHubs.airport || data.transportHubs.busTerminal || data.transportHubs.trainStation) && (
         <Helpers.ContentCard 
           title="Transport Hubs" 
@@ -231,9 +207,8 @@ export const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData;
         </Helpers.ContentCard>
       )}
 
-      {/* Pharmacies - Toggle Default OFF with border highlight */}
       <Helpers.CollapsibleSection
-        title="Pharmacies"
+        title="Pharmacies & Medical Supply"
         icon={<Pill size={18} />}
         highlightColor="emerald"
         isOpen={showPharmacies}
@@ -247,7 +222,6 @@ export const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData;
         </div>
       </Helpers.CollapsibleSection>
 
-      {/* Safety Info */}
       <Helpers.ContentCard 
         title="Safety Information" 
         icon={<Shield size={18} />}
@@ -264,7 +238,6 @@ export const EssentialsTab = ({ data, province, onFlyTo }: { data: ProvinceData;
         </div>
       </Helpers.ContentCard>
 
-      {/* Practical Info */}
       <Helpers.ContentCard 
         title="Practical Information" 
         icon={<GraduationCap size={18} />}

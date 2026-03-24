@@ -20,39 +20,13 @@ import {
   Lightbulb,
   BookOpen,
   X,
-  Tag
+  Tag,
+  Trash2,
+  MessageSquarePlus,
+  Clock3
 } from 'lucide-react';
-import { sendChatMessage } from '../services/n8nClient';
-
-// ==================== TYPES ====================
-
-interface ChatContext {
-  type: 'region' | 'province';
-  name: string;
-  regionId?: string;
-  engName?: string;
-  provinces?: string[];
-  stats?: any;
-  safety?: number;
-}
-
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-  sources?: Source[];
-  contextType?: 'text' | 'graph' | 'map' | 'table';
-  contextData?: any;
-}
-
-interface Source {
-  id: string;
-  title: string;
-  type: 'document' | 'web' | 'database' | 'knowledge';
-  url?: string;
-  snippet?: string;
-}
+import { ChatContext, ChatMessage as Message, RecentChatSummary, Source, useIntelligenceChatStore } from '../services/intelligenceChatStore';
+import { MarkdownLite } from '../components/MarkdownLite';
 
 interface SuggestedQuery {
   text: string;
@@ -63,37 +37,33 @@ interface SuggestedQuery {
 
 export const IntelligencePage = () => {
   const location = useLocation();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const {
+    messages,
+    chatContext,
+    isLoading,
+    recentChats,
+    activeConversationId,
+    setChatContext,
+    setActiveConversation,
+    createConversation,
+    deleteConversation,
+    clearChat,
+    sendMessage,
+    addUploadedFile
+  } = useIntelligenceChatStore();
   const [inputText, setInputText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
-  const [activeContext, setActiveContext] = useState<Message | null>(null);
+  const [activeContextId, setActiveContextId] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [chatContext, setChatContext] = useState<ChatContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const MAX_MESSAGES = 200;
-
-  const appendMessage = (msg: Message) => {
-    setMessages(prev => {
-      const next = [...prev, msg];
-      return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
-    });
-  };
+  const activeContext = activeContextId ? messages.find((message) => message.id === activeContextId) || null : null;
 
   // Check for context passed via navigation state
   useEffect(() => {
     const state = location.state as { context?: ChatContext } | null;
     if (state?.context) {
       setChatContext(state.context);
-      // Auto-generate a welcome message based on context
-      const contextMsg: Message = {
-        id: 'context-' + Date.now(),
-        text: `🎯 Context loaded: **${state.context.name}** (${state.context.type === 'region' ? 'ภาค' : 'จังหวัด'})\n\nคุณสามารถถามคำถามเกี่ยวกับ${state.context.name}ได้เลย เช่น:\n• ข้อมูลค่าครองชีพ\n• แหล่งท่องเที่ยวแนะนำ\n• ความปลอดภัย\n• เส้นทางการเดินทาง`,
-        sender: 'bot',
-        timestamp: new Date()
-      };
-      setMessages([contextMsg]);
     }
   }, [location.state]);
 
@@ -118,6 +88,12 @@ export const IntelligencePage = () => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    if (activeContextId && !messages.some((message) => message.id === activeContextId)) {
+      setActiveContextId(null);
+    }
+  }, [activeContextId, messages]);
+
   // Handle file drop
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -140,81 +116,13 @@ export const IntelligencePage = () => {
   }, []);
 
   const handleFileUpload = (file: File) => {
-    // TODO: Implement file analysis with LightRAG
-    const fileMsg: Message = {
-      id: Date.now().toString(),
-      text: `📎 Uploaded: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
-      sender: 'user',
-      timestamp: new Date()
-    };
-    appendMessage(fileMsg);
-    
-    // Simulate AI response for file analysis
-    setTimeout(() => {
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        text: `กำลังวิเคราะห์ไฟล์ "${file.name}"...\n\nฟีเจอร์นี้จะเชื่อมต่อกับ LightRAG เพื่อ:\n• Extract entities และ relationships\n• สร้าง Knowledge Graph\n• ค้นหาข้อมูลที่เกี่ยวข้อง`,
-        sender: 'bot',
-        timestamp: new Date(),
-        contextType: 'text'
-      };
-      appendMessage(botMsg);
-    }, 1000);
+    addUploadedFile(file);
   };
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
-
-    // Build message with context if available
-    let messageWithContext = inputText;
-    if (chatContext) {
-      const contextInfo = `[Context: ${chatContext.type === 'region' ? 'ภาค' : 'จังหวัด'} ${chatContext.name}${chatContext.provinces ? `, provinces: ${chatContext.provinces.join(', ')}` : ''}${chatContext.stats ? `, daily cost: ${chatContext.stats.dailyCost}, safety: ${chatContext.safety}%` : ''}]`;
-      messageWithContext = `${contextInfo}\n\nUser question: ${inputText}`;
-    }
-
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      text: inputText,
-      sender: 'user',
-      timestamp: new Date()
-    };
-
-    appendMessage(userMsg);
+    sendMessage(inputText);
     setInputText('');
-    setIsLoading(true);
-
-    try {
-      const responseText = await sendChatMessage(messageWithContext);
-      
-      // Generate mock sources (in production, these come from LightRAG)
-      const mockSources: Source[] = [
-        { id: '1', title: 'ข้อมูลจังหวัด - SQLite DB', type: 'database', snippet: 'Province statistics and safety data' },
-        { id: '2', title: 'Tourism Authority of Thailand', type: 'web', url: 'https://www.tat.or.th', snippet: 'Official tourism information' },
-      ];
-
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        text: responseText,
-        sender: 'bot',
-        timestamp: new Date(),
-        sources: mockSources,
-        contextType: determineContextType(userMsg.text),
-        contextData: generateMockContextData(userMsg.text)
-      };
-      
-      appendMessage(botMsg);
-      setActiveContext(botMsg);
-    } catch (error) {
-      const errorMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        text: '❌ ไม่สามารถเชื่อมต่อ Agent ได้ กรุณาตรวจสอบการเชื่อมต่อ n8n และ Ngrok',
-        sender: 'bot',
-        timestamp: new Date()
-      };
-      appendMessage(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -230,6 +138,53 @@ export const IntelligencePage = () => {
 
   return (
     <div className="flex-1 flex bg-[#050608] overflow-hidden">
+      <div className="w-[280px] shrink-0 border-r border-white/5 bg-[#080a0f] flex flex-col">
+        <div className="h-16 px-4 flex items-center justify-between border-b border-white/5">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Recent Chats</h2>
+            <p className="text-[11px] text-slate-500">ประวัติจะอยู่ตรงนี้จนกว่าจะลบเอง</p>
+          </div>
+          <button
+            onClick={() => {
+              const newConversationId = createConversation();
+              setActiveConversation(newConversationId);
+              setActiveContextId(null);
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-500/20 hover:text-white"
+          >
+            <MessageSquarePlus size={14} />
+            New
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {recentChats.length === 0 ? (
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm text-slate-500">
+              ยังไม่มีบทสนทนา เริ่มพิมพ์คำถามแรกได้เลย
+            </div>
+          ) : (
+            recentChats.map((chat) => (
+              <RecentChatItem
+                key={chat.id}
+                chat={chat}
+                isActive={chat.id === activeConversationId}
+                onSelect={() => {
+                  setActiveConversation(chat.id);
+                  setActiveContextId(null);
+                }}
+                onDelete={() => {
+                  const isDeletingActive = chat.id === activeConversationId;
+                  deleteConversation(chat.id);
+                  if (isDeletingActive) {
+                    setActiveContextId(null);
+                  }
+                }}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
       {/* LEFT PANEL: CHAT */}
       <div 
         className={`flex flex-col transition-all duration-300 ${isCanvasExpanded ? 'w-[400px]' : 'flex-1'}`}
@@ -261,9 +216,17 @@ export const IntelligencePage = () => {
                 </button>
               </div>
             )}
+            <button
+              onClick={clearChat}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 text-xs text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+              title="ลบบทสนทนาปัจจุบัน"
+            >
+              <Trash2 size={12} />
+              Delete Chat
+            </button>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-emerald-400 font-medium">Online</span>
+              <span className="text-xs text-emerald-400 font-medium">{isLoading ? 'Thinking...' : 'Online'}</span>
             </div>
           </div>
         </div>
@@ -297,6 +260,12 @@ export const IntelligencePage = () => {
               <p className="text-slate-400 text-sm mb-8 max-w-md">
                 ถามคำถามเกี่ยวกับข้อมูลจังหวัด วิเคราะห์ความปลอดภัย หรือวางแผนการเดินทาง
               </p>
+
+              {recentChats.length > 0 && (
+                <p className="mb-6 text-xs text-slate-500">
+                  หรือเลือกบทสนทนาเก่าจาก `Recent Chats` ด้านซ้าย
+                </p>
+              )}
               
               {/* Suggested Queries */}
               <div className="grid grid-cols-2 gap-3 w-full max-w-lg">
@@ -320,25 +289,10 @@ export const IntelligencePage = () => {
             <MessageBubble 
               key={msg.id} 
               message={msg} 
-              onViewContext={() => setActiveContext(msg)}
+              onViewContext={() => setActiveContextId(msg.id)}
               isActiveContext={activeContext?.id === msg.id}
             />
           ))}
-
-          {/* Loading Indicator */}
-          {isLoading && (
-            <div className="flex gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center shrink-0">
-                <Bot size={20} className="text-cyan-400" />
-              </div>
-              <div className="bg-white/5 border border-white/5 rounded-2xl rounded-tl-md p-4">
-                <div className="flex items-center gap-2">
-                  <RefreshCw size={14} className="text-cyan-400 animate-spin" />
-                  <span className="text-sm text-slate-400">กำลังวิเคราะห์...</span>
-                </div>
-              </div>
-            </div>
-          )}
 
           <div ref={messagesEndRef} />
         </div>
@@ -446,15 +400,26 @@ const MessageBubble = ({ message, onViewContext, isActiveContext }: MessageBubbl
         <div className={`p-4 rounded-2xl ${
           isUser 
             ? 'bg-cyan-600/10 border border-cyan-500/20 rounded-tr-md' 
-            : `bg-white/5 border ${isActiveContext ? 'border-cyan-500/50' : 'border-white/5'} rounded-tl-md`
+            : `bg-white/5 border ${
+                message.status === 'error'
+                  ? 'border-red-500/30'
+                  : isActiveContext
+                    ? 'border-cyan-500/50'
+                    : 'border-white/5'
+              } rounded-tl-md`
         }`}>
           {/* Message Text with Markdown-like formatting */}
-          <div className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
-            {message.text}
-          </div>
+          <MarkdownLite text={message.text} className="text-sm" />
+
+          {message.status === 'pending' && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-cyan-400">
+              <RefreshCw size={12} className="animate-spin" />
+              <span>กำลังรอคำตอบอยู่เบื้องหลัง</span>
+            </div>
+          )}
 
           {/* Sources */}
-          {message.sources && message.sources.length > 0 && (
+          {message.status !== 'pending' && message.sources && message.sources.length > 0 && (
             <div className="mt-4 pt-3 border-t border-white/10">
               <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
                 <Link2 size={12} />
@@ -520,6 +485,73 @@ const SourceBadge = ({ source }: { source: Source }) => {
     </a>
   );
 };
+
+interface RecentChatItemProps {
+  chat: RecentChatSummary
+  isActive: boolean
+  onSelect: () => void
+  onDelete: () => void
+}
+
+const formatRelativeChatTime = (timestamp: string) => {
+  const date = new Date(timestamp)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat('th-TH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: 'short'
+  }).format(date)
+}
+
+const RecentChatItem = ({ chat, isActive, onSelect, onDelete }: RecentChatItemProps) => (
+  <div
+    className={`group w-full rounded-2xl border p-3 transition-all ${
+      isActive
+        ? 'border-cyan-500/40 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.08)]'
+        : 'border-white/5 bg-white/[0.03] hover:border-white/10 hover:bg-white/[0.05]'
+    }`}
+  >
+    <div className="flex items-start gap-3">
+      <div className={`mt-0.5 rounded-xl p-2 ${isActive ? 'bg-cyan-500/15 text-cyan-300' : 'bg-white/5 text-slate-400'}`}>
+        <Clock3 size={14} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <button onClick={onSelect} className="min-w-0 flex-1 text-left">
+            <div className={`truncate text-sm font-semibold ${isActive ? 'text-white' : 'text-slate-200'}`}>{chat.title}</div>
+            <div className="mt-1 text-[11px] text-slate-500">{formatRelativeChatTime(chat.updatedAt)}</div>
+          </button>
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete();
+            }}
+            className="rounded-lg p-1.5 text-slate-500 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-300 group-hover:opacity-100"
+            title="ลบบทสนทนานี้"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+        <button onClick={onSelect} className="w-full text-left">
+          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-400">{chat.preview}</p>
+          <div className="mt-3 flex items-center gap-2">
+            {chat.contextName && (
+              <span className="rounded-full border border-purple-500/20 bg-purple-500/10 px-2 py-1 text-[10px] font-medium text-purple-300">
+                {chat.contextName}
+              </span>
+            )}
+            {chat.isPending && (
+              <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-300">
+                Pending
+              </span>
+            )}
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+)
 
 const ContextCanvas = ({ context }: { context: Message }) => {
   return (
@@ -654,47 +686,3 @@ const EmptyCanvas = () => (
 
 // ==================== HELPER FUNCTIONS ====================
 
-function determineContextType(query: string): 'text' | 'graph' | 'map' | 'table' {
-  const lowerQuery = query.toLowerCase();
-  if (lowerQuery.includes('ความสัมพันธ์') || lowerQuery.includes('เชื่อมโยง') || lowerQuery.includes('network')) {
-    return 'graph';
-  }
-  if (lowerQuery.includes('แผนที่') || lowerQuery.includes('ตำแหน่ง') || lowerQuery.includes('เส้นทาง') || lowerQuery.includes('จังหวัด')) {
-    return 'map';
-  }
-  if (lowerQuery.includes('เปรียบเทียบ') || lowerQuery.includes('สถิติ') || lowerQuery.includes('ค่า')) {
-    return 'table';
-  }
-  return 'text';
-}
-
-function generateMockContextData(query: string): any {
-  const contextType = determineContextType(query);
-  
-  const baseEntities = ['เชียงใหม่', 'ภาคเหนือ', 'ท่องเที่ยว', 'ความปลอดภัย', 'ค่าครองชีพ'];
-  
-  switch (contextType) {
-    case 'graph':
-      return { nodeCount: 12, edgeCount: 18, entities: baseEntities };
-    case 'map':
-      return { location: 'Northern Thailand', entities: baseEntities };
-    case 'table':
-      return { 
-        rows: [
-          { label: 'Safety Index', value: '85%' },
-          { label: 'Daily Cost', value: '฿350' },
-          { label: 'Monthly Rent', value: '฿8,000' },
-        ],
-        entities: baseEntities 
-      };
-    default:
-      return { 
-        insights: [
-          'วิเคราะห์จากข้อมูล 4 ภูมิภาค',
-          'ความปลอดภัยเฉลี่ย 84%',
-          'แนะนำช่วงเวลาท่องเที่ยว: พ.ย. - ก.พ.'
-        ],
-        entities: baseEntities 
-      };
-  }
-}

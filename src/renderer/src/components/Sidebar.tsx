@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Globe, Map as MapIcon, Activity, Database, Settings, Brain } from 'lucide-react';
+import { Globe, Radar as RadarIcon, Activity, Database, Settings, Brain, Package } from 'lucide-react';
+import { ResourceInventory } from './ResourceInventory';
 
 interface SidebarBtnProps {
   icon: React.ReactNode;
@@ -24,6 +25,7 @@ const SidebarBtn = ({ icon, label, active, onClick }: SidebarBtnProps) => (
 export const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [showInventory, setShowInventory] = useState(false);
   
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -31,53 +33,72 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className="w-[72px] bg-[#0a0c10] border-r border-white/5 flex flex-col items-center py-6 z-[100] shrink-0 shadow-2xl absolute left-0 top-0 bottom-0 text-slate-100">
-      {/* Logo */}
-      <div 
-        onClick={() => navigate('/')}
-        className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.4)] mb-8 cursor-pointer hover:scale-110 transition-transform"
-        title="Locus Home"
-      >
-        <Globe className="w-5 h-5 text-white" />
-      </div>
-
-      {/* Navigation */}
-      <div className="flex-1 w-full px-2 space-y-4">
-        <SidebarBtn 
-          icon={<MapIcon size={20}/>} 
-          label="Radar Map" 
-          active={isActive('/')} 
+    <>
+      <aside className="w-[72px] bg-[#0a0c10] border-r border-white/5 flex flex-col items-center py-6 z-[100] shrink-0 shadow-2xl absolute left-0 top-0 bottom-0 text-slate-100">
+        {/* Logo */}
+        <div 
           onClick={() => navigate('/')}
-        />
-        <SidebarBtn 
-          icon={<Database size={20}/>} 
-          label="Geo-Archive" 
-          active={isActive('/archive')}
-          onClick={() => navigate('/archive')}
-        />
-        <SidebarBtn 
-          icon={<Brain size={20}/>} 
-          label="Intelligence" 
-          active={isActive('/intelligence')}
-          onClick={() => navigate('/intelligence')}
-        />
-        <SidebarBtn 
-          icon={<Activity size={20}/>} 
-          label="Analytics" 
-          active={isActive('/analytics')}
-          onClick={() => navigate('/analytics')}
-        />
-      </div>
+          className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.4)] mb-8 cursor-pointer hover:scale-110 transition-transform"
+          title="Locus Home"
+        >
+          <Globe className="w-5 h-5 text-white" />
+        </div>
 
-      {/* Bottom Section */}
-      <div className="mt-auto w-full px-2">
-        <SidebarBtn 
-          icon={<Settings size={20}/>} 
-          label="Settings" 
-          active={isActive('/settings')}
-          onClick={() => navigate('/settings')}
-        />
-      </div>
-    </aside>
+        {/* Navigation */}
+        <div className="flex-1 w-full px-2 space-y-4">
+          <SidebarBtn 
+            icon={<RadarIcon size={20}/>} 
+            label="Threat Radar" 
+            active={isActive('/')} 
+            onClick={() => navigate('/')}
+          />
+          <SidebarBtn 
+            icon={<Database size={20}/>} 
+            label="Geo-Archive" 
+            active={isActive('/archive')}
+            onClick={() => navigate('/archive')}
+          />
+          <SidebarBtn 
+            icon={<Brain size={20}/>} 
+            label="Intelligence" 
+            active={isActive('/intelligence')}
+            onClick={() => navigate('/intelligence')}
+          />
+          <SidebarBtn 
+            icon={<Activity size={20}/>} 
+            label="Analytics" 
+            active={isActive('/analytics')}
+            onClick={() => navigate('/analytics')}
+          />
+
+          {/* Divider */}
+          <div className="border-t border-white/5 my-2" />
+
+          {/* Resource Inventory */}
+          <SidebarBtn 
+            icon={<Package size={20}/>} 
+            label="Resource Inventory" 
+            active={showInventory}
+            onClick={() => setShowInventory(prev => !prev)}
+          />
+        </div>
+
+        {/* Bottom Section */}
+        <div className="mt-auto w-full px-2">
+          <SidebarBtn 
+            icon={<Settings size={20}/>} 
+            label="Settings" 
+            active={isActive('/settings')}
+            onClick={() => navigate('/settings')}
+          />
+        </div>
+      </aside>
+
+      {/* Resource Inventory Overlay */}
+      <ResourceInventory 
+        isOpen={showInventory} 
+        onClose={() => setShowInventory(false)} 
+      />
+    </>
   );
 };

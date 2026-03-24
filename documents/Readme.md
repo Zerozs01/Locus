@@ -23,7 +23,7 @@ It follows a **"Local-First"** architecture, ensuring fast performance and offli
 - **Local-First Performance:** Instant data access for Regions & Provinces using embedded SQLite with WAL mode.
 - **Situational Awareness:** Assessing safety, supply locations, and environmental risks.
 - **Historical & Cultural Insights:** Fetching localized lore and history based on identified landmarks.
-- **Agent Chat Interface:** Interactive chat with AI agents capable of controlling the UI.
+- **Agent Chat Interface:** Interactive chat with LightRAG/n8n backed responses, recent chat history, and context-aware region/province prompts.
 - **Unified Region Theme:** Single source of truth for region colors/gradients shared between main and renderer.
 
 ## 🛠️ Getting Started
@@ -45,3 +45,10 @@ npm install
 
 ### Backend Services
 - Execute `scripts/start_all.bat` to launch n8n and Ngrok tunnel.
+
+## 🧠 Intelligence Status
+- `Settings -> Ngrok Tunnel URL` now tests both `health` and `chat` webhook reachability
+- Renderer talks to n8n through Electron IPC bridge instead of direct browser fetch, reducing CORS issues
+- Chat conversations are stored locally in the app and remain until the user deletes them
+- Replies can continue processing in the background while the user navigates to other pages in the app
+- Chat output supports lightweight markdown rendering in-app (headings, bullets, bold, italics, line breaks)

@@ -590,25 +590,25 @@ export function generateProvinceData(province: Province, region: Region): Provin
     transportHubs: essentialData.transportHubs,
 
     attractions: [
-      { name: `${province.name} Old City`, type: 'Historical Site', rating: 4.8, description: 'Ancient walled city with rich history and beautiful temples', openHours: '6:00 - 18:00', price: 'Free', coordinates: { lat: coords.lat + 0.005, lng: coords.lng + 0.003 } },
-      { name: `Wat ${province.name}`, type: 'Temple', rating: 4.7, description: 'Iconic temple with stunning architecture', openHours: '5:00 - 17:00', price: '30 ฿', coordinates: { lat: coords.lat + 0.01, lng: coords.lng + 0.005 } },
-      { name: `${province.name} Night Market`, type: 'Market', rating: 4.5, description: 'Vibrant night market with local crafts and food', openHours: '17:00 - 23:00', price: 'Free', coordinates: { lat: coords.lat - 0.008, lng: coords.lng + 0.012 } },
-      { name: `${province.name} National Park`, type: 'Nature', rating: 4.6, description: 'Beautiful natural scenery and hiking trails', openHours: '8:00 - 16:30', price: '200 ฿', coordinates: { lat: coords.lat + 0.025, lng: coords.lng - 0.015 } },
+      { name: `${province.name} Old City`, type: 'Landmark', rating: 4.8, description: 'แลนด์มาร์กหลักสำหรับอ้างอิงตำแหน่งและรวมพลในเขตเมืองเก่า', openHours: '6:00 - 18:00', price: 'Free', coordinates: { lat: coords.lat + 0.005, lng: coords.lng + 0.003 } },
+      { name: `Wat ${province.name}`, type: 'Temple', rating: 4.7, description: 'จุดสูงหรือพื้นที่เปิดโล่งที่ใช้เป็น orientation node ได้ดี', openHours: '5:00 - 17:00', price: '30 ฿', coordinates: { lat: coords.lat + 0.01, lng: coords.lng + 0.005 } },
+      { name: `${province.name} Night Market`, type: 'Market Hub', rating: 4.5, description: 'คลัสเตอร์อาหารและของใช้พื้นฐาน ใช้ประเมิน supply density ได้', openHours: '17:00 - 23:00', price: 'Free', coordinates: { lat: coords.lat - 0.008, lng: coords.lng + 0.012 } },
+      { name: `${province.name} National Park`, type: 'Nature Edge', rating: 4.6, description: 'พื้นที่ธรรมชาติสำหรับ day trip และใช้เป็น fallback edge นอกเมือง', openHours: '8:00 - 16:30', price: '200 ฿', coordinates: { lat: coords.lat + 0.025, lng: coords.lng - 0.015 } },
     ],
     
     activities: [
-      { name: 'Temple Hopping', icon: '🛕' },
-      { name: 'Street Food Tour', icon: '🍜' },
-      { name: 'Cooking Class', icon: '👨‍🍳' },
-      { name: 'Night Market', icon: '🛍️' },
-      { name: 'Trekking', icon: '🥾' },
-      { name: 'Local Crafts', icon: '🎨' },
+      { name: 'Landmark scan', icon: '🧭' },
+      { name: 'Meal stop planning', icon: '🍜' },
+      { name: 'Fuel top-up', icon: '⛽' },
+      { name: 'Market restock', icon: '🛍️' },
+      { name: 'Trail scouting', icon: '🥾' },
+      { name: 'Fallback check', icon: '🛡️' },
     ],
     
     seasons: [
-      { name: 'Cool Season', months: 'Nov - Feb', rating: 'best', description: 'Perfect weather, festivals' },
-      { name: 'Hot Season', months: 'Mar - May', rating: 'good', description: 'Very hot, Songkran' },
-      { name: 'Rainy Season', months: 'Jun - Oct', rating: 'avoid', description: 'Heavy rain, green scenery' },
+      { name: 'Cool Season', months: 'Nov - Feb', rating: 'best', description: 'มองเห็นชัด เดินทางไกลสบาย เหมาะกับ pre-trip route' },
+      { name: 'Hot Season', months: 'Mar - May', rating: 'good', description: 'ต้องบริหารน้ำและช่วงเวลาเคลื่อนที่ให้ดี' },
+      { name: 'Rainy Season', months: 'Jun - Oct', rating: 'avoid', description: 'เสี่ยงน้ำท่วม ทางลื่น และ route disruption สูง' },
     ],
     
     accommodation: {
@@ -627,33 +627,33 @@ export function generateProvinceData(province: Province, region: Region): Provin
     },
     
     stayAreas: [
-      { name: 'Old City', description: 'Historic center with temples, walking distance to everything', forWho: 'First-timers', coordinates: { lat: coords.lat + 0.002, lng: coords.lng + 0.001 } },
-      { name: 'Riverside', description: 'Peaceful area with scenic views and upscale restaurants', forWho: 'Couples', coordinates: { lat: coords.lat - 0.005, lng: coords.lng - 0.01 } },
-      { name: 'Night Bazaar Area', description: 'Close to shopping and nightlife', forWho: 'Shoppers', coordinates: { lat: coords.lat - 0.002, lng: coords.lng + 0.008 } },
+      { name: 'Old City', description: 'เดินทางง่าย ใกล้ landmark หลัก เหมาะตั้งฐานสำหรับสำรวจเมือง', forWho: 'First-timers', coordinates: { lat: coords.lat + 0.002, lng: coords.lng + 0.001 } },
+      { name: 'Riverside', description: 'สงบกว่าใจกลางเมือง แต่ต้องเช็กความเสี่ยงน้ำและ route access', forWho: 'Slow pace', coordinates: { lat: coords.lat - 0.005, lng: coords.lng - 0.01 } },
+      { name: 'Night Bazaar Area', description: 'ใกล้ตลาดและของกิน เหมาะสำหรับ restock ระยะสั้น', forWho: 'Supply access', coordinates: { lat: coords.lat - 0.002, lng: coords.lng + 0.008 } },
     ],
     
     localDishes: [
-      { name: getLocalDish(region.id, 0), description: 'Regional specialty noodle dish', price: '40-60 ฿' },
-      { name: getLocalDish(region.id, 1), description: 'Famous local curry', price: '50-80 ฿' },
-      { name: getLocalDish(region.id, 2), description: 'Traditional street food', price: '30-50 ฿' },
-      { name: getLocalDish(region.id, 3), description: 'Popular dessert', price: '20-40 ฿' },
+      { name: getLocalDish(region.id, 0), description: 'เมนูหลักหาได้ง่าย ใช้เป็น baseline มื้อหลักของพื้นที่', price: '40-60 ฿' },
+      { name: getLocalDish(region.id, 1), description: 'อาหารท้องถิ่นที่เจอได้ตามร้านทั่วไป', price: '50-80 ฿' },
+      { name: getLocalDish(region.id, 2), description: 'street food ที่เติมพลังได้เร็วระหว่างเดินทาง', price: '30-50 ฿' },
+      { name: getLocalDish(region.id, 3), description: 'ของหวานหรือ snack สำหรับพัก route ระยะสั้น', price: '20-40 ฿' },
     ],
     
     restaurants: [
-      { name: `The ${province.name} Kitchen`, cuisine: 'Northern Thai', price: '$$', rating: 4.6, specialty: 'Khao Soi', coordinates: { lat: coords.lat + 0.004, lng: coords.lng - 0.002 } },
-      { name: 'River View Terrace', cuisine: 'Thai-International', price: '$$$', rating: 4.5, specialty: 'Sunset dinner', coordinates: { lat: coords.lat - 0.006, lng: coords.lng - 0.009 } },
-      { name: 'Local Flavors', cuisine: 'Street Food Style', price: '$', rating: 4.4, specialty: 'Sai Oua', coordinates: { lat: coords.lat + 0.001, lng: coords.lng + 0.005 } },
+      { name: `The ${province.name} Kitchen`, cuisine: 'Local Thai', price: '$$', rating: 4.6, specialty: 'Reliable hot meals', coordinates: { lat: coords.lat + 0.004, lng: coords.lng - 0.002 } },
+      { name: 'River View Terrace', cuisine: 'Thai-International', price: '$$$', rating: 4.5, specialty: 'Comfort stop / longer break', coordinates: { lat: coords.lat - 0.006, lng: coords.lng - 0.009 } },
+      { name: 'Local Flavors', cuisine: 'Street Food Style', price: '$', rating: 4.4, specialty: 'Fast meal turnaround', coordinates: { lat: coords.lat + 0.001, lng: coords.lng + 0.005 } },
     ],
     
     cafes: [
-      { name: 'Coffee Mountain', vibe: 'Cozy, mountain views', wifi: true, specialty: 'Thai drip coffee', coordinates: { lat: coords.lat + 0.008, lng: coords.lng - 0.003 } },
-      { name: 'Art House Cafe', vibe: 'Artsy, quiet workspace', wifi: true, specialty: 'Pour over', coordinates: { lat: coords.lat + 0.002, lng: coords.lng + 0.006 } },
-      { name: 'Garden Brew', vibe: 'Outdoor, pet-friendly', wifi: true, specialty: 'Cold brew', coordinates: { lat: coords.lat - 0.003, lng: coords.lng + 0.004 } },
+      { name: 'Coffee Mountain', vibe: 'Quiet rest stop', wifi: true, specialty: 'Thai drip coffee', coordinates: { lat: coords.lat + 0.008, lng: coords.lng - 0.003 } },
+      { name: 'Art House Cafe', vibe: 'Workspace + charging', wifi: true, specialty: 'Pour over', coordinates: { lat: coords.lat + 0.002, lng: coords.lng + 0.006 } },
+      { name: 'Garden Brew', vibe: 'Outdoor short break', wifi: true, specialty: 'Cold brew', coordinates: { lat: coords.lat - 0.003, lng: coords.lng + 0.004 } },
     ],
     
     nightMarkets: [
-      { name: `${province.name} Walking Street`, openHours: 'Sun 16:00-22:00', bestFor: 'Local crafts & souvenirs', coordinates: { lat: coords.lat - 0.001, lng: coords.lng + 0.002 } },
-      { name: 'Night Bazaar', openHours: 'Daily 18:00-23:00', bestFor: 'Food & shopping', coordinates: { lat: coords.lat - 0.002, lng: coords.lng + 0.008 } },
+      { name: `${province.name} Walking Street`, openHours: 'Sun 16:00-22:00', bestFor: 'Street food + light resupply', coordinates: { lat: coords.lat - 0.001, lng: coords.lng + 0.002 } },
+      { name: 'Night Bazaar', openHours: 'Daily 18:00-23:00', bestFor: 'Food, essentials, urban activity pulse', coordinates: { lat: coords.lat - 0.002, lng: coords.lng + 0.008 } },
     ],
     
     // Shopping Malls
@@ -670,10 +670,10 @@ export function generateProvinceData(province: Province, region: Region): Provin
     ],
     
     gettingAround: [
-      { name: 'Songthaew', price: '20-40 ฿', description: 'Red trucks, shared rides in city', icon: <Car size={18} /> },
-      { name: 'Grab/Bolt', price: '50-150 ฿', description: 'Convenient app-based service', icon: <Car size={18} /> },
-      { name: 'Motorbike Rental', price: '200-300 ฿/day', description: 'Freedom to explore', icon: <Car size={18} /> },
-      { name: 'Bicycle', price: '50-100 ฿/day', description: 'Eco-friendly, Old City best', icon: <Car size={18} /> },
+      { name: 'Songthaew', price: '20-40 ฿', description: 'shared rides ในเมือง เหมาะกับ hop สั้น', icon: <Car size={18} /> },
+      { name: 'Grab/Bolt', price: '50-150 ฿', description: 'เรียกรถแบบ on-demand เมื่อ route หลักสะดุด', icon: <Car size={18} /> },
+      { name: 'Motorbike Rental', price: '200-300 ฿/day', description: 'คล่องตัวสำหรับ scout route ระยะกลาง', icon: <Car size={18} /> },
+      { name: 'Bicycle', price: '50-100 ฿/day', description: 'เหมาะกับ short-radius movement ในเขตเมืองเก่า', icon: <Car size={18} /> },
     ],
     
     dayTrips: [
@@ -691,9 +691,9 @@ export function generateProvinceData(province: Province, region: Region): Provin
     emergencyContacts: getProvinceEmergencyContacts(province.name),
     
     safetyTips: [
-      { level: 'good', title: 'Generally Safe', description: 'Low crime rate, tourist-friendly area' },
-      { level: 'warning', title: 'Traffic Caution', description: 'Be careful when crossing roads, especially at night' },
-      { level: 'info', title: 'Scam Awareness', description: 'Use metered taxis or Grab, negotiate prices beforehand' },
+      { level: 'good', title: 'Stable Planning Window', description: 'ช่วงกลางวันและเส้นทางหลักยังเหมาะกับการเดินทางปกติ' },
+      { level: 'warning', title: 'Traffic / Crowd Caution', description: 'เลี่ยงจุดคอขวดช่วงเย็นหรือเทศกาล โดยเฉพาะทางเข้าเมืองหลัก' },
+      { level: 'info', title: 'Backup Route Recommended', description: 'ควรมีอย่างน้อย 1 fallback node สำหรับน้ำมัน เงินสด หรืออาหาร' },
     ],
     
     // NEW: Banks & Currency Exchange

@@ -4,41 +4,18 @@ import {
   ArrowLeft, 
   Phone, 
   Shield, 
-  Building2, 
   Utensils, 
-  Car, 
-  Plane,
-  Bus,
-  Train,
   AlertTriangle,
-  ChevronRight,
-  Star,
   Wallet,
   Loader2,
   Bed,
-  Coffee,
-  Camera,
+  Compass,
   Navigation,
-  Clock,
-  Thermometer,
-  Wifi,
-  MapPinned,
-  Hospital,
-  GraduationCap,
-  ShoppingBag,
-  Zap,
-  Landmark,
-  Fuel,
-  Pill,
-  ExternalLink,
-  Copy,
-  ChevronDown,
-  Crosshair
+  Thermometer
 } from 'lucide-react';
-import { Province, Region } from '../data/regions';
-import ProvinceMap, { ProvinceMapHandle } from '../components/ProvinceMap';
-import { measureAsync } from '../utils/perf';
-import { ProvinceData } from './types';
+import { Province, Region } from '../../data/regions';
+import ProvinceMap, { ProvinceMapHandle } from '../../components/ProvinceMap';
+import { measureAsync } from '../../utils/perf';
 import { generateProvinceData } from './data';
 import { ExploreTab } from './tabs/ExploreTab';
 import { StayTab } from './tabs/StayTab';
@@ -141,11 +118,11 @@ export const ProvinceTacticalPage = () => {
   }
 
   const tabs = [
-    { id: 'explore', label: 'Explore', icon: <Camera size={18} />, color: 'text-teal-400' },
+    { id: 'explore', label: 'Overview', icon: <Compass size={18} />, color: 'text-teal-400' },
     { id: 'stay', label: 'Stay', icon: <Bed size={18} />, color: 'text-violet-400' },
-    { id: 'eat', label: 'Food', icon: <Utensils size={18} />, color: 'text-amber-400' },
-    { id: 'travel', label: 'transit', icon: <Navigation size={18} />, color: 'text-blue-400' },
-    { id: 'essentials', label: 'Essentials', icon: <Shield size={18} />, color: 'text-red-400' },
+    { id: 'eat', label: 'Food & Supply', icon: <Utensils size={18} />, color: 'text-amber-400' },
+    { id: 'travel', label: 'Transit', icon: <Navigation size={18} />, color: 'text-blue-400' },
+    { id: 'essentials', label: 'Critical', icon: <Shield size={18} />, color: 'text-red-400' },
   ] as const;
 
   const displayProvinceName = province.name === 'Bangkok Metropolis' ? 'Bangkok' : province.name;
@@ -192,9 +169,9 @@ export const ProvinceTacticalPage = () => {
         <div className="flex-shrink-0 p-4 bg-[#0a0c10] border-b border-white/10">
           <div className="flex items-center gap-4">
             <Helpers.QuickBadge icon={<Thermometer size={16} />} value={provinceData.weather.temp} label={provinceData.weather.condition} color="amber" />
-            <Helpers.QuickBadge icon={<Shield size={16} />} value={`${provinceData.safetyIndex}%`} label="Safe" color="emerald" />
-            <Helpers.QuickBadge icon={<Wallet size={16} />} value={provinceData.dailyCost} label="/day" color="cyan" />
-            <Helpers.QuickBadge icon={<Phone size={16} />} value="191" label="Police" color="red" />
+            <Helpers.QuickBadge icon={<Shield size={16} />} value={`${provinceData.safetyIndex}%`} label="Safety" color="emerald" />
+            <Helpers.QuickBadge icon={<Wallet size={16} />} value={provinceData.dailyCost} label="avg/day" color="cyan" />
+            <Helpers.QuickBadge icon={<Phone size={16} />} value="191" label="Emergency" color="red" />
           </div>
         </div>
 

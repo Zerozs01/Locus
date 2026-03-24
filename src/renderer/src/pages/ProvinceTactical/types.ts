@@ -1,4 +1,4 @@
-import { Region, Province } from '../../data/regions';
+// types.ts
 
 export type FlyToHandler = (lat: number, lng: number, title?: string) => void;
 

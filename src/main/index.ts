@@ -15,6 +15,7 @@ protocol.registerSchemesAsPrivileged([
 const IMAGE_CACHE_MAX_BYTES = 512 * 1024 * 1024
 const IMAGE_CACHE_SWEEP_INTERVAL_MS = 60 * 1000
 const IMAGE_FAIL_TTL_MS = 10 * 60 * 1000
+const DEFAULT_N8N_WEBHOOK_URL = 'http://localhost:5678'
 let lastCacheSweepAt = 0
 let cacheSweepInFlight = false
 const failedImageCache = new Map<string, number>()
@@ -141,6 +142,129 @@ const clearImageCache = async () => {
   await fs.rm(dir, { recursive: true, force: true }).catch(() => {})
   await fs.mkdir(dir, { recursive: true })
   return getImageCacheStats()
+}
+
+type N8nOverrides = {
+  webhookUrl?: string
+  apiKey?: string
+}
+
+const resolveN8nConfig = async (overrides?: N8nOverrides) => {
+  const config = await readRuntimeConfig()
+  const webhookUrl = (overrides?.webhookUrl || config.ngrok || process.env.VITE_NGROK_URL || DEFAULT_N8N_WEBHOOK_URL).replace(/\/+$/, '')
+  const apiKey = overrides?.apiKey || config.n8n_api_key || process.env.VITE_N8N_API_KEY || ''
+  return { webhookUrl, apiKey }
+}
+
+const buildN8nHeaders = (apiKey?: string, contentType?: string) => {
+  const headers: Record<string, string> = {}
+  if (contentType) {
+    headers['content-type'] = contentType
+  }
+  if (apiKey) {
+    headers['x-api-key'] = apiKey
+  }
+  return headers
+}
+
+const buildN8nEndpointCandidates = (webhookUrl: string, endpoint: string) => {
+  const normalizedBase = webhookUrl.replace(/\/+$/, '')
+  const normalizedEndpoint = endpoint.replace(/^\/+/, '')
+  const strippedBase = normalizedBase.replace(/\/(webhook|webhook-test)(\/.*)?$/, '')
+  const directWebhookCandidate = /\/(webhook|webhook-test)(\/|$)/.test(normalizedBase)
+    ? `${normalizedBase}/${normalizedEndpoint}`.replace(/\/+$/, '')
+    : `${strippedBase}/webhook/${normalizedEndpoint}`
+  const rootCandidate = `${strippedBase}/${normalizedEndpoint}`
+
+  return Array.from(
+    new Set([
+      directWebhookCandidate,
+      rootCandidate
+    ])
+  )
+}
+
+const parseN8nResponse = async (response: Response) => {
+  const rawText = await response.text()
+  const contentType = response.headers.get('content-type') || ''
+  const looksJson = contentType.includes('application/json')
+
+  if (looksJson && rawText) {
+    try {
+      return {
+        status: response.status,
+        ok: response.ok,
+        data: JSON.parse(rawText) as unknown,
+        text: rawText
+      }
+    } catch {
+      // Fall through to plain text if upstream sends malformed JSON.
+    }
+  }
+
+  return {
+    status: response.status,
+    ok: response.ok,
+    data: rawText,
+    text: rawText
+  }
+}
+
+const pingN8nHealth = async (overrides?: N8nOverrides) => {
+  const { webhookUrl, apiKey } = await resolveN8nConfig(overrides)
+  const candidates = buildN8nEndpointCandidates(webhookUrl, 'health')
+  let lastStatus = 0
+
+  for (const url of candidates) {
+    const response = await net.fetch(url, {
+      method: 'GET',
+      headers: buildN8nHeaders(apiKey)
+    })
+
+    lastStatus = response.status
+    if (response.ok || response.status !== 404) {
+      return {
+        ok: response.ok,
+        status: response.status
+      }
+    }
+  }
+
+  return {
+    ok: false,
+    status: lastStatus || 404
+  }
+}
+
+const postN8nChat = async (payload: { message: string; sessionId?: string } & N8nOverrides) => {
+  const { webhookUrl, apiKey } = await resolveN8nConfig(payload)
+  const candidates = buildN8nEndpointCandidates(webhookUrl, 'chat')
+  let lastResponse: Awaited<ReturnType<typeof parseN8nResponse>> | null = null
+
+  for (const url of candidates) {
+    const response = await net.fetch(url, {
+      method: 'POST',
+      headers: buildN8nHeaders(apiKey, 'application/json'),
+      body: JSON.stringify({
+        message: payload.message,
+        sessionId: payload.sessionId
+      })
+    })
+
+    const parsed = await parseN8nResponse(response)
+    lastResponse = parsed
+    if (parsed.ok || parsed.status !== 404) {
+      return parsed
+    }
+  }
+
+  return (
+    lastResponse || {
+      ok: false,
+      status: 404,
+      error: 'n8n chat endpoint not found'
+    }
+  )
 }
 
 const registerImageProtocol = async () => {
@@ -366,6 +490,33 @@ app.whenReady().then(async () => {
   ipcMain.handle('config:set', (_, values: Record<string, unknown>) => {
     return writeRuntimeConfig(values)
   })
+
+  ipcMain.handle('n8n:health', async (_, overrides?: N8nOverrides) => {
+    try {
+      return await pingN8nHealth(overrides)
+    } catch (error) {
+      return {
+        ok: false,
+        status: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  })
+
+  ipcMain.handle(
+    'n8n:chat',
+    async (_, payload: { message: string; sessionId?: string; webhookUrl?: string; apiKey?: string }) => {
+      try {
+        return await postN8nChat(payload)
+      } catch (error) {
+        return {
+          ok: false,
+          status: 0,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      }
+    }
+  )
 
   createWindow()
 

@@ -1,48 +1,15 @@
-import { useState } from 'react';
 import { 
-  ArrowLeft, 
-  Phone, 
-  Shield, 
-  Building2, 
-  Utensils, 
-  Car, 
-  Plane,
-  Bus,
-  Train,
-  AlertTriangle,
-  ChevronRight,
-  Star,
-  Wallet,
-  Loader2,
-  Bed,
-  Coffee,
-  Camera,
-  Navigation,
-  Clock,
-  Thermometer,
-  Wifi,
-  MapPinned,
-  Hospital,
-  GraduationCap,
-  ShoppingBag,
   Zap,
-  Landmark,
-  Fuel,
-  Pill,
-  ExternalLink,
-  Copy,
-  ChevronDown,
-  Crosshair
+  Camera,
+  Clock
 } from 'lucide-react';
 import { FlyToHandler, ProvinceData } from '../types';
-import { Province } from '../../data/regions';
 import * as Helpers from '../components/HelperComponents';
 
 export const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandler }) => (
   <div className="space-y-4">
-    {/* Popular Activities - FIRST */}
     <Helpers.ContentCard 
-      title="Popular Activities" 
+      title="Planning Priorities" 
       icon={<Zap size={18} />}
       color="amber"
       borderColor="amber"
@@ -54,9 +21,8 @@ export const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fl
       </div>
     </Helpers.ContentCard>
 
-    {/* Best Time to Visit - SECOND */}
     <Helpers.ContentCard 
-      title="Best Time to Visit" 
+      title="Season & Exposure" 
       icon={<Clock size={18} />}
       color="violet"
       borderColor="violet"
@@ -68,9 +34,8 @@ export const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fl
       </div>
     </Helpers.ContentCard>
 
-    {/* Top Attractions - THIRD */}
     <Helpers.ContentCard 
-      title="Top Attractions" 
+      title="Key Landmarks & Civic Nodes" 
       icon={<Camera size={18} />}
       color="teal"
       borderColor="teal"
@@ -93,4 +58,4 @@ export const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fl
       </div>
     </Helpers.ContentCard>
   </div>
-);
+);

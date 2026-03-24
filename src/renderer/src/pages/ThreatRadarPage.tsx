@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { ThailandMap } from '../components/ThailandMap';
 import { RegionDashboard } from '../components/RegionDashboard';
 import { Region, Province, regionsData } from '../data/regions';
+import { regionTheme, type RegionId } from '../data/regionTheme';
 import { searchProvince, getThaiProvinceName } from '../data/thaiProvinceNames';
 import { Search, Users, Maximize, Building, MapPin } from 'lucide-react';
 import { measureAsync } from '../utils/perf';
+import { mixHex, toRgba } from '../utils/color';
 
 // Local image mapping for regions (override DB URLs)
 const regionImageMap: Record<string, string> = regionsData.reduce((acc, r) => {
@@ -14,10 +16,10 @@ const regionImageMap: Record<string, string> = regionsData.reduce((acc, r) => {
 }, {} as Record<string, string>);
 
 /**
- * Radar Page - Main Map View (หน้าแรก)
- * แสดงแผนที่ประเทศไทย + Region Dashboard
+ * Threat Radar Page - Survival Mode
+ * แสดงแผนที่ประเทศไทย + Region Dashboard (Threat Assessment)
  */
-export const RadarPage = () => {
+export const ThreatRadarPage = () => {
   const navigate = useNavigate();
   const [regions, setRegions] = useState<Region[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>('central');
@@ -88,6 +90,8 @@ export const RadarPage = () => {
   }, [regions]);
 
   const activeData = regions.find(r => r.id === selectedRegionId);
+  const activeTheme = selectedRegionId ? regionTheme[selectedRegionId as RegionId] || regionTheme.central : regionTheme.central;
+  const summaryToneRamp = activeTheme.toneRamp;
   const isProvinceFocus = mapMode === 'province' && !!selectedProvince;
   const getProvincePopulation = (prov: Province | null) => {
     if (!prov) return null;
@@ -210,7 +214,12 @@ export const RadarPage = () => {
   return (
     <>
       {/* LEFT: RADAR MAP */}
-      <section className="flex-[2] relative bg-[#050608] flex flex-col border-r border-white/5 z-10 overflow-hidden">
+      <section
+        className="relative z-10 flex flex-[2] flex-col overflow-hidden border-r border-white/5"
+        style={{
+          background: 'linear-gradient(180deg, rgba(13, 16, 20, 1) 0%, rgba(6, 8, 12, 1) 100%)'
+        }}
+      >
         <div className="flex-1 relative flex items-center justify-center will-change-auto">
           <ThailandMap 
             activeId={selectedRegionId} 
@@ -229,21 +238,21 @@ export const RadarPage = () => {
             <StatCard 
               icon={<Users size={15} />}
               value={isProvinceFocus ? (getProvincePopulation(selectedProvince) || activeData.summary.pop) : activeData.summary.pop}
-              label="Population"
-              colorClass="yellow"
+              label="Living Targets"
+              toneColor={summaryToneRamp[0]}
             />
             <StatCard 
               icon={<Maximize size={15} />}
               value={isProvinceFocus ? (getProvinceArea(selectedProvince) || activeData.summary.area) : activeData.summary.area}
-              label="Area km²"
-              colorClass="orange"
+              label="Hotzone Area"
+              toneColor={summaryToneRamp[1]}
             />
             {!isProvinceFocus && (
               <StatCard 
                 icon={<Building size={15} />}
                 value={String(activeData.summary.provinces)}
                 label="Provinces"
-                colorClass="amber"
+                toneColor={summaryToneRamp[2]}
               />
             )}
           </div>
@@ -260,9 +269,9 @@ export const RadarPage = () => {
                     key={prov.id}
                     onClick={() => handleSearchSelect(prov)}
                     onMouseEnter={() => setSelectedIndex(index)}
-                    className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${index === selectedIndex ? 'bg-cyan-500/20' : 'hover:bg-white/5'}`}
+                    className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${index === selectedIndex ? 'bg-red-500/20' : 'hover:bg-white/5'}`}
                   >
-                    <MapPin size={16} className={`flex-shrink-0 ${index === selectedIndex ? 'text-cyan-400' : 'text-slate-500'}`} />
+                    <MapPin size={16} className={`flex-shrink-0 ${index === selectedIndex ? 'text-red-400' : 'text-slate-500'}`} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-white truncate">{prov.name}</div>
                       <div className="text-[10px] text-slate-500">{getThaiProvinceName(prov.name)} • {prov.regionName}</div>
@@ -275,9 +284,9 @@ export const RadarPage = () => {
               </div>
             )}
 
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/30 to-blue-600/30 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity duration-200"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600/30 to-orange-600/30 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity duration-200"></div>
             <div className="relative bg-[#0f1115] border border-white/10 rounded-xl flex items-center p-3.5 shadow-xl transition-colors duration-150 will-change-auto w-full">
-              <Search className="text-slate-400 ml-2 mr-3 group-focus-within:text-cyan-400 transition-colors" size={20} />
+              <Search className="text-slate-400 ml-2 mr-3 group-focus-within:text-red-500 transition-colors" size={20} />
               <input 
                 ref={searchInputRef}
                 value={searchQuery}
@@ -285,8 +294,8 @@ export const RadarPage = () => {
                 onKeyDown={handleSearchKeyDown}
                 onFocus={() => searchQuery && setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                className="bg-transparent border-none outline-none text-sm text-yellow-400 w-full placeholder:text-slate-500 font-medium"
-                placeholder="ค้นหาจังหวัด (TH/EN)..."
+                className="bg-transparent border-none outline-none text-sm text-red-400 w-full placeholder:text-slate-500 font-medium"
+                placeholder="สแกนหาพื้นที่เป้าหมาย (TH/EN)..."
               />
               {searchQuery && (
                 <button 
@@ -322,23 +331,34 @@ interface StatCardProps {
   icon: React.ReactNode;
   value: string;
   label: string;
-  colorClass: 'yellow' | 'orange' | 'amber';
+  toneColor: string;
 }
 
-const StatCard = ({ icon, value, label, colorClass }: StatCardProps) => {
-  const colors = {
-    yellow: { border: 'border-yellow-500', bg: 'bg-yellow-500', text: 'text-yellow-400', iconText: 'text-black' },
-    orange: { border: 'border-orange-500', bg: 'bg-orange-500', text: 'text-orange-400', iconText: 'text-white' },
-    amber: { border: 'border-amber-700', bg: 'bg-amber-700', text: 'text-amber-500', iconText: 'text-white' },
-  };
-  const c = colors[colorClass];
+const StatCard = ({ icon, value, label, toneColor }: StatCardProps) => {
+  const darkTone = mixHex(toneColor, '#000000', 0.42);
+  const deeperTone = mixHex(toneColor, '#000000', 0.62);
+  const labelTone = mixHex(toneColor, '#ffffff', 0.14);
 
   return (
-    <div className={`flex items-center gap-2 bg-[#0f1115]/90 backdrop-blur-sm py-1.5 px-2.5 pr-3.5 rounded-l-lg border-r-2 ${c.border} shadow-lg pointer-events-auto hover:-translate-x-1 transition-transform duration-200 will-change-transform cursor-default group min-w-[132px] justify-between`}>
-      <div className={`${c.bg} p-1.5 rounded-md shadow-lg ${c.iconText}`}>{icon}</div>
+    <div
+      className="group pointer-events-auto flex min-w-[132px] cursor-default items-center justify-between gap-2 rounded-l-lg border-r-2 bg-[#0f1115]/90 px-2.5 py-1.5 pr-3.5 shadow-lg backdrop-blur-sm transition-transform duration-200 will-change-transform hover:-translate-x-1"
+      style={{
+        borderColor: toneColor,
+        background: `linear-gradient(135deg, rgba(15,17,21,0.96) 0%, ${toRgba(darkTone, 0.26)} 58%, ${toRgba(toneColor, 0.2)} 100%)`,
+        boxShadow: `0 10px 20px ${toRgba(darkTone, 0.12)}`
+      }}
+    >
+      <div
+        className="rounded-md p-1.5 text-white shadow-lg"
+        style={{ background: `linear-gradient(135deg, ${deeperTone} 0%, ${darkTone} 56%, ${toneColor} 100%)` }}
+      >
+        {icon}
+      </div>
       <div className="text-right">
         <div className="text-lg font-black text-white leading-none">{value}</div>
-        <div className={`text-[9px] font-bold ${c.text} uppercase tracking-wide`}>{label}</div>
+        <div className="text-[9px] font-bold uppercase tracking-wide" style={{ color: labelTone }}>
+          {label}
+        </div>
       </div>
     </div>
   );

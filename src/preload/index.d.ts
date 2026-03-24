@@ -31,6 +31,10 @@ declare global {
         get: () => Promise<Record<string, string>>
         set: (values: Record<string, string>) => Promise<void>
       }
+      n8n: {
+        health: (overrides?: { webhookUrl?: string; apiKey?: string }) => Promise<{ ok: boolean; status: number; error?: string }>
+        chat: (payload: { message: string; sessionId?: string; webhookUrl?: string; apiKey?: string }) => Promise<{ ok: boolean; status: number; data?: unknown; text?: string; error?: string }>
+      }
     }
   }
 }

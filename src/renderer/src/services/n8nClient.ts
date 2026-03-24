@@ -55,6 +55,36 @@ const resolveAuthHeaders = async (): Promise<Record<string, string>> => {
   return { 'x-api-key': apiKey }
 }
 
+interface N8nOverrides {
+  webhookUrl?: string
+  apiKey?: string
+}
+
+const CHAT_SESSION_STORAGE_KEY = 'locus_chat_session_id'
+
+const resolveSessionId = (explicitSessionId?: string): string => {
+  if (explicitSessionId?.trim()) {
+    return explicitSessionId.trim()
+  }
+
+  if (typeof window === 'undefined') {
+    return `locus-session-${Date.now()}`
+  }
+
+  try {
+    const existing = window.localStorage.getItem(CHAT_SESSION_STORAGE_KEY)
+    if (existing?.trim()) {
+      return existing.trim()
+    }
+
+    const generated = `locus-session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+    window.localStorage.setItem(CHAT_SESSION_STORAGE_KEY, generated)
+    return generated
+  } catch {
+    return `locus-session-${Date.now()}`
+  }
+}
+
 const withRetry = async <T>(
   fn: () => Promise<AxiosResponse<T>>,
   retries = MAX_RETRIES
@@ -120,8 +150,13 @@ export const analyzeLocation = async (imageFile: File): Promise<AnalyzeResponse>
   }
 }
 
-export const pingAgent = async (): Promise<boolean> => {
+export const pingAgent = async (overrides?: N8nOverrides): Promise<boolean> => {
   try {
+    if (window.api?.n8n?.health) {
+      const result = await window.api.n8n.health(overrides)
+      return result.ok
+    }
+
     const webhookUrl = await resolveWebhookUrl()
     const response = await axios.get(`${webhookUrl}/health`, { timeout: 5000 })
     return response.status === 200
@@ -134,15 +169,49 @@ export interface ChatResponse {
   output: string
 }
 
-export const sendChatMessage = async (message: string, sessionId?: string): Promise<string> => {
-  const webhookUrl = await resolveWebhookUrl()
-  const authHeaders = await resolveAuthHeaders()
+export const sendChatMessage = async (message: string, sessionId?: string, overrides?: N8nOverrides): Promise<string> => {
+  const resolvedSessionId = resolveSessionId(sessionId)
+
+  if (window.api?.n8n?.chat) {
+    const response = await window.api.n8n.chat({
+      message,
+      sessionId: resolvedSessionId,
+      ...overrides
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('Authentication failed: invalid API key.')
+      if (response.status === 404) throw new Error('Agent endpoint not found (404).')
+      const upstreamMessage =
+        response.error ||
+        (typeof response.data === 'object' && response.data && 'message' in response.data
+          ? String((response.data as Record<string, unknown>).message)
+          : undefined) ||
+        (typeof response.text === 'string' ? response.text : undefined)
+      throw new Error(upstreamMessage || `Agent Error: HTTP ${response.status}`)
+    }
+
+    const data = response.data
+    if (typeof data === 'string') return data
+    if (data && typeof data === 'object') {
+      const record = data as Record<string, unknown>
+      if (typeof record.output === 'string') return record.output
+      if (typeof record.text === 'string') return record.text
+    }
+    if (typeof response.text === 'string' && response.text.trim().length > 0) {
+      return response.text
+    }
+    return 'Received a response, but in an unexpected format.'
+  }
+
+  const webhookUrl = overrides?.webhookUrl || await resolveWebhookUrl()
+  const authHeaders = overrides?.apiKey ? { 'x-api-key': overrides.apiKey } : await resolveAuthHeaders()
 
   try {
     const response = await withRetry(() =>
       axios.post(
         `${webhookUrl}/chat`,
-        { message, sessionId },
+        { message, sessionId: resolvedSessionId },
         {
           headers: authHeaders,
           timeout: 30000
@@ -166,5 +235,14 @@ export const sendChatMessage = async (message: string, sessionId?: string): Prom
       throw new Error(`Agent Error: ${error.response?.statusText || error.message}`)
     }
     throw error
+  }
+}
+
+export const testChatAgent = async (message = 'healthcheck'): Promise<boolean> => {
+  try {
+    await sendChatMessage(message)
+    return true
+  } catch {
+    return false
   }
 }

@@ -8,8 +8,8 @@ const PageLoading = () => (
   </div>
 );
 
-const RadarPage = lazy(() => import('../pages/RadarPage').then(m => ({ default: m.RadarPage })));
-const ProvinceTacticalPage = lazy(() => import('../pages/ProvinceTacticalPage').then(m => ({ default: m.ProvinceTacticalPage })));
+const ThreatRadarPage = lazy(() => import('../pages/ThreatRadarPage').then(m => ({ default: m.ThreatRadarPage })));
+const ProvinceTacticalPage = lazy(() => import('../pages/ProvinceTactical').then(m => ({ default: m.ProvinceTacticalPage })));
 const SettingsPage = lazy(() => import('../pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const GeoArchivePage = lazy(() => import('../pages/GeoArchivePage').then(m => ({ default: m.GeoArchivePage })));
 const IntelligencePage = lazy(() => import('../pages/IntelligencePage').then(m => ({ default: m.IntelligencePage })));
@@ -30,7 +30,7 @@ export const routes: RouteObject[] = [
         index: true,
         element: (
           <Suspense fallback={<PageLoading />}>
-            <RadarPage />
+            <ThreatRadarPage />
           </Suspense>
         ),
       },

@@ -1,34 +1,17 @@
 import { X, Send, Bot, User } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { sendChatMessage } from '../services/n8nClient';
+import { useIntelligenceChatStore } from '../services/intelligenceChatStore';
+import { MarkdownLite } from './MarkdownLite';
 
 export interface ChatOverlayProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'bot';
-  timestamp: Date;
-}
-
 export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 'welcome', text: 'Command Center พร้อมใช้งาน! (//ω//)', sender: 'bot', timestamp: new Date() }
-  ]);
+  const { messages, isLoading, sendMessage } = useIntelligenceChatStore();
   const [inputText, setInputText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const MAX_MESSAGES = 200;
-
-  const appendMessage = (msg: Message) => {
-    setMessages(prev => {
-      const next = [...prev, msg];
-      return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
-    });
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -40,38 +23,8 @@ export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
-
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      text: inputText,
-      sender: 'user',
-      timestamp: new Date()
-    };
-
-    appendMessage(userMsg);
+    sendMessage(inputText);
     setInputText('');
-    setIsLoading(true);
-
-    try {
-      const responseText = await sendChatMessage(userMsg.text);
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        text: responseText,
-        sender: 'bot',
-        timestamp: new Date()
-      };
-      appendMessage(botMsg);
-    } catch (error: any) {
-      const errorMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        text: error.message || 'Error connecting to Agent. Please check n8n connection.',
-        sender: 'bot',
-        timestamp: new Date()
-      };
-      appendMessage(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -97,22 +50,15 @@ export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
             <div className={`max-w-[80%] p-3 rounded-xl text-sm ${
               msg.sender === 'user' 
                 ? 'bg-cyan-600/10 border border-cyan-500/20 text-cyan-100' 
-                : 'bg-white/5 border border-white/5 text-slate-300'
+                : `${msg.status === 'error' ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/5 border border-white/5'} text-slate-300`
             }`}>
-              {msg.text}
+              <MarkdownLite text={msg.text} className="text-sm" />
+              {msg.status === 'pending' && (
+                <div className="mt-2 text-xs text-cyan-400">กำลังรอคำตอบอยู่เบื้องหลัง...</div>
+              )}
             </div>
           </div>
         ))}
-        {isLoading && (
-           <div className="flex gap-3">
-             <div className="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center shrink-0 text-emerald-400">
-               <Bot size={16} />
-             </div>
-             <div className="bg-white/5 border border-white/5 p-3 rounded-xl text-sm text-slate-400">
-               Running Agent Protocol...
-             </div>
-           </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
       

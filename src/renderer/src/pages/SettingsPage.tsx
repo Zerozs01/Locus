@@ -20,9 +20,13 @@ import {
   WifiOff,
   HardDrive,
   Server,
-  Bot
+  Bot,
+  Map,
+  Mountain,
+  WifiOff as OfflineIcon
 } from 'lucide-react';
-import { pingAgent } from '../services/n8nClient';
+import { pingAgent, sendChatMessage } from '../services/n8nClient';
+import { ThreatConfig } from '../components/ThreatConfig';
 
 interface ApiKey {
   id: string;
@@ -54,6 +58,7 @@ interface ImageCacheStats {
 }
 
 type ConnectionTestState = 'idle' | 'testing' | 'success' | 'error';
+type OfflineMode = boolean;
 
 /**
  * Settings Page - API Keys & Configuration Management
@@ -75,6 +80,7 @@ export const SettingsPage = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [strictOfflineMode, setStrictOfflineMode] = useState<OfflineMode>(false);
   
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([
     {
@@ -134,7 +140,7 @@ export const SettingsPage = () => {
     {
       id: 'openweather',
       name: 'OpenWeather API Key',
-      description: 'For real-time weather data',
+      description: 'สำหรับดึงสภาพอากาศ real-time (ฝน, อุณหภูมิ, ความชื้น)',
       value: '',
       placeholder: 'xxxxxxxxxxxxxxxxxxxx',
       icon: <Cloud size={18} />,
@@ -147,6 +153,33 @@ export const SettingsPage = () => {
       value: '',
       placeholder: 'AIzaSy...',
       icon: <Globe size={18} />,
+      required: false,
+    },
+    {
+      id: 'longdo_map',
+      name: 'Longdo Map API Key',
+      description: 'สำหรับค้นหาสถานที่ในไทยแบบละเอียด (ฟรี 100K calls/เดือน)',
+      value: '',
+      placeholder: '3f3419bb3bbb...',
+      icon: <Map size={18} />,
+      required: false,
+    },
+    {
+      id: 'overpass_endpoint',
+      name: 'Overpass API Endpoint',
+      description: 'Endpoint สำหรับดึงข้อมูลโครงสร้างพื้นฐาน (ร้านยา, บ่อน้ำ, ค่ายทหาร)',
+      value: 'https://overpass-api.de/api/interpreter',
+      placeholder: 'https://overpass-api.de/api/interpreter',
+      icon: <Database size={18} />,
+      required: false,
+    },
+    {
+      id: 'opentopo_api_key',
+      name: 'OpenTopoData API Key',
+      description: 'สำหรับดึงข้อมูล Elevation (ความสูงชันของพื้นที่)',
+      value: '',
+      placeholder: 'your_opentopo_key',
+      icon: <Mountain size={18} />,
       required: false,
     },
   ]);
@@ -175,8 +208,11 @@ export const SettingsPage = () => {
 
         setApiKeys(prev => prev.map(key => ({
           ...key,
-          value: parsed[key.id] || ''
+          value: parsed[key.id] || key.value || ''
         })));
+        
+        // Load Strict Offline Mode
+        setStrictOfflineMode(parsed['strict_offline_mode'] === 'true');
       } catch (error) {
         console.error('Failed to load API keys:', error);
       }
@@ -268,20 +304,25 @@ export const SettingsPage = () => {
     setShowKeys(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const persistSettings = async () => {
+    const keysToSave = apiKeys.reduce((acc, key) => {
+      acc[key.id] = key.value;
+      return acc;
+    }, {} as Record<string, string>);
+    
+    keysToSave['strict_offline_mode'] = String(strictOfflineMode);
+
+    if (window.api?.config?.set) {
+      await window.api.config.set(keysToSave);
+    } else {
+      localStorage.setItem('locus_api_keys', JSON.stringify(keysToSave));
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const keysToSave = apiKeys.reduce((acc, key) => {
-        acc[key.id] = key.value;
-        return acc;
-      }, {} as Record<string, string>);
-
-      if (window.api?.config?.set) {
-        await window.api.config.set(keysToSave);
-      } else {
-        localStorage.setItem('locus_api_keys', JSON.stringify(keysToSave));
-      }
-      
+      await persistSettings();
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch (error) {
@@ -295,6 +336,8 @@ export const SettingsPage = () => {
   const testConnection = async (keyId: string) => {
     const entry = apiKeys.find((key) => key.id === keyId);
     const value = entry?.value?.trim() || '';
+    const ngrokValue = apiKeys.find((key) => key.id === 'ngrok')?.value?.trim() || '';
+    const n8nApiKeyValue = apiKeys.find((key) => key.id === 'n8n_api_key')?.value?.trim() || '';
 
     setConnectionTests(prev => ({ ...prev, [keyId]: 'testing' }));
 
@@ -304,10 +347,18 @@ export const SettingsPage = () => {
       }
 
       if (keyId === 'ngrok' || keyId === 'n8n_api_key') {
-        const online = await pingAgent();
+        const online = await pingAgent({
+          webhookUrl: ngrokValue || undefined,
+          apiKey: n8nApiKeyValue || undefined
+        });
         if (!online) {
           throw new Error('Agent unreachable');
         }
+
+        await sendChatMessage('healthcheck', undefined, {
+          webhookUrl: ngrokValue || undefined,
+          apiKey: n8nApiKeyValue || undefined
+        });
       } else if (keyId === 'supabase_url') {
         const parsedUrl = new URL(value);
         if (!parsedUrl.hostname.includes('supabase.co')) {
@@ -317,12 +368,15 @@ export const SettingsPage = () => {
         throw new Error('Key seems too short');
       }
 
+      await persistSettings();
       setConnectionTests(prev => ({ ...prev, [keyId]: 'success' }));
+      setSaveStatus('success');
     } catch {
       setConnectionTests(prev => ({ ...prev, [keyId]: 'error' }));
     } finally {
       window.setTimeout(() => {
         setConnectionTests(prev => ({ ...prev, [keyId]: 'idle' }));
+        setSaveStatus(prev => (prev === 'success' ? 'idle' : prev));
       }, 2500);
     }
   };
@@ -542,6 +596,47 @@ export const SettingsPage = () => {
               />
             ))}
           </div>
+        </div>
+
+        {/* Tactical Mode: Strict Offline Toggle */}
+        <div className="bg-[#0a0c10] rounded-xl border border-white/5 p-6 mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                strictOfflineMode ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-slate-400'
+              }`}>
+                <OfflineIcon size={20} />
+              </div>
+              <div>
+                <div className="text-white font-medium flex items-center gap-2">
+                  Strict Offline Mode
+                  {strictOfflineMode && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded uppercase font-bold">Active</span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  ตัดการเชื่อมต่อ API ภายนอกทั้งหมด ใช้เฉพาะ Local Data (สำหรับสถานการณ์ฉุกเฉินที่อินเทอร์เน็ตล่ม)
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setStrictOfflineMode(prev => !prev)}
+              className={`relative w-14 h-7 rounded-full transition-all duration-300 ${
+                strictOfflineMode 
+                  ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' 
+                  : 'bg-white/10 hover:bg-white/20'
+              }`}
+            >
+              <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300 ${
+                strictOfflineMode ? 'left-8' : 'left-1'
+              }`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Threat Configuration */}
+        <div className="mb-8">
+          <ThreatConfig />
         </div>
 
         {/* Security Notice */}
