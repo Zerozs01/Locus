@@ -205,9 +205,10 @@ export const IntelligencePage = () => {
       appendMessage(botMsg);
       setActiveContext(botMsg);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'ไม่สามารถเชื่อมต่อ Agent ได้ กรุณาตรวจสอบการเชื่อมต่อ n8n และ Ngrok';
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: '❌ ไม่สามารถเชื่อมต่อ Agent ได้ กรุณาตรวจสอบการเชื่อมต่อ n8n และ Ngrok',
+        text: `❌ ${errorMessage}`,
         sender: 'bot',
         timestamp: new Date()
       };

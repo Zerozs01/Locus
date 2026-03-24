@@ -25,7 +25,7 @@ import {
   Mountain,
   WifiOff as OfflineIcon
 } from 'lucide-react';
-import { pingAgent } from '../services/n8nClient';
+import { pingAgent, sendChatMessage } from '../services/n8nClient';
 import { ThreatConfig } from '../components/ThreatConfig';
 
 interface ApiKey {
@@ -304,23 +304,25 @@ export const SettingsPage = () => {
     setShowKeys(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const persistSettings = async () => {
+    const keysToSave = apiKeys.reduce((acc, key) => {
+      acc[key.id] = key.value;
+      return acc;
+    }, {} as Record<string, string>);
+    
+    keysToSave['strict_offline_mode'] = String(strictOfflineMode);
+
+    if (window.api?.config?.set) {
+      await window.api.config.set(keysToSave);
+    } else {
+      localStorage.setItem('locus_api_keys', JSON.stringify(keysToSave));
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const keysToSave = apiKeys.reduce((acc, key) => {
-        acc[key.id] = key.value;
-        return acc;
-      }, {} as Record<string, string>);
-      
-      // เซฟ Offline Mode ร่วมด้วย
-      keysToSave['strict_offline_mode'] = String(strictOfflineMode);
-
-      if (window.api?.config?.set) {
-        await window.api.config.set(keysToSave);
-      } else {
-        localStorage.setItem('locus_api_keys', JSON.stringify(keysToSave));
-      }
-      
+      await persistSettings();
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), 3000);
     } catch (error) {
@@ -334,6 +336,8 @@ export const SettingsPage = () => {
   const testConnection = async (keyId: string) => {
     const entry = apiKeys.find((key) => key.id === keyId);
     const value = entry?.value?.trim() || '';
+    const ngrokValue = apiKeys.find((key) => key.id === 'ngrok')?.value?.trim() || '';
+    const n8nApiKeyValue = apiKeys.find((key) => key.id === 'n8n_api_key')?.value?.trim() || '';
 
     setConnectionTests(prev => ({ ...prev, [keyId]: 'testing' }));
 
@@ -343,10 +347,18 @@ export const SettingsPage = () => {
       }
 
       if (keyId === 'ngrok' || keyId === 'n8n_api_key') {
-        const online = await pingAgent();
+        const online = await pingAgent({
+          webhookUrl: ngrokValue || undefined,
+          apiKey: n8nApiKeyValue || undefined
+        });
         if (!online) {
           throw new Error('Agent unreachable');
         }
+
+        await sendChatMessage('healthcheck', undefined, {
+          webhookUrl: ngrokValue || undefined,
+          apiKey: n8nApiKeyValue || undefined
+        });
       } else if (keyId === 'supabase_url') {
         const parsedUrl = new URL(value);
         if (!parsedUrl.hostname.includes('supabase.co')) {
@@ -356,12 +368,15 @@ export const SettingsPage = () => {
         throw new Error('Key seems too short');
       }
 
+      await persistSettings();
       setConnectionTests(prev => ({ ...prev, [keyId]: 'success' }));
+      setSaveStatus('success');
     } catch {
       setConnectionTests(prev => ({ ...prev, [keyId]: 'error' }));
     } finally {
       window.setTimeout(() => {
         setConnectionTests(prev => ({ ...prev, [keyId]: 'idle' }));
+        setSaveStatus(prev => (prev === 'success' ? 'idle' : prev));
       }, 2500);
     }
   };
