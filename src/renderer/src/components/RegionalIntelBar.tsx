@@ -1,8 +1,32 @@
 import { Compass, Shield, Thermometer } from 'lucide-react';
+import { mixHex, toRgba } from '../utils/color';
 
 type ClimateTone = 'cool' | 'warm' | 'hot';
 type StabilityTone = 'stable' | 'watch' | 'volatile';
 type MobilityTone = 'normal' | 'seasonal' | 'congested' | 'disrupted';
+
+const DEFAULT_ACCENT = '#06b6d4';
+const DEFAULT_DIM = '#164e63';
+const DEFAULT_TONE_RAMP: readonly [string, string, string] = ['#67e8f9', '#06b6d4', '#155e75'];
+
+const climateLift: Record<ClimateTone, number> = {
+  cool: 0.38,
+  warm: 0.28,
+  hot: 0.18
+};
+
+const stabilityLift: Record<StabilityTone, number> = {
+  stable: 0.34,
+  watch: 0.24,
+  volatile: 0.16
+};
+
+const mobilityLift: Record<MobilityTone, number> = {
+  normal: 0.36,
+  seasonal: 0.28,
+  congested: 0.18,
+  disrupted: 0.1
+};
 
 export interface ClimateStatProps {
   value: string;
@@ -26,26 +50,16 @@ export interface RegionalIntelBarProps {
   climate: ClimateStatProps;
   stability: StabilityStatProps;
   mobility: MobilityStatProps;
+  accentHex?: string;
+  dimHex?: string;
+  toneRamp?: readonly [string, string, string];
 }
 
-const climateColors: Record<ClimateTone, { value: string; accent: string }> = {
-  cool: { value: 'text-sky-300', accent: 'text-sky-400' },
-  warm: { value: 'text-amber-300', accent: 'text-amber-400' },
-  hot: { value: 'text-rose-300', accent: 'text-rose-400' },
-};
-
-const stabilityColors: Record<StabilityTone, { value: string; dot: string; bar: string }> = {
-  stable: { value: 'text-emerald-300', dot: 'bg-emerald-400', bar: 'bg-emerald-400/70' },
-  watch: { value: 'text-amber-300', dot: 'bg-amber-400', bar: 'bg-amber-400/70' },
-  volatile: { value: 'text-rose-300', dot: 'bg-rose-400', bar: 'bg-rose-400/70' },
-};
-
-const mobilityColors: Record<MobilityTone, { value: string; accent: string }> = {
-  normal: { value: 'text-cyan-300', accent: 'text-cyan-400' },
-  seasonal: { value: 'text-indigo-300', accent: 'text-indigo-400' },
-  congested: { value: 'text-orange-300', accent: 'text-orange-400' },
-  disrupted: { value: 'text-red-300', accent: 'text-red-400' },
-};
+interface RegionSurfaceProps {
+  accentHex: string;
+  dimHex: string;
+  toneRamp: readonly [string, string, string];
+}
 
 const getTrendIcon = (trend: string) => {
   const trimmed = trend.trim();
@@ -53,67 +67,134 @@ const getTrendIcon = (trend: string) => {
   return '↑';
 };
 
-export const ClimateStat = ({ value, trend, tone }: ClimateStatProps) => {
-  const colors = climateColors[tone];
+const getAccentText = (accentHex: string, lift: number) => mixHex(accentHex, '#ffffff', lift);
+
+const getLabelColor = (toneColor: string) => toRgba(getAccentText(toneColor, 0.24), 0.68);
+
+const getTileStyle = (toneColor: string, lift: number) => ({
+  color: getAccentText(toneColor, Math.min(0.28, lift * 0.35)),
+  background: 'linear-gradient(180deg, rgba(25, 28, 33, 0.98) 0%, rgba(17, 19, 23, 0.98) 100%)',
+  borderColor: toRgba(toneColor, 0.16 + lift * 0.08),
+  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 18px ${toRgba(toneColor, 0.05)}`
+});
+
+const getValueStyle = (toneColor: string, lift: number) => ({
+  color: getAccentText(toneColor, lift <= 0.18 ? 0.22 : 0.16)
+});
+
+const getMetaStyle = (toneColor: string, lift: number) => ({
+  color: getAccentText(toneColor, Math.max(0.2, lift * 0.3))
+});
+
+const ClimateStat = ({ value, trend, tone, toneRamp }: ClimateStatProps & RegionSurfaceProps) => {
+  const lift = climateLift[tone];
+  const toneColor = toneRamp[0];
   const arrow = getTrendIcon(trend);
+
   return (
     <div className="flex items-center gap-3">
-      <div className={`h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center ${colors.accent}`}>
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={getTileStyle(toneColor, lift)}>
         <Thermometer size={18} />
       </div>
       <div className="flex flex-col">
-        <div className={`text-lg font-semibold leading-none ${colors.value}`}>{value}</div>
-        <div className="text-[10px] uppercase tracking-widest text-white/50">อุณหภูมิเฉลี่ย</div>
-        <div className={`text-[11px] ${colors.accent}`}>{arrow} {trend.replace(/^[-+]/, '')}</div>
+        <div className="text-lg font-semibold leading-none" style={getValueStyle(toneColor, lift)}>
+          {value}
+        </div>
+        <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
+          อุณหภูมิเฉลี่ย
+        </div>
+        <div className="text-[11px]" style={getMetaStyle(toneColor, lift)}>
+          {arrow} {trend.replace(/^[-+]/, '')}
+        </div>
       </div>
     </div>
   );
 };
 
-export const StabilityStat = ({ value, label, tone }: StabilityStatProps) => {
-  const colors = stabilityColors[tone];
+const StabilityStat = ({ value, label, tone, toneRamp }: StabilityStatProps & RegionSurfaceProps) => {
+  const lift = stabilityLift[tone];
+  const toneColor = toneRamp[1];
+  const accent = getAccentText(toneColor, 0.12);
+
   return (
     <div className="flex items-center gap-3">
-      <div className={`h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center ${colors.value}`}>
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={getTileStyle(toneColor, lift)}>
         <Shield size={18} />
       </div>
       <div className="flex flex-col">
-        <div className={`text-lg font-semibold leading-none ${colors.value}`}>{value}</div>
-        <div className="text-[10px] uppercase tracking-widest text-white/50">เสถียรภาพ</div>
-        <div className="flex items-center gap-2 text-[11px] text-white/60">
-          <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />
-          {label}
+        <div className="text-lg font-semibold leading-none" style={getValueStyle(toneColor, lift)}>
+          {value}
         </div>
-        <div className={`mt-1 h-[2px] w-16 rounded-full ${colors.bar}`} />
+        <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
+          เสถียรภาพ
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-white/60">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />
+          <span style={getMetaStyle(toneColor, lift)}>{label}</span>
+        </div>
+        <div
+          className="mt-1 h-[2px] w-16 rounded-full"
+          style={{ background: `linear-gradient(90deg, ${toRgba(accent, 0.92)} 0%, ${toRgba(toneColor, 0.28)} 100%)` }}
+        />
       </div>
     </div>
   );
 };
 
-export const MobilityStat = ({ state, subtitle, tone }: MobilityStatProps) => {
-  const colors = mobilityColors[tone];
+const MobilityStat = ({ state, subtitle, tone, toneRamp }: MobilityStatProps & RegionSurfaceProps) => {
+  const lift = mobilityLift[tone];
+  const toneColor = toneRamp[2];
+
   return (
     <div className="flex items-center gap-3">
-      <div className={`h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center ${colors.accent}`}>
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={getTileStyle(toneColor, lift)}>
         <Compass size={18} />
       </div>
       <div className="flex flex-col">
-        <div className={`text-lg font-semibold leading-none ${colors.value}`}>{state}</div>
-        <div className="text-[10px] uppercase tracking-widest text-white/50">การเคลื่อนตัว</div>
-        <div className={`text-[11px] ${colors.accent}`}>{subtitle}</div>
+        <div className="text-lg font-semibold leading-none" style={getValueStyle(toneColor, lift)}>
+          {state}
+        </div>
+        <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
+          การเคลื่อนตัว
+        </div>
+        <div className="text-[11px]" style={getMetaStyle(toneColor, lift)}>
+          {subtitle}
+        </div>
       </div>
     </div>
   );
 };
 
-export const RegionalIntelBar = ({ climate, stability, mobility }: RegionalIntelBarProps) => {
+export const RegionalIntelBar = ({
+  climate,
+  stability,
+  mobility,
+  accentHex = DEFAULT_ACCENT,
+  dimHex = DEFAULT_DIM,
+  toneRamp = DEFAULT_TONE_RAMP
+}: RegionalIntelBarProps) => {
   return (
-    <div className="mt-3 min-h-[96px] rounded-2xl border border-white/5 bg-[#0a0c10]/70 backdrop-blur-md p-4 shadow-[0_0_25px_rgba(8,145,178,0.12)] hover:shadow-[0_0_30px_rgba(8,145,178,0.18)] transition-shadow">
-      <div className="mt-1 h-px w-full bg-gradient-to-r from-white/10 via-white/30 to-transparent" />
-      <div className="mt-3 grid grid-cols-3 gap-4">
-        <ClimateStat {...climate} />
-        <StabilityStat {...stability} />
-        <MobilityStat {...mobility} />
+    <div
+      className="mt-4 min-h-[96px] rounded-[1.45rem] border backdrop-blur-md p-4 transition-shadow"
+      style={{
+        background: `
+          radial-gradient(circle at 8% 0%, ${toRgba(toneRamp[0], 0.06)} 0%, transparent 26%),
+          radial-gradient(circle at 52% 100%, ${toRgba(toneRamp[1], 0.04)} 0%, transparent 30%),
+          radial-gradient(circle at 100% 18%, ${toRgba(toneRamp[2], 0.06)} 0%, transparent 28%),
+          linear-gradient(180deg, rgba(17, 19, 23, 0.96) 0%, rgba(11, 13, 16, 0.98) 100%)
+        `,
+        borderColor: toRgba(accentHex, 0.12),
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 36px rgba(0,0,0,0.24), 0 0 0 1px ${toRgba(toneRamp[1], 0.02)}`
+      }}
+    >
+      <div
+        className="mt-1 h-px w-full"
+        style={{ background: `linear-gradient(90deg, ${toRgba(toneRamp[0], 0.1)} 0%, ${toRgba(toneRamp[1], 0.18)} 44%, ${toRgba(toneRamp[2], 0.1)} 100%)` }}
+      />
+      <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <ClimateStat {...climate} accentHex={accentHex} dimHex={dimHex} toneRamp={toneRamp} />
+        <StabilityStat {...stability} accentHex={accentHex} dimHex={dimHex} toneRamp={toneRamp} />
+        <MobilityStat {...mobility} accentHex={accentHex} dimHex={dimHex} toneRamp={toneRamp} />
       </div>
     </div>
   );

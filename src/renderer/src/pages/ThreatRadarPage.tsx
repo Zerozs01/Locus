@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { ThailandMap } from '../components/ThailandMap';
 import { RegionDashboard } from '../components/RegionDashboard';
 import { Region, Province, regionsData } from '../data/regions';
+import { regionTheme, type RegionId } from '../data/regionTheme';
 import { searchProvince, getThaiProvinceName } from '../data/thaiProvinceNames';
 import { Search, Users, Maximize, Building, MapPin } from 'lucide-react';
 import { measureAsync } from '../utils/perf';
+import { mixHex, toRgba } from '../utils/color';
 
 // Local image mapping for regions (override DB URLs)
 const regionImageMap: Record<string, string> = regionsData.reduce((acc, r) => {
@@ -88,6 +90,8 @@ export const ThreatRadarPage = () => {
   }, [regions]);
 
   const activeData = regions.find(r => r.id === selectedRegionId);
+  const activeTheme = selectedRegionId ? regionTheme[selectedRegionId as RegionId] || regionTheme.central : regionTheme.central;
+  const summaryToneRamp = activeTheme.toneRamp;
   const isProvinceFocus = mapMode === 'province' && !!selectedProvince;
   const getProvincePopulation = (prov: Province | null) => {
     if (!prov) return null;
@@ -230,20 +234,20 @@ export const ThreatRadarPage = () => {
               icon={<Users size={15} />}
               value={isProvinceFocus ? (getProvincePopulation(selectedProvince) || activeData.summary.pop) : activeData.summary.pop}
               label="Living Targets"
-              colorClass="red"
+              toneColor={summaryToneRamp[0]}
             />
             <StatCard 
               icon={<Maximize size={15} />}
               value={isProvinceFocus ? (getProvinceArea(selectedProvince) || activeData.summary.area) : activeData.summary.area}
               label="Hotzone Area"
-              colorClass="orange"
+              toneColor={summaryToneRamp[1]}
             />
             {!isProvinceFocus && (
               <StatCard 
                 icon={<Building size={15} />}
                 value={String(activeData.summary.provinces)}
                 label="Sectors"
-                colorClass="amber"
+                toneColor={summaryToneRamp[2]}
               />
             )}
           </div>
@@ -322,23 +326,30 @@ interface StatCardProps {
   icon: React.ReactNode;
   value: string;
   label: string;
-  colorClass: 'red' | 'orange' | 'amber';
+  toneColor: string;
 }
 
-const StatCard = ({ icon, value, label, colorClass }: StatCardProps) => {
-  const colors = {
-    red: { border: 'border-red-500', bg: 'bg-red-500', text: 'text-red-400', iconText: 'text-white' },
-    orange: { border: 'border-orange-500', bg: 'bg-orange-500', text: 'text-orange-400', iconText: 'text-white' },
-    amber: { border: 'border-amber-700', bg: 'bg-amber-700', text: 'text-amber-500', iconText: 'text-white' },
-  };
-  const c = colors[colorClass];
-
+const StatCard = ({ icon, value, label, toneColor }: StatCardProps) => {
   return (
-    <div className={`flex items-center gap-2 bg-[#0f1115]/90 backdrop-blur-sm py-1.5 px-2.5 pr-3.5 rounded-l-lg border-r-2 ${c.border} shadow-lg pointer-events-auto hover:-translate-x-1 transition-transform duration-200 will-change-transform cursor-default group min-w-[132px] justify-between`}>
-      <div className={`${c.bg} p-1.5 rounded-md shadow-lg ${c.iconText}`}>{icon}</div>
+    <div
+      className="group pointer-events-auto flex min-w-[132px] cursor-default items-center justify-between gap-2 rounded-l-lg border-r-2 bg-[#0f1115]/90 px-2.5 py-1.5 pr-3.5 shadow-lg backdrop-blur-sm transition-transform duration-200 will-change-transform hover:-translate-x-1"
+      style={{
+        borderColor: toneColor,
+        background: `linear-gradient(135deg, ${toRgba(toneColor, 0.12)} 0%, rgba(15,17,21,0.92) 34%, rgba(15,17,21,0.92) 100%)`,
+        boxShadow: `0 10px 20px ${toRgba(toneColor, 0.12)}`
+      }}
+    >
+      <div
+        className="rounded-md p-1.5 text-white shadow-lg"
+        style={{ background: `linear-gradient(135deg, ${mixHex(toneColor, '#000000', 0.32)} 0%, ${toneColor} 58%, ${mixHex(toneColor, '#000000', 0.12)} 100%)` }}
+      >
+        {icon}
+      </div>
       <div className="text-right">
         <div className="text-lg font-black text-white leading-none">{value}</div>
-        <div className={`text-[9px] font-bold ${c.text} uppercase tracking-wide`}>{label}</div>
+        <div className="text-[9px] font-bold uppercase tracking-wide" style={{ color: mixHex(toneColor, '#ffffff', 0.18) }}>
+          {label}
+        </div>
       </div>
     </div>
   );
