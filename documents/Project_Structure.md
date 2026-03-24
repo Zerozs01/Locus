@@ -14,12 +14,12 @@ locus/
 │   └── start_all.bat         # Master Launcher (n8n + Ngrok)
 ├── src/
 │   ├── main/                 # Electron Main Process
-│   │   ├── index.ts          # Main entry point
+│   │   ├── index.ts          # Main entry point + IPC bridge for db/n8n
 │   │   └── database/         # Local Database Logic
 │   │       ├── db.ts         # SQLite Schema & Queries (WAL mode)
 │   │       └── initialData.ts # Seeding Data (77 provinces with population/area)
 │   ├── preload/              # Electron Preload Scripts
-│   │   ├── index.ts          # IPC Bridge
+│   │   ├── index.ts          # IPC Bridge (db + n8n)
 │   │   └── index.d.ts        # Type Definitions
 │   ├── renderer/             # React Frontend (Vite)
 │   │   ├── index.html
@@ -27,11 +27,12 @@ locus/
 │   │       ├── main.tsx      # React Entry Point
 │   │       ├── components/
 │   │       │   ├── CachedImage.tsx      # Safe cached image wrapper
-│   │       │   ├── ChatOverlay.tsx      # AI Chat Overlay (deprecated)
+│   │       │   ├── ChatOverlay.tsx      # AI Chat Overlay (shares state with Intelligence page)
 │   │       │   ├── DataCard.tsx         # Data Display Cards
 │   │       │   ├── DetailCard.tsx       # Region Detail Cards
 │   │       │   ├── Footer.tsx           # Footer Component
 │   │       │   ├── Header.tsx           # Header Component
+│   │       │   ├── MarkdownLite.tsx     # Lightweight markdown renderer for chat output
 │   │       │   ├── RegionalIntelBar.tsx # Regional Intelligence Overview Bar
 │   │       │   ├── RegionDashboard.tsx  # Region/Province Dashboard
 │   │       │   ├── Sidebar.tsx          # Navigation Sidebar
@@ -40,11 +41,11 @@ locus/
 │   │       │   └── *.stories.tsx        # Storybook Stories
 │   │       ├── pages/                   # Page Components (React Router)
 │   │       │   ├── index.ts             # Page Exports
-│   │       │   ├── RadarPage.tsx        # Main Map View (/)
+│   │       │   ├── ThreatRadarPage.tsx  # Main Map View (/)
 │   │       │   ├── GeoArchivePage.tsx   # Province Gallery & Compare (/archive)
-│   │       │   ├── TravelGuidePage.tsx  # Transport Routes (/travel-guide/:regionId)
-│   │       │   ├── IntelligencePage.tsx # AI Chat Interface (/intelligence)
-│   │       │   ├── ProvinceTacticalPage.tsx # Province Detail (/province/:regionId/:provinceId)
+│   │       │   ├── TravelGuidePage.tsx  # Hybrid Travel + Tactical Routing (/travel-guide/:regionId)
+│   │       │   ├── IntelligencePage.tsx # AI Chat Interface + Recent Chats (/intelligence)
+│   │       │   ├── ProvinceTactical/    # Province Detail (/province/:regionId/:provinceId)
 │   │       │   ├── AnalyticsPage.tsx    # Analytics Dashboard (/analytics)
 │   │       │   ├── SettingsPage.tsx     # Settings (/settings)
 │   │       │   └── *.stories.tsx        # Page Storybook Stories
@@ -55,7 +56,8 @@ locus/
 │   │       │   ├── regions.ts           # Region/Province Types & Static Data
 │   │       │   └── thaiProvinceNames.ts # Thai-English Province Name Mapping
 │   │       ├── services/
-│   │       │   └── n8nClient.ts         # n8n API Client
+│   │       │   ├── intelligenceChatStore.ts # Persistent multi-chat state
+│   │       │   └── n8nClient.ts         # n8n API Client + session handling
 │   │       ├── utils/
 │   │       │   ├── imageCache.ts        # Cached image URL helper (locus protocol)
 │   │       │   └── perf.ts              # Perf measurement helper
@@ -141,21 +143,20 @@ locus/
 
 ---
 
-## Phase 4: AI Integration 🚀
+## Current Intelligence/N8N Status 🚀
 
-### Goals:
-1. **n8n Webhook Integration** - Connect chat to AI workflow
-2. **Chat Functionality** - Real-time AI conversation
-3. **Province AI Insights** - AI-generated analysis per province
-4. **Image Upload** - Location identification via AI vision
-5. **LightRAG Integration** - Knowledge base queries
+### Completed:
+- ✅ Electron main/preload bridge for `n8n:health` and `n8n:chat`
+- ✅ `SettingsPage` test flow checks both health and chat webhook
+- ✅ persistent `sessionId` sent to n8n for memory-aware chat workflows
+- ✅ local recent-chat persistence in `intelligenceChatStore.ts`
+- ✅ background reply completion while navigating between app pages
+- ✅ markdown-like chat rendering in app (`MarkdownLite.tsx`)
 
-### Technical Tasks:
-- [ ] Configure n8nClient.ts for production webhooks
-- [ ] Implement chat message persistence (Supabase)
-- [ ] Add image upload component
-- [ ] Create province detail view with AI panel
-- [ ] Setup LightRAG docker container
+### Still Open:
+- [ ] unread/pending badge outside Intelligence page
+- [ ] analytics readiness should distinguish health-only vs full workflow readiness
+- [ ] province/route tactical data model still needs deeper LightRAG-ready fields
 
 ---
 
@@ -203,3 +204,11 @@ locus/
 - `GeoArchivePage.stories.tsx` - Province gallery
 - `TravelGuidePage.stories.tsx` - Transport routes (per region)
 - `IntelligencePage.stories.tsx` - AI chat (with/without context)
+
+---
+
+## Note on Recent Chats
+
+- Current app behavior now supports multiple conversation threads
+- Chats are stored locally and remain until the user deletes them
+- The user can create a new chat, switch to an old chat, delete a single chat, or delete the active chat from the header
