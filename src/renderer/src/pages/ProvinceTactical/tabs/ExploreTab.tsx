@@ -8,9 +8,8 @@ import * as Helpers from '../components/HelperComponents';
 
 export const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToHandler }) => (
   <div className="space-y-4">
-    {/* Popular Activities - FIRST */}
     <Helpers.ContentCard 
-      title="Popular Activities" 
+      title="Planning Priorities" 
       icon={<Zap size={18} />}
       color="amber"
       borderColor="amber"
@@ -22,9 +21,8 @@ export const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fl
       </div>
     </Helpers.ContentCard>
 
-    {/* Best Time to Visit - SECOND */}
     <Helpers.ContentCard 
-      title="Best Time to Visit" 
+      title="Season & Exposure" 
       icon={<Clock size={18} />}
       color="violet"
       borderColor="violet"
@@ -36,9 +34,8 @@ export const ExploreTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fl
       </div>
     </Helpers.ContentCard>
 
-    {/* Top Attractions - THIRD */}
     <Helpers.ContentCard 
-      title="Top Attractions" 
+      title="Key Landmarks & Civic Nodes" 
       icon={<Camera size={18} />}
       color="teal"
       borderColor="teal"

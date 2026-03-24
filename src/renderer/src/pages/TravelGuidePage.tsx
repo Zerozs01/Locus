@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Bus, Train, Car, MapPin, ArrowLeft, Clock,
   Route, ChevronRight, ChevronDown, Info, Navigation2,
-  Building2, Plane, Ship, Search, Tag, Wallet
+  Building2, Plane, Ship, Search, Tag, ShieldAlert,
+  AlertTriangle, Mountain, Radio, Gauge, Droplets, Wallet
 } from 'lucide-react';
 import { regionTheme, type RegionId } from '../data/regionTheme';
 
@@ -26,6 +27,22 @@ interface TransportRoute {
   notes?: string;
 }
 
+type TacticalRisk = 'Low' | 'Moderate' | 'High' | 'Critical';
+
+interface TacticalRoute extends TransportRoute {
+  corridorLabel: string;
+  riskLevel: TacticalRisk;
+  riskScore: number;
+  exposureLabel: string;
+  preferredWindow: string;
+  terrainNote: string;
+  resupplyNodes: string[];
+  chokePoints: string[];
+  safeFallback: string;
+  standbyAdvice: string;
+  estSupplyBurn: number;
+}
+
 const buildMatcher = (query: string): ((value: string) => boolean) | null => {
   const trimmed = query.trim();
   if (!trimmed) return null;
@@ -36,6 +53,120 @@ const buildMatcher = (query: string): ((value: string) => boolean) | null => {
     const lower = trimmed.toLowerCase();
     return (value: string) => value.toLowerCase().includes(lower);
   }
+};
+
+const corridorLabels: Record<TransportRoute['type'], string> = {
+  bus: 'Ground Link',
+  van: 'Rapid Van',
+  coach: 'Convoy Corridor',
+  train: 'Rail Corridor',
+  plane: 'Airlift Lane',
+  boat: 'Water Crossing'
+};
+
+const regionRiskBase: Record<RegionId, number> = {
+  north: 2,
+  northeast: 3,
+  central: 4,
+  east: 3,
+  west: 2,
+  south: 2
+};
+
+const typeRiskBias: Record<TransportRoute['type'], number> = {
+  bus: 1,
+  van: 1,
+  coach: 0,
+  train: 0,
+  plane: -1,
+  boat: 1
+};
+
+const preferredWindows: Record<TransportRoute['type'], string> = {
+  bus: '04:30-06:30 / 20:00-22:00',
+  van: '04:00-05:30 / 19:00-21:00',
+  coach: '03:30-05:30 / 18:30-20:30',
+  train: '04:30-06:00 / 17:30-19:30',
+  plane: '05:00-07:00 / 16:30-18:00',
+  boat: '05:00-07:00 / 15:30-17:00'
+};
+
+const terrainNotes: Record<RegionId, string[]> = {
+  north: ['ridge ascent + fog pockets', 'mountain pass with limited radio coverage', 'forest edge corridor with steep runoff'],
+  northeast: ['open plateau, exposure to long sight lines', 'dry farmland corridor with sparse concealment', 'heat-stressed arterial road across flat terrain'],
+  central: ['urban belt with multiple choke bridges', 'industrial plain with heavy civilian congestion', 'river-crossing corridor and layered road access'],
+  east: ['coastal freight lane with port congestion', 'industrial strip with refinery bottlenecks', 'mixed hill-coast road with limited bypass'],
+  west: ['river valley corridor with border checkpoints', 'forest road with narrow bridge crossings', 'mountain-forest mix and low lighting'],
+  south: ['peninsula corridor with long coastal exposure', 'ferry-dependent crossing near island links', 'rain-heavy road segment with flood-prone shoulders']
+};
+
+const fallbackZones: Record<RegionId, string[]> = {
+  north: ['upland temple compound', 'forest ranger station', 'ridge reservoir camp'],
+  northeast: ['community silo yard', 'provincial hospital perimeter', 'high-ground irrigation hub'],
+  central: ['elevated logistics hub', 'military perimeter road', 'outer-ring service depot'],
+  east: ['port warehouse roofline', 'drydock service yard', 'hilltop communications post'],
+  west: ['dam operations compound', 'border patrol outpost', 'riverside fuel depot'],
+  south: ['coastal hill shrine', 'district hospital high wing', 'naval pier service block']
+};
+
+const durationToHours = (duration: string): number => {
+  const matches = [...duration.matchAll(/(\d+(?:\.\d+)?)/g)].map((match) => Number(match[1]));
+  if (matches.length === 0) return 1;
+  if (matches.length === 1) return matches[0];
+  return (matches[0] + matches[matches.length - 1]) / 2;
+};
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const unique = <T,>(items: T[]) => Array.from(new Set(items));
+
+const getRiskClasses = (risk: TacticalRisk) => {
+  switch (risk) {
+    case 'Low':
+      return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300';
+    case 'Moderate':
+      return 'border-amber-500/20 bg-amber-500/10 text-amber-300';
+    case 'High':
+      return 'border-orange-500/20 bg-orange-500/10 text-orange-300';
+    default:
+      return 'border-red-500/20 bg-red-500/10 text-red-300';
+  }
+};
+
+const buildTacticalRoute = (route: TransportRoute, regionId: RegionId, index: number): TacticalRoute => {
+  const hours = durationToHours(route.duration);
+  const complexity = route.via.length >= 5 ? 1 : route.via.length >= 3 ? 0.5 : 0;
+  const timePenalty = hours > 10 ? 1 : hours > 6 ? 0.5 : 0;
+  const riskScore = clamp(Math.round(regionRiskBase[regionId] + typeRiskBias[route.type] + complexity + timePenalty), 1, 4);
+  const riskLevel: TacticalRisk = ['Low', 'Moderate', 'High', 'Critical'][riskScore - 1] as TacticalRisk;
+  const resupplyNodes = unique([...route.via.slice(0, 2), route.to]).slice(0, 3);
+  const chokePoints = unique([route.terminal || route.from, route.via.at(-1) || route.to]).slice(0, 2);
+
+  return {
+    ...route,
+    corridorLabel: corridorLabels[route.type],
+    riskLevel,
+    riskScore,
+    exposureLabel: riskScore === 1 ? 'ต่ำ' : riskScore === 2 ? 'กลาง' : riskScore === 3 ? 'สูง' : 'วิกฤต',
+    preferredWindow: preferredWindows[route.type],
+    terrainNote: terrainNotes[regionId][index % terrainNotes[regionId].length],
+    resupplyNodes,
+    chokePoints,
+    safeFallback: fallbackZones[regionId][index % fallbackZones[regionId].length],
+    standbyAdvice: riskScore >= 3
+      ? 'แบ่ง movement เป็นช่วงสั้นและเตรียมจุดแยกตัวทุก 90 นาที'
+      : 'คง formation และเติมน้ำ/เช็กวิทยุก่อนออกจาก node หลัก',
+    estSupplyBurn: Math.max(1, Math.round(hours * (riskScore >= 3 ? 2.2 : 1.4)))
+  };
+};
+
+const routeContainsSequence = (route: TacticalRoute, from: string, to: string) => {
+  const normalize = (value: string) => value.trim().toLowerCase();
+  const nodes = [route.from, ...route.via, route.to].map(normalize);
+  const fromIndex = nodes.indexOf(normalize(from));
+  if (fromIndex === -1) return false;
+  const toIndex = nodes.indexOf(normalize(to), fromIndex + 1);
+  return toIndex !== -1;
 };
 
 // Sample transport routes data (grouped by region)
@@ -408,12 +539,12 @@ const regionTransportData: Record<string, TransportRoute[]> = {
 };
 
 const transportTypeIcons: Record<string, { icon: any; label: string; color: string }> = {
-  bus: { icon: Bus, label: 'รถเมล์', color: 'text-yellow-400 bg-yellow-500/20' },
-  van: { icon: Car, label: 'รถตู้', color: 'text-blue-400 bg-blue-500/20' },
-  coach: { icon: Bus, label: 'รถทัวร์', color: 'text-green-400 bg-green-500/20' },
-  train: { icon: Train, label: 'รถไฟ', color: 'text-purple-400 bg-purple-500/20' },
-  plane: { icon: Plane, label: 'เครื่องบิน', color: 'text-cyan-400 bg-cyan-500/20' },
-  boat: { icon: Ship, label: 'เรือ', color: 'text-teal-400 bg-teal-500/20' }
+  bus: { icon: Bus, label: 'รถโดยสาร', color: 'text-amber-300 bg-amber-500/15 border border-amber-500/20' },
+  van: { icon: Car, label: 'รถตู้', color: 'text-sky-300 bg-sky-500/15 border border-sky-500/20' },
+  coach: { icon: Bus, label: 'รถทัวร์', color: 'text-emerald-300 bg-emerald-500/15 border border-emerald-500/20' },
+  train: { icon: Train, label: 'รถไฟ', color: 'text-violet-300 bg-violet-500/15 border border-violet-500/20' },
+  plane: { icon: Plane, label: 'เครื่องบิน', color: 'text-cyan-300 bg-cyan-500/15 border border-cyan-500/20' },
+  boat: { icon: Ship, label: 'เรือ', color: 'text-teal-300 bg-teal-500/15 border border-teal-500/20' }
 };
 
 export function TravelGuidePage() {
@@ -423,26 +554,32 @@ export function TravelGuidePage() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null);
-  const [fareCalcFrom, setFareCalcFrom] = useState('');
-  const [fareCalcTo, setFareCalcTo] = useState('');
+  const [routeCheckFrom, setRouteCheckFrom] = useState('');
+  const [routeCheckTo, setRouteCheckTo] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  const deferredFareCalcFrom = useDeferredValue(fareCalcFrom);
-  const deferredFareCalcTo = useDeferredValue(fareCalcTo);
+  const deferredRouteCheckFrom = useDeferredValue(routeCheckFrom);
+  const deferredRouteCheckTo = useDeferredValue(routeCheckTo);
 
   const region = useMemo(
     () => (regionId ? regionTheme[regionId as RegionId] : null),
     [regionId]
   );
-  const routes = useMemo(() => (regionId ? (regionTransportData[regionId] || []) : []), [regionId]);
+  const routes = useMemo(
+    () => (regionId ? (regionTransportData[regionId] || []).map((route, index) => buildTacticalRoute(route, regionId as RegionId, index)) : []),
+    [regionId]
+  );
 
   const routesWithSearchText = useMemo(() => {
     return routes.map((route) => ({
       ...route,
       searchText: [
         route.name,
+        route.corridorLabel,
+        route.riskLevel,
         route.operator,
         route.from,
         route.to,
+        route.safeFallback,
         ...(route.via || [])
       ].join(' • ')
     }));
@@ -464,8 +601,15 @@ export function TravelGuidePage() {
     return result;
   }, [routesWithSearchText, selectedTypes, deferredSearchQuery]);
 
-  // Get all provinces mentioned in routes for fare calculator
-  const allProvinces = useMemo(() => {
+  const routeSummary = useMemo(() => {
+    const recommended = routes.filter(route => route.riskScore <= 2).length;
+    const highRisk = routes.filter(route => route.riskScore >= 3).length;
+    const fallbacks = new Set(routes.map(route => route.safeFallback)).size;
+    return { recommended, highRisk, fallbacks };
+  }, [routes]);
+
+  // Get all nodes mentioned in routes for readiness check
+  const allNodes = useMemo(() => {
     const provinces = new Set<string>();
     routes.forEach(r => {
       provinces.add(r.from);
@@ -475,19 +619,48 @@ export function TravelGuidePage() {
     return Array.from(provinces).sort();
   }, [routes]);
 
-  const allProvincesSet = useMemo(() => new Set(allProvinces), [allProvinces]);
+  const allNodesSet = useMemo(() => new Set(allNodes), [allNodes]);
 
   const fromSuggestions = useMemo(() => {
-    const matcher = buildMatcher(deferredFareCalcFrom);
+    const matcher = buildMatcher(deferredRouteCheckFrom);
     if (!matcher) return [];
-    return allProvinces.filter(p => matcher(p)).slice(0, 5);
-  }, [allProvinces, deferredFareCalcFrom]);
+    return allNodes.filter(p => matcher(p)).slice(0, 5);
+  }, [allNodes, deferredRouteCheckFrom]);
 
   const toSuggestions = useMemo(() => {
-    const matcher = buildMatcher(deferredFareCalcTo);
+    const matcher = buildMatcher(deferredRouteCheckTo);
     if (!matcher) return [];
-    return allProvinces.filter(p => matcher(p)).slice(0, 5);
-  }, [allProvinces, deferredFareCalcTo]);
+    return allNodes.filter(p => matcher(p)).slice(0, 5);
+  }, [allNodes, deferredRouteCheckTo]);
+
+  const readinessResult = useMemo(() => {
+    if (!routeCheckFrom || !routeCheckTo) return null;
+    if (!allNodesSet.has(routeCheckFrom) || !allNodesSet.has(routeCheckTo)) return null;
+
+    const exactMatches = routes.filter(route => routeContainsSequence(route, routeCheckFrom, routeCheckTo));
+    const fallbackMatches = exactMatches.length > 0
+      ? exactMatches
+      : routes.filter(route => {
+          const nodes = [route.from, ...route.via, route.to];
+          return nodes.includes(routeCheckFrom) || nodes.includes(routeCheckTo);
+        });
+
+    if (fallbackMatches.length === 0) {
+      return { mode: 'none' as const };
+    }
+
+    const bestRoute = [...fallbackMatches].sort((a, b) => {
+      if (a.riskScore !== b.riskScore) return a.riskScore - b.riskScore;
+      if (a.estSupplyBurn !== b.estSupplyBurn) return a.estSupplyBurn - b.estSupplyBurn;
+      return durationToHours(a.duration) - durationToHours(b.duration);
+    })[0];
+
+    return {
+      mode: exactMatches.length > 0 ? 'exact' as const : 'fallback' as const,
+      bestRoute,
+      totalMatches: fallbackMatches.length
+    };
+  }, [allNodesSet, routeCheckFrom, routeCheckTo, routes]);
 
   // Toggle transport type filter
   const toggleType = (type: string) => {
@@ -528,12 +701,12 @@ export function TravelGuidePage() {
             <ArrowLeft size={20} />
           </button>
           <div className={`w-12 h-12 bg-gradient-to-br ${region.heroGradient} rounded-2xl flex items-center justify-center shadow-lg`}>
-            <Bus size={24} className="text-white" />
+            <Route size={24} className="text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">Travel Guide</h1>
             <p className="text-sm text-slate-500">
-              <span className={region.text}>{region.label}</span> • {region.engLabel} Region • {routes.length} เส้นทาง
+              <span className={region.text}>{region.label}</span> • {region.engLabel} Region • {routes.length} เส้นทางเดินทาง + tactical overlay สำหรับวางแผนล่วงหน้า
             </p>
           </div>
         </div>
@@ -547,7 +720,7 @@ export function TravelGuidePage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input
               type="text"
-              placeholder="ค้นหาเส้นทาง, จังหวัด..."
+              placeholder="ค้นหาเส้นทาง, จังหวัด, fallback..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 transition-all"
@@ -562,7 +735,7 @@ export function TravelGuidePage() {
                 onClick={() => toggleType(type)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                   selectedTypes.includes(type)
-                    ? `${color} ring-2 ring-current/30`
+                    ? `${color} ring-2 ring-current/20`
                     : 'bg-white/5 text-slate-500 hover:bg-white/10 hover:text-white'
                 }`}
               >
@@ -577,6 +750,33 @@ export function TravelGuidePage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="p-8 space-y-4 w-full">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-2xl border border-white/8 bg-[#0f1115] p-4">
+              <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+                <Route size={14} className="text-emerald-400" />
+                Active Routes
+              </div>
+              <div className="text-2xl font-black text-white">{routes.length}</div>
+              <div className="text-xs text-slate-500">เส้นทางปกติที่เปิดให้วางแผนล่วงหน้า</div>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-[#0f1115] p-4">
+              <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+                <AlertTriangle size={14} className="text-orange-400" />
+                Tactical Alerts
+              </div>
+              <div className="text-2xl font-black text-white">{routeSummary.highRisk}</div>
+              <div className="text-xs text-slate-500">เส้นทางที่ควรเช็ก fallback ก่อนออกเดินทาง</div>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-[#0f1115] p-4">
+              <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-500">
+                <MapPin size={14} className="text-sky-400" />
+                Fallback Zones
+              </div>
+              <div className="text-2xl font-black text-white">{routeSummary.fallbacks}</div>
+              <div className="text-xs text-slate-500">จุดสำรองสำหรับใช้เมื่อแผนหลักสะดุด</div>
+            </div>
+          </div>
+
           {filteredRoutes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-500">
               <Route size={48} className="mb-4 opacity-50" />
@@ -609,6 +809,12 @@ export function TravelGuidePage() {
                         <span className={`px-2 py-0.5 rounded text-xs font-bold ${typeColor}`}>
                           {typeLabel}
                         </span>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] font-bold text-slate-300">
+                          {route.corridorLabel}
+                        </span>
+                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${getRiskClasses(route.riskLevel)}`}>
+                          {route.riskLevel}
+                        </span>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-slate-400">
                         <span className="flex items-center gap-1">
@@ -617,14 +823,17 @@ export function TravelGuidePage() {
                         <span className="flex items-center gap-1">
                           <Clock size={14} /> {route.duration}
                         </span>
+                        <span className="flex items-center gap-1">
+                          <Wallet size={14} /> ฿{route.baseFare}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Fare & Expand */}
+                    {/* Travel + Tactical Summary & Expand */}
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <div className="text-emerald-400 font-bold text-xl">฿{route.baseFare}</div>
-                        <div className="text-xs text-slate-500">เริ่มต้น</div>
+                        <div className="text-emerald-300 font-bold text-xl">฿{route.baseFare}</div>
+                        <div className="text-xs text-slate-500">{route.estSupplyBurn}u supply burn</div>
                       </div>
                       <div className={`w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
                         <ChevronDown size={18} className="text-slate-400" />
@@ -643,7 +852,7 @@ export function TravelGuidePage() {
                             <div>
                               <div className="flex items-center gap-2 text-sm text-slate-400 mb-2">
                                 <Tag size={14} />
-                                <span>ผ่านจังหวัด</span>
+                                <span>จังหวัดที่ผ่าน</span>
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 {route.via.map((province, i) => (
@@ -655,13 +864,16 @@ export function TravelGuidePage() {
                             </div>
                           )}
 
-                          {/* Departure Times */}
+                          {/* Safe Windows */}
                           <div>
                             <div className="flex items-center gap-2 text-sm text-slate-400 mb-2">
                               <Clock size={14} />
-                              <span>เวลาออกเดินทาง</span>
+                              <span>ช่วงเวลาแนะนำ</span>
                             </div>
                             <div className="flex flex-wrap gap-2">
+                              <span className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-300">
+                                {route.preferredWindow}
+                              </span>
                               {route.departureTime.map((time, i) => (
                                 <span key={i} className="px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-sm text-cyan-300">
                                   {time}
@@ -670,16 +882,24 @@ export function TravelGuidePage() {
                             </div>
                           </div>
 
-                          {/* Frequency */}
                           <div className="flex items-center gap-3 text-sm">
                             <span className="text-slate-400">ความถี่:</span>
                             <span className="text-white">{route.frequency}</span>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-sm">
+                            <span className="text-slate-400">Terrain:</span>
+                            <span className="text-white">{route.terrainNote}</span>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-sm">
+                            <span className="text-slate-400">Exposure:</span>
+                            <span className="text-white">{route.exposureLabel}</span>
                           </div>
                         </div>
 
                         {/* Right: Additional Info */}
                         <div className="space-y-4">
-                          {/* Operator */}
                           <div className="flex items-start gap-3">
                             <Building2 size={16} className="text-slate-500 mt-0.5" />
                             <div>
@@ -688,34 +908,62 @@ export function TravelGuidePage() {
                             </div>
                           </div>
 
-                          {/* Terminal */}
                           {route.terminal && (
                             <div className="flex items-start gap-3">
                               <MapPin size={16} className="text-slate-500 mt-0.5" />
                               <div>
-                                <div className="text-xs text-slate-500">จุดขึ้นรถ/สถานี</div>
+                                <div className="text-xs text-slate-500">จุดขึ้นรถ / สถานี</div>
                                 <div className="text-white">{route.terminal}</div>
                               </div>
                             </div>
                           )}
 
-                          {/* Notes */}
+                          <div>
+                            <div className="mb-2 text-xs text-slate-500">Choke Points</div>
+                            <div className="flex flex-wrap gap-2">
+                              {route.chokePoints.map((point) => (
+                                <span key={point} className="rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-sm text-red-300">
+                                  {point}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="mb-2 text-xs text-slate-500">Resupply Nodes</div>
+                            <div className="flex flex-wrap gap-2">
+                              {route.resupplyNodes.map((node) => (
+                                <span key={node} className="rounded-lg border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-sm text-sky-300">
+                                  {node}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <ShieldAlert size={16} className="text-slate-500 mt-0.5" />
+                            <div>
+                              <div className="text-xs text-slate-500">Fallback Zone</div>
+                              <div className="text-white">{route.safeFallback}</div>
+                            </div>
+                          </div>
+
                           {route.notes && (
                             <div className="flex items-start gap-3">
                               <Info size={16} className="text-slate-500 mt-0.5" />
                               <div>
-                                <div className="text-xs text-slate-500">หมายเหตุ</div>
+                                <div className="text-xs text-slate-500">หมายเหตุการเดินทาง</div>
                                 <div className="text-slate-300 text-sm">{route.notes}</div>
+                                <div className="mt-1 text-sm text-slate-400">{route.standbyAdvice}</div>
                               </div>
                             </div>
                           )}
 
-                          {/* Contact */}
                           {route.contact && (
                             <div className="flex items-start gap-3">
-                              <Info size={16} className="text-slate-500 mt-0.5" />
+                              <Radio size={16} className="text-slate-500 mt-0.5" />
                               <div>
-                                <div className="text-xs text-slate-500">ติดต่อ</div>
+                                <div className="text-xs text-slate-500">ติดต่อ / ช่องทางสำรอง</div>
                                 <div className="text-cyan-400">{route.contact}</div>
                               </div>
                             </div>
@@ -731,12 +979,12 @@ export function TravelGuidePage() {
         </div>
       </div>
 
-      {/* Fare Calculator Panel (Fixed Bottom) */}
+      {/* Route Readiness Panel */}
       <div className="shrink-0 border-t border-white/10 bg-[#0a0c10] px-8 py-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 text-sm text-slate-400">
-            <Wallet size={18} className="text-emerald-400" />
-            <span className="font-bold text-white">คำนวณค่าโดยสาร</span>
+            <Gauge size={18} className="text-emerald-400" />
+            <span className="font-bold text-white">Travel + Readiness Check</span>
           </div>
           
           <div className="flex items-center gap-4 flex-wrap">
@@ -745,17 +993,17 @@ export function TravelGuidePage() {
               <div className="relative flex-1">
                 <input
                   type="text"
-                  value={fareCalcFrom}
-                  onChange={(e) => setFareCalcFrom(e.target.value)}
-                  placeholder="พิมพ์ต้นทาง..."
+                  value={routeCheckFrom}
+                  onChange={(e) => setRouteCheckFrom(e.target.value)}
+                  placeholder="ต้นทาง..."
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-violet-300 placeholder:text-violet-500/60 focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20"
                 />
-                {fareCalcFrom && (
+                {routeCheckFrom && (
                   <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f1115] border border-violet-500/30 rounded-xl overflow-hidden shadow-2xl z-50 max-h-48 overflow-y-auto">
                     {fromSuggestions.map(p => (
                       <button
                         key={p}
-                        onClick={() => setFareCalcFrom(p)}
+                        onClick={() => setRouteCheckFrom(p)}
                         className="w-full px-4 py-2 text-left text-sm text-violet-200 hover:bg-violet-500/20 hover:text-white transition-colors"
                       >
                         {p}
@@ -770,17 +1018,17 @@ export function TravelGuidePage() {
               <div className="relative flex-1">
                 <input
                   type="text"
-                  value={fareCalcTo}
-                  onChange={(e) => setFareCalcTo(e.target.value)}
-                  placeholder="พิมพ์ปลายทาง..."
+                  value={routeCheckTo}
+                  onChange={(e) => setRouteCheckTo(e.target.value)}
+                  placeholder="ปลายทาง..."
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-sky-300 placeholder:text-sky-500/60 focus:outline-none focus:border-sky-500/60 focus:ring-2 focus:ring-sky-500/20"
                 />
-                {fareCalcTo && (
+                {routeCheckTo && (
                   <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f1115] border border-sky-500/30 rounded-xl overflow-hidden shadow-2xl z-50 max-h-48 overflow-y-auto">
                     {toSuggestions.map(p => (
                       <button
                         key={p}
-                        onClick={() => setFareCalcTo(p)}
+                        onClick={() => setRouteCheckTo(p)}
                         className="w-full px-4 py-2 text-left text-sm text-sky-200 hover:bg-sky-500/20 hover:text-white transition-colors"
                       >
                         {p}
@@ -796,14 +1044,14 @@ export function TravelGuidePage() {
             {/* Dropdown Mode */}
             <div className="flex items-center gap-3">
               <select
-                value={fareCalcFrom}
-                onChange={(e) => setFareCalcFrom(e.target.value)}
+                value={routeCheckFrom}
+                onChange={(e) => setRouteCheckFrom(e.target.value)}
                 title="เลือกต้นทาง"
                 aria-label="เลือกต้นทาง"
                 className="bg-[#1a1d24] border border-violet-500/30 rounded-xl px-4 py-2.5 text-violet-300 text-sm focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-200"
               >
                 <option value="" className="!text-slate-500">ต้นทาง</option>
-                {allProvinces.map(p => (
+                {allNodes.map(p => (
                   <option key={p} value={p} className="!text-slate-200">{p}</option>
                 ))}
               </select>
@@ -811,28 +1059,52 @@ export function TravelGuidePage() {
               <ChevronRight size={16} className="text-slate-500" />
               
               <select
-                value={fareCalcTo}
-                onChange={(e) => setFareCalcTo(e.target.value)}
+                value={routeCheckTo}
+                onChange={(e) => setRouteCheckTo(e.target.value)}
                 title="เลือกปลายทาง"
                 aria-label="เลือกปลายทาง"
                 className="bg-[#1a1d24] border border-sky-500/30 rounded-xl px-4 py-2.5 text-sky-300 text-sm focus:outline-none focus:border-sky-500/60 focus:ring-2 focus:ring-sky-500/20 min-w-[150px] [&>option]:bg-[#1a1d24] [&>option]:text-slate-200"
               >
                 <option value="" className="!text-slate-500">ปลายทาง</option>
-                {allProvinces.map(p => (
+                {allNodes.map(p => (
                   <option key={p} value={p} className="!text-slate-200">{p}</option>
                 ))}
               </select>
             </div>
 
             {/* Result */}
-            {fareCalcFrom && fareCalcTo && allProvincesSet.has(fareCalcFrom) && allProvincesSet.has(fareCalcTo) && (
-              <div className="flex items-center gap-4 ml-auto">
-                <div className="text-right">
-                  <div className="text-xs text-slate-500">ค่าโดยสารโดยประมาณ</div>
-                  <div className="text-emerald-400 font-bold text-xl">
-                    ฿{Math.round(Math.random() * 400 + 100)} - ฿{Math.round(Math.random() * 600 + 400)}
+            {readinessResult && (
+              <div className="ml-auto min-w-[320px] rounded-2xl border border-white/10 bg-[#0f1115] px-4 py-3">
+                {readinessResult.mode === 'none' ? (
+                  <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <AlertTriangle size={16} className="text-orange-400" />
+                    ไม่พบ route ตรง ควรวางแผนต่อเชื่อมหลายช่วงหรือเตรียม fallback เพิ่ม
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-4">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Best Route</div>
+                      <div className="mt-1 text-sm font-bold text-white">{readinessResult.bestRoute.name}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Risk</div>
+                      <div className="mt-1 text-sm font-bold text-white">{readinessResult.bestRoute.riskLevel}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Fare / Supply</div>
+                      <div className="mt-1 text-sm font-bold text-amber-300">
+                        ฿{readinessResult.bestRoute.baseFare}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-1 text-xs font-bold text-sky-300">
+                        <Droplets size={12} /> {readinessResult.bestRoute.estSupplyBurn}u
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Fallback</div>
+                      <div className="mt-1 text-sm font-bold text-white">{readinessResult.bestRoute.safeFallback}</div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

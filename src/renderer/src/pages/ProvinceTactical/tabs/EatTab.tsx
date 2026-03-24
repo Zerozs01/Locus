@@ -16,9 +16,8 @@ export const EatTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToH
 
   return (
     <div className="space-y-4">
-      {/* Local Must-Try Dishes */}
       <Helpers.ContentCard 
-        title="Local Must-Try Dishes" 
+        title="Local Food Staples" 
         icon={<Utensils size={18} />}
         color="amber"
         borderColor="amber"
@@ -30,9 +29,8 @@ export const EatTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToH
         </div>
       </Helpers.ContentCard>
 
-      {/* Top Restaurants */}
       <Helpers.ContentCard 
-        title="Top Restaurants" 
+        title="Reliable Meal Stops" 
         icon={<Star size={18} />}
         color="rose"
         borderColor="rose"
@@ -44,14 +42,13 @@ export const EatTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToH
         </div>
       </Helpers.ContentCard>
 
-      {/* Shopping Malls - Toggle Default OFF */}
       <Helpers.CollapsibleSection
-        title="Shopping Malls"
+        title="Malls & Indoor Supply Hubs"
         icon={<Building2 size={18} />}
         highlightColor="cyan"
         isOpen={showMalls}
         onToggle={() => setShowMalls(!showMalls)}
-        summary={`${data.malls.length} malls nearby`}
+        summary={`${data.malls.length} indoor hubs`}
       >
         <div className="space-y-2">
           {data.malls.map((item, idx) => (
@@ -60,14 +57,13 @@ export const EatTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToH
         </div>
       </Helpers.CollapsibleSection>
 
-      {/* Night Markets & Street Food - Toggle Default OFF */}
       <Helpers.CollapsibleSection
-        title="Night Markets & Street Food"
+        title="Street Food & Market Clusters"
         icon={<ShoppingBag size={18} />}
         highlightColor="violet"
         isOpen={showMarkets}
         onToggle={() => setShowMarkets(!showMarkets)}
-        summary={`${data.nightMarkets.length} markets`}
+        summary={`${data.nightMarkets.length} market clusters`}
       >
         <div className="space-y-2">
           {data.nightMarkets.map((item, idx) => (
@@ -76,9 +72,8 @@ export const EatTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: FlyToH
         </div>
       </Helpers.CollapsibleSection>
 
-      {/* Cafes & Coffee Shops - Toggle Default OFF */}
       <Helpers.CollapsibleSection
-        title="Cafes & Coffee Shops"
+        title="Cafes & Work Stops"
         icon={<Coffee size={18} />}
         highlightColor="emerald"
         isOpen={showCafes}

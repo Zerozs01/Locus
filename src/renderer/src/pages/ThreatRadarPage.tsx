@@ -251,7 +251,7 @@ export const ThreatRadarPage = () => {
               <StatCard 
                 icon={<Building size={15} />}
                 value={String(activeData.summary.provinces)}
-                label="Sectors"
+                label="Provinces"
                 toneColor={summaryToneRamp[2]}
               />
             )}

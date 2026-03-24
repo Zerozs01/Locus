@@ -13,9 +13,8 @@ export const TravelTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fly
 
   return (
     <div className="space-y-4">
-      {/*  transit - FIRST with border highlight */}
       <Helpers.ContentCard 
-        title="transit" 
+        title="Local Transit" 
         icon={<Car size={18} />}
         color="cyan"
         borderColor="cyan"
@@ -27,9 +26,8 @@ export const TravelTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fly
         </div>
       </Helpers.ContentCard>
 
-      {/* Gas Stations - with border highlight */}
       <Helpers.ContentCard 
-        title="Gas Stations" 
+        title="Fuel & Vehicle Support" 
         icon={<Fuel size={18} />}
         color="amber"
         borderColor="amber"
@@ -42,9 +40,8 @@ export const TravelTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fly
         </div>
       </Helpers.ContentCard>
 
-      {/* Banks & ATM - Toggle Default OFF */}
       <Helpers.CollapsibleSection
-        title="Banks & ATM"
+        title="Banks, ATM & Cash Access"
         icon={<Landmark size={18} />}
         highlightColor="blue"
         isOpen={showBanks}
@@ -58,14 +55,13 @@ export const TravelTab = ({ data, onFlyTo }: { data: ProvinceData; onFlyTo?: Fly
         </div>
       </Helpers.CollapsibleSection>
 
-      {/* Info Note */}
       <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
         <div className="flex items-start gap-3">
           <Navigation size={20} className="text-blue-400 mt-0.5" />
           <div>
-            <h4 className="font-medium text-white text-sm">Route Planning</h4>
+            <h4 className="font-medium text-white text-sm">Transit Planning</h4>
             <p className="text-xs text-slate-400 mt-1">
-              Select a destination on the map to see detailed travel options, estimated costs, and journey times.
+              ใช้ข้อมูลหน้านี้สำหรับวางแผนการเคลื่อนที่ภายในจังหวัด และเช็กจุดเติมน้ำมันหรือถอนเงินก่อนออกจากโซนหลัก
             </p>
           </div>
         </div>
