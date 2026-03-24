@@ -88,7 +88,7 @@ const getMetaStyle = (toneColor: string, lift: number) => ({
 
 const ClimateStat = ({ value, trend, tone, toneRamp }: ClimateStatProps & RegionSurfaceProps) => {
   const lift = climateLift[tone];
-  const toneColor = toneRamp[0];
+  const toneColor = toneRamp[2];
   const arrow = getTrendIcon(trend);
 
   return (
@@ -143,7 +143,7 @@ const StabilityStat = ({ value, label, tone, toneRamp }: StabilityStatProps & Re
 
 const MobilityStat = ({ state, subtitle, tone, toneRamp }: MobilityStatProps & RegionSurfaceProps) => {
   const lift = mobilityLift[tone];
-  const toneColor = toneRamp[2];
+  const toneColor = toneRamp[0];
 
   return (
     <div className="flex items-center gap-3">
@@ -187,10 +187,6 @@ export const RegionalIntelBar = ({
         boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 36px rgba(0,0,0,0.24), 0 0 0 1px ${toRgba(toneRamp[1], 0.02)}`
       }}
     >
-      <div
-        className="mt-1 h-px w-full"
-        style={{ background: `linear-gradient(90deg, ${toRgba(toneRamp[0], 0.1)} 0%, ${toRgba(toneRamp[1], 0.18)} 44%, ${toRgba(toneRamp[2], 0.1)} 100%)` }}
-      />
       <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <ClimateStat {...climate} accentHex={accentHex} dimHex={dimHex} toneRamp={toneRamp} />
         <StabilityStat {...stability} accentHex={accentHex} dimHex={dimHex} toneRamp={toneRamp} />

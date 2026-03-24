@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Region, Province } from '../data/regions';
 import { regionTheme, type RegionId } from '../data/regionTheme';
+import { CachedImage } from './CachedImage';
 import { DetailCard } from './DetailCard';
 import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatProps } from './RegionalIntelBar';
 import { mixHex, toRgba } from '../utils/color';
@@ -52,19 +53,25 @@ const getInactiveRegionTitleStyle = (): CSSProperties => ({
 });
 
 const getHeaderMetaStyle = (theme: RegionThemeTokens): CSSProperties => ({
-  color: toRgba(getTone(theme, 1), 0.9),
   borderColor: toRgba(getRegionAccent(theme), 0.16)
+});
+
+const getHeaderMetaTextStyle = (theme: RegionThemeTokens): CSSProperties => ({
+  backgroundImage: `linear-gradient(180deg, ${getTone(theme, 0)} 0%, ${getTone(theme, 2)} 100%)`,
+  WebkitBackgroundClip: 'text',
+  backgroundClip: 'text',
+  color: 'transparent'
 });
 
 const getPanelSurfaceStyle = (theme: RegionThemeTokens, isActive: boolean): CSSProperties => ({
   background: isActive
-    ? 'linear-gradient(180deg, rgba(12, 14, 18, 0.98) 0%, rgba(7, 9, 12, 1) 100%)'
-    : 'linear-gradient(180deg, rgba(11, 13, 16, 0.98) 0%, rgba(6, 8, 11, 0.99) 100%)',
+    ? 'linear-gradient(180deg, rgba(32, 36, 42, 0.99) 0%, rgba(21, 24, 29, 1) 100%)'
+    : 'linear-gradient(180deg, rgba(10, 12, 16, 0.98) 0%, rgba(5, 7, 10, 0.99) 100%)',
   borderColor: isActive ? toRgba(getRegionAccent(theme), 0.1) : 'rgba(255,255,255,0.04)'
 });
 
 const getCodeBadgeStyle = (theme: RegionThemeTokens): CSSProperties => ({
-  background: `linear-gradient(135deg, ${toRgba(getTone(theme, 2), 0.88)} 0%, ${toRgba(getTone(theme, 1), 0.66)} 52%, ${toRgba(getTone(theme, 0), 0.58)} 100%)`,
+  background: `linear-gradient(135deg, ${toRgba(getTone(theme, 0), 0.88)} 0%, ${toRgba(getTone(theme, 1), 0.7)} 52%, ${toRgba(getTone(theme, 2), 0.58)} 100%)`,
   borderColor: toRgba(getRegionAccent(theme), 0.32),
   color: '#ffffff',
   boxShadow: `0 10px 22px ${toRgba(getRegionAccent(theme), 0.12)}`
@@ -81,15 +88,15 @@ const getDetailCardStyle = (): CSSProperties => ({
   boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 18px rgba(0,0,0,0.18)`
 });
 
-const getDetailIconStyle = (): CSSProperties => ({
-  color: 'rgba(226, 232, 240, 0.72)',
-  background: 'rgba(27, 30, 35, 0.96)',
-  borderColor: 'rgba(255,255,255,0.08)',
+const getDetailIconStyle = (theme: RegionThemeTokens): CSSProperties => ({
+  color: toRgba(getTone(theme, 1), 0.84),
+  background: `linear-gradient(180deg, ${toRgba(getTone(theme, 0), 0.12)} 0%, rgba(24, 27, 31, 0.96) 100%)`,
+  borderColor: toRgba(getTone(theme, 1), 0.18),
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.02)'
 });
 
-const getDetailLabelStyle = (): CSSProperties => ({
-  color: 'rgba(148, 163, 184, 0.78)'
+const getDetailLabelStyle = (theme: RegionThemeTokens): CSSProperties => ({
+  color: toRgba(getTone(theme, 1), 0.72)
 });
 
 const getDetailValueStyle = (): CSSProperties => ({
@@ -104,22 +111,37 @@ const getFilledButtonStyle = (theme: RegionThemeTokens): CSSProperties => ({
   background: `linear-gradient(118deg, ${getTone(theme, 0)} 0%, ${getTone(theme, 1)} 48%, ${getTone(theme, 2)} 100%)`,
   borderColor: toRgba(getTone(theme, 1), 0.58),
   color: '#ffffff',
-  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 16px 30px ${toRgba(getTone(theme, 1), 0.2)}`
+  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 16px ${toRgba(getTone(theme, 1), 0.12)}`
 });
 
-const getOutlineButtonStyle = (): CSSProperties => ({
-  background: 'linear-gradient(180deg, rgba(18, 20, 24, 0.98) 0%, rgba(11, 13, 16, 0.98) 100%)',
-  borderColor: 'rgba(255,255,255,0.1)',
+const getFilledButtonHoverSurfaceStyle = (): CSSProperties => ({
+  background: 'linear-gradient(180deg, rgba(5, 7, 10, 0.18) 0%, rgba(5, 7, 10, 0.34) 100%)'
+});
+
+const getOutlineButtonStyle = (theme: RegionThemeTokens): CSSProperties => ({
+  background: `linear-gradient(180deg, rgba(18, 20, 24, 0.98) 0%, rgba(11, 13, 16, 0.98) 100%) padding-box, linear-gradient(118deg, ${toRgba(getTone(theme, 0), 0.68)} 0%, ${toRgba(getTone(theme, 1), 0.82)} 52%, ${toRgba(getTone(theme, 2), 0.66)} 100%) border-box`,
+  border: '3px solid transparent',
   color: 'rgba(248,250,252,0.92)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03), 0 12px 22px rgba(0,0,0,0.16)'
+  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 18px rgba(0,0,0,0.14), 0 0 0 1px ${toRgba(getTone(theme, 1), 0.06)}`
 });
 
 const getModeButtonStyle = (theme: RegionThemeTokens, isProvinceMode: boolean): CSSProperties => ({
-  background: 'linear-gradient(180deg, rgba(18, 20, 24, 0.98) 0%, rgba(11, 13, 16, 0.98) 100%)',
-  borderColor: toRgba(getRegionAccent(theme), isProvinceMode ? 0.24 : 0.16),
+  background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(242,246,250,0.96) 100%)',
+  borderColor: toRgba(getRegionAccent(theme), isProvinceMode ? 0.28 : 0.22),
   borderRadius: 9999,
-  color: toRgba(getTone(theme, isProvinceMode ? 1 : 0), 0.92),
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 18px rgba(0,0,0,0.16)'
+  color: mixHex(getTone(theme, isProvinceMode ? 2 : 1), '#000000', 0.28),
+  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.82), 0 8px 16px ${toRgba(getTone(theme, 1), 0.08)}`
+});
+
+const getModeButtonHoverSurfaceStyle = (theme: RegionThemeTokens): CSSProperties => ({
+  background: `linear-gradient(180deg, rgba(7, 9, 13, 0.12) 0%, rgba(7, 9, 13, 0.2) 100%), linear-gradient(118deg, ${mixHex(getTone(theme, 0), '#ffffff', 0.78)} 0%, ${mixHex(getTone(theme, 1), '#ffffff', 0.82)} 52%, ${mixHex(getTone(theme, 2), '#ffffff', 0.84)} 100%)`
+});
+
+const getModeButtonTextStyle = (theme: RegionThemeTokens): CSSProperties => ({
+  backgroundImage: `linear-gradient(120deg, ${mixHex(getTone(theme, 0), '#000000', 0.16)} 0%, ${mixHex(getTone(theme, 1), '#000000', 0.22)} 52%, ${mixHex(getTone(theme, 2), '#000000', 0.28)} 100%)`,
+  WebkitBackgroundClip: 'text',
+  backgroundClip: 'text',
+  color: 'transparent'
 });
 
 const getProvinceCardStyle = (theme: RegionThemeTokens, isSelected: boolean): CSSProperties => ({
@@ -195,6 +217,16 @@ export const RegionDashboard = memo(({
     return map;
   }, [regions]);
 
+  const orderedRegions = useMemo(() => {
+    const preferredOrder = ['north', 'northeast', 'central', 'east', 'west', 'south'];
+    const orderMap = new Map(preferredOrder.map((id, index) => [id, index]));
+    return [...regions].sort((a, b) => {
+      const aIndex = orderMap.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+      const bIndex = orderMap.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+      return aIndex - bIndex;
+    });
+  }, [regions]);
+
   useEffect(() => {
     if (mapMode !== 'province' || !selectedProvince) return;
     const target = provinceCardRefs.current.get(selectedProvince.id);
@@ -205,8 +237,8 @@ export const RegionDashboard = memo(({
   }, [mapMode, selectedProvince?.id, selectedRegionId, regions]);
 
   return (
-    <section className="relative flex flex-[3] flex-col overflow-hidden bg-[#020305]">
-      {regions.map((reg) => {
+    <section className="relative flex flex-[3] flex-col overflow-hidden bg-[#0c1014]">
+      {orderedRegions.map((reg) => {
         const isActive = selectedRegionId === reg.id;
         const climate = climateByRegion[reg.id] || climateByRegion.central;
         const mobility = mobilityByRegion[reg.id] || mobilityByRegion.central;
@@ -253,7 +285,7 @@ export const RegionDashboard = memo(({
                   {isActive && (
                     <>
                       <span className="border-l pl-3 text-lg font-light uppercase tracking-wider xl:text-xl" style={getHeaderMetaStyle(theme)}>
-                        {reg.engName}
+                        <span style={getHeaderMetaTextStyle(theme)}>{reg.engName}</span>
                       </span>
                       <span className="rounded-md border px-2 py-0.5 text-sm font-mono tracking-widest" style={getCodeBadgeStyle(theme)}>
                         {reg.code}
@@ -267,22 +299,30 @@ export const RegionDashboard = memo(({
                       e.stopPropagation();
                       setMapMode(mapMode === 'region' ? 'province' : 'region');
                     }}
-                    className="z-50 flex items-center gap-2 border px-4 py-2 text-xs font-bold transition-all duration-300 hover:-translate-y-0.5"
+                    className="group/province relative z-50 flex items-center gap-2 overflow-hidden border px-4 py-2 text-xs font-bold transition-all duration-300 hover:-translate-y-0.5"
                     style={getModeButtonStyle(theme, mapMode === 'province')}
                   >
-                    {mapMode === 'province' ? <Grid size={14} /> : <MapPin size={14} />}
-                    {mapMode === 'province' ? 'Threat Summary' : 'Scan Sectors'}
+                    <span
+                      className="pointer-events-none absolute inset-[1px] rounded-[999px] opacity-0 transition-opacity duration-300 group-hover/province:opacity-100"
+                      style={getModeButtonHoverSurfaceStyle(theme)}
+                    />
+                    <span className="relative z-10 flex items-center gap-2">
+                      {mapMode === 'province' ? <Grid size={14} /> : <MapPin size={14} />}
+                      <span style={getModeButtonTextStyle(theme)}>
+                        {mapMode === 'province' ? 'Threat Summary' : 'View Provinces'}
+                      </span>
+                    </span>
                   </button>
                 )}
               </div>
 
               {isActive && mapMode === 'region' && (
-                <div className="mt-1 flex-1 overflow-y-auto pr-1 opacity-100 md:pr-2">
-                  <p className="mb-4 max-w-2xl border-l-2 pl-4 font-light leading-relaxed" style={getDescriptionStyle(theme)}>
+                <div className="mt-0.5 flex-1 overflow-y-auto pr-1 opacity-100 md:pr-2">
+                  <p className="mb-3 max-w-[48rem] border-l-2 pl-3 text-sm font-light leading-snug" style={getDescriptionStyle(theme)}>
                     {reg.desc}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-3 pb-3 xl:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2.5 pb-2 xl:grid-cols-4">
                     {detailCards.map((item) => (
                       <DetailCard
                         key={item.key}
@@ -294,8 +334,8 @@ export const RegionDashboard = memo(({
                         textClass="text-white"
                         iconClassName="border"
                         style={getDetailCardStyle()}
-                        iconStyle={getDetailIconStyle()}
-                        labelStyle={getDetailLabelStyle()}
+                        iconStyle={getDetailIconStyle(theme)}
+                        labelStyle={getDetailLabelStyle(theme)}
                         valueStyle={getDetailValueStyle()}
                         subStyle={getDetailSubStyle()}
                       />
@@ -303,16 +343,22 @@ export const RegionDashboard = memo(({
                   </div>
 
                   <div className="mt-auto">
-                    <div className="flex flex-col gap-4 border-t pt-4 xl:flex-row" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                    <div className="flex flex-col gap-3 border-t pt-3 xl:flex-row" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/travel-guide/${reg.id}`);
                         }}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-2xl border py-3.5 text-sm font-bold transition-all duration-300 hover:-translate-y-0.5"
+                        className="group/travel relative flex flex-1 items-center justify-center overflow-hidden rounded-2xl border py-3.5 text-sm font-bold transition-all duration-300 hover:-translate-y-0.5"
                         style={getFilledButtonStyle(theme)}
                       >
-                        <Route size={16} /> Travel Guide
+                        <span
+                          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/travel:opacity-100"
+                          style={getFilledButtonHoverSurfaceStyle()}
+                        />
+                        <span className="relative z-10 flex items-center gap-2">
+                          <Route size={16} /> Travel Guide
+                        </span>
                       </button>
                       <button
                         onClick={(e) => {
@@ -346,10 +392,13 @@ export const RegionDashboard = memo(({
                             });
                           }
                         }}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-2xl border py-3.5 text-sm font-bold transition-all duration-300 hover:-translate-y-0.5"
-                        style={getOutlineButtonStyle()}
+                        className="group/chat relative flex flex-1 items-center justify-center overflow-hidden rounded-2xl border py-3.5 text-sm font-bold transition-all duration-300 hover:-translate-y-0.5"
+                        style={getOutlineButtonStyle(theme)}
                       >
-                        <MessageSquare size={16} /> Chat with AI
+                        <span className="pointer-events-none absolute inset-[1px] rounded-[0.9rem] bg-[#111318] transition-colors duration-300 group-hover/chat:bg-white" />
+                        <span className="relative z-10 flex items-center gap-2 transition-colors duration-300 group-hover/chat:text-black">
+                          <MessageSquare size={16} /> Chat with AI
+                        </span>
                       </button>
                     </div>
                     <RegionalIntelBar climate={climate} stability={stability} mobility={mobility} accentHex={accentHex} dimHex={theme.mapDimmed} toneRamp={theme.toneRamp} />

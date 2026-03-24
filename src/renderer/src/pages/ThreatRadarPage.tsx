@@ -214,7 +214,12 @@ export const ThreatRadarPage = () => {
   return (
     <>
       {/* LEFT: RADAR MAP */}
-      <section className="flex-[2] relative bg-[#050608] flex flex-col border-r border-white/5 z-10 overflow-hidden">
+      <section
+        className="relative z-10 flex flex-[2] flex-col overflow-hidden border-r border-white/5"
+        style={{
+          background: 'linear-gradient(180deg, rgba(13, 16, 20, 1) 0%, rgba(6, 8, 12, 1) 100%)'
+        }}
+      >
         <div className="flex-1 relative flex items-center justify-center will-change-auto">
           <ThailandMap 
             activeId={selectedRegionId} 
@@ -330,24 +335,28 @@ interface StatCardProps {
 }
 
 const StatCard = ({ icon, value, label, toneColor }: StatCardProps) => {
+  const darkTone = mixHex(toneColor, '#000000', 0.42);
+  const deeperTone = mixHex(toneColor, '#000000', 0.62);
+  const labelTone = mixHex(toneColor, '#ffffff', 0.14);
+
   return (
     <div
       className="group pointer-events-auto flex min-w-[132px] cursor-default items-center justify-between gap-2 rounded-l-lg border-r-2 bg-[#0f1115]/90 px-2.5 py-1.5 pr-3.5 shadow-lg backdrop-blur-sm transition-transform duration-200 will-change-transform hover:-translate-x-1"
       style={{
         borderColor: toneColor,
-        background: `linear-gradient(135deg, ${toRgba(toneColor, 0.12)} 0%, rgba(15,17,21,0.92) 34%, rgba(15,17,21,0.92) 100%)`,
-        boxShadow: `0 10px 20px ${toRgba(toneColor, 0.12)}`
+        background: `linear-gradient(135deg, rgba(15,17,21,0.96) 0%, ${toRgba(darkTone, 0.26)} 58%, ${toRgba(toneColor, 0.2)} 100%)`,
+        boxShadow: `0 10px 20px ${toRgba(darkTone, 0.12)}`
       }}
     >
       <div
         className="rounded-md p-1.5 text-white shadow-lg"
-        style={{ background: `linear-gradient(135deg, ${mixHex(toneColor, '#000000', 0.32)} 0%, ${toneColor} 58%, ${mixHex(toneColor, '#000000', 0.12)} 100%)` }}
+        style={{ background: `linear-gradient(135deg, ${deeperTone} 0%, ${darkTone} 56%, ${toneColor} 100%)` }}
       >
         {icon}
       </div>
       <div className="text-right">
         <div className="text-lg font-black text-white leading-none">{value}</div>
-        <div className="text-[9px] font-bold uppercase tracking-wide" style={{ color: mixHex(toneColor, '#ffffff', 0.18) }}>
+        <div className="text-[9px] font-bold uppercase tracking-wide" style={{ color: labelTone }}>
           {label}
         </div>
       </div>
