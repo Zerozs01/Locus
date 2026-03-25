@@ -1,11 +1,15 @@
 import { useSyncExternalStore } from 'react'
-import { sendChatMessage } from './n8nClient'
+import { sendChatMessage, type ChatLocationPayload } from './n8nClient'
 
 export interface ChatContext {
   type: 'region' | 'province'
   name: string
   regionId?: string
   engName?: string
+  city?: string
+  country?: string
+  lat?: number
+  lng?: number
   provinces?: string[]
   stats?: {
     dailyCost?: string
@@ -269,6 +273,32 @@ const buildContextPrompt = (userText: string, chatContext: ChatContext | null) =
   return `${contextInfo}\n\nUser question: ${userText}`
 }
 
+const buildLocationPayload = (chatContext: ChatContext | null): ChatLocationPayload | undefined => {
+  if (!chatContext) return undefined
+
+  const payload: ChatLocationPayload = {
+    country: chatContext.country || 'TH'
+  }
+
+  if (chatContext.type === 'province') {
+    const provinceName = chatContext.engName?.trim() || chatContext.name.trim()
+    payload.provinceName = provinceName
+    payload.city = chatContext.city?.trim() || provinceName
+  } else {
+    payload.regionName = chatContext.engName?.trim() || chatContext.name.trim()
+  }
+
+  if (typeof chatContext.lat === 'number') {
+    payload.lat = chatContext.lat
+  }
+
+  if (typeof chatContext.lng === 'number') {
+    payload.lng = chatContext.lng
+  }
+
+  return payload
+}
+
 const updateConversation = (conversationId: string, updater: (conversation: ChatConversation) => ChatConversation) => {
   setState((current) => ({
     ...current,
@@ -461,12 +491,14 @@ export const intelligenceChatStore = {
 
     let conversationId = ''
     let messageWithContext = trimmed
+    let locationPayload: ChatLocationPayload | undefined
 
     setState((current) => {
       const ensured = ensureConversation(current)
       const currentConversation = ensured.conversation
       conversationId = currentConversation.id
       messageWithContext = buildContextPrompt(trimmed, currentConversation.chatContext)
+      locationPayload = buildLocationPayload(currentConversation.chatContext)
 
       const updatedConversation: ChatConversation = {
         ...currentConversation,
@@ -483,7 +515,7 @@ export const intelligenceChatStore = {
       }
     })
 
-    void sendChatMessage(messageWithContext)
+    void sendChatMessage(messageWithContext, undefined, undefined, locationPayload)
       .then((responseText) => {
         updateConversation(conversationId, (conversation) => ({
           ...conversation,

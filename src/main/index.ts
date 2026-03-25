@@ -149,6 +149,17 @@ type N8nOverrides = {
   apiKey?: string
 }
 
+type N8nChatPayload = {
+  message: string
+  sessionId?: string
+  provinceName?: string
+  city?: string
+  regionName?: string
+  country?: string
+  lat?: number
+  lng?: number
+} & N8nOverrides
+
 const resolveN8nConfig = async (overrides?: N8nOverrides) => {
   const config = await readRuntimeConfig()
   const webhookUrl = (overrides?.webhookUrl || config.ngrok || process.env.VITE_NGROK_URL || DEFAULT_N8N_WEBHOOK_URL).replace(/\/+$/, '')
@@ -236,7 +247,7 @@ const pingN8nHealth = async (overrides?: N8nOverrides) => {
   }
 }
 
-const postN8nChat = async (payload: { message: string; sessionId?: string } & N8nOverrides) => {
+const postN8nChat = async (payload: N8nChatPayload) => {
   const { webhookUrl, apiKey } = await resolveN8nConfig(payload)
   const candidates = buildN8nEndpointCandidates(webhookUrl, 'chat')
   let lastResponse: Awaited<ReturnType<typeof parseN8nResponse>> | null = null
@@ -247,7 +258,13 @@ const postN8nChat = async (payload: { message: string; sessionId?: string } & N8
       headers: buildN8nHeaders(apiKey, 'application/json'),
       body: JSON.stringify({
         message: payload.message,
-        sessionId: payload.sessionId
+        sessionId: payload.sessionId,
+        provinceName: payload.provinceName,
+        city: payload.city,
+        regionName: payload.regionName,
+        country: payload.country,
+        lat: payload.lat,
+        lng: payload.lng
       })
     })
 
@@ -505,7 +522,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle(
     'n8n:chat',
-    async (_, payload: { message: string; sessionId?: string; webhookUrl?: string; apiKey?: string }) => {
+    async (_, payload: N8nChatPayload) => {
       try {
         return await postN8nChat(payload)
       } catch (error) {

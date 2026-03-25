@@ -33,7 +33,18 @@ declare global {
       }
       n8n: {
         health: (overrides?: { webhookUrl?: string; apiKey?: string }) => Promise<{ ok: boolean; status: number; error?: string }>
-        chat: (payload: { message: string; sessionId?: string; webhookUrl?: string; apiKey?: string }) => Promise<{ ok: boolean; status: number; data?: unknown; text?: string; error?: string }>
+        chat: (payload: {
+          message: string
+          sessionId?: string
+          provinceName?: string
+          city?: string
+          regionName?: string
+          country?: string
+          lat?: number
+          lng?: number
+          webhookUrl?: string
+          apiKey?: string
+        }) => Promise<{ ok: boolean; status: number; data?: unknown; text?: string; error?: string }>
       }
     }
   }

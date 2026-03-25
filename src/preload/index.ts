@@ -26,7 +26,18 @@ const api = {
   },
   n8n: {
     health: (overrides?: { webhookUrl?: string; apiKey?: string }) => ipcRenderer.invoke('n8n:health', overrides),
-    chat: (payload: { message: string; sessionId?: string; webhookUrl?: string; apiKey?: string }) =>
+    chat: (payload: {
+      message: string
+      sessionId?: string
+      provinceName?: string
+      city?: string
+      regionName?: string
+      country?: string
+      lat?: number
+      lng?: number
+      webhookUrl?: string
+      apiKey?: string
+    }) =>
       ipcRenderer.invoke('n8n:chat', payload)
   }
 }
