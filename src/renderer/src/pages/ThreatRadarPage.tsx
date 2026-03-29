@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useDeferredValue, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ThailandMap } from '../components/ThailandMap';
 import { RegionDashboard } from '../components/RegionDashboard';
 import { Region, Province, regionsData } from '../data/regions';
@@ -34,6 +34,28 @@ export const ThreatRadarPage = () => {
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const loadedRegionIdsRef = useRef<Set<string>>(new Set());
   const regionsRef = useRef<Region[]>([]);
+  const [searchHighlight, setSearchHighlight] = useState(false);
+
+  // Handle focusSearch state from Explore page navigation
+  const location = useLocation();
+  useEffect(() => {
+    const state = location.state as { focusSearch?: boolean; regionId?: string } | null;
+    if (state?.focusSearch) {
+      // Delay focus slightly to let mount complete
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+        setSearchHighlight(true);
+        // Remove highlight after animation
+        setTimeout(() => setSearchHighlight(false), 3000);
+      }, 300);
+      // Clear the state so refresh doesn't re-trigger
+      window.history.replaceState({}, document.title);
+    }
+    if (state?.regionId) {
+      setSelectedRegionId(state.regionId);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -284,8 +306,8 @@ export const ThreatRadarPage = () => {
               </div>
             )}
 
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600/30 to-orange-600/30 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity duration-200"></div>
-            <div className="relative bg-[#0f1115] border border-white/10 rounded-xl flex items-center p-3.5 shadow-xl transition-colors duration-150 will-change-auto w-full">
+            <div className={`absolute -inset-0.5 rounded-xl blur transition-opacity duration-500 ${searchHighlight ? 'opacity-80 animate-pulse' : 'opacity-0 group-hover:opacity-50'}`} style={{ background: searchHighlight ? 'linear-gradient(90deg, rgba(6,182,212,0.6), rgba(59,130,246,0.6))' : 'linear-gradient(90deg, rgba(239,68,68,0.3), rgba(249,115,22,0.3))' }}></div>
+            <div className={`relative border rounded-xl flex items-center p-3.5 shadow-xl transition-all duration-300 will-change-auto w-full ${searchHighlight ? 'bg-[#0c1018] border-cyan-500/50' : 'bg-[#0f1115] border-white/10'}`}>
               <Search className="text-slate-400 ml-2 mr-3 group-focus-within:text-red-500 transition-colors" size={20} />
               <input 
                 ref={searchInputRef}
@@ -295,7 +317,7 @@ export const ThreatRadarPage = () => {
                 onFocus={() => searchQuery && setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 className="bg-transparent border-none outline-none text-sm text-red-400 w-full placeholder:text-slate-500 font-medium"
-                placeholder="สแกนหาพื้นที่เป้าหมาย (TH/EN)..."
+                placeholder="ค้นหาจังหวัดหรือสถานที่ (TH/EN)..."
               />
               {searchQuery && (
                 <button 

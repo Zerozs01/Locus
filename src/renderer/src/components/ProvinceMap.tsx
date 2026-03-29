@@ -37,6 +37,7 @@ interface ProvinceMapProps {
   className?: string;
   theme?: 'voyager' | 'positron' | 'dark' | 'osm';
   onMarkerClick?: (marker: { lat: number; lng: number; title: string; type: string }) => void;
+  regionColor?: string;
 }
 
 // Map tile providers - สีสันที่ดีกว่า
@@ -264,7 +265,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   markers = [],
   className = '',
   theme = 'voyager', // ใช้ Voyager เป็น default - สีสันดีกว่า
-  onMarkerClick
+  onMarkerClick,
+  regionColor
 }, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -822,23 +824,39 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       boundaryLayerRef.current = null;
     }
 
+    // Alias map: app province name → GeoJSON feature name
+    const geoNameAliases: Record<string, string> = {
+      'Bangkok': 'Bangkok Metropolis',
+      'Bangkok Metropolis': 'Bangkok Metropolis',
+      'Korat': 'Nakhon Ratchasima',
+      'Ubon': 'Ubon Ratchathani',
+      'Ayutthaya': 'Phra Nakhon Si Ayutthaya',
+      'Hat Yai': 'Songkhla',
+      'Chonburi': 'Chon Buri',
+      'Buriram': 'Buri Ram',
+      'Phang Nga': 'Phangnga',
+      'Sisaket': 'Si Sa Ket',
+    };
+    const geoLookupName = geoNameAliases[provinceName] || provinceName;
+
     const feature = (thailandGeo.features as any[]).find(
-      (f) => f.properties.name === provinceName || f.properties.name === provinceName.replace(' Metropolis', '')
+      (f) => f.properties.name === geoLookupName
     );
 
     if (feature) {
+      const bColor = regionColor || '#06b6d4';
       boundaryLayerRef.current = L.geoJSON(feature, {
         style: {
-          color: '#06b6d4', // Cyan border
+          color: bColor,
           weight: 3,
           opacity: 0.9,
-          fillColor: '#06b6d4',
+          fillColor: bColor,
           fillOpacity: 0.05,
           dashArray: '6, 6'
         }
       }).addTo(map);
     }
-  }, [provinceName, isLoading]);
+  }, [provinceName, isLoading, regionColor]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -882,20 +900,9 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         </div>
       )}
 
-      {/* Map Filter Pills */}
-      <div 
-        className="absolute top-4 right-4 z-[1000] flex gap-2 max-w-[calc(100%-80px)] overflow-x-auto pointer-events-auto p-1 items-start"
-        style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}
-      >
-        <FilterPill color="#14b8a6" label="Attractions" icon="🎯" type="attraction" isActive={visibleFilters.has('attraction')} onToggle={() => toggleFilter('attraction')} />
-        <FilterPill color="#f59e0b" label="Restaurants" icon="🍜" type="restaurant" isActive={visibleFilters.has('restaurant')} onToggle={() => toggleFilter('restaurant')} />
-        <FilterPill color="#8b5cf6" label="Hotels" icon="🏨" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />
-        <FilterPill color="#ef4444" label="Hospitals" icon="🏥" type="hospital" isActive={visibleFilters.has('hospital')} onToggle={() => toggleFilter('hospital')} />
-        <FilterPill color="#3b82f6" label="Transport" icon="🚌" type="transport" isActive={visibleFilters.has('transport')} onToggle={() => toggleFilter('transport')} />
-      </div>
-
-      {/* Place Search */}
-      <div ref={searchBoxRef} className="absolute bottom-28 left-5 z-[1000] w-[min(420px,calc(100%-2.5rem))] pointer-events-auto">
+      {/* Place Search + Filter Pills */}
+      <div className="absolute bottom-6 left-5 z-[1000] w-[min(420px,calc(100%-2.5rem))] pointer-events-auto">
+        <div ref={searchBoxRef} className="relative">
         {(showSuggestions && searchQuery.trim()) && (
           <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-[#0f1115] border border-white/10 border-b-0 rounded-t-xl rounded-b-none overflow-hidden shadow-2xl z-50">
             {searchSuggestions.length > 0 ? (
@@ -951,6 +958,16 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
               ✕
             </button>
           )}
+        </div>
+        </div>
+
+        {/* Map Filter Pills */}
+        <div className="flex gap-2 mt-2.5 flex-wrap">
+          <FilterPill color="#14b8a6" label="Attractions" icon="🎯" type="attraction" isActive={visibleFilters.has('attraction')} onToggle={() => toggleFilter('attraction')} />
+          <FilterPill color="#f59e0b" label="Restaurants" icon="🍜" type="restaurant" isActive={visibleFilters.has('restaurant')} onToggle={() => toggleFilter('restaurant')} />
+          <FilterPill color="#8b5cf6" label="Hotels" icon="🏨" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />
+          <FilterPill color="#ef4444" label="Hospitals" icon="🏥" type="hospital" isActive={visibleFilters.has('hospital')} onToggle={() => toggleFilter('hospital')} />
+          <FilterPill color="#3b82f6" label="Transport" icon="🚌" type="transport" isActive={visibleFilters.has('transport')} onToggle={() => toggleFilter('transport')} />
         </div>
       </div>
 

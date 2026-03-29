@@ -23,10 +23,15 @@ import {
   Bot,
   Map,
   Mountain,
-  WifiOff as OfflineIcon
+  WifiOff as OfflineIcon,
+  Palette,
+  RotateCcw,
+  MessageSquareText
 } from 'lucide-react';
 import { pingAgent, sendChatMessage } from '../services/n8nClient';
 import { ThreatConfig } from '../components/ThreatConfig';
+import { useChatThemeStore } from '../services/chatThemeStore';
+import type { ChatColorTheme } from '../theme/chatTheme';
 
 interface ApiKey {
   id: string;
@@ -64,6 +69,7 @@ type OfflineMode = boolean;
  * Settings Page - API Keys & Configuration Management
  */
 export const SettingsPage = () => {
+  const { theme, patchTheme, resetTheme } = useChatThemeStore();
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -598,6 +604,73 @@ export const SettingsPage = () => {
           </div>
         </div>
 
+        {/* Chat Palette */}
+        <div className="bg-[#0a0c10] rounded-xl border border-white/5 p-6 mb-8">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <Palette size={16} className="text-sky-400" />
+                Chat Palette
+              </h2>
+              <p className="text-sm text-slate-500 max-w-2xl">
+                ปรับสีของคำตอบแชตแบบสดๆ ได้เลย ทั้ง heading, bold text, accent และ recent chat card
+                ค่าจะถูกบันทึกอัตโนมัติแยกจาก API settings
+              </p>
+            </div>
+            <button
+              onClick={resetTheme}
+              className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-slate-300 transition-colors"
+            >
+              <RotateCcw size={14} />
+              Reset Colors
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
+            <div className="space-y-6">
+              <ChatThemeSection
+                title="Chat Accent"
+                description="ใช้กับปุ่ม, bubble ผู้ใช้, active states และ recent chats"
+                fields={[
+                  { key: 'accentPrimary', label: 'Primary Accent' },
+                  { key: 'accentPrimaryHover', label: 'Primary Hover' },
+                  { key: 'accentText', label: 'Accent Text' },
+                  { key: 'accentSoft', label: 'Soft Surface' },
+                  { key: 'accentSoftBorder', label: 'Soft Border' },
+                  { key: 'recentActiveBg', label: 'Recent Active Background' },
+                  { key: 'recentActiveBorder', label: 'Recent Active Border' },
+                  { key: 'recentActiveShadow', label: 'Recent Active Shadow' },
+                ]}
+                theme={theme}
+                onChange={patchTheme}
+              />
+
+              <ChatThemeSection
+                title="Markdown Hierarchy"
+                description="ควบคุมสีของคำตอบ AI โดยเฉพาะ heading และตัวหนาใน bullet list"
+                fields={[
+                  { key: 'markdownHeading1', label: '# Heading 1' },
+                  { key: 'markdownHeading2', label: '## Heading 2' },
+                  { key: 'markdownHeading3', label: '### Heading 3' },
+                  { key: 'markdownListStrong', label: 'Bullet Strong' },
+                  { key: 'markdownStrong', label: 'Default Strong' },
+                  { key: 'markdownText', label: 'Body Text' },
+                  { key: 'markdownMuted', label: 'Muted Text' },
+                  { key: 'markdownItalic', label: 'Italic Text' },
+                  { key: 'markdownCodeText', label: 'Inline Code Text' },
+                  { key: 'markdownCodeBg', label: 'Inline Code Background' },
+                  { key: 'markdownBullet', label: 'Bullet Marker' },
+                  { key: 'markdownDivider', label: 'Divider' },
+                ]}
+                theme={theme}
+                onChange={patchTheme}
+              />
+            </div>
+
+            <ChatThemePreview theme={theme} />
+          </div>
+        </div>
+
         {/* Tactical Mode: Strict Offline Toggle */}
         <div className="bg-[#0a0c10] rounded-xl border border-white/5 p-6 mb-8">
           <div className="flex items-center justify-between">
@@ -805,3 +878,181 @@ const StatusCard = ({ label, status, icon, detail }: StatusCardProps) => {
     </div>
   );
 };
+
+type ChatThemeFieldKey = keyof ChatColorTheme;
+
+interface ChatThemeFieldConfig {
+  key: ChatThemeFieldKey;
+  label: string;
+}
+
+interface ChatThemeSectionProps {
+  title: string;
+  description: string;
+  fields: ChatThemeFieldConfig[];
+  theme: ChatColorTheme;
+  onChange: (partialTheme: Partial<ChatColorTheme>) => void;
+}
+
+const isHexColor = (value: string) => /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(value);
+
+const ChatThemeSection = ({ title, description, fields, theme, onChange }: ChatThemeSectionProps) => (
+  <div className="bg-[#0f1115] rounded-xl border border-white/5 p-4">
+    <div className="mb-4">
+      <div className="text-sm font-semibold text-white">{title}</div>
+      <div className="text-xs text-slate-500 mt-1">{description}</div>
+    </div>
+    <div className="space-y-3">
+      {fields.map((field) => (
+        <ChatThemeField
+          key={field.key}
+          field={field}
+          value={theme[field.key]}
+          onChange={onChange}
+        />
+      ))}
+    </div>
+  </div>
+);
+
+const ChatThemeField = ({
+  field,
+  value,
+  onChange
+}: {
+  field: ChatThemeFieldConfig;
+  value: string;
+  onChange: (partialTheme: Partial<ChatColorTheme>) => void;
+}) => {
+  const canUseColorPicker = isHexColor(value);
+
+  return (
+    <div className="grid grid-cols-[160px_1fr] gap-3 items-center">
+      <label className="text-xs font-medium text-slate-300">{field.label}</label>
+      <div className="flex items-center gap-2">
+        <div
+          className="w-9 h-9 rounded-lg border border-white/10 shrink-0"
+          style={{ background: value }}
+          title={value}
+        />
+        {canUseColorPicker && (
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange({ [field.key]: e.target.value } as Partial<ChatColorTheme>)}
+            className="h-9 w-12 rounded border border-white/10 bg-transparent p-1 cursor-pointer"
+          />
+        )}
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange({ [field.key]: e.target.value } as Partial<ChatColorTheme>)}
+          className="flex-1 bg-[#0b0d11] border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white placeholder:text-slate-600 focus:border-cyan-500 focus:outline-none"
+        />
+      </div>
+    </div>
+  );
+};
+
+const ChatThemePreview = ({ theme }: { theme: ChatColorTheme }) => (
+  <div className="bg-[#0f1115] rounded-xl border border-white/5 p-5">
+    <div className="flex items-center gap-2 mb-4">
+      <MessageSquareText size={16} className="text-slate-300" />
+      <div>
+        <div className="text-sm font-semibold text-white">Live Preview</div>
+        <div className="text-xs text-slate-500">ดูผลลัพธ์ของสีที่กำลังปรับแบบคร่าวๆ</div>
+      </div>
+    </div>
+
+    <div className="space-y-4">
+      <div
+        className="rounded-2xl border p-4"
+        style={{
+          background: theme.recentActiveBg,
+          borderColor: theme.recentActiveBorder,
+          boxShadow: theme.recentActiveShadow
+        }}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
+            style={{
+              background: theme.recentActiveIconBg,
+              color: theme.recentActiveIconText
+            }}
+          >
+            AI
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-white">Recent Chat Card</div>
+            <div className="text-xs" style={{ color: theme.markdownMuted }}>
+              ตัวอย่างรายการใน sidebar
+            </div>
+          </div>
+        </div>
+        <div className="text-xs leading-relaxed" style={{ color: theme.markdownText }}>
+          วิเคราะห์พื้นที่ปลอดภัยของเชียงใหม่และเวลาเดินทางที่เหมาะสม...
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/5 bg-[#0b0d11] p-5 space-y-4">
+        <div className="text-lg font-bold" style={{ color: theme.markdownHeading1 }}>
+          # Heading ระดับหลัก
+        </div>
+        <div className="text-base font-semibold" style={{ color: theme.markdownHeading2 }}>
+          ## Heading ระดับรอง
+        </div>
+        <div className="text-sm font-semibold" style={{ color: theme.markdownHeading3 }}>
+          ### Heading ระดับย่อย
+        </div>
+        <p className="text-sm leading-relaxed" style={{ color: theme.markdownText }}>
+          ข้อความปกติในคำตอบแชตยังคงอ่านง่ายบนพื้นมืด และ{' '}
+          <strong style={{ color: theme.markdownStrong }}>ตัวหนาปกติ</strong> จะแยกออกจากเนื้อหาได้ชัดขึ้น
+        </p>
+        <ul className="space-y-2">
+          <li className="flex items-start gap-3 text-sm leading-relaxed" style={{ color: theme.markdownText }}>
+            <span className="mt-[0.35rem]" style={{ color: theme.markdownBullet }}>•</span>
+            <span>
+              <strong style={{ color: theme.markdownListStrong }}>ข้อมูลสำคัญ:</strong> ตัวหนาใน bullet list จะเน้นคนละสีกับ body text
+            </span>
+          </li>
+          <li className="flex items-start gap-3 text-sm leading-relaxed" style={{ color: theme.markdownText }}>
+            <span className="mt-[0.35rem]" style={{ color: theme.markdownBullet }}>•</span>
+            <span>
+              มี <em style={{ color: theme.markdownItalic }}>italic text</em> และ{' '}
+              <code
+                className="rounded px-1.5 py-0.5 font-mono text-[0.9em]"
+                style={{ color: theme.markdownCodeText, background: theme.markdownCodeBg }}
+              >
+                inline code
+              </code>{' '}
+              ให้ดูตัวอย่างพร้อมกัน
+            </span>
+          </li>
+        </ul>
+        <div className="h-px" style={{ background: theme.markdownDivider }} />
+        <div className="flex gap-3">
+          <button
+            className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+            style={{
+              background: theme.accentPrimary,
+              color: '#ffffff'
+            }}
+          >
+            Primary Action
+          </button>
+          <button
+            className="px-4 py-2 rounded-xl text-sm font-semibold border"
+            style={{
+              background: theme.accentSoft,
+              color: theme.accentText,
+              borderColor: theme.accentSoftBorder
+            }}
+          >
+            Soft Accent
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+);

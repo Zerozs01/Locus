@@ -2,18 +2,16 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
-  Phone, 
-  Shield, 
   Utensils, 
   AlertTriangle,
-  Wallet,
   Loader2,
   Bed,
   Compass,
   Navigation,
-  Thermometer
+  Shield
 } from 'lucide-react';
 import { Province, Region } from '../../data/regions';
+import { regionTheme, RegionId } from '../../data/regionTheme';
 import ProvinceMap, { ProvinceMapHandle } from '../../components/ProvinceMap';
 import { measureAsync } from '../../utils/perf';
 import { generateProvinceData } from './data';
@@ -22,7 +20,6 @@ import { StayTab } from './tabs/StayTab';
 import { EatTab } from './tabs/EatTab';
 import { TravelTab } from './tabs/TravelTab';
 import { EssentialsTab } from './tabs/EssentialsTab';
-import * as Helpers from './components/HelperComponents';
 
 /**
  * Province Tactical Detail Page - REDESIGNED
@@ -140,41 +137,18 @@ export const ProvinceTacticalPage = () => {
           <span className="text-sm font-medium">Back to Radar</span>
         </button>
 
-        {/* Province Info Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 z-[1000] p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
-          <h1 className="text-3xl font-black text-white leading-tight">
-            {displayProvinceName} <span className="text-slate-300 text-2xl font-bold">{provinceData.thaiName}</span>
-          </h1>
-          <p className="text-sm mt-1 flex items-center gap-2 flex-wrap">
-            <span className={`px-2 py-0.5 text-xs font-mono rounded ${region.color} bg-white/10 border border-white/20`}>
-              {region.code}
-            </span>
-            <span className="text-slate-400">{region.engName} Region</span>
-            {provinceData.slogan && <span className="text-cyan-400 italic">"{provinceData.slogan}"</span>}
-          </p>
-        </div>
-
         {/* Interactive Map */}
         <ProvinceMap 
           ref={mapRef}
           provinceName={province.name}
           markers={provinceData.mapMarkers}
           zoom={12}
+          regionColor={regionTheme[region.id as RegionId]?.accentHex}
         />
       </div>
 
       {/* RIGHT: CONTENT SECTION */}
       <div className="w-1/2 flex flex-col border-l border-white/10">
-        {/* Quick Stats Bar */}
-        <div className="flex-shrink-0 p-4 bg-[#0a0c10] border-b border-white/10">
-          <div className="flex items-center gap-4">
-            <Helpers.QuickBadge icon={<Thermometer size={16} />} value={provinceData.weather.temp} label={provinceData.weather.condition} color="amber" />
-            <Helpers.QuickBadge icon={<Shield size={16} />} value={`${provinceData.safetyIndex}%`} label="Safety" color="emerald" />
-            <Helpers.QuickBadge icon={<Wallet size={16} />} value={provinceData.dailyCost} label="avg/day" color="cyan" />
-            <Helpers.QuickBadge icon={<Phone size={16} />} value="191" label="Emergency" color="red" />
-          </div>
-        </div>
-
         {/* Tab Navigation */}
         <div className="flex-shrink-0 border-b border-white/10 bg-[#08090c]">
           <div className="flex">
@@ -197,7 +171,7 @@ export const ProvinceTacticalPage = () => {
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {activeTab === 'explore' && <ExploreTab data={provinceData} onFlyTo={handleFlyToLocation} />}
+          {activeTab === 'explore' && <ExploreTab data={provinceData} onFlyTo={handleFlyToLocation} provinceInfo={{ displayName: displayProvinceName, thaiName: provinceData.thaiName, regionCode: region.code, regionEngName: region.engName, slogan: provinceData.slogan, regionColor: regionTheme[region.id as RegionId]?.accentHex || '#06b6d4' }} />}
           {activeTab === 'stay' && <StayTab data={provinceData} onFlyTo={handleFlyToLocation} />}
           {activeTab === 'eat' && <EatTab data={provinceData} onFlyTo={handleFlyToLocation} />}
           {activeTab === 'travel' && <TravelTab data={provinceData} onFlyTo={handleFlyToLocation} />}

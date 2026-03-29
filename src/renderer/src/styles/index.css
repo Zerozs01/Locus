@@ -213,3 +213,49 @@ input:focus-visible {
 .region-card[data-region="south"]:hover:not([data-active="true"]) h2 {
   color: #60a5fa !important;
 }
+
+/* Chat markdown theme variables and semantic classes */
+.chat-markdown {
+  color: var(--chat-md-text, #f8fafc);
+}
+
+.chat-md-text {
+  color: var(--chat-md-text, #f8fafc);
+}
+
+.chat-md-h1 {
+  color: var(--chat-md-h1, #3b82f6);
+}
+
+.chat-md-h2 {
+  color: var(--chat-md-h2, #38bdf8);
+}
+
+.chat-md-h3 {
+  color: var(--chat-md-h3, #7dd3fc);
+}
+
+.chat-md-strong {
+  color: var(--chat-md-strong, #ffffff);
+}
+
+.chat-md-list {
+  color: var(--chat-md-text, #f8fafc);
+}
+
+.chat-md-list-item::marker {
+  color: var(--chat-md-bullet, #e2e8f0);
+}
+
+.chat-md-list-strong {
+  color: var(--chat-md-list-strong, #c084fc);
+}
+
+.chat-md-italic {
+  color: var(--chat-md-italic, #e2e8f0);
+}
+
+.chat-md-code {
+  color: var(--chat-md-code-text, #93c5fd);
+  background: var(--chat-md-code-bg, rgba(96, 165, 250, 0.14));
+}

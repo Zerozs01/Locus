@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Globe, Radar as RadarIcon, Activity, Database, Settings, Brain, Package } from 'lucide-react';
+import { Compass, Map, Activity, Settings, Brain, Package } from 'lucide-react';
 import { ResourceInventory } from './ResourceInventory';
 
 interface SidebarBtnProps {
@@ -41,22 +41,22 @@ export const Sidebar = () => {
           className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.4)] mb-8 cursor-pointer hover:scale-110 transition-transform"
           title="Locus Home"
         >
-          <Globe className="w-5 h-5 text-white" />
+          <Compass className="w-5 h-5 text-white" />
         </div>
 
         {/* Navigation */}
         <div className="flex-1 w-full px-2 space-y-4">
           <SidebarBtn 
-            icon={<RadarIcon size={20}/>} 
-            label="Threat Radar" 
+            icon={<Compass size={20}/>} 
+            label="Explore" 
             active={isActive('/')} 
             onClick={() => navigate('/')}
           />
           <SidebarBtn 
-            icon={<Database size={20}/>} 
-            label="Geo-Archive" 
-            active={isActive('/archive')}
-            onClick={() => navigate('/archive')}
+            icon={<Map size={20}/>} 
+            label="Thai Map" 
+            active={isActive('/map')}
+            onClick={() => navigate('/map')}
           />
           <SidebarBtn 
             icon={<Brain size={20}/>} 

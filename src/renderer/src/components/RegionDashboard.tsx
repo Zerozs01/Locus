@@ -1,19 +1,15 @@
 import { memo, useEffect, useMemo, useRef, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity,
-  Biohazard,
-  Coins,
   ExternalLink,
   Grid,
   Map as MapIcon,
   MapPin,
   MessageSquare,
   Route,
-  Shield,
-  ShieldAlert,
-  Skull,
-  Wallet
+  Sun,
+  Wallet,
+  Wind
 } from 'lucide-react';
 import { Region, Province } from '../data/regions';
 import { regionTheme, type RegionId } from '../data/regionTheme';
@@ -181,6 +177,42 @@ const getStabilityProps = (safetyScore?: number): StabilityStatProps => {
   return { value: `${score}%`, label: 'ผันผวน', tone: 'volatile' };
 };
 
+const getPM25Stat = (regionId: string) => {
+  const data: Record<string, { value: string, sub: string }> = {
+    north: { value: '45-120 AQI', sub: 'Moderate - Unhealthy' },
+    northeast: { value: '35-80 AQI', sub: 'Moderate' },
+    central: { value: '40-90 AQI', sub: 'Moderate' },
+    south: { value: '15-35 AQI', sub: 'Good (Clean Air)' },
+    west: { value: '25-60 AQI', sub: 'Moderate' },
+    east: { value: '30-70 AQI', sub: 'Moderate' }
+  };
+  return data[regionId] || data.central;
+};
+
+const getBestSeason = (regionId: string) => {
+  const data: Record<string, string> = {
+    north: 'Nov - Feb (Winter)',
+    northeast: 'Nov - Jan (Cool)',
+    central: 'Nov - Feb (Cool)',
+    south: 'All Year Round',
+    west: 'Nov - Feb (Nature)',
+    east: 'Dec - May (Beach)'
+  };
+  return data[regionId] || 'All Year';
+};
+
+const getPopularProvinces = (reg: Region) => {
+  const data: Record<string, string> = {
+    north: 'Chiang Mai, Chiang Rai',
+    northeast: 'Khon Kaen, Korat',
+    central: 'Bangkok, Ayutthaya',
+    south: 'Phuket, Krabi',
+    west: 'Kanchanaburi',
+    east: 'Chon Buri, Rayong'
+  };
+  return data[reg.id] || reg.subProvinces.slice(0, 2).map(p => getDisplayName(p.name)).join(', ') || 'N/A';
+};
+
 export interface RegionDashboardProps {
   regions: Region[];
   selectedRegionId: string | null;
@@ -245,14 +277,12 @@ export const RegionDashboard = memo(({
         const stability = getStabilityProps(reg.safety);
         const theme = getRegionTheme(reg.id);
         const accentHex = getRegionAccent(theme);
+        const pm25 = getPM25Stat(reg.id);
         const detailCards = [
-          { key: 'ration', icon: <Coins />, label: 'Ration Cost', value: reg.stats.dailyCost, sub: 'Avg/Day', emphasis: 0.34 },
-          { key: 'stash', icon: <Wallet />, label: 'Stash Value', value: reg.stats.monthlyCost, sub: 'Resources', emphasis: 0.3 },
-          { key: 'contamination', icon: <Biohazard />, label: 'Contamination', value: 'Moderate', sub: 'Bio-Threat', emphasis: 0.16 },
-          { key: 'hostiles', icon: <Skull />, label: 'Hostiles', value: 'High density', sub: 'Infecteds', emphasis: 0.1 },
-          { key: 'safezones', icon: <ShieldAlert />, label: 'Safe Zones', value: reg.stats.attraction, sub: 'Secured', emphasis: 0.4 },
-          { key: 'risk', icon: <Activity />, label: 'Risk Level', value: 'Critical', sub: 'Hot Zone', emphasis: 0.18 },
-          { key: 'survival', icon: <Shield />, label: 'Survival Rate', value: `${reg.safety}%`, sub: 'Status', emphasis: 0.44 }
+          { key: 'cost', icon: <Wallet />, label: 'Avg Daily Cost', value: reg.stats.dailyCost, sub: 'Expenses/Day', emphasis: 0.34 },
+          { key: 'air', icon: <Wind />, label: 'Air Quality (PM2.5)', value: pm25.value, sub: pm25.sub, emphasis: 0.3 },
+          { key: 'provinces', icon: <MapPin />, label: 'Popular Provinces', value: getPopularProvinces(reg), sub: 'Top Destinations', emphasis: 0.4, valueClass: 'text-[0.8rem]' },
+          { key: 'season', icon: <Sun />, label: 'Best Season', value: getBestSeason(reg.id), sub: 'Recommended', emphasis: 0.18, valueClass: 'text-[0.8rem]' }
         ];
 
         return (
@@ -317,33 +347,34 @@ export const RegionDashboard = memo(({
               </div>
 
               {isActive && mapMode === 'region' && (
-                <div className="mt-0.5 flex-1 overflow-y-auto pr-1 opacity-100 md:pr-2">
-                  <p className="mb-3 max-w-[48rem] border-l-2 pl-3 text-sm font-light leading-snug" style={getDescriptionStyle(theme)}>
-                    {reg.desc}
-                  </p>
+                <div className="mt-4 flex-1 overflow-y-auto pr-1 opacity-100 md:pr-2">
+                  <div className="flex flex-col py-2">
+                    <p className="mb-5 max-w-[48rem] border-l-2 pl-3 text-sm font-light leading-snug" style={getDescriptionStyle(theme)}>
+                      {reg.desc}
+                    </p>
 
-                  <div className="grid grid-cols-2 gap-2.5 pb-2 xl:grid-cols-4">
-                    {detailCards.map((item) => (
-                      <DetailCard
-                        key={item.key}
-                        icon={item.icon}
-                        label={item.label}
-                        value={item.value}
-                        sub={item.sub}
-                        className="border backdrop-blur-sm hover:bg-[#1a1d23]"
-                        textClass="text-white"
-                        iconClassName="border"
-                        style={getDetailCardStyle()}
-                        iconStyle={getDetailIconStyle(theme)}
-                        labelStyle={getDetailLabelStyle(theme)}
-                        valueStyle={getDetailValueStyle()}
-                        subStyle={getDetailSubStyle()}
-                      />
-                    ))}
-                  </div>
+                    <div className="grid grid-cols-2 gap-3 pb-6 xl:grid-cols-4">
+                      {detailCards.map((item) => (
+                        <DetailCard
+                          key={item.key}
+                          icon={item.icon}
+                          label={item.label}
+                          value={item.value}
+                          sub={item.sub}
+                          valueClassName={item.valueClass}
+                          className="border backdrop-blur-sm hover:bg-[#1a1d23]"
+                          textClass="text-white"
+                          iconClassName="border"
+                          style={getDetailCardStyle()}
+                          iconStyle={getDetailIconStyle(theme)}
+                          labelStyle={getDetailLabelStyle(theme)}
+                          valueStyle={getDetailValueStyle()}
+                          subStyle={getDetailSubStyle()}
+                        />
+                      ))}
+                    </div>
 
-                  <div className="mt-auto">
-                    <div className="flex flex-col gap-3 border-t pt-3 xl:flex-row" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                    <div className="mb-3 flex flex-col gap-3 xl:flex-row">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

@@ -67,10 +67,10 @@ The system uses a **"Tunneling"** method to communicate.
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/` | ThreatRadarPage | Main map view with region dashboard |
-| `/province/:regionId/:provinceId` | ProvinceTacticalPage | Province tactical detail with Leaflet map |
+| `/` | ThreatRadarPage | Main interactive map view & region dashboard |
+| `/province/:regionId/:provinceId` | ProvinceTacticalPage | Province detailed terrain and data view |
 | `/archive` | GeoArchivePage | Province gallery with compare mode |
-| `/travel-guide/:regionId` | TravelGuidePage | Hybrid travel routes with tactical overlay |
+| `/travel-guide/:regionId` | TravelGuidePage | Travel routes and transportation guide |
 | `/intelligence` | IntelligencePage | AI chat with context support and recent chats |
 | `/analytics` | AnalyticsPage | Data analytics dashboard |
 | `/settings` | SettingsPage | App configuration |
@@ -83,13 +83,13 @@ The system uses a **"Tunneling"** method to communicate.
 - **Auto-suggest:** Max 6 results with highlighting
 
 ### Region Dashboard
-- **Region Mode:** Stats overview (costs, food, attractions)
-- **Province Mode:** 3-column gallery with cards
+- **Region Mode:** Travel stats overview (Daily Cost, PM2.5 AQI, Attractions, Best Season)
+- **Province Mode:** 3-column gallery with province cards
 - **Chat Integration:** Context-aware navigation to AI chat
 
-### Province Tactical (Detail Page)
-- **Interactive Map:** Leaflet map with markers and center pin
-- **Tabs:** Explore, Stay, Eat & Drink, Getting Around, Essentials
+### Province Detail (Tactical Page)
+- **Interactive Map:** Leaflet map with boundaries, markers, and search pin
+- **Tabs:** Overview, Stay, Food & Supply, Transit, Critical
 
 ### AI Chat (Intelligence Page)
 - **Context Passing:** Receives region/province data from navigation state

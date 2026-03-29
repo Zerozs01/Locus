@@ -41,11 +41,11 @@ locus/
 │   │       │   └── *.stories.tsx        # Storybook Stories
 │   │       ├── pages/                   # Page Components (React Router)
 │   │       │   ├── index.ts             # Page Exports
-│   │       │   ├── ThreatRadarPage.tsx  # Main Map View (/)
-│   │       │   ├── GeoArchivePage.tsx   # Province Gallery & Compare (/archive)
-│   │       │   ├── TravelGuidePage.tsx  # Hybrid Travel + Tactical Routing (/travel-guide/:regionId)
-│   │       │   ├── IntelligencePage.tsx # AI Chat Interface + Recent Chats (/intelligence)
-│   │       │   ├── ProvinceTactical/    # Province Detail (/province/:regionId/:provinceId)
+│   │       │   ├── ThreatRadarPage.tsx  # Main Map View & Dashboard (/)
+│   │       │   ├── GeoArchivePage.tsx   # Province Region Gallery (/archive)
+│   │       │   ├── TravelGuidePage.tsx  # Transportation & Tourism Hub (/travel-guide/:regionId)
+│   │       │   ├── IntelligencePage.tsx # AI Travel Assistant (/intelligence)
+│   │       │   ├── ProvinceTactical/    # Province Overview & Features (/province/:regionId/:provinceId)
 │   │       │   ├── AnalyticsPage.tsx    # Analytics Dashboard (/analytics)
 │   │       │   ├── SettingsPage.tsx     # Settings (/settings)
 │   │       │   └── *.stories.tsx        # Page Storybook Stories
@@ -156,7 +156,7 @@ locus/
 ### Still Open:
 - [ ] unread/pending badge outside Intelligence page
 - [ ] analytics readiness should distinguish health-only vs full workflow readiness
-- [ ] province/route tactical data model still needs deeper LightRAG-ready fields
+- [ ] province/route data model should incorporate deeper LightRAG travel-ready fields
 
 ---
 

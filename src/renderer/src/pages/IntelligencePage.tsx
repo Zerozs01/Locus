@@ -27,6 +27,8 @@ import {
 } from 'lucide-react';
 import { ChatContext, ChatMessage as Message, RecentChatSummary, Source, useIntelligenceChatStore } from '../services/intelligenceChatStore';
 import { MarkdownLite } from '../components/MarkdownLite';
+import { useChatTheme } from '../theme/useChatTheme';
+import { useChatThemeStore } from '../services/chatThemeStore';
 
 interface SuggestedQuery {
   text: string;
@@ -51,19 +53,39 @@ export const IntelligencePage = () => {
     sendMessage,
     addUploadedFile
   } = useIntelligenceChatStore();
+  const { theme } = useChatThemeStore();
   const [inputText, setInputText] = useState('');
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
   const [activeContextId, setActiveContextId] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea to fit content (like ChatGPT/Gemini)
+  const autoResizeTextarea = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const maxHeight = 300; // Larger max height
+    el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  };
   const activeContext = activeContextId ? messages.find((message) => message.id === activeContextId) || null : null;
+
+  useChatTheme(theme);
 
   // Check for context passed via navigation state
   useEffect(() => {
-    const state = location.state as { context?: ChatContext } | null;
+    const state = location.state as { context?: ChatContext; prefillInput?: string } | null;
     if (state?.context) {
       setChatContext(state.context);
+    }
+    if (state?.prefillInput) {
+      setInputText(state.prefillInput);
+    }
+    if (state?.context || state?.prefillInput) {
+      window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
@@ -123,6 +145,11 @@ export const IntelligencePage = () => {
     if (!inputText.trim() || isLoading) return;
     sendMessage(inputText);
     setInputText('');
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
+    }, 0);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -150,7 +177,12 @@ export const IntelligencePage = () => {
               setActiveConversation(newConversationId);
               setActiveContextId(null);
             }}
-            className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-500/20 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:text-white hover:brightness-110"
+            style={{
+              borderColor: 'var(--chat-accent-soft-border)',
+              backgroundColor: 'var(--chat-accent-soft)',
+              color: 'var(--chat-accent-text)'
+            }}
           >
             <MessageSquarePlus size={14} />
             New
@@ -187,7 +219,7 @@ export const IntelligencePage = () => {
 
       {/* LEFT PANEL: CHAT */}
       <div 
-        className={`flex flex-col transition-all duration-300 ${isCanvasExpanded ? 'w-[400px]' : 'flex-1'}`}
+        className="flex flex-col flex-1 transition-all duration-300"
         onDragEnter={handleDrag}
       >
         {/* Chat Header */}
@@ -204,13 +236,14 @@ export const IntelligencePage = () => {
           <div className="flex items-center gap-3">
             {/* Context Badge */}
             {chatContext && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 rounded-full border border-purple-500/20">
-                <Tag size={12} className="text-purple-400" />
-                <span className="text-xs text-purple-300 font-medium">{chatContext.name}</span>
+                <div className="flex items-center gap-2 rounded-full border px-3 py-1.5" style={{ borderColor: 'var(--chat-accent-soft-border)', backgroundColor: 'var(--chat-accent-soft)' }}>
+                <Tag size={12} style={{ color: 'var(--chat-md-list-strong)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--chat-md-list-strong)' }}>{chatContext.name}</span>
                 <button 
                   onClick={() => setChatContext(null)}
                   title="ลบ context"
-                  className="ml-1 text-purple-400 hover:text-white transition-colors"
+                  className="ml-1 transition-colors hover:text-white"
+                  style={{ color: 'var(--chat-md-list-strong)' }}
                 >
                   <X size={12} />
                 </button>
@@ -294,21 +327,23 @@ export const IntelligencePage = () => {
             />
           ))}
 
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} className="h-24" />
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t border-white/5 bg-[#0a0c10]">
-          <div className="relative">
+                <div className="p-4 mx-auto w-full max-w-4xl bg-gradient-to-t from-[#0a0c10] pb-8 via-[#0a0c10] to-transparent sticky bottom-0 z-10">
+          <div className="relative flex items-end gap-3 bg-[#15181e] border border-white/10 rounded-3xl px-6 py-2 pb-3 shadow-[0_10px_40px_rgba(0,0,0,0.4)] focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/30 transition-all">
             <textarea
+              ref={textareaRef}
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
+              onChange={(e) => { setInputText(e.target.value); setTimeout(autoResizeTextarea, 0); }}
               onKeyDown={handleKeyDown}
-              placeholder="ถามคำถาม หรือลากไฟล์มาวิเคราะห์..."
+              placeholder="ถามคำถาม หรือบอกให้ Locus ช่วยวางแผนให้..."
               rows={1}
-              className="w-full bg-[#0f1115] border border-white/10 rounded-xl px-4 py-3 pr-24 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 resize-none transition-all"
+              style={{ maxHeight: "300px", minHeight: "32px", overflowY: "auto" }}
+              className="w-full flex-1 bg-transparent border-none outline-none text-[15px] text-white placeholder:text-slate-500 resize-none py-2.5 leading-relaxed custom-scrollbar"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <div className="flex items-center gap-2 shrink-0 pb-1">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -338,7 +373,7 @@ export const IntelligencePage = () => {
       </div>
 
       {/* RIGHT PANEL: CONTEXT CANVAS */}
-      <div className={`border-l border-white/5 bg-[#0a0c10] flex flex-col transition-all duration-300 ${isCanvasExpanded ? 'flex-1' : 'w-[450px]'}`}>
+      <div className="hidden">
         {/* Canvas Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-white/5 shrink-0">
           <div className="flex items-center gap-2">
@@ -419,7 +454,7 @@ const MessageBubble = ({ message, onViewContext, isActiveContext }: MessageBubbl
           )}
 
           {/* Sources */}
-          {message.status !== 'pending' && message.sources && message.sources.length > 0 && (
+          {false && message.status !== 'pending' && message.sources && message.sources.length > 0 && (
             <div className="mt-4 pt-3 border-t border-white/10">
               <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
                 <Link2 size={12} />
@@ -444,14 +479,15 @@ const MessageBubble = ({ message, onViewContext, isActiveContext }: MessageBubbl
             >
               {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
             </button>
-            {message.contextType && (
+            {false && message.contextType && (
               <button
                 onClick={onViewContext}
                 className={`flex items-center gap-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
                   isActiveContext 
-                    ? 'bg-cyan-500/20 text-cyan-400' 
+                    ? 'text-cyan-400' 
                     : 'text-slate-500 hover:text-white hover:bg-white/10'
                 }`}
+                style={isActiveContext ? { backgroundColor: 'var(--chat-accent-soft)', color: 'var(--chat-accent-text)' } : undefined}
               >
                 <Network size={12} />
                 View Context
@@ -508,12 +544,31 @@ const RecentChatItem = ({ chat, isActive, onSelect, onDelete }: RecentChatItemPr
   <div
     className={`group w-full rounded-2xl border p-3 transition-all ${
       isActive
-        ? 'border-cyan-500/40 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.08)]'
+        ? ''
         : 'border-white/5 bg-white/[0.03] hover:border-white/10 hover:bg-white/[0.05]'
     }`}
+    style={
+      isActive
+        ? {
+            borderColor: 'var(--chat-recent-active-border)',
+            backgroundColor: 'var(--chat-recent-active-bg)',
+            boxShadow: 'var(--chat-recent-active-shadow)'
+          }
+        : undefined
+    }
   >
     <div className="flex items-start gap-3">
-      <div className={`mt-0.5 rounded-xl p-2 ${isActive ? 'bg-cyan-500/15 text-cyan-300' : 'bg-white/5 text-slate-400'}`}>
+      <div
+        className={`mt-0.5 rounded-xl p-2 ${isActive ? '' : 'bg-white/5 text-slate-400'}`}
+        style={
+          isActive
+            ? {
+                backgroundColor: 'var(--chat-recent-active-icon-bg)',
+                color: 'var(--chat-recent-active-icon-text)'
+              }
+            : undefined
+        }
+      >
         <Clock3 size={14} />
       </div>
       <div className="min-w-0 flex-1">

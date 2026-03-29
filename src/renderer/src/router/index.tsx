@@ -8,10 +8,10 @@ const PageLoading = () => (
   </div>
 );
 
-const ThreatRadarPage = lazy(() => import('../pages/ThreatRadarPage').then(m => ({ default: m.ThreatRadarPage })));
+const ExplorePage = lazy(() => import('../pages/GeoArchivePage').then(m => ({ default: m.GeoArchivePage })));
+const ThaiMapPage = lazy(() => import('../pages/ThreatRadarPage').then(m => ({ default: m.ThreatRadarPage })));
 const ProvinceTacticalPage = lazy(() => import('../pages/ProvinceTactical').then(m => ({ default: m.ProvinceTacticalPage })));
 const SettingsPage = lazy(() => import('../pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
-const GeoArchivePage = lazy(() => import('../pages/GeoArchivePage').then(m => ({ default: m.GeoArchivePage })));
 const IntelligencePage = lazy(() => import('../pages/IntelligencePage').then(m => ({ default: m.IntelligencePage })));
 const AnalyticsPage = lazy(() => import('../pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
 const TravelGuidePage = lazy(() => import('../pages/TravelGuidePage').then(m => ({ default: m.TravelGuidePage })));
@@ -20,6 +20,15 @@ const TravelGuidePage = lazy(() => import('../pages/TravelGuidePage').then(m => 
  * Locus Navigation Routes
  * 
  * Using HashRouter for Electron compatibility (file:// protocol)
+ * 
+ * Route hierarchy:
+ *   /            → Explore Hub (intent-first landing)
+ *   /map         → Thai Map (region dashboard + interactive map)
+ *   /province    → Province Detail
+ *   /intelligence→ AI Chat
+ *   /analytics   → Situation Feed
+ *   /travel-guide→ Travel Guide
+ *   /settings    → Settings
  */
 export const routes: RouteObject[] = [
   {
@@ -30,7 +39,15 @@ export const routes: RouteObject[] = [
         index: true,
         element: (
           <Suspense fallback={<PageLoading />}>
-            <ThreatRadarPage />
+            <ExplorePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'map',
+        element: (
+          <Suspense fallback={<PageLoading />}>
+            <ThaiMapPage />
           </Suspense>
         ),
       },
@@ -39,14 +56,6 @@ export const routes: RouteObject[] = [
         element: (
           <Suspense fallback={<PageLoading />}>
             <ProvinceTacticalPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: 'archive',
-        element: (
-          <Suspense fallback={<PageLoading />}>
-            <GeoArchivePage />
           </Suspense>
         ),
       },

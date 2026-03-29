@@ -126,7 +126,7 @@ const StabilityStat = ({ value, label, tone, toneRamp }: StabilityStatProps & Re
           {value}
         </div>
         <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
-          เสถียรภาพ
+          ระดับความปลอดภัย
         </div>
         <div className="flex items-center gap-2 text-[11px] text-white/60">
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />
@@ -155,7 +155,7 @@ const MobilityStat = ({ state, subtitle, tone, toneRamp }: MobilityStatProps & R
           {state}
         </div>
         <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
-          การเคลื่อนตัว
+          สภาพการจราจร
         </div>
         <div className="text-[11px]" style={getMetaStyle(toneColor, lift)}>
           {subtitle}
