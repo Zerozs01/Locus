@@ -9,6 +9,41 @@ import { Search, Users, Maximize, Building, MapPin } from 'lucide-react';
 import { measureAsync } from '../utils/perf';
 import { mixHex, toRgba } from '../utils/color';
 
+const normalizeSearchText = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[\s\-_/.,()]+/g, '')
+    .trim();
+
+const isLooseMatch = (query: string, candidate: string) => {
+  const q = normalizeSearchText(query);
+  const c = normalizeSearchText(candidate);
+  if (!q || !c) return false;
+  if (c.includes(q) || q.includes(c)) return true;
+
+  // Subsequence match (handles incomplete typing like "สยามพารากอ")
+  let qi = 0;
+  for (let i = 0; i < c.length && qi < q.length; i += 1) {
+    if (c[i] === q[qi]) qi += 1;
+  }
+  return qi / q.length >= 0.8;
+};
+
+const hasPolygonGeo = (geojson: unknown): boolean => {
+  if (!geojson || typeof geojson !== 'object') return false;
+  const geoType = (geojson as { type?: string }).type;
+  return geoType === 'Polygon' || geoType === 'MultiPolygon';
+};
+
+const POPULAR_PLACE_CANDIDATES = [
+  { name: 'สยามพารากอน', keywords: 'siam paragon สยามพารากอน สยามพารากอ สยามพา', provinceName: 'Bangkok Metropolis', lat: 13.7466, lng: 100.5347 },
+  { name: 'สยามสแควร์', keywords: 'siam square สยามสแควร์ สยาม', provinceName: 'Bangkok Metropolis', lat: 13.7449, lng: 100.5335 },
+  { name: 'เซ็นทรัลเวิลด์', keywords: 'central world centralworld เซ็นทรัลเวิลด์', provinceName: 'Bangkok Metropolis', lat: 13.7467, lng: 100.5393 },
+  { name: 'เยาวราช', keywords: 'yaowarat chinatown เยาวราช', provinceName: 'Bangkok Metropolis', lat: 13.7396, lng: 100.5104 },
+  { name: 'จตุจักร', keywords: 'chatuchak จตุจักร jj market', provinceName: 'Bangkok Metropolis', lat: 13.7998, lng: 100.5510 },
+  { name: 'วัดอรุณ', keywords: 'wat arun วัดอรุณ temple', provinceName: 'Bangkok Metropolis', lat: 13.7437, lng: 100.4888 },
+];
+
 // Local image mapping for regions (override DB URLs)
 const regionImageMap: Record<string, string> = regionsData.reduce((acc, r) => {
   acc[r.id] = r.image;
@@ -30,6 +65,22 @@ export const ThreatRadarPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [remotePlaceSuggestions, setRemotePlaceSuggestions] = useState<Array<{
+    id: string;
+    name: string;
+    displayName: string;
+    lat: number;
+    lng: number;
+    regionId: string;
+    provinceId: string;
+    provinceName: string;
+    osmClass?: string;
+    osmType?: string;
+    importance?: number;
+    boundingbox?: string[];
+    geojson?: unknown;
+  }>>([]);
+  const [isRemoteSearching, setIsRemoteSearching] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const loadedRegionIdsRef = useRef<Set<string>>(new Set());
@@ -139,10 +190,246 @@ export const ThreatRadarPage = () => {
       .slice(0, 6);
   }, [deferredSearchQuery, allProvinces]);
 
+  const searchSuggestions = useMemo(() => {
+    const provinceSuggestions = filteredProvinces.map((prov) => ({
+      kind: 'province' as const,
+      id: prov.id,
+      name: prov.name,
+      regionId: prov.regionId,
+      regionName: prov.regionName,
+    }));
+
+    const localPlaceSuggestions = POPULAR_PLACE_CANDIDATES
+      .map((place, idx) => {
+        const matchedProvince = allProvinces.find((prov) => {
+          const thaiProvince = getThaiProvinceName(prov.name);
+          return prov.name === place.provinceName || thaiProvince === place.provinceName;
+        });
+        if (!matchedProvince) return null;
+
+        const isMatched = isLooseMatch(deferredSearchQuery, place.name) || isLooseMatch(deferredSearchQuery, place.keywords);
+        if (!isMatched) return null;
+
+        return {
+          kind: 'place' as const,
+          id: `local-place-${idx}`,
+          name: place.name,
+          displayName: `${place.name}, ${getThaiProvinceName(matchedProvince.name)}`,
+          regionId: matchedProvince.regionId,
+          provinceId: matchedProvince.id,
+          provinceName: matchedProvince.name,
+          // Treat curated candidates as landmark-priority anchors to keep UX stable.
+          osmClass: 'landmark-local',
+          osmType: 'landmark',
+          lat: place.lat,
+          lng: place.lng,
+          importance: 1,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    const placeSuggestions = remotePlaceSuggestions.map((place) => ({
+      kind: 'place' as const,
+      id: place.id,
+      name: place.name,
+      displayName: place.displayName,
+      regionId: place.regionId,
+      provinceId: place.provinceId,
+      provinceName: place.provinceName,
+      osmClass: place.osmClass,
+      osmType: place.osmType,
+      lat: place.lat,
+      lng: place.lng,
+      boundingbox: place.boundingbox,
+      geojson: place.geojson,
+    }));
+
+    const qNorm = normalizeSearchText(deferredSearchQuery);
+
+    const isLandmarkSuggestion = (item: (typeof placeSuggestions)[number] | (typeof localPlaceSuggestions)[number] | (typeof provinceSuggestions)[number]) => {
+      if (item.kind !== 'place') return false;
+      const sourceType = (item.osmType || '').toLowerCase();
+      const sourceClass = (item.osmClass || '').toLowerCase();
+      const landmarkLike = ['landmark', 'poi', 'tourism', 'shop'];
+      return (
+        hasPolygonGeo('geojson' in item ? item.geojson : undefined) ||
+        landmarkLike.some((t) => sourceType.includes(t)) ||
+        sourceClass.includes('boundary') ||
+        sourceClass.includes('place') ||
+        sourceClass.includes('landmark')
+      );
+    };
+
+    const scoreSuggestion = (item: (typeof placeSuggestions)[number] | (typeof localPlaceSuggestions)[number] | (typeof provinceSuggestions)[number]) => {
+      if (item.kind !== 'place') return 0;
+      const hasGeo = Boolean('geojson' in item && hasPolygonGeo(item.geojson));
+      const hasBbox = Boolean('boundingbox' in item && item.boundingbox && item.boundingbox.length === 4);
+      const sourceType = (item.osmType || '').toLowerCase();
+      const sourceClass = (item.osmClass || '').toLowerCase();
+      const mapdataLike = ['administrative', 'suburb', 'quarter', 'neighbourhood', 'district'];
+      const isMapDataType = mapdataLike.some((t) => sourceType.includes(t)) || sourceClass.includes('boundary') || sourceClass.includes('place');
+      const isPoiLike = sourceType.includes('poi') || sourceClass.includes('amenity') || sourceClass.includes('shop') || sourceClass.includes('tourism');
+      const startsWithQuery = qNorm ? normalizeSearchText(item.name).startsWith(qNorm) : false;
+      const localLandmarkBoost = item.id.startsWith('local-place-') ? 2 : 0;
+      const importance = 'importance' in item && typeof item.importance === 'number' ? item.importance : 0;
+
+      return (hasGeo ? 6 : 0) + (hasBbox ? 2 : 0) + (isMapDataType ? 3 : 0) - (isPoiLike ? 1 : 0) + (startsWithQuery ? 3 : 0) + localLandmarkBoost + importance;
+    };
+
+    const byKey = new Map<string, (typeof placeSuggestions)[number] | (typeof localPlaceSuggestions)[number] | (typeof provinceSuggestions)[number]>();
+    [...placeSuggestions, ...localPlaceSuggestions, ...provinceSuggestions].forEach((item) => {
+      const itemScope = item.kind === 'place' ? item.provinceId : item.id;
+      const key = `${item.kind}-${normalizeSearchText(item.name)}-${itemScope}`;
+      const existing = byKey.get(key);
+      if (!existing) {
+        byKey.set(key, item);
+        return;
+      }
+
+      if (item.kind === 'place' && existing.kind === 'place') {
+        const nextHasGeo = hasPolygonGeo('geojson' in item ? item.geojson : undefined);
+        const currentHasGeo = hasPolygonGeo('geojson' in existing ? existing.geojson : undefined);
+        const nextHasBbox = Boolean('boundingbox' in item && item.boundingbox && item.boundingbox.length === 4);
+        const currentHasBbox = Boolean('boundingbox' in existing && existing.boundingbox && existing.boundingbox.length === 4);
+
+        if (currentHasGeo && !nextHasGeo) {
+          return;
+        }
+        if (nextHasGeo && !currentHasGeo) {
+          byKey.set(key, item);
+          return;
+        }
+        if (currentHasBbox && !nextHasBbox) {
+          return;
+        }
+      }
+
+      const nextScore = scoreSuggestion(item);
+      const currentScore = scoreSuggestion(existing);
+      const preferByType = nextScore === currentScore && isLandmarkSuggestion(item) && !isLandmarkSuggestion(existing);
+      if (nextScore > currentScore || preferByType) {
+        byKey.set(key, item);
+      }
+    });
+
+    const deduped = Array.from(byKey.values()).sort((a, b) => scoreSuggestion(b) - scoreSuggestion(a));
+
+    return deduped.slice(0, 8);
+  }, [filteredProvinces, remotePlaceSuggestions, allProvinces, deferredSearchQuery]);
+
   // Reset selected index when filtered results change
   useEffect(() => {
     setSelectedIndex(0);
-  }, [filteredProvinces.length]);
+  }, [searchSuggestions.length]);
+
+  useEffect(() => {
+    const query = deferredSearchQuery.trim();
+    if (query.length < 2) {
+      setRemotePlaceSuggestions([]);
+      setIsRemoteSearching(false);
+      return;
+    }
+
+    const timerId = window.setTimeout(async () => {
+      setIsRemoteSearching(true);
+      const controller = new AbortController();
+      const cancelTimer = window.setTimeout(() => controller.abort(), 4000);
+
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=th,en&countrycodes=th&addressdetails=1&polygon_geojson=1&q=${encodeURIComponent(query)}`;
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            Accept: 'application/json',
+            'Accept-Language': 'th,en',
+          },
+        });
+
+        if (!response.ok) throw new Error('search failed');
+
+        const data: Array<{
+          place_id: number;
+          lat: string;
+          lon: string;
+          display_name: string;
+          name?: string;
+          class?: string;
+          type?: string;
+          importance?: number;
+          boundingbox?: string[];
+          geojson?: unknown;
+          address?: {
+            state?: string;
+            province?: string;
+            county?: string;
+            city?: string;
+          };
+        }> = await response.json();
+
+        const mapped = data
+          .map((item) => {
+            const haystack = [
+              item.display_name,
+              item.name,
+              item.address?.state,
+              item.address?.province,
+              item.address?.county,
+              item.address?.city,
+            ]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase();
+
+            const matchedProvince = allProvinces.find((prov) => {
+              const eng = prov.name.toLowerCase();
+              const thai = getThaiProvinceName(prov.name).toLowerCase();
+              return haystack.includes(eng) || haystack.includes(thai);
+            });
+
+            if (!matchedProvince) return null;
+
+            return {
+              id: `place-${item.place_id}`,
+              name: item.name || item.display_name.split(',')[0] || matchedProvince.name,
+              displayName: item.display_name,
+              lat: Number(item.lat),
+              lng: Number(item.lon),
+              regionId: matchedProvince.regionId,
+              provinceId: matchedProvince.id,
+              provinceName: matchedProvince.name,
+              osmClass: item.class,
+              osmType: item.type,
+              importance: item.importance,
+              boundingbox: item.boundingbox,
+              geojson: item.geojson,
+            };
+          })
+          .filter((item): item is NonNullable<typeof item> => Boolean(item))
+          .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng));
+
+        const byKey = new Map<string, (typeof mapped)[number]>();
+        mapped.forEach((item) => {
+          const key = `${normalizeSearchText(item.name)}-${item.provinceId}`;
+          const existing = byKey.get(key);
+          const hasPoly = item.geojson && typeof item.geojson === 'object' && (item.geojson as { type?: string }).type && ['Polygon', 'MultiPolygon'].includes((item.geojson as { type?: string }).type || '');
+          const existingHasPoly = existing?.geojson && typeof existing.geojson === 'object' && ['Polygon', 'MultiPolygon'].includes(((existing.geojson as { type?: string }).type || ''));
+
+          if (!existing || (hasPoly && !existingHasPoly) || ((item.importance || 0) > (existing.importance || 0))) {
+            byKey.set(key, item);
+          }
+        });
+
+        setRemotePlaceSuggestions(Array.from(byKey.values()));
+      } catch {
+        setRemotePlaceSuggestions([]);
+      } finally {
+        window.clearTimeout(cancelTimer);
+        setIsRemoteSearching(false);
+      }
+    }, 420);
+
+    return () => window.clearTimeout(timerId);
+  }, [deferredSearchQuery, allProvinces]);
 
   // Handle search selection
   const loadRegionProvinces = useCallback(async (regionId: string) => {
@@ -167,15 +454,44 @@ export const ThreatRadarPage = () => {
     }
   }, []);
 
-  const handleSearchSelect = useCallback(async (prov: typeof allProvinces[0]) => {
-    setSelectedRegionId(prov.regionId);
+  const handleSearchSelect = useCallback(async (suggestion: {
+    kind: 'province' | 'place';
+    id: string;
+    name: string;
+    regionId: string;
+    regionName?: string;
+    provinceId?: string;
+    provinceName?: string;
+    lat?: number;
+    lng?: number;
+    boundingbox?: string[];
+    geojson?: unknown;
+  }) => {
+    if (suggestion.kind === 'place' && suggestion.provinceId && Number.isFinite(suggestion.lat) && Number.isFinite(suggestion.lng)) {
+      navigate(`/province/${suggestion.regionId}/${suggestion.provinceId}`, {
+        state: {
+          focusPlace: {
+            lat: suggestion.lat,
+            lng: suggestion.lng,
+            title: suggestion.name,
+            boundingbox: suggestion.boundingbox,
+            geojson: suggestion.geojson,
+          },
+        },
+      });
+      setSearchQuery('');
+      setShowSuggestions(false);
+      return;
+    }
+
+    setSelectedRegionId(suggestion.regionId);
     setMapMode('province');
-    const provinces = await loadRegionProvinces(prov.regionId);
-    const fullProvince = provinces.find((p) => p.id === prov.id) || provinces.find((p) => p.name === prov.name) || null;
+    const provinces = await loadRegionProvinces(suggestion.regionId);
+    const fullProvince = provinces.find((p) => p.id === suggestion.id) || provinces.find((p) => p.name === suggestion.name) || null;
     setSelectedProvince(fullProvince);
     setSearchQuery('');
     setShowSuggestions(false);
-  }, [loadRegionProvinces]);
+  }, [loadRegionProvinces, navigate]);
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,13 +504,13 @@ export const ThreatRadarPage = () => {
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex(prev => Math.min(prev + 1, filteredProvinces.length - 1));
+      setSelectedIndex(prev => Math.min(prev + 1, Math.max(searchSuggestions.length - 1, 0)));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex(prev => Math.max(prev - 1, 0));
-    } else if (e.key === 'Enter' && filteredProvinces.length > 0) {
+    } else if (e.key === 'Enter' && searchSuggestions.length > 0) {
       e.preventDefault();
-      handleSearchSelect(filteredProvinces[selectedIndex]);
+      handleSearchSelect(searchSuggestions[selectedIndex]);
     } else if (e.key === 'Escape') {
       setSearchQuery('');
       setShowSuggestions(false);
@@ -218,7 +534,13 @@ export const ThreatRadarPage = () => {
   const handleSelectProvinceByName = useCallback((name: string) => {
     const provInfo = allProvinces.find(p => p.name === name || getThaiProvinceName(p.name) === name);
     if (provInfo) {
-      handleSearchSelect(provInfo);
+      handleSearchSelect({
+        kind: 'province',
+        id: provInfo.id,
+        name: provInfo.name,
+        regionId: provInfo.regionId,
+        regionName: provInfo.regionName,
+      });
     }
   }, [allProvinces, handleSearchSelect]);
 
@@ -284,31 +606,44 @@ export const ThreatRadarPage = () => {
         <div className="absolute bottom-6 left-6 right-6 z-30">
           <div className="relative group w-full">
             {/* Suggestions Overlay - Above search bar */}
-            {showSuggestions && filteredProvinces.length > 0 && (
+            {showSuggestions && searchQuery.trim().length > 0 && (
               <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-[#0f1115] border border-white/10 rounded-t-xl rounded-b-none overflow-hidden shadow-2xl animate-in fade-in duration-150 z-50" style={{ animationFillMode: 'both' }}>
-                {filteredProvinces.map((prov, index) => (
-                  <button
-                    key={prov.id}
-                    onClick={() => handleSearchSelect(prov)}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${index === selectedIndex ? 'bg-red-500/20' : 'hover:bg-white/5'}`}
-                  >
-                    <MapPin size={16} className={`flex-shrink-0 ${index === selectedIndex ? 'text-red-400' : 'text-slate-500'}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-white truncate">{prov.name}</div>
-                      <div className="text-[10px] text-slate-500">{getThaiProvinceName(prov.name)} • {prov.regionName}</div>
-                    </div>
-                    {index === selectedIndex && (
-                      <span className="text-[10px] text-slate-500 bg-white/5 px-2 py-0.5 rounded">Enter</span>
-                    )}
-                  </button>
-                ))}
+                {searchSuggestions.length > 0 ? (
+                  searchSuggestions.map((item, index) => (
+                    <button
+                      key={`${item.kind}-${item.id}`}
+                      onClick={() => handleSearchSelect(item)}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${index === selectedIndex ? 'bg-cyan-500/20' : 'hover:bg-white/5'}`}
+                    >
+                        <MapPin size={16} className={`flex-shrink-0 ${index === selectedIndex ? 'text-cyan-300' : 'text-slate-500'}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-white truncate">{item.name}</div>
+                        <div className="text-[10px] text-slate-500 truncate">
+                          {item.kind === 'province'
+                            ? `${getThaiProvinceName(item.name)} • ${item.regionName}`
+                            : `${((item.osmType || '').toLowerCase() === 'landmark' || hasPolygonGeo('geojson' in item ? item.geojson : undefined)) ? 'landmark' : (item.osmType || 'place')} • ${item.provinceName || ''}`}
+                        </div>
+                      </div>
+                      {item.kind === 'place' && (
+                        <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] text-cyan-300">Open Detail</span>
+                      )}
+                      {index === selectedIndex && (
+                        <span className="text-[10px] text-slate-500 bg-white/5 px-2 py-0.5 rounded">Enter</span>
+                      )}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-sm text-slate-400">
+                    {isRemoteSearching ? 'กำลังค้นหาสถานที่...' : 'ไม่พบผลลัพธ์'}
+                  </div>
+                )}
               </div>
             )}
 
-            <div className={`absolute -inset-0.5 rounded-xl blur transition-opacity duration-500 ${searchHighlight ? 'opacity-80 animate-pulse' : 'opacity-0 group-hover:opacity-50'}`} style={{ background: searchHighlight ? 'linear-gradient(90deg, rgba(6,182,212,0.6), rgba(59,130,246,0.6))' : 'linear-gradient(90deg, rgba(239,68,68,0.3), rgba(249,115,22,0.3))' }}></div>
+            <div className={`absolute -inset-0.5 rounded-xl blur transition-opacity duration-500 ${searchHighlight ? 'opacity-80 animate-pulse' : 'opacity-0 group-hover:opacity-40'}`} style={{ background: 'linear-gradient(90deg, rgba(6,182,212,0.5), rgba(59,130,246,0.45))' }}></div>
             <div className={`relative border rounded-xl flex items-center p-3.5 shadow-xl transition-all duration-300 will-change-auto w-full ${searchHighlight ? 'bg-[#0c1018] border-cyan-500/50' : 'bg-[#0f1115] border-white/10'}`}>
-              <Search className="text-slate-400 ml-2 mr-3 group-focus-within:text-red-500 transition-colors" size={20} />
+              <Search className="text-slate-400 ml-2 mr-3 group-focus-within:text-cyan-300 transition-colors" size={20} />
               <input 
                 ref={searchInputRef}
                 value={searchQuery}
@@ -316,8 +651,8 @@ export const ThreatRadarPage = () => {
                 onKeyDown={handleSearchKeyDown}
                 onFocus={() => searchQuery && setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                className="bg-transparent border-none outline-none text-sm text-red-400 w-full placeholder:text-slate-500 font-medium"
-                placeholder="ค้นหาจังหวัดหรือสถานที่ (TH/EN)..."
+                className="map-search-input bg-transparent border-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 text-sm text-cyan-300 caret-cyan-300 w-full placeholder:text-slate-500 font-medium"
+                placeholder="ค้นหาจังหวัดหรือสถานที่ แล้วกด Enter..."
               />
               {searchQuery && (
                 <button 

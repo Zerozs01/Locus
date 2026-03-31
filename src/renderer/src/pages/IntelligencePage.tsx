@@ -61,33 +61,50 @@ export const IntelligencePage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoSentRef = useRef(false);
 
   // Auto-resize textarea to fit content (like ChatGPT/Gemini)
-  const autoResizeTextarea = () => {
+  const autoResizeTextarea = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
     const maxHeight = 300; // Larger max height
     el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
     el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
-  };
+  }, []);
   const activeContext = activeContextId ? messages.find((message) => message.id === activeContextId) || null : null;
 
   useChatTheme(theme);
 
   // Check for context passed via navigation state
   useEffect(() => {
-    const state = location.state as { context?: ChatContext; prefillInput?: string } | null;
+    const state = location.state as {
+      context?: ChatContext;
+      prefillInput?: string;
+      autoSendMessage?: string;
+      autoSendSystemContext?: string;
+    } | null;
+
     if (state?.context) {
       setChatContext(state.context);
     }
+
+    if (state?.autoSendMessage && !autoSentRef.current) {
+      autoSentRef.current = true;
+      sendMessage(state.autoSendMessage, {
+        systemContext: state.autoSendSystemContext,
+      });
+      setInputText('');
+    }
+
     if (state?.prefillInput) {
       setInputText(state.prefillInput);
     }
-    if (state?.context || state?.prefillInput) {
+
+    if (state?.context || state?.prefillInput || state?.autoSendMessage) {
       window.history.replaceState({}, document.title);
     }
-  }, [location.state]);
+  }, [location.state, sendMessage, setChatContext]);
 
   // Suggested queries for empty state
   const suggestedQueries: SuggestedQuery[] = chatContext ? [
@@ -115,6 +132,10 @@ export const IntelligencePage = () => {
       setActiveContextId(null);
     }
   }, [activeContextId, messages]);
+
+  useEffect(() => {
+    autoResizeTextarea();
+  }, [inputText, autoResizeTextarea]);
 
   // Handle file drop
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -145,11 +166,6 @@ export const IntelligencePage = () => {
     if (!inputText.trim() || isLoading) return;
     sendMessage(inputText);
     setInputText('');
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
-    }, 0);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -336,7 +352,7 @@ export const IntelligencePage = () => {
             <textarea
               ref={textareaRef}
               value={inputText}
-              onChange={(e) => { setInputText(e.target.value); setTimeout(autoResizeTextarea, 0); }}
+              onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="ถามคำถาม หรือบอกให้ Locus ช่วยวางแผนให้..."
               rows={1}

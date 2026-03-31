@@ -1,6 +1,7 @@
 import { Region, Province } from '../../data/regions';
 import { ProvinceData } from './types';
 import { Plane, Bus, Train, Car } from 'lucide-react';
+import thailandGeo from '../../data/thailand-geo.json';
 
 // Thai names mapping
 const thaiProvinceNames: Record<string, string> = {
@@ -572,6 +573,7 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
 export function generateProvinceData(province: Province, region: Region): ProvinceData {
   const coords = getProvinceCoords(province.name);
   const dataKey = normalizeProvinceDataKey(province.name);
+  const isBangkokProfile = dataKey === 'Bangkok' || dataKey === 'Bangkok Metropolis';
   
   // Get Real Essential Contacts
   const essentialData = provinceEssentialData[dataKey] || {};
@@ -589,12 +591,19 @@ export function generateProvinceData(province: Province, region: Region): Provin
     touristPolice: essentialData.touristPolice,
     transportHubs: essentialData.transportHubs,
 
-    attractions: [
-      { name: `${province.name} Old City`, type: 'Landmark', rating: 4.8, description: 'แลนด์มาร์กหลักสำหรับอ้างอิงตำแหน่งและรวมพลในเขตเมืองเก่า', openHours: '6:00 - 18:00', price: 'Free', coordinates: { lat: coords.lat + 0.005, lng: coords.lng + 0.003 } },
-      { name: `Wat ${province.name}`, type: 'Temple', rating: 4.7, description: 'จุดสูงหรือพื้นที่เปิดโล่งที่ใช้เป็น orientation node ได้ดี', openHours: '5:00 - 17:00', price: '30 ฿', coordinates: { lat: coords.lat + 0.01, lng: coords.lng + 0.005 } },
-      { name: `${province.name} Night Market`, type: 'Market Hub', rating: 4.5, description: 'คลัสเตอร์อาหารและของใช้พื้นฐาน ใช้ประเมิน supply density ได้', openHours: '17:00 - 23:00', price: 'Free', coordinates: { lat: coords.lat - 0.008, lng: coords.lng + 0.012 } },
-      { name: `${province.name} National Park`, type: 'Nature Edge', rating: 4.6, description: 'พื้นที่ธรรมชาติสำหรับ day trip และใช้เป็น fallback edge นอกเมือง', openHours: '8:00 - 16:30', price: '200 ฿', coordinates: { lat: coords.lat + 0.025, lng: coords.lng - 0.015 } },
-    ],
+    attractions: isBangkokProfile
+      ? [
+          { name: 'สยามพารากอน', type: 'Landmark', rating: 4.8, description: 'โหนดเชิงพาณิชย์หลักใจกลางสยาม', openHours: '10:00 - 22:00', price: 'Free entry', coordinates: { lat: 13.7466, lng: 100.5347 } },
+          { name: 'สยามสแควร์', type: 'Landmark District', rating: 4.7, description: 'พื้นที่กิจกรรมเมืองและจุดเชื่อมการเดินเท้า', openHours: 'All day', price: 'Free', coordinates: { lat: 13.7449, lng: 100.5335 } },
+          { name: 'เซ็นทรัลเวิลด์', type: 'Landmark', rating: 4.6, description: 'แลนด์มาร์กเชิงพาณิชย์และจุดรวมเส้นทางหลัก', openHours: '10:00 - 22:00', price: 'Free entry', coordinates: { lat: 13.7467, lng: 100.5393 } },
+          { name: 'เยาวราช', type: 'Landmark District', rating: 4.5, description: 'โซนเมืองเก่าความหนาแน่นสูง ใช้ประเมิน crowd/route', openHours: 'All day', price: 'Free', coordinates: { lat: 13.7396, lng: 100.5104 } },
+        ]
+      : [
+          { name: `${province.name} Old City`, type: 'Landmark', rating: 4.8, description: 'แลนด์มาร์กหลักสำหรับอ้างอิงตำแหน่งและรวมพลในเขตเมืองเก่า', openHours: '6:00 - 18:00', price: 'Free', coordinates: { lat: coords.lat + 0.0050, lng: coords.lng + 0.0030 } },
+          { name: `Wat ${province.name}`, type: 'Temple', rating: 4.7, description: 'จุดสูงหรือพื้นที่เปิดโล่งที่ใช้เป็น orientation node ได้ดี', openHours: '5:00 - 17:00', price: '30 ฿', coordinates: { lat: coords.lat + 0.0100, lng: coords.lng + 0.0050 } },
+          { name: `${province.name} Night Market`, type: 'Market Hub', rating: 4.5, description: 'คลัสเตอร์อาหารและของใช้พื้นฐาน ใช้ประเมิน supply density ได้', openHours: '17:00 - 23:00', price: 'Free', coordinates: { lat: coords.lat - 0.0080, lng: coords.lng + 0.0120 } },
+          { name: `${province.name} National Park`, type: 'Nature Edge', rating: 4.6, description: 'พื้นที่ธรรมชาติสำหรับ day trip และใช้เป็น fallback edge นอกเมือง', openHours: '8:00 - 16:30', price: '200 ฿', coordinates: { lat: coords.lat + 0.0250, lng: coords.lng - 0.0150 } },
+        ],
     
     activities: [
       { name: 'Landmark scan', icon: '🧭' },
@@ -855,9 +864,40 @@ function getProvinceCoords(name: string): { lat: number; lng: number } {
     'Chiang Mai': { lat: 18.7883, lng: 98.9853 },
     'Chiang Rai': { lat: 19.9105, lng: 99.8406 },
     'Bangkok': { lat: 13.7563, lng: 100.5018 },
+    'Bangkok Metropolis': { lat: 13.7563, lng: 100.5018 },
     'Phuket': { lat: 7.8804, lng: 98.3923 },
   };
-  return coords[name] || { lat: 13.7563, lng: 100.5018 };
+  if (coords[name]) return coords[name];
+
+  const feature: any = thailandGeo.features.find(
+    (f: any) => f.properties.name === name || f.properties.name === name.replace(' Metropolis', '')
+  );
+
+  if (feature && feature.geometry && feature.geometry.coordinates.length > 0) {
+    let latSum = 0;
+    let lngSum = 0;
+    let count = 0;
+    
+    const polygon = feature.geometry.type === 'MultiPolygon' 
+      ? feature.geometry.coordinates[0][0] 
+      : feature.geometry.coordinates[0];
+      
+    if (Array.isArray(polygon)) {
+      for (const coord of polygon) {
+        if (Array.isArray(coord) && coord.length >= 2) {
+          lngSum += coord[0];
+          latSum += coord[1];
+          count++;
+        }
+      }
+    }
+    
+    if (count > 0) {
+      return { lat: latSum / count, lng: lngSum / count };
+    }
+  }
+
+  return { lat: 13.7563, lng: 100.5018 };
 }
 
 function getLocalDish(regionId: string, index: number): string {

@@ -113,14 +113,18 @@ locus/
 - ✅ Yellow text highlight on focus (no yellow border)
 - ✅ Auto-suggest dropdown (max 6 results)
 
-#### 📚 Geo-Archive Page
-- ✅ Province gallery with Grid/List view
-- ✅ Multi-region filter (rose/pink/cyan/purple/green/orange)
-- ✅ Sort by name, cost, safety, population
-- ✅ Compare mode (up to 3 provinces side-by-side)
-- ✅ Thai/English search support
-- ✅ List view optimized width
-- ✅ Server-side pagination + indexed filtering (`db:getArchiveProvinces`)
+#### 🧭 Explore Hub (formerly Geo-Archive Page, Main Landing `/`)
+- ✅ Intent-driven decision flow (Known Destination, Guided Discovery, Interest-based)
+- ✅ 5-step interactive questionnaire for Guided Discovery with theme-based colors
+- ✅ Editable summary page with direct AI handoff feature
+- ✅ Seamless navigation to Map and Intelligence features with pre-filled context
+
+#### 🗺️ Province Tactical View (`/province/:regionId/:provinceId`)
+- ✅ Dynamic GeoJSON centroid coordinate calculation for accurate map centering
+- ✅ Responsive Tab navigation (condensed single-row layout for Explore, Stay, Eat, Transit, Critical)
+- ✅ Integrated Current Season indicator based on current month
+- ✅ Unified Province Overview card with quick stats, weather, and current season
+- ✅ Condensed Planning Priorities (Activities) layout
 
 #### 🚌 Travel Guide Page
 - ✅ Transport routes by region (bus, van, train, plane, boat)
@@ -129,17 +133,18 @@ locus/
 - ✅ Route details with via provinces
 
 #### 🤖 Intelligence Page (AI Chat)
-- ✅ Context-aware chat from region/province navigation
+- ✅ Auto-expanding, bottom-anchored chat input area (similar to ChatGPT/Gemini)
+- ✅ Context-aware chat initialized from Explore Hub or map navigation
 - ✅ "Chat with AI" button with region-specific colors
 - ✅ Image upload support (drag & drop)
-- ✅ Suggested queries based on context
-- ✅ Canvas panel for structured data
+- ✅ Markdown text rendering
 
 #### 🎨 UI/UX Improvements
+- ✅ Refactored Sidebar hierarchy: Explore Hub is now the homepage (`/`), Thai Map is `/map`
 - ✅ Region-specific Chat button colors
 - ✅ Thai province name mapping (thaiProvinceNames.ts)
 - ✅ Keyboard navigation in all search bars
-- ✅ Yellow text search styling
+- ✅ Search bar glow effect on auto-focus when routing from Explore Hub
 
 ---
 

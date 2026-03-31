@@ -469,7 +469,7 @@ export const intelligenceChatStore = {
       }))
     }, 1000)
   },
-  sendMessage(userText: string) {
+  sendMessage(userText: string, options?: { systemContext?: string }) {
     const trimmed = userText.trim()
     if (!trimmed) return
 
@@ -498,6 +498,9 @@ export const intelligenceChatStore = {
       const currentConversation = ensured.conversation
       conversationId = currentConversation.id
       messageWithContext = buildContextPrompt(trimmed, currentConversation.chatContext)
+      if (options?.systemContext?.trim()) {
+        messageWithContext = `${options.systemContext.trim()}\n\n${messageWithContext}`
+      }
       locationPayload = buildLocationPayload(currentConversation.chatContext)
 
       const updatedConversation: ChatConversation = {

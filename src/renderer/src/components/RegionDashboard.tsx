@@ -34,7 +34,7 @@ const getDisplayName = (name: string) => provinceDisplayNames[name] || name;
 
 const getRegionTheme = (regionId: string) => regionTheme[regionId as RegionId] || regionTheme.central;
 
-const getRegionAccent = (theme: RegionThemeTokens) => theme.accentHex ?? theme.mapActive;
+const getRegionAccent = (theme: RegionThemeTokens) => theme.accentHex || '#3b82f6';
 
 const getAccentColor = (theme: RegionThemeTokens, lift = 0.28) => mixHex(getRegionAccent(theme), '#ffffff', lift);
 const getTone = (theme: RegionThemeTokens, index: 0 | 1 | 2) => theme.toneRamp[index] ?? getRegionAccent(theme);

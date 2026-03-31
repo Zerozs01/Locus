@@ -177,6 +177,7 @@ export const PlaceCard = ({ rank, name, type, rating, description, openHours, pr
   const handleFlyTo = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (coordinates && onFlyTo) {
+      console.log(`[PlaceCard] Fly to: ${name} (${coordinates.lat}, ${coordinates.lng})`);
       onFlyTo(coordinates.lat, coordinates.lng, name);
     }
   };

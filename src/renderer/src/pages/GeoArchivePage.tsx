@@ -21,7 +21,12 @@ import {
   Heart,
   Zap,
   Map,
-  Pencil
+  Pencil,
+  Settings,
+  Bus,
+  Train,
+  CarTaxiFront,
+  Bike
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────
@@ -129,7 +134,7 @@ const HELP_QUESTIONS: HelpQuestion[] = [
   },
   {
     id: 'budget',
-    question: 'งบประมาณประมาณ?',
+    question: 'Budget รวม?',
     options: [
       { label: 'ประหยัด (< 1,000/วัน)', value: 'low' },
       { label: 'ปานกลาง (1,000-3,000/วัน)', value: 'mid' },
@@ -146,6 +151,32 @@ export const GeoArchivePage = () => {
   const [mode, setMode] = useState<IntentMode>(null);
   const [helpStep, setHelpStep] = useState(0);
   const [helpAnswers, setHelpAnswers] = useState<Record<string, string>>({});
+  const [helpOthers, setHelpOthers] = useState<Record<string, string>>({});
+  const [showCarSettings, setShowCarSettings] = useState(false);
+  const [transportMeta, setTransportMeta] = useState({
+    carModel: '',
+    fuelPercent: '',
+    fuelType: '',
+    publicModes: [] as string[],
+    publicOther: '',
+  });
+  const [companionMeta, setCompanionMeta] = useState({
+    groupTotal: '',
+    male: '',
+    female: '',
+    lgbtq: '',
+    lgbtqType: '',
+    familyTotal: '',
+    familyAdults: '',
+    familyChildren: '',
+    familyAdultAges: '',
+    familyChildAges: '',
+  });
+  const [budgetMeta, setBudgetMeta] = useState({
+    totalBudget: '',
+    budgetNote: '',
+  });
+  const [finalSuggestion, setFinalSuggestion] = useState('');
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
 
@@ -156,6 +187,32 @@ export const GeoArchivePage = () => {
       setMode(null);
       setHelpStep(0);
       setHelpAnswers({});
+      setHelpOthers({});
+      setShowCarSettings(false);
+      setTransportMeta({
+        carModel: '',
+        fuelPercent: '',
+        fuelType: '',
+        publicModes: [],
+        publicOther: '',
+      });
+      setCompanionMeta({
+        groupTotal: '',
+        male: '',
+        female: '',
+        lgbtq: '',
+        lgbtqType: '',
+        familyTotal: '',
+        familyAdults: '',
+        familyChildren: '',
+        familyAdultAges: '',
+        familyChildAges: '',
+      });
+      setBudgetMeta({
+        totalBudget: '',
+        budgetNote: '',
+      });
+      setFinalSuggestion('');
       setSelectedChips([]);
       setEditingQuestion(null);
     }
@@ -167,11 +224,140 @@ export const GeoArchivePage = () => {
     );
   };
 
-  // Build the prefill text from answers (for AI chat context)
-  const buildPrefillContext = () => {
+  const togglePublicMode = (value: string) => {
+    setTransportMeta((prev) => ({
+      ...prev,
+      publicModes: prev.publicModes.includes(value)
+        ? prev.publicModes.filter((mode) => mode !== value)
+        : [...prev.publicModes, value],
+    }));
+  };
+
+  const getAnswerLabel = (questionId: string) => {
+    const question = HELP_QUESTIONS.find((q) => q.id === questionId);
+    if (!question) return 'ไม่ระบุ';
+    const selected = question.options.find((option) => option.value === helpAnswers[questionId]);
+    if (selected) return selected.label;
+    if ((questionId === 'style' || questionId === 'duration') && helpOthers[questionId]?.trim()) {
+      return 'อื่นๆ';
+    }
+    return 'ไม่ระบุ';
+  };
+
+  const getQuestionDetails = (questionId: string) => {
+    const details: string[] = [];
+    const otherText = helpOthers[questionId]?.trim();
+
+    if (otherText) {
+      details.push(`อื่นๆ: ${otherText}`);
+    }
+
+    if (questionId === 'transport') {
+      if (helpAnswers.transport === 'car') {
+        if (transportMeta.carModel.trim()) details.push(`รถ: ${transportMeta.carModel.trim()}`);
+        if (transportMeta.fuelPercent.trim()) details.push(`น้ำมันคงเหลือ: ${transportMeta.fuelPercent.trim()}%`);
+        if (transportMeta.fuelType.trim()) details.push(`ชนิดน้ำมัน: ${transportMeta.fuelType.trim()}`);
+      }
+
+      if (helpAnswers.transport === 'public') {
+        if (transportMeta.publicModes.length > 0) {
+          details.push(`ขนส่งที่สนใจ: ${transportMeta.publicModes.join(', ')}`);
+        }
+        if (transportMeta.publicOther.trim()) {
+          details.push(`ขนส่งอื่นๆ: ${transportMeta.publicOther.trim()}`);
+        }
+      }
+    }
+
+    if (questionId === 'companion') {
+      if (helpAnswers.companion === 'friends') {
+        if (companionMeta.groupTotal.trim()) details.push(`จำนวนกลุ่ม: ${companionMeta.groupTotal.trim()} คน`);
+        if (companionMeta.male.trim()) details.push(`ชาย: ${companionMeta.male.trim()} คน`);
+        if (companionMeta.female.trim()) details.push(`หญิง: ${companionMeta.female.trim()} คน`);
+        if (companionMeta.lgbtq.trim()) details.push(`LGBTQ+: ${companionMeta.lgbtq.trim()} คน`);
+        if (companionMeta.lgbtqType.trim()) details.push(`ประเภท LGBTQ+: ${companionMeta.lgbtqType.trim()}`);
+      }
+
+      if (helpAnswers.companion === 'family') {
+        if (companionMeta.familyTotal.trim()) details.push(`สมาชิกครอบครัว: ${companionMeta.familyTotal.trim()} คน`);
+        if (companionMeta.familyAdults.trim()) details.push(`ผู้ใหญ่: ${companionMeta.familyAdults.trim()} คน`);
+        if (companionMeta.familyChildren.trim()) details.push(`เด็ก: ${companionMeta.familyChildren.trim()} คน`);
+        if (companionMeta.familyAdultAges.trim()) details.push(`อายุผู้ใหญ่ (รายคน): ${companionMeta.familyAdultAges.trim()}`);
+        if (companionMeta.familyChildAges.trim()) details.push(`อายุเด็ก (รายคน): ${companionMeta.familyChildAges.trim()}`);
+      }
+    }
+
+    if (questionId === 'budget') {
+      if (budgetMeta.totalBudget.trim()) details.push(`งบรวมทริป: ${budgetMeta.totalBudget.trim()} บาท`);
+      if (budgetMeta.budgetNote.trim()) details.push(`หมายเหตุงบ: ${budgetMeta.budgetNote.trim()}`);
+    }
+
+    return details;
+  };
+
+  // Build structured payload text for AI chat context
+  const buildStructuredTravelInfo = () => {
+    const payload = {
+      travel_style: {
+        selection: helpAnswers.style || 'other_only',
+        selectionLabel: getAnswerLabel('style'),
+        other: (helpOthers.style || '').trim(),
+      },
+      duration: {
+        selection: helpAnswers.duration || 'other_only',
+        selectionLabel: getAnswerLabel('duration'),
+        other: (helpOthers.duration || '').trim(),
+      },
+      transport: {
+        selection: helpAnswers.transport || 'unspecified',
+        selectionLabel: getAnswerLabel('transport'),
+        other: (helpOthers.transport || '').trim(),
+        car: {
+          model: transportMeta.carModel.trim(),
+          fuelPercent: transportMeta.fuelPercent.trim(),
+          fuelType: transportMeta.fuelType.trim(),
+        },
+        publicTransport: {
+          preferredModes: transportMeta.publicModes,
+          other: transportMeta.publicOther.trim(),
+        },
+      },
+      companion: {
+        selection: helpAnswers.companion || 'unspecified',
+        selectionLabel: getAnswerLabel('companion'),
+        other: (helpOthers.companion || '').trim(),
+        friendsGroup: {
+          total: companionMeta.groupTotal.trim(),
+          male: companionMeta.male.trim(),
+          female: companionMeta.female.trim(),
+          lgbtq: companionMeta.lgbtq.trim(),
+          lgbtqType: companionMeta.lgbtqType.trim(),
+        },
+        family: {
+          total: companionMeta.familyTotal.trim(),
+          adults: companionMeta.familyAdults.trim(),
+          children: companionMeta.familyChildren.trim(),
+          adultAges: companionMeta.familyAdultAges.trim(),
+          childAges: companionMeta.familyChildAges.trim(),
+        },
+      },
+      budget: {
+        selection: helpAnswers.budget || 'unspecified',
+        selectionLabel: getAnswerLabel('budget'),
+        other: (helpOthers.budget || '').trim(),
+        tripTotalBudget: budgetMeta.totalBudget.trim(),
+        note: budgetMeta.budgetNote.trim(),
+      },
+    };
+
+    return JSON.stringify(payload, null, 2);
+  };
+
+  const buildReadableSummary = () => {
     return HELP_QUESTIONS.map((q) => {
-      const ans = q.options.find((o) => o.value === helpAnswers[q.id]);
-      return `${q.question} ${ans?.label || 'ไม่ระบุ'}`;
+      const details = getQuestionDetails(q.id);
+      const detailText = details.length > 0 ? `\n- ${details.join('\n- ')}` : '';
+      return `${q.question} ${getAnswerLabel(q.id)}${detailText}`;
     }).join('\n');
   };
 
@@ -248,7 +434,11 @@ export const GeoArchivePage = () => {
     const currentQ = HELP_QUESTIONS[helpStep];
     const theme = QUESTION_THEMES[helpStep] || QUESTION_THEMES[0];
     const isLastStep = helpStep >= HELP_QUESTIONS.length - 1;
-    const hasAnswered = currentQ && helpAnswers[currentQ.id];
+    const currentOther = currentQ ? (helpOthers[currentQ.id] || '').trim() : '';
+    const hasPrimaryAnswer = Boolean(currentQ && helpAnswers[currentQ.id]);
+    const allowOtherOnly = Boolean(currentQ && (currentQ.id === 'style' || currentQ.id === 'duration'));
+    const hasBudgetTotal = Boolean(currentQ?.id === 'budget' && budgetMeta.totalBudget.trim());
+    const hasAnswered = hasPrimaryAnswer || (allowOtherOnly && currentOther.length > 0) || hasBudgetTotal;
 
     // All questions answered → show editable summary
     if (helpStep >= HELP_QUESTIONS.length) {
@@ -270,6 +460,7 @@ export const GeoArchivePage = () => {
                 {HELP_QUESTIONS.map((q, idx) => {
                   const qTheme = QUESTION_THEMES[idx];
                   const isEditing = editingQuestion === q.id;
+                  const detailLines = getQuestionDetails(q.id);
                   return (
                     <div
                       key={q.id}
@@ -304,17 +495,28 @@ export const GeoArchivePage = () => {
                           ))}
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-medium text-white">
-                            {q.options.find((o) => o.value === helpAnswers[q.id])?.label || '—'}
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-medium text-white">
+                              {getAnswerLabel(q.id) || '—'}
+                            </div>
+                            <button
+                              onClick={() => setEditingQuestion(q.id)}
+                              className="ml-2 rounded-lg p-1 text-slate-600 transition-colors hover:bg-white/10 hover:text-white"
+                              title="แก้ไข"
+                            >
+                              <Pencil size={12} />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => setEditingQuestion(q.id)}
-                            className="ml-2 rounded-lg p-1 text-slate-600 transition-colors hover:bg-white/10 hover:text-white"
-                            title="แก้ไข"
-                          >
-                            <Pencil size={12} />
-                          </button>
+                          {detailLines.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {detailLines.map((line) => (
+                                <div key={line} className="text-[11px] text-slate-400">
+                                  • {line}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -323,19 +525,31 @@ export const GeoArchivePage = () => {
               </div>
             </div>
 
-            {/* Send to AI — navigate with context attached, but don't auto-send */}
+            {/* Send to AI — auto-send on Intelligence page */}
+            <div className="mb-4 rounded-2xl border border-white/10 bg-[#0a0c10] p-4">
+              <label className="mb-2 block text-sm font-semibold text-slate-200">อยากถามอะไรเพิ่มกับ AI? (User suggestion)</label>
+              <textarea
+                value={finalSuggestion}
+                onChange={(event) => setFinalSuggestion(event.target.value)}
+                rows={3}
+                placeholder="เช่น เน้นจังหวัดปลอดภัย คนไม่พลุกพล่าน มีแผนเดินทาง 3 แบบให้เลือก"
+                className="w-full resize-none rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-purple-500/40"
+              />
+            </div>
+
             <button
               onClick={() => {
-                const contextText = buildPrefillContext();
+                const structuredInfo = buildStructuredTravelInfo();
+                const readableSummary = buildReadableSummary();
+                const userAsk = finalSuggestion.trim() || 'ช่วยแนะนำจังหวัดที่เหมาะกับความต้องการนี้ พร้อมวางแผนงบเดินทางให้ด้วย';
                 navigate('/intelligence', {
                   state: {
-                    context: {
-                      type: 'travel-plan',
-                      name: 'วางแผนเที่ยว',
-                      data: { answers: helpAnswers },
-                    },
-                    // Prefill into the input box but DON'T auto-send
-                    prefillInput: `ช่วยแนะนำจังหวัดที่เหมาะกับความต้องการนี้หน่อยครับ:\n${contextText}`,
+                    autoSendMessage:
+                      `${userAsk}\n\n` +
+                      `สรุปความต้องการจากผู้ใช้:\n${readableSummary}\n\n` +
+                      'ขอผลลัพธ์เป็น: จังหวัดแนะนำ, เหตุผล, แผนเที่ยวรายวัน, และประมาณการงบที่เป็นไปได้',
+                    autoSendSystemContext:
+                      'TRAVEL_PROFILE_JSON_FOR_TOOLING_ONLY:\n' + structuredInfo,
                   },
                 });
               }}
@@ -346,7 +560,7 @@ export const GeoArchivePage = () => {
               <ArrowRight size={16} className="text-purple-400 transition-transform group-hover:translate-x-1" />
             </button>
             <p className="mt-3 text-center text-[11px] text-slate-600">
-              ข้อมูลจะถูกส่งไปยังหน้า Chat เพื่อให้คุณเพิ่มคำถามหรือแก้ไขก่อนส่ง
+              เมื่อกดปุ่ม ระบบจะส่งคำถามและข้อมูลสรุปไปให้ AI วิเคราะห์ทันที
             </p>
           </div>
         </div>
@@ -383,6 +597,27 @@ export const GeoArchivePage = () => {
           </div>
           <h2 className="mb-8 text-2xl font-bold text-white">{currentQ.question}</h2>
 
+          {currentQ.id === 'budget' && (
+            <div className="mb-4 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-yellow-300">Budget รวม (ใส่อย่างเดียวก็ไปต่อได้)</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  value={budgetMeta.totalBudget}
+                  onChange={(event) => setBudgetMeta((prev) => ({ ...prev, totalBudget: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="งบรวมทั้งทริป (บาท)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-yellow-400/40"
+                />
+                <input
+                  value={budgetMeta.budgetNote}
+                  onChange={(event) => setBudgetMeta((prev) => ({ ...prev, budgetNote: event.target.value }))}
+                  placeholder="ข้อจำกัดงบเพิ่มเติม เช่น กินหรูได้ 1 มื้อ"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-yellow-400/40"
+                />
+              </div>
+              <p className="mt-2 text-xs text-slate-500">ตัวเลือกงบต่อวันด้านล่างเป็นตัวช่วยเสริม (ไม่บังคับ)</p>
+            </div>
+          )}
+
           <div className="grid gap-3">
             {currentQ.options.map((opt) => {
               const isSelected = helpAnswers[currentQ.id] === opt.value;
@@ -391,12 +626,23 @@ export const GeoArchivePage = () => {
                   key={opt.value}
                   onClick={() => {
                     setHelpAnswers((prev) => ({ ...prev, [currentQ.id]: opt.value }));
+                    if (currentQ.id === 'transport' && opt.value !== 'car') {
+                      setShowCarSettings(false);
+                    }
                   }}
-                  className="group flex items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200"
-                  style={{
-                    borderColor: isSelected ? theme.accentBorder : 'rgba(255,255,255,0.07)',
-                    backgroundColor: isSelected ? theme.accentBg : '#0a0c10',
-                  }}
+                  className={`group flex items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200 ${
+                    isSelected
+                      ? 'shadow-[0_8px_24px_rgba(0,0,0,0.35)]'
+                      : 'border-white/10 bg-[#0a0c10] hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.04]'
+                  }`}
+                  style={
+                    isSelected
+                      ? {
+                          borderColor: theme.accentBorder,
+                          backgroundColor: theme.accentBg,
+                        }
+                      : undefined
+                  }
                 >
                   {opt.icon && (
                     <div
@@ -415,10 +661,206 @@ export const GeoArchivePage = () => {
                   >
                     {opt.label}
                   </span>
+                  {currentQ.id === 'transport' && opt.value === 'car' && isSelected && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setShowCarSettings((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setShowCarSettings((prev) => !prev);
+                        }
+                      }}
+                      className="ml-auto inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-200 transition-colors hover:bg-white/10"
+                      aria-label="ตั้งค่าข้อมูลรถส่วนตัว"
+                    >
+                      <Settings size={14} />
+                      ตั้งค่ารถ
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
+
+          {/* Optional free text for every question */}
+          <div className="mt-5 rounded-2xl border border-white/10 bg-[#0a0c10] p-4">
+            <label className="mb-2 block text-xs font-medium text-slate-400">อื่นๆ (พิมพ์เพิ่มได้)</label>
+            <textarea
+              value={helpOthers[currentQ.id] || ''}
+              onChange={(event) => {
+                const value = event.target.value;
+                setHelpOthers((prev) => ({ ...prev, [currentQ.id]: value }));
+              }}
+              rows={2}
+              placeholder="เช่น โฟกัสความปลอดภัย อยากเลี่ยงคนเยอะ หรือรายละเอียดเฉพาะที่อยากบอก AI"
+              className="w-full resize-none rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-500/40"
+            />
+          </div>
+
+          {/* Transport details */}
+          {currentQ.id === 'transport' && helpAnswers.transport === 'car' && (
+            <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-emerald-300">ตั้งค่าข้อมูลรถส่วนตัว (เพื่อช่วยคำนวณค่าน้ำมัน)</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCarSettings((prev) => !prev)}
+                  className="rounded-lg border border-white/10 px-2 py-1 text-xs text-slate-300 transition-colors hover:bg-white/10"
+                >
+                  {showCarSettings ? 'ซ่อนรายละเอียด' : 'แสดงรายละเอียด'}
+                </button>
+              </div>
+
+              {showCarSettings && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={transportMeta.carModel}
+                    onChange={(event) => setTransportMeta((prev) => ({ ...prev, carModel: event.target.value }))}
+                    placeholder="รุ่นรถ เช่น Civic, Hilux"
+                    className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-400/40"
+                  />
+                  <input
+                    value={transportMeta.fuelPercent}
+                    onChange={(event) => setTransportMeta((prev) => ({ ...prev, fuelPercent: event.target.value.replace(/[^0-9]/g, '') }))}
+                    placeholder="น้ำมันคงเหลือ (%)"
+                    className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-400/40"
+                  />
+                  <input
+                    value={transportMeta.fuelType}
+                    onChange={(event) => setTransportMeta((prev) => ({ ...prev, fuelType: event.target.value }))}
+                    placeholder="ชนิดน้ำมัน เช่น แก๊สโซฮอล์ 95 / ดีเซล"
+                    className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-400/40 sm:col-span-2"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {currentQ.id === 'transport' && helpAnswers.transport === 'public' && (
+            <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-cyan-300">เลือกขนส่งสาธารณะที่อยากใช้ (เลือกได้หลายแบบ)</h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  { label: 'รถบัส', value: 'รถบัส', icon: <Bus size={14} /> },
+                  { label: 'รถตู้', value: 'รถตู้', icon: <Train size={14} /> },
+                  { label: 'Grab / Taxi ส่วนตัว', value: 'Grab / Taxi', icon: <CarTaxiFront size={14} /> },
+                  { label: 'มอเตอร์ไซค์รับจ้าง', value: 'มอเตอร์ไซค์รับจ้าง', icon: <Bike size={14} /> },
+                  { label: 'ไม่มีรถสาธารณะในใจ', value: 'ไม่ระบุ', icon: <Map size={14} /> },
+                ].map((option) => {
+                  const selected = transportMeta.publicModes.includes(option.value);
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => togglePublicMode(option.value)}
+                      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
+                        selected
+                          ? 'border-cyan-400/50 bg-cyan-500/15 text-cyan-200'
+                          : 'border-white/10 bg-[#07090d] text-slate-300 hover:border-cyan-500/40 hover:text-white'
+                      }`}
+                    >
+                      {option.icon}
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                value={transportMeta.publicOther}
+                onChange={(event) => setTransportMeta((prev) => ({ ...prev, publicOther: event.target.value }))}
+                placeholder="ขนส่งอื่นๆ ที่อยากใช้ (ถ้ามี)"
+                className="mt-3 w-full rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-500/40"
+              />
+            </div>
+          )}
+
+          {/* Companion details */}
+          {currentQ.id === 'companion' && helpAnswers.companion === 'friends' && (
+            <div className="mt-4 rounded-2xl border border-pink-500/20 bg-pink-500/5 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-pink-300">รายละเอียดกลุ่มเพื่อน (ไม่บังคับ)</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  value={companionMeta.groupTotal}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, groupTotal: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="จำนวนทั้งหมด (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.male}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, male: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="ชาย (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.female}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, female: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="หญิง (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.lgbtq}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, lgbtq: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="LGBTQ+ (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <select
+                  value={companionMeta.lgbtqType}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, lgbtqType: event.target.value }))}
+                  aria-label="ประเภท LGBTQ+"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none focus:border-pink-400/40 sm:col-span-2"
+                >
+                  <option value="">ประเภท LGBTQ+ (ไม่ระบุได้)</option>
+                  <option value="สาว">สาว</option>
+                  <option value="แมน">แมน</option>
+                  <option value="หลากหลาย">หลากหลาย</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {currentQ.id === 'companion' && helpAnswers.companion === 'family' && (
+            <div className="mt-4 rounded-2xl border border-pink-500/20 bg-pink-500/5 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-pink-300">รายละเอียดครอบครัว (ไม่บังคับ)</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  value={companionMeta.familyTotal}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, familyTotal: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="สมาชิกทั้งหมด (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.familyAdults}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, familyAdults: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="ผู้ใหญ่ (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.familyChildren}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, familyChildren: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="เด็ก (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.familyAdultAges}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, familyAdultAges: event.target.value }))}
+                  placeholder="อายุผู้ใหญ่รายคน เช่น 38,35"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.familyChildAges}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, familyChildAges: event.target.value }))}
+                  placeholder="อายุเด็กรายคน เช่น 4,7"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40 sm:col-span-2"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Next Button — uses current question's theme */}
           {hasAnswered && (

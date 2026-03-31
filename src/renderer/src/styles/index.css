@@ -108,6 +108,13 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
+/* Explicit override: Thai map search should not show yellow focus outline */
+.map-search-input:focus,
+.map-search-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Transitions */
 .transition-smooth {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);

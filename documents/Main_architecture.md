@@ -16,15 +16,15 @@ The system follows a specific **"Local-First, Cloud-Sync"** hybrid architecture.
 
 The system uses a **"Tunneling"** method to communicate.
 
-1.  **Origin (Renderer):** User presses send on `IntelligencePage.tsx` or `ChatOverlay.tsx`.
-2.  **IPC Bridge (Preload/Main):** Renderer does not call n8n directly. It uses `window.api.n8n.health()` / `window.api.n8n.chat()` exposed from preload.
-3.  **Destination (Ngrok URL):** Electron main process calls the configured tunnel endpoint (for example `https://xxxxx.ngrok-free.app/webhook/chat`).
-4.  **Tunneling (Ngrok -> Localhost):** Ngrok receives the request and **automatically forwards** it through the secure tunnel to your local machine port `5678`.
-5.  **Processing (n8n):**
+1. **Origin (Renderer):** User presses send on `IntelligencePage.tsx` or `ChatOverlay.tsx`.
+2. **IPC Bridge (Preload/Main):** Renderer does not call n8n directly. It uses `window.api.n8n.health()` / `window.api.n8n.chat()` exposed from preload.
+3. **Destination (Ngrok URL):** Electron main process calls the configured tunnel endpoint (for example `https://xxxxx.ngrok-free.app/webhook/chat`).
+4. **Tunneling (Ngrok -> Localhost):** Ngrok receives the request and **automatically forwards** it through the secure tunnel to your local machine port `5678`.
+5. **Processing (n8n):**
     - **Trigger:** The n8n Webhook node (listening on port 5678) activates.
     - **Agent Node:** Queries AI Model.
     - **Tools:** Fetches data from Supabase/LightRAG.
-6.  **Return Trip:** n8n sends the JSON response back through the tunnel -> Ngrok -> Electron main -> Renderer store.
+6. **Return Trip:** n8n sends the JSON response back through the tunnel -> Ngrok -> Electron main -> Renderer store.
 
 ### Current Chat Contract
 - Health check: `GET /webhook/health`
@@ -67,12 +67,12 @@ The system uses a **"Tunneling"** method to communicate.
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/` | ThreatRadarPage | Main interactive map view & region dashboard |
+| `/` | GeoArchivePage (Explore Hub) | Main intent-driven entry point & guided discovery |
+| `/map` | ThreatRadarPage | Main interactive map view & region dashboard |
 | `/province/:regionId/:provinceId` | ProvinceTacticalPage | Province detailed terrain and data view |
-| `/archive` | GeoArchivePage | Province gallery with compare mode |
 | `/travel-guide/:regionId` | TravelGuidePage | Travel routes and transportation guide |
 | `/intelligence` | IntelligencePage | AI chat with context support and recent chats |
-| `/analytics` | AnalyticsPage | Data analytics dashboard |
+| `/analytics` | AnalyticsPage | Data analytics dashboard (Situation Feed) |
 | `/settings` | SettingsPage | App configuration |
 
 ## 5. Key Features
@@ -81,6 +81,12 @@ The system uses a **"Tunneling"** method to communicate.
 - **Thai/English Support:** Uses `thaiProvinceNames.ts` mapping
 - **Keyboard Navigation:** Arrow Up/Down, Enter, Escape
 - **Auto-suggest:** Max 6 results with highlighting
+- **Auto-Focus:** Cross-page search focus styling
+
+### Explore Hub (Landing)
+- **Known Destination:** Direct routing to Map with pre-filled search
+- **Guided Discovery:** 5-step interactive questionnaire mapping user intent
+- **Editable Intent Summary:** Connects directly to AI Intelligence page
 
 ### Region Dashboard
 - **Region Mode:** Travel stats overview (Daily Cost, PM2.5 AQI, Attractions, Best Season)
@@ -88,11 +94,13 @@ The system uses a **"Tunneling"** method to communicate.
 - **Chat Integration:** Context-aware navigation to AI chat
 
 ### Province Detail (Tactical Page)
-- **Interactive Map:** Leaflet map with boundaries, markers, and search pin
-- **Tabs:** Overview, Stay, Food & Supply, Transit, Critical
+- **Interactive Map:** Dynamic centroid GeoJSON parsing with Leaflet map boundaries
+- **Tabs:** Condensed single-row navigation for Overview, Stay, Food & Supply, Transit, Critical
+- **UX Context:** Current season indicator calculated locally
 
 ### AI Chat (Intelligence Page)
-- **Context Passing:** Receives region/province data from navigation state
+- **Fluid Layout:** Auto-expanding chat input window anchored bottom-right
+- **Context Passing:** Receives region/province/intent data from navigation state
 - **Image Upload:** Drag & drop support
 - **Suggested Queries:** Dynamic based on context
 - **Recent Chats:** Multi-conversation history stored locally in app

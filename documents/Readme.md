@@ -19,11 +19,11 @@ It follows a **"Local-First"** architecture, ensuring fast performance and offli
 - **AI Models:** Gemini 1.5 Flash (Vision & Reasoning) via OpenRouter
 
 ## ⚙️ Key Features
+- **Intent-Driven Workflow:** Dynamic entry points prioritizing user intent (Known Destination, Guided Discovery, Interest-based) over static data browsing.
 - **Visual Location Identification:** Analyzing images to identify coordinates or regions using AI "Meta" clues.
 - **Local-First Performance:** Instant data access for Regions & Provinces using embedded SQLite with WAL mode.
-- **Situational Awareness:** Assessing safety, supply locations, and environmental risks.
-- **Historical & Cultural Insights:** Fetching localized lore and history based on identified landmarks.
-- **Agent Chat Interface:** Interactive chat with LightRAG/n8n backed responses, recent chat history, and context-aware region/province prompts.
+- **Situational Awareness & Tactical Navigation:** Dynamic GeoJSON mapping, safety assessment, supply locations, and environmental risks on the Province Tactical page.
+- **Agent Chat Interface:** Interactive auto-expanding chat with LightRAG/n8n backed responses, recent history, and context-aware region/province prompts.
 - **Unified Region Theme:** Single source of truth for region colors/gradients shared between main and renderer.
 
 ## 🛠️ Getting Started
