@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Loader2, WifiOff, RefreshCw } from 'lucide-react';
+import { Loader2, WifiOff, RefreshCw, Search, Navigation, LocateFixed, Route, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin } from 'lucide-react';
 import thailandGeo from '../data/thailand-geo.json';
 
 // Fix Leaflet default marker icon issue
@@ -339,6 +339,200 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const pendingAutoFocusStartedAtRef = useRef<number>(0);
   const cachedSearchAreasRef = useRef<Map<string, CachedSearchArea>>(new Map());
   const searchBoxRef = useRef<HTMLDivElement>(null);
+  
+  const [isLocating, setIsLocating] = useState(false);
+  const userLocationLayerRef = useRef<L.LayerGroup | null>(null);
+
+  const drawUserLocation = (latitude: number, longitude: number, accuracy: number) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    
+    if (!userLocationLayerRef.current) {
+      userLocationLayerRef.current = L.layerGroup().addTo(map);
+    } else {
+      userLocationLayerRef.current.clearLayers();
+    }
+
+    const dotIcon = L.divIcon({
+      className: 'user-location-pulse',
+      html: `<div style="width: 16px; height: 16px; background-color: #3b82f6; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(59, 130, 246, 0.7);"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
+    });
+
+    const accuracyCircle = L.circle([latitude, longitude], {
+      radius: accuracy, // IP location has larger accuracy radius
+      color: '#3b82f6',
+      fillColor: '#3b82f6',
+      fillOpacity: 0.15,
+      weight: 1
+    });
+    
+    const marker = L.marker([latitude, longitude], { icon: dotIcon });
+    
+    userLocationLayerRef.current.addLayer(accuracyCircle);
+    userLocationLayerRef.current.addLayer(marker);
+
+    // Zoom moderately (14) since IP locations are approximate
+    map.flyTo([latitude, longitude], accuracy > 100 ? 14 : 16, { duration: 1.2 });
+  };
+
+  const locateUserPromise = (): Promise<{lat: number, lng: number} | null> => {
+    return new Promise((resolve) => {
+      setIsLocating(true);
+      
+      const resolveAndDraw = (lat: number, lng: number, acc: number) => {
+        drawUserLocation(lat, lng, acc);
+        setIsLocating(false);
+        resolve({ lat, lng });
+      };
+
+      const tryIPGeolocation = async () => {
+        try {
+          const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
+          if (!res.ok) throw new Error('IP Geo API failed');
+          const data = await res.json();
+          const lat = parseFloat(data.latitude);
+          const lng = parseFloat(data.longitude);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            resolveAndDraw(lat, lng, 1200); // ~1km accuracy for IP based
+            return;
+          }
+          throw new Error('Invalid IP coordinates');
+        } catch (err) {
+          setIsLocating(false);
+          alert('ระบบไม่สามารถหาตำแหน่งที่ตั้งของคุณได้เลย (เครือข่ายไม่อนุญาต)');
+          resolve(null);
+        }
+      };
+
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolveAndDraw(position.coords.latitude, position.coords.longitude, position.coords.accuracy || 20);
+          },
+          async (error) => {
+            console.warn('[Geolocation] Native API failed (often happens in Electron due to missing Google API Keys). Falling back to IP-based location...', error.message);
+            await tryIPGeolocation();
+          },
+          { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+        );
+      } else {
+        tryIPGeolocation();
+      }
+    });
+  };
+
+  const handleLocateMe = async () => {
+    await locateUserPromise();
+  };
+
+  // Routing State
+  const [isRoutingMode, setIsRoutingMode] = useState(false);
+  const [activeRouteField, setActiveRouteField] = useState<'start' | 'end' | null>(null);
+  const [travelMode, setTravelMode] = useState<'driving' | 'walking' | 'cycling'>('driving');
+  const [routeStart, setRouteStart] = useState<{lat: number, lng: number, title?: string} | null>(null);
+  const [routeEnd, setRouteEnd] = useState<{lat: number, lng: number, title?: string} | null>(null);
+  const [routeData, setRouteData] = useState<{distance: number, duration: number, geojson: any} | null>(null);
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const routeLayerRef = useRef<L.LayerGroup | null>(null);
+
+  const calculateRoute = async (startLat: number, startLng: number, endLat: number, endLng: number, mode: string) => {
+    setIsCalculatingRoute(true);
+    setRouteData(null);
+    try {
+      const res = await fetch(`https://router.project-osrm.org/route/v1/${mode}/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`);
+      const data = await res.json();
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        setRouteData({
+          distance: data.routes[0].distance,
+          duration: data.routes[0].duration,
+          geojson: data.routes[0].geometry
+        });
+      } else {
+        alert("ขออภัย ไม่พบเส้นทางเชื่อมต่อที่เหมาะสม (Route not found)");
+      }
+    } catch(e) {
+      console.error(e);
+      alert("ไม่สามารถคำนวณเส้นทางได้ (ติดปัญหาการเชื่อมต่อเซิร์ฟเวอร์ OSRM API)");
+    } finally {
+      setIsCalculatingRoute(false);
+    }
+  };
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (!routeLayerRef.current) {
+       routeLayerRef.current = L.layerGroup().addTo(map);
+    } else {
+       routeLayerRef.current.clearLayers();
+    }
+    
+    if (!routeData || !routeData.geojson) return;
+    
+    const polyline = L.geoJSON(routeData.geojson, {
+        style: {
+            color: '#06b6d4',
+            weight: 6,
+            opacity: 0.9,
+            lineCap: 'round',
+            lineJoin: 'round'
+        }
+    });
+
+    const polylineBg = L.geoJSON(routeData.geojson, {
+      style: {
+          color: '#0891b2',
+          weight: 12,
+          opacity: 0.35,
+          lineCap: 'round',
+          lineJoin: 'round'
+      }
+    });
+    
+    routeLayerRef.current.addLayer(polylineBg);
+    routeLayerRef.current.addLayer(polyline);
+
+    if (routeStart) {
+      routeLayerRef.current.addLayer(
+        L.marker([routeStart.lat, routeStart.lng], {
+          icon: L.divIcon({
+            className: 'route-pin-start',
+            html: `<div style="width:16px;height:16px;background:#3b82f6;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+          })
+        })
+      );
+    }
+    if (routeEnd) {
+      routeLayerRef.current.addLayer(
+        L.marker([routeEnd.lat, routeEnd.lng], {
+          icon: L.divIcon({
+            className: 'route-pin-end',
+            html: `<div style="width:16px;height:16px;background:#ef4444;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+          })
+        })
+      );
+    }
+
+    if (routeStart && routeEnd) {
+      const bounds = L.latLngBounds([routeStart.lat, routeStart.lng], [routeEnd.lat, routeEnd.lng]);
+      map.fitBounds(bounds, { padding: [60, 60], animate: true, duration: 1.5 });
+    } else {
+      map.fitBounds(polyline.getBounds(), { padding: [60, 60], animate: true, duration: 1.5 });
+    }
+  }, [routeData, routeStart, routeEnd]);
+
+  useEffect(() => {
+    // Re-calculate route when travel mode changes
+    if (isRoutingMode && routeStart && routeEnd && routeData) {
+      calculateRoute(routeStart.lat, routeStart.lng, routeEnd.lat, routeEnd.lng, travelMode);
+    }
+  }, [travelMode]);
 
   const toggleFilter = (type: string) => {
     setVisibleFilters(prev => {
@@ -1268,76 +1462,287 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         </div>
       )}
 
-      {/* Place Search + Filter Pills */}
+      {/* Place Search, Map Controls & Routing UI */}
       <div className="absolute bottom-6 left-5 z-[1000] w-[calc(100%-2.5rem)] pointer-events-auto">
-        <div ref={searchBoxRef} className="relative w-[min(420px,100%)]">
-        <div className="pointer-events-none absolute -inset-1 rounded-2xl bg-cyan-400/20 blur-xl" />
-        {(showSuggestions && searchQuery.trim()) && (
-          <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-[#0f1115] border border-white/10 border-b-0 rounded-t-xl rounded-b-none overflow-hidden shadow-2xl z-50">
-            {searchSuggestions.length > 0 ? (
-              searchSuggestions.map((place, index) => (
-                <button
-                  key={`${normalizeSearchText(place.title)}-${index}`}
-                  onClick={() => flyToSearchPlace(place, 600)}
-                  onMouseEnter={() => setSelectedSuggestionIndex(index)}
-                  className={`w-full text-left px-4 py-2.5 border-b border-white/5 last:border-0 transition-colors ${index === selectedSuggestionIndex ? 'bg-cyan-500/15' : 'hover:bg-white/5'}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-medium text-white truncate">{place.title}</div>
-                    {index === selectedSuggestionIndex && (
-                      <span className="text-[10px] text-slate-500 bg-white/5 px-2 py-0.5 rounded">Enter</span>
-                    )}
+        <div className="flex items-end justify-between w-full relative mb-3">
+           <div className="flex-1 max-w-[420px]" ref={searchBoxRef}>
+             
+            {/* Unified Suggestion Box */}
+            {(showSuggestions && searchQuery.trim()) && (
+              <div className="absolute bottom-full mb-1.5 w-[min(420px,100%)] bg-[#0f1115] border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] z-[1050]">
+                {searchSuggestions.length > 0 ? (
+                  searchSuggestions.map((place, index) => (
+                    <button
+                      key={`${normalizeSearchText(place.title)}-${index}`}
+                      onClick={() => {
+                        if (isRoutingMode) {
+                          if (activeRouteField === 'start') {
+                            const newStart = { lat: place.lat, lng: place.lng, title: place.title };
+                            setRouteStart(newStart);
+                            if (routeEnd) calculateRoute(newStart.lat, newStart.lng, routeEnd.lat, routeEnd.lng, travelMode);
+                          } else {
+                            const newEnd = { lat: place.lat, lng: place.lng, title: place.title };
+                            setRouteEnd(newEnd);
+                            if (routeStart) calculateRoute(routeStart.lat, routeStart.lng, newEnd.lat, newEnd.lng, travelMode);
+                          }
+                          setSearchQuery('');
+                          setShowSuggestions(false);
+                          setActiveRouteField(null);
+                        } else {
+                          flyToSearchPlace(place, 600);
+                        }
+                      }}
+                      onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                      className={`w-full text-left px-4 py-2.5 border-b border-white/5 last:border-0 transition-colors ${index === selectedSuggestionIndex ? 'bg-cyan-500/15' : 'hover:bg-white/5'}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-medium text-white truncate">{place.title}</div>
+                        {index === selectedSuggestionIndex && (
+                          <span className="text-[10px] text-slate-500 bg-white/5 px-2 py-0.5 rounded">Enter</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-400 truncate">
+                        {getCanonicalPlaceType(place)}
+                        {place.subtitle ? ` • ${place.subtitle}` : ''}
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-sm text-slate-400">
+                    {isRemoteSearching ? 'Searching places...' : 'No matching places'}
                   </div>
-                  <div className="text-[11px] text-slate-400 truncate">
-                    {getCanonicalPlaceType(place)}
-                    {place.subtitle ? ` • ${place.subtitle}` : ''}
-                  </div>
-                </button>
-              ))
-            ) : (
-              <div className="px-4 py-3 text-sm text-slate-400">
-                {isRemoteSearching ? 'Searching places...' : 'No matching places'}
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        <div className={`relative bg-[#0b1018]/95 border border-white/10 backdrop-blur-md flex items-center p-3.5 shadow-2xl transition-all w-full ${(showSuggestions && searchQuery.trim()) ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl'}`}>
-          <span className="text-slate-400 ml-2 mr-3">🔎</span>
-          <input
-            value={searchQuery}
-            onChange={(event) => {
-              setSearchQuery(event.target.value);
-              setShowSuggestions(true);
-            }}
-            onFocus={() => setShowSuggestions(true)}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="ค้นหาสถานที่ (regex)..."
-            className="bg-transparent border-none outline-none focus:outline-none text-sm text-cyan-300 caret-cyan-300 w-full placeholder:text-slate-500 font-medium"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setShowSuggestions(false);
-                setRemoteSuggestions([]);
-              }}
-              className="text-slate-500 hover:text-white transition-colors mr-2"
-            >
-              ✕
-            </button>
-          )}
-        </div>
+            {isRoutingMode ? (
+              <div className="bg-[#0b1018]/95 border border-white/10 backdrop-blur-md p-4 rounded-2xl shadow-2xl relative w-[min(420px,100%)]">
+                 <div className="pointer-events-none absolute -inset-1 rounded-2xl bg-cyan-400/20 blur-xl z-[-1]" />
+                 
+                 {/* Top Header: Modes & Close */}
+                 <div className="flex justify-between items-center mb-3">
+                    <div className="flex gap-1.5 bg-black/40 p-1 rounded-lg border border-white/5">
+                       {(['driving', 'walking', 'cycling'] as const).map(m => (
+                          <button 
+                             key={m} 
+                             onClick={() => setTravelMode(m)} 
+                             className={`p-2 rounded-md transition-all ${Math.round(travelMode === m ? 1 : 0) ? 'bg-cyan-500/20 text-cyan-400 shadow-sm border border-cyan-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'}`}
+                             title={m.charAt(0).toUpperCase() + m.slice(1)}
+                          >
+                             {m === 'driving' ? <Car size={16}/> : m === 'walking' ? <Footprints size={16}/> : <Bike size={16}/>}
+                          </button>
+                       ))}
+                    </div>
+                    <button 
+                       onClick={() => { 
+                          setIsRoutingMode(false); 
+                          setRouteData(null); 
+                          setRouteStart(null);
+                          setRouteEnd(null);
+                          setActiveRouteField(null);
+                          setSearchQuery('');
+                          if (routeLayerRef.current) routeLayerRef.current.clearLayers();
+                          if (userLocationLayerRef.current) userLocationLayerRef.current.clearLayers();
+                       }} 
+                       className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                    >
+                       <ChevronLeft size={20} />
+                    </button>
+                 </div>
+                 
+                 {/* Inputs */}
+                 <div className="flex flex-col relative pl-2 mt-2 border border-white/5 rounded-xl bg-black/40 p-2 gap-2 shadow-inner">
+                    <div className="absolute left-[19px] top-6 bottom-6 w-[2px] bg-slate-700/50 rounded-full flex flex-col justify-between items-center z-0">
+                       <MoreVertical size={14} className="text-white/20 absolute top-1/2 -translate-y-1/2 -ml-[6px]" />
+                    </div>
+                    
+                    {/* Start Input */}
+                    <div className="flex items-center gap-3 relative z-10">
+                       <div className="w-2.5 h-2.5 rounded-full border-[2.5px] border-blue-400 bg-black shrink-0 ml-[5px] shadow-[0_0_8px_rgba(96,165,250,0.5)]"></div>
+                       <div className={`flex-1 bg-transparent border-b border-white/10 px-1 py-1 text-sm font-medium flex justify-between items-center transition-colors ${activeRouteField === 'start' ? 'border-blue-500' : 'hover:border-white/20'}`}>
+                          <input 
+                            className="bg-transparent border-none outline-none w-full truncate text-cyan-300 placeholder:text-slate-500 font-medium"
+                            placeholder="ตำแหน่งตั้งต้นของคุณ..."
+                            value={activeRouteField === 'start' ? searchQuery : routeStart?.title || ''}
+                            onChange={(e) => {
+                               setSearchQuery(e.target.value);
+                               setShowSuggestions(true);
+                               setActiveRouteField('start');
+                            }}
+                            onFocus={() => {
+                               setSearchQuery(routeStart?.title || '');
+                               setShowSuggestions(true);
+                               setActiveRouteField('start');
+                            }}
+                          />
+                          <button 
+                            onClick={async () => {
+                               const pos = await locateUserPromise();
+                               if (pos) {
+                                  const start = { lat: pos.lat, lng: pos.lng, title: 'ตำแหน่งปัจจุบันของคุณ' };
+                                  setRouteStart(start);
+                                  if (routeEnd) calculateRoute(start.lat, start.lng, routeEnd.lat, routeEnd.lng, travelMode);
+                               }
+                            }}
+                            className="text-blue-400/70 hover:text-blue-300 ml-2"
+                            title="ดึงตำแหน่งปัจจุบันของคุณ"
+                          >
+                             <LocateFixed size={16} />
+                          </button>
+                       </div>
+                    </div>
+                    
+                    {/* End Input */}
+                    <div className="flex items-center gap-3 relative z-10 cursor-text group" onClick={() => document.getElementById('route-dest-input')?.focus()}>
+                       <div className="w-2.5 h-2.5 rounded-sm border-[2.5px] border-rose-500 bg-black shrink-0 ml-[5px] shadow-[0_0_8px_rgba(244,63,94,0.5)]"></div>
+                       <div className={`flex-1 bg-transparent border-b border-transparent px-1 py-1 text-sm font-medium flex justify-between items-center transition-colors ${activeRouteField === 'end' ? 'border-rose-500' : 'hover:border-white/10'}`}>
+                          <input 
+                            id="route-dest-input"
+                            className="bg-transparent border-none outline-none w-full truncate text-white placeholder:text-slate-500"
+                            placeholder="เลือกจุดหมายปลายทาง..."
+                            value={activeRouteField === 'end' ? searchQuery : routeEnd?.title || ''}
+                            onChange={(e) => {
+                               setSearchQuery(e.target.value);
+                               setShowSuggestions(true);
+                               setActiveRouteField('end');
+                            }}
+                            onFocus={() => {
+                               setSearchQuery(routeEnd?.title || '');
+                               setShowSuggestions(true);
+                               setActiveRouteField('end');
+                            }}
+                          />
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Results / Status */}
+                 <div className="mt-3 overflow-hidden rounded-xl border border-white/5">
+                    {isCalculatingRoute ? (
+                       <div className="bg-black/30 p-4 flex items-center justify-center gap-3 text-cyan-400 text-sm">
+                          <Loader2 size={16} className="animate-spin" /> คำนวณเส้นทาง...
+                       </div>
+                    ) : routeData ? (
+                       <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/10 p-4 flex justify-between items-center">
+                          <div className="flex flex-col">
+                             <span className="text-2xl font-bold text-white tracking-tight">
+                                {routeData.duration > 3600 
+                                   ? `${Math.floor(routeData.duration / 3600)} hr ${Math.round((routeData.duration % 3600) / 60)} min`
+                                   : `${Math.round(routeData.duration / 60)} min`}
+                             </span>
+                             <span className="text-slate-400 text-sm font-medium">({(routeData.distance / 1000).toFixed(1)} km) {travelMode.charAt(0).toUpperCase() + travelMode.slice(1)}</span>
+                          </div>
+                       </div>
+                    ) : (
+                       <div className="bg-black/30 p-4 flex flex-col items-center justify-center gap-1">
+                          <MapPin size={24} className="text-white/20" />
+                          <span className="text-slate-500 text-xs text-center px-4">ระบุต้นทางและปลายทางเพื่อคำนวณเส้นทาง...</span>
+                       </div>
+                    )}
+                 </div>
+              </div>
+            ) : (
+              <div className="relative w-[min(420px,100%)]">
+              <div className="pointer-events-none absolute -inset-1 rounded-2xl bg-cyan-400/20 blur-xl" />
+
+              <div className={`relative bg-[#0b1018]/95 border border-white/10 backdrop-blur-md flex items-center p-3.5 shadow-2xl transition-all w-full ${(showSuggestions && searchQuery.trim()) ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl'}`}>
+                <Search size={18} className="text-cyan-500/70 ml-2 mr-3 shrink-0" />
+                <input
+                  value={searchQuery}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="ค้นหาสถานที่ (regex)..."
+                  className="bg-transparent border-none outline-none focus:outline-none text-sm text-cyan-300 caret-cyan-300 w-full placeholder:text-slate-500 font-medium"
+                />
+                <div className="flex items-center gap-1 shrink-0 mr-1">
+                  {searchQuery && (
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setShowSuggestions(false);
+                        setRemoteSuggestions([]);
+                      }}
+                      className="p-1.5 text-slate-500 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+                      title="Clear Search"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  <div className="w-px h-5 bg-white/10 mx-1"></div>
+                  <button 
+                    className="p-1.5 text-cyan-400 hover:bg-cyan-500/20 rounded-md transition-colors flex items-center gap-1.5 bg-cyan-500/10 shadow-sm"
+                    title="Get Directions"
+                    onClick={async () => {
+                       setIsRoutingMode(true);
+                       
+                       let destination = null;
+                       if (searchQuery) {
+                         destination = cachedSearchAreasRef.current.get(normalizeSearchText(searchQuery)) || pendingFallbackRef.current;
+                         if (destination) {
+                           setRouteEnd({ lat: destination.lat, lng: destination.lng, title: searchQuery });
+                         }
+                       }
+                       setSearchQuery('');
+                       setActiveRouteField('start');
+                       
+                       // Automatically find user location if start isn't set
+                       let startObj = routeStart;
+                       if (!startObj) {
+                          const point = await locateUserPromise();
+                          if (point) {
+                             startObj = { lat: point.lat, lng: point.lng, title: 'ตำแหน่งปัจจุบันของคุณ' };
+                             setRouteStart(startObj);
+                             setActiveRouteField(null); // Clear active field since we got it
+                          }
+                       }
+                       
+                       // Find route if both are ready
+                       if (startObj && destination) {
+                          calculateRoute(startObj.lat, startObj.lng, destination.lat, destination.lng, travelMode);
+                       }
+                    }}
+                  >
+                    <Route size={18} />
+                  </button>
+                </div>
+              </div>
+              </div>
+            )}
+           </div>
+
+            {/* Quick Map Controls (Locate Me) */}
+            {!isRoutingMode && (
+              <div className="flex flex-col gap-2 shrink-0 self-end ml-4 shadow-2xl">
+                <button 
+                  className="p-3 bg-[#0b1018]/95 border border-white/10 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 rounded-xl shadow-lg backdrop-blur-md transition-all flex items-center justify-center group"
+                  title="My Current Location"
+                  onClick={handleLocateMe}
+                  disabled={isLocating}
+                >
+                  {isLocating ? (
+                    <Loader2 size={20} className="animate-spin text-cyan-400" />
+                  ) : (
+                    <LocateFixed size={20} className="group-hover:scale-110 transition-transform" />
+                  )}
+                </button>
+              </div>
+            )}
         </div>
 
         {/* Map Filter Pills */}
-        <div className="mt-2.5 flex w-full flex-nowrap gap-2 overflow-x-auto pb-1">
-          <FilterPill color="#14b8a6" label="Attractions" icon="🎯" type="attraction" isActive={visibleFilters.has('attraction')} onToggle={() => toggleFilter('attraction')} />
-          <FilterPill color="#f59e0b" label="Restaurants" icon="🍜" type="restaurant" isActive={visibleFilters.has('restaurant')} onToggle={() => toggleFilter('restaurant')} />
-          <FilterPill color="#8b5cf6" label="Hotels" icon="🏨" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />
-          <FilterPill color="#ef4444" label="Hospitals" icon="🏥" type="hospital" isActive={visibleFilters.has('hospital')} onToggle={() => toggleFilter('hospital')} />
-          <FilterPill color="#3b82f6" label="Transport" icon="🚌" type="transport" isActive={visibleFilters.has('transport')} onToggle={() => toggleFilter('transport')} />
-        </div>
+        {!isRoutingMode && (
+          <div className="flex w-full flex-nowrap gap-2 overflow-x-auto pb-1 mt-1">
+            <FilterPill color="#14b8a6" label="Attractions" icon="🎯" type="attraction" isActive={visibleFilters.has('attraction')} onToggle={() => toggleFilter('attraction')} />
+            <FilterPill color="#f59e0b" label="Restaurants" icon="🍜" type="restaurant" isActive={visibleFilters.has('restaurant')} onToggle={() => toggleFilter('restaurant')} />
+            <FilterPill color="#8b5cf6" label="Hotels" icon="🏨" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />
+            <FilterPill color="#ef4444" label="Hospitals" icon="🏥" type="hospital" isActive={visibleFilters.has('hospital')} onToggle={() => toggleFilter('hospital')} />
+            <FilterPill color="#3b82f6" label="Transport" icon="🚌" type="transport" isActive={visibleFilters.has('transport')} onToggle={() => toggleFilter('transport')} />
+          </div>
+        )}
       </div>
 
       {/* CSS for pulse animation */}

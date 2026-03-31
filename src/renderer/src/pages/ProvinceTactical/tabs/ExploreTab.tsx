@@ -42,10 +42,11 @@ export const ExploreTab = ({ data, onFlyTo, provinceInfo }: { data: ProvinceData
       {/* Province Overview - ชื่อจังหวัด, N-SEC, คำขวัญ */}
       {provinceInfo && (
         <div className="rounded-xl bg-[#0a0c10] border border-white/10 overflow-hidden">
-          <div className="p-5">
+          <div className="p-5 flex flex-col gap-4">
             <div className="flex justify-between items-start gap-4">
-              <div>
-                <h1 className="text-2xl font-black text-white leading-tight">
+              {/* Left Column: Title & Region */}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl font-black text-white leading-tight truncate">
                   {provinceInfo.displayName}{' '}
                   <span className="text-slate-300 text-xl font-bold">{provinceInfo.thaiName}</span>
                 </h1>
@@ -64,31 +65,36 @@ export const ExploreTab = ({ data, onFlyTo, provinceInfo }: { data: ProvinceData
                 </p>
               </div>
               
-              {/* Quick Stats: Weather & Daily Cost */}
-              <div className="flex flex-col gap-2 shrink-0">
-                <div className="flex sm:flex-row flex-col gap-2">
-                  <Helpers.QuickBadge icon={<Thermometer size={16} />} value={data.weather.temp} label={data.weather.condition} color="amber" />
-                  <Helpers.QuickBadge icon={<Wallet size={16} />} value={data.dailyCost} label="avg/day" color="cyan" />
-                </div>
-                {/* Current Season */}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-violet-500/10 text-violet-400 border-violet-500/20">
-                  <Clock size={14} className="shrink-0" />
-                  <div className="flex flex-col overflow-hidden">
-                    <span className="text-xs font-bold leading-none truncate">Current: {currentSeason.name}</span>
-                    <span className="text-[10px] opacity-70 mt-0.5 truncate">{currentSeason.months} • {currentSeason.description}</span>
-                  </div>
-                </div>
+              {/* Right Column: Quick Stats */}
+              <div className="flex flex-row gap-2 shrink-0">
+                <Helpers.QuickBadge icon={<Thermometer size={16} />} value={data.weather.temp} label={data.weather.condition} color="amber" />
+                <Helpers.QuickBadge icon={<Wallet size={16} />} value={data.dailyCost} label="avg/day" color="cyan" />
               </div>
             </div>
             
-            {provinceInfo.slogan && (
-              <p
-                className="text-sm mt-4 italic leading-relaxed"
-                style={{ color: provinceInfo.regionColor }}
-              >
-                &ldquo;{provinceInfo.slogan}&rdquo;
-              </p>
-            )}
+            {/* Bottom Row: Slogan & Current Season */}
+            <div className="flex justify-between items-center gap-4 mt-1">
+              <div className="flex-1 min-w-0">
+                {provinceInfo.slogan && (
+                  <p
+                    className="text-[13px] italic leading-relaxed truncate opacity-90"
+                    style={{ color: provinceInfo.regionColor }}
+                    title={provinceInfo.slogan}
+                  >
+                    &ldquo;{provinceInfo.slogan}&rdquo;
+                  </p>
+                )}
+              </div>
+              
+              {/* Current Season */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-violet-500/10 text-violet-400 border-violet-500/20 shrink-0">
+                <Clock size={14} className="shrink-0" />
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-xs font-bold leading-none truncate">Current: {currentSeason.name}</span>
+                  <span className="text-[10px] opacity-70 mt-0.5 truncate">{currentSeason.months} • {currentSeason.description}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
