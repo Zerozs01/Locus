@@ -1,415 +1,651 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Activity, 
-  Database, 
-  Map, 
-  Users, 
-  Shield, 
-  Clock,
-  Zap,
-  Globe,
-  HardDrive,
-  Bot,
+  Radar,
+  Newspaper,
+  Search,
   RefreshCw,
   MapPin,
-  BarChart3,
-  PieChart,
-  Wifi,
-  WifiOff,
+  Filter,
   AlertTriangle,
-  CheckCircle
+  CheckCircle2,
+  TrendingUp,
+  TrendingDown,
+  ShieldAlert,
+  ExternalLink,
+  Layers,
+  SlidersHorizontal,
+  Clock3
 } from 'lucide-react';
-import { pingAgent } from '../services/n8nClient';
-import { Region } from '../../../shared/types';
-import { measureAsync } from '../utils/perf';
+import { regionTheme, type RegionId } from '../data/regionTheme';
 
-interface SystemStats {
-  database: {
-    regions: number;
-    provinces: number;
-    stats: number;
-    dbPath: string;
-  } | null;
-  agent: 'online' | 'offline' | 'checking';
-  network: boolean;
-  lastUpdated: Date | null;
-}
+type RiskLevel = 'green' | 'amber' | 'red';
+type Sentiment = 'positive' | 'mixed' | 'negative';
 
-interface ActivityItem {
+interface NewsItem {
   id: string;
-  type: 'view' | 'search' | 'chat' | 'system';
-  message: string;
-  timestamp: Date;
-  icon: React.ReactNode;
+  title: string;
+  source: string;
+  url: string;
+  publishedAt: string;
+  tag: string;
+  impact: 'low' | 'medium' | 'high';
 }
+
+interface ProvinceNewsSummary {
+  id: string;
+  name: string;
+  regionId: RegionId;
+  regionName: string;
+  riskScore: number;
+  sentiment: Sentiment;
+  alertLevel: RiskLevel;
+  coverage: number;
+  confidence: number;
+  signals: string[];
+  topStories: NewsItem[];
+  lastUpdated: string;
+}
+
+const MOCK_NEWS: ProvinceNewsSummary[] = [
+  {
+    id: 'bangkok',
+    name: 'Bangkok',
+    regionId: 'central',
+    regionName: regionTheme.central.label,
+    riskScore: 68,
+    sentiment: 'mixed',
+    alertLevel: 'amber',
+    coverage: 42,
+    confidence: 86,
+    signals: ['交通หนาแน่น', 'เศรษฐกิจย่านกลางเมือง', 'มาตรการความปลอดภัยอีเวนต์ใหญ่'],
+    lastUpdated: '2026-04-07T09:40:00.000Z',
+    topStories: [
+      {
+        id: 'bkk-1',
+        title: 'ศูนย์กลางธุรกิจเร่งปรับมาตรการรับมือฝนตกหนักและจราจรสะสม',
+        source: 'Bangkok Insight',
+        url: 'https://news.example.com/bkk/1',
+        publishedAt: '2026-04-07T08:10:00.000Z',
+        tag: 'โครงสร้างพื้นฐาน',
+        impact: 'medium'
+      },
+      {
+        id: 'bkk-2',
+        title: 'ตลาดท่องเที่ยวกลับมาคึกคัก แต่ยังต้องเฝ้าระวังเหตุฉุกเฉินในพื้นที่แออัด',
+        source: 'Tourism Daily',
+        url: 'https://news.example.com/bkk/2',
+        publishedAt: '2026-04-07T06:30:00.000Z',
+        tag: 'การท่องเที่ยว',
+        impact: 'high'
+      }
+    ]
+  },
+  {
+    id: 'chiangmai',
+    name: 'Chiang Mai',
+    regionId: 'north',
+    regionName: regionTheme.north.label,
+    riskScore: 52,
+    sentiment: 'positive',
+    alertLevel: 'green',
+    coverage: 21,
+    confidence: 81,
+    signals: ['คุณภาพอากาศดีขึ้น', 'ท่องเที่ยวเชิงวัฒนธรรม', 'โครงการชุมชนปลอดภัย'],
+    lastUpdated: '2026-04-07T09:20:00.000Z',
+    topStories: [
+      {
+        id: 'cm-1',
+        title: 'เทศบาลเปิดแผนจัดการหมอกควันเชิงรุกก่อนฤดูแล้ง',
+        source: 'Northern News',
+        url: 'https://news.example.com/cm/1',
+        publishedAt: '2026-04-07T07:15:00.000Z',
+        tag: 'สิ่งแวดล้อม',
+        impact: 'low'
+      },
+      {
+        id: 'cm-2',
+        title: 'ชุมชนท่องเที่ยวรับนักเดินทางเพิ่มขึ้นจากกิจกรรมวัฒนธรรมฤดูร้อน',
+        source: 'Culture Wire',
+        url: 'https://news.example.com/cm/2',
+        publishedAt: '2026-04-07T05:40:00.000Z',
+        tag: 'การท่องเที่ยว',
+        impact: 'medium'
+      }
+    ]
+  },
+  {
+    id: 'chonburi',
+    name: 'Chonburi',
+    regionId: 'east',
+    regionName: regionTheme.east.label,
+    riskScore: 61,
+    sentiment: 'mixed',
+    alertLevel: 'amber',
+    coverage: 27,
+    confidence: 78,
+    signals: ['โลจิสติกส์ท่าเรือ', 'การจ้างงานอุตสาหกรรม', 'ความเสี่ยงอุบัติเหตุทางถนน'],
+    lastUpdated: '2026-04-07T08:55:00.000Z',
+    topStories: [
+      {
+        id: 'cb-1',
+        title: 'ท่าเรือแหลมฉบังขยายระบบตรวจสอบความปลอดภัยสินค้า',
+        source: 'Eastern Economic',
+        url: 'https://news.example.com/cb/1',
+        publishedAt: '2026-04-07T06:50:00.000Z',
+        tag: 'เศรษฐกิจ',
+        impact: 'medium'
+      },
+      {
+        id: 'cb-2',
+        title: 'หน่วยงานท้องถิ่นเข้มงวดมาตรการจราจรช่วงวันหยุดยาว',
+        source: 'Road Safety Watch',
+        url: 'https://news.example.com/cb/2',
+        publishedAt: '2026-04-07T04:20:00.000Z',
+        tag: 'ความปลอดภัยสาธารณะ',
+        impact: 'high'
+      }
+    ]
+  },
+  {
+    id: 'khonkaen',
+    name: 'Khon Kaen',
+    regionId: 'northeast',
+    regionName: regionTheme.northeast.label,
+    riskScore: 58,
+    sentiment: 'mixed',
+    alertLevel: 'amber',
+    coverage: 19,
+    confidence: 74,
+    signals: ['โครงข่ายรถไฟรางคู่', 'ราคาสินค้าเกษตร', 'แผนรับมือฝนทิ้งช่วง'],
+    lastUpdated: '2026-04-07T08:30:00.000Z',
+    topStories: [
+      {
+        id: 'kk-1',
+        title: 'ศูนย์กลางโลจิสติกส์อีสานเตรียมแผนรองรับการขนส่งฤดูกาลใหม่',
+        source: 'Isan Focus',
+        url: 'https://news.example.com/kk/1',
+        publishedAt: '2026-04-07T05:55:00.000Z',
+        tag: 'โครงสร้างพื้นฐาน',
+        impact: 'medium'
+      }
+    ]
+  },
+  {
+    id: 'phuket',
+    name: 'Phuket',
+    regionId: 'south',
+    regionName: regionTheme.south.label,
+    riskScore: 63,
+    sentiment: 'positive',
+    alertLevel: 'amber',
+    coverage: 24,
+    confidence: 82,
+    signals: ['อุตสาหกรรมท่องเที่ยว', 'การจราจรชายฝั่ง', 'การจัดการน้ำเสีย'],
+    lastUpdated: '2026-04-07T09:10:00.000Z',
+    topStories: [
+      {
+        id: 'pk-1',
+        title: 'เทศบาลเร่งมาตรการควบคุมการท่องเที่ยวเชิงคุณภาพในพื้นที่ชายฝั่ง',
+        source: 'Southern Pulse',
+        url: 'https://news.example.com/pk/1',
+        publishedAt: '2026-04-07T07:20:00.000Z',
+        tag: 'การท่องเที่ยว',
+        impact: 'high'
+      },
+      {
+        id: 'pk-2',
+        title: 'ชุมชนร่วมเฝ้าระวังคุณภาพน้ำและชายหาดในช่วงฤดูฝน',
+        source: 'Coastal Watch',
+        url: 'https://news.example.com/pk/2',
+        publishedAt: '2026-04-07T05:00:00.000Z',
+        tag: 'สิ่งแวดล้อม',
+        impact: 'medium'
+      }
+    ]
+  },
+  {
+    id: 'songkhla',
+    name: 'Songkhla',
+    regionId: 'south',
+    regionName: regionTheme.south.label,
+    riskScore: 74,
+    sentiment: 'negative',
+    alertLevel: 'red',
+    coverage: 18,
+    confidence: 77,
+    signals: ['ความปลอดภัยชายแดน', 'การเดินทางกลางคืน', 'เฝ้าระวังเหตุฉุกเฉิน'],
+    lastUpdated: '2026-04-07T08:15:00.000Z',
+    topStories: [
+      {
+        id: 'sk-1',
+        title: 'เพิ่มกำลังดูแลความปลอดภัยจุดผ่านแดนและเส้นทางหลัก',
+        source: 'Deep South Report',
+        url: 'https://news.example.com/sk/1',
+        publishedAt: '2026-04-07T06:10:00.000Z',
+        tag: 'ความปลอดภัยสาธารณะ',
+        impact: 'high'
+      }
+    ]
+  },
+  {
+    id: 'kanchanaburi',
+    name: 'Kanchanaburi',
+    regionId: 'west',
+    regionName: regionTheme.west.label,
+    riskScore: 49,
+    sentiment: 'positive',
+    alertLevel: 'green',
+    coverage: 15,
+    confidence: 73,
+    signals: ['ท่องเที่ยวธรรมชาติ', 'โครงการชุมชนปลอดภัย', 'ฟื้นตัวเศรษฐกิจท้องถิ่น'],
+    lastUpdated: '2026-04-07T07:50:00.000Z',
+    topStories: [
+      {
+        id: 'kn-1',
+        title: 'ชุมชนท่องเที่ยวปรับเส้นทางใหม่เพื่อรองรับนักเดินทางฤดูร้อน',
+        source: 'Western Lens',
+        url: 'https://news.example.com/kn/1',
+        publishedAt: '2026-04-07T05:20:00.000Z',
+        tag: 'การท่องเที่ยว',
+        impact: 'low'
+      }
+    ]
+  }
+];
+
+const riskTone = {
+  green: {
+    label: 'เสถียร',
+    bg: 'bg-emerald-500/15',
+    border: 'border-emerald-500/30',
+    text: 'text-emerald-300'
+  },
+  amber: {
+    label: 'เฝ้าระวัง',
+    bg: 'bg-amber-500/15',
+    border: 'border-amber-500/30',
+    text: 'text-amber-300'
+  },
+  red: {
+    label: 'เร่งประเมิน',
+    bg: 'bg-rose-500/15',
+    border: 'border-rose-500/30',
+    text: 'text-rose-300'
+  }
+} as const;
+
+const sentimentTone = {
+  positive: { label: 'แนวโน้มบวก', icon: <TrendingUp size={14} />, text: 'text-emerald-300' },
+  mixed: { label: 'ผสม', icon: <TrendingDown size={14} />, text: 'text-amber-300' },
+  negative: { label: 'กดดัน', icon: <ShieldAlert size={14} />, text: 'text-rose-300' }
+} as const;
+
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+
+const resolveNewsEndpoint = async (): Promise<string> => {
+  if (window.api?.config?.get) {
+    try {
+      const config = await window.api.config.get();
+      if (config.news_api_url) return String(config.news_api_url);
+    } catch {
+      return '';
+    }
+  }
+  return import.meta.env.VITE_NEWS_API_URL || '';
+};
+
+const fetchNewsFromApi = async (): Promise<ProvinceNewsSummary[] | null> => {
+  const endpoint = await resolveNewsEndpoint();
+  if (!endpoint) return null;
+
+  // Prepared for external API, fallback to mock when endpoint is missing or fails.
+  const response = await fetch(endpoint, { method: 'GET' });
+  if (!response.ok) throw new Error('Failed to load news');
+  return (await response.json()) as ProvinceNewsSummary[];
+};
 
 /**
- * Analytics Page - System health, statistics, and monitoring
+ * Analytics Page - Provincial news briefing for assessment
  */
 export const AnalyticsPage = () => {
-  const [regions, setRegions] = useState<Region[]>([]);
-  const [systemStats, setSystemStats] = useState<SystemStats>({
-    database: null,
-    agent: 'checking',
-    network: navigator.onLine,
-    lastUpdated: null
-  });
+  const [newsSummaries, setNewsSummaries] = useState<ProvinceNewsSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activities] = useState<ActivityItem[]>([
-    { id: '1', type: 'system', message: 'Application started', timestamp: new Date(), icon: <Zap size={14} /> },
-    { id: '2', type: 'system', message: 'Database connected', timestamp: new Date(Date.now() - 1000), icon: <Database size={14} /> },
-    { id: '3', type: 'view', message: 'Loaded region data', timestamp: new Date(Date.now() - 2000), icon: <Map size={14} /> },
-  ]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRegions, setSelectedRegions] = useState<RegionId[]>([]);
+  const [riskFilter, setRiskFilter] = useState<RiskLevel | 'all'>('all');
+  const [viewMode, setViewMode] = useState<'cards' | 'compact'>('cards');
 
-  // Load data on mount
-  useEffect(() => {
-    loadAllData();
-  }, []);
-
-  const loadAllData = async () => {
+  const loadNews = async () => {
     setIsLoading(true);
-    
     try {
-      const regionPromise = window.api?.db?.getRegionSummaries
-        ? measureAsync('db:getRegionSummaries@AnalyticsPage', () => window.api.db.getRegionSummaries())
-        : window.api?.db?.getRegions
-          ? measureAsync('db:getRegions@AnalyticsPage', () => window.api.db.getRegions())
-          : Promise.resolve([]);
-
-      const statsPromise = window.api?.db?.getStats
-        ? measureAsync('db:getStats@AnalyticsPage', () => window.api.db.getStats())
-        : Promise.resolve(null);
-
-      const agentPromise = measureAsync('pingAgent@AnalyticsPage', () => pingAgent());
-
-      const [regionResult, statsResult, agentResult] = await Promise.allSettled([
-        regionPromise,
-        statsPromise,
-        agentPromise
-      ]);
-
-      if (regionResult.status === 'fulfilled') {
-        setRegions(regionResult.value);
-      }
-
-      if (statsResult.status === 'fulfilled') {
-        setSystemStats(prev => ({ ...prev, database: statsResult.value }));
-      }
-
-      if (agentResult.status === 'fulfilled') {
-        setSystemStats(prev => ({ ...prev, agent: agentResult.value ? 'online' : 'offline' }));
-      } else {
-        setSystemStats(prev => ({ ...prev, agent: 'offline' }));
-      }
+      const apiNews = await fetchNewsFromApi();
+      setNewsSummaries(apiNews ?? MOCK_NEWS);
     } catch (error) {
-      console.error('Failed to load analytics data:', error);
+      console.warn('Falling back to mock news data:', error);
+      setNewsSummaries(MOCK_NEWS);
     } finally {
-      setSystemStats(prev => ({ ...prev, lastUpdated: new Date(), network: navigator.onLine }));
+      setLastUpdated(new Date());
       setIsLoading(false);
     }
   };
 
-  // Computed statistics
-  const regionStats = useMemo(() => {
-    if (regions.length === 0) return null;
-    
-    const totalProvinces = regions.reduce((sum, r) => sum + (r.summary?.provinces || 0), 0);
-    const avgSafety = Math.round(regions.reduce((sum, r) => sum + r.safety, 0) / regions.length);
-    const totalArea = regions.reduce((sum, r) => {
-      if (typeof r.summary.areaValue === 'number') return sum + r.summary.areaValue;
-      const area = parseFloat(r.summary.area.replace(/,/g, '')) || 0;
-      return sum + area;
-    }, 0);
-    const totalPop = regions.reduce((sum, r) => {
-      if (typeof r.summary.popValue === 'number') return sum + r.summary.popValue;
-      const pop = r.summary.pop.replace('M', '');
-      return sum + (parseFloat(pop) || 0) * 1000000;
-    }, 0);
-    
-    // Find safest & least safe regions
-    const sortedBySafety = [...regions].sort((a, b) => b.safety - a.safety);
-    
+  useEffect(() => {
+    loadNews();
+  }, []);
+
+  const filteredNews = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return newsSummaries
+      .filter((item) => (selectedRegions.length ? selectedRegions.includes(item.regionId) : true))
+      .filter((item) => (riskFilter === 'all' ? true : item.alertLevel === riskFilter))
+      .filter((item) => (!query ? true : item.name.toLowerCase().includes(query)))
+      .sort((a, b) => b.riskScore - a.riskScore);
+  }, [newsSummaries, searchQuery, selectedRegions, riskFilter]);
+
+  const stats = useMemo(() => {
+    if (!newsSummaries.length) {
+      return { total: 0, red: 0, amber: 0, green: 0, avgRisk: 0, coverage: 0 };
+    }
+    const totals = newsSummaries.reduce(
+      (acc, item) => {
+        acc.total += 1;
+        acc.avgRisk += item.riskScore;
+        acc.coverage += item.coverage;
+        acc[item.alertLevel] += 1;
+        return acc;
+      },
+      { total: 0, red: 0, amber: 0, green: 0, avgRisk: 0, coverage: 0 }
+    );
     return {
-      totalProvinces,
-      avgSafety,
-      totalArea: totalArea.toLocaleString(),
-      totalPop: (totalPop / 1000000).toFixed(1),
-      safestRegion: sortedBySafety[0],
-      leastSafeRegion: sortedBySafety[sortedBySafety.length - 1],
-      regionCount: regions.length
+      ...totals,
+      avgRisk: Math.round(totals.avgRisk / totals.total),
+      coverage: Math.round(totals.coverage / totals.total)
     };
-  }, [regions]);
+  }, [newsSummaries]);
 
-  // Province distribution by region
-  const provinceDistribution = useMemo(() => {
-    return regions.map(r => ({
-      name: r.engName,
-      count: r.summary?.provinces || 0,
-      color: r.color,
-      safety: r.safety
-    })).sort((a, b) => b.count - a.count);
-  }, [regions]);
-
-  return (
-    <div className="flex-1 bg-[#050608] overflow-y-auto">
-      <div className="max-w-7xl mx-auto p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Activity size={24} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Analytics & Status</h1>
-              <p className="text-slate-400 text-sm">System health, statistics, and monitoring</p>
-            </div>
-          </div>
-          
-          <button
-            onClick={loadAllData}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-slate-300 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
-        </div>
-
-        {/* System Status Cards */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
-          <StatusCard 
-            icon={<Database size={20} />}
-            label="Database"
-            value={systemStats.database ? 'Connected' : 'Checking...'}
-            status={systemStats.database ? 'success' : 'loading'}
-            detail={systemStats.database ? `${systemStats.database.provinces} provinces` : undefined}
-          />
-          <StatusCard 
-            icon={<Bot size={20} />}
-            label="AI Agent"
-            value={systemStats.agent === 'online' ? 'Online' : systemStats.agent === 'checking' ? 'Checking...' : 'Offline'}
-            status={systemStats.agent === 'online' ? 'success' : systemStats.agent === 'checking' ? 'loading' : 'warning'}
-            detail="n8n + Gemini"
-          />
-          <StatusCard 
-            icon={systemStats.network ? <Wifi size={20} /> : <WifiOff size={20} />}
-            label="Network"
-            value={systemStats.network ? 'Connected' : 'Offline'}
-            status={systemStats.network ? 'success' : 'warning'}
-            detail={systemStats.network ? 'Internet active' : 'Local only'}
-          />
-          <StatusCard 
-            icon={<Clock size={20} />}
-            label="Last Update"
-            value={systemStats.lastUpdated ? systemStats.lastUpdated.toLocaleTimeString('th-TH') : '--:--'}
-            status="info"
-            detail={systemStats.lastUpdated?.toLocaleDateString('th-TH')}
-          />
-        </div>
-
-        {/* Main Stats Grid */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          {/* Overview Stats */}
-          <div className="col-span-2 bg-[#0a0c10] rounded-2xl border border-white/5 p-6">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-              <BarChart3 size={16} className="text-amber-400" />
-              Thailand Overview
-            </h2>
-            
-            {regionStats ? (
-              <div className="grid grid-cols-4 gap-4">
-                <StatBox 
-                  icon={<Globe size={18} />}
-                  label="Regions"
-                  value={regionStats.regionCount.toString()}
-                  color="text-cyan-400"
-                />
-                <StatBox 
-                  icon={<MapPin size={18} />}
-                  label="Provinces"
-                  value={regionStats.totalProvinces.toString()}
-                  color="text-emerald-400"
-                />
-                <StatBox 
-                  icon={<Shield size={18} />}
-                  label="Avg Safety"
-                  value={`${regionStats.avgSafety}%`}
-                  color="text-amber-400"
-                />
-                <StatBox 
-                  icon={<Users size={18} />}
-                  label="Population"
-                  value={`${regionStats.totalPop}M`}
-                  color="text-pink-400"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-24 text-slate-500">
-                <RefreshCw size={20} className="animate-spin mr-2" />
-                Loading statistics...
-              </div>
-            )}
-
-            {/* Safety Highlights */}
-            {regionStats && (
-              <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-white/5">
-                <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle size={16} className="text-emerald-400" />
-                    <span className="text-xs font-bold text-emerald-400 uppercase">Safest Region</span>
-                  </div>
-                  <div className="text-lg font-bold text-white">{regionStats.safestRegion?.name}</div>
-                  <div className="text-sm text-slate-400">Safety Score: {regionStats.safestRegion?.safety}%</div>
-                </div>
-                <div className="bg-amber-500/10 rounded-xl p-4 border border-amber-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle size={16} className="text-amber-400" />
-                    <span className="text-xs font-bold text-amber-400 uppercase">Needs Attention</span>
-                  </div>
-                  <div className="text-lg font-bold text-white">{regionStats.leastSafeRegion?.name}</div>
-                  <div className="text-sm text-slate-400">Safety Score: {regionStats.leastSafeRegion?.safety}%</div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Activity Log */}
-          <div className="bg-[#0a0c10] rounded-2xl border border-white/5 p-6">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <Clock size={16} className="text-cyan-400" />
-              Recent Activity
-            </h2>
-            <div className="space-y-3">
-              {activities.map(activity => (
-                <div key={activity.id} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                  <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-slate-400">
-                    {activity.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-white truncate">{activity.message}</div>
-                    <div className="text-xs text-slate-500">
-                      {activity.timestamp.toLocaleTimeString('th-TH')}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Province Distribution */}
-        <div className="bg-[#0a0c10] rounded-2xl border border-white/5 p-6 mb-8">
-          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-            <PieChart size={16} className="text-purple-400" />
-            Province Distribution by Region
-          </h2>
-          
-          <div className="grid grid-cols-6 gap-4">
-            {provinceDistribution.map(region => (
-              <RegionStatCard 
-                key={region.name}
-                name={region.name}
-                count={region.count}
-                safety={region.safety}
-                color={region.color}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Database Info */}
-        {systemStats.database && (
-          <div className="bg-[#0a0c10] rounded-2xl border border-white/5 p-6">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <HardDrive size={16} className="text-blue-400" />
-              Database Information
-            </h2>
-            <div className="grid grid-cols-4 gap-4">
-              <InfoItem label="Regions Table" value={`${systemStats.database.regions} records`} />
-              <InfoItem label="Provinces Table" value={`${systemStats.database.provinces} records`} />
-              <InfoItem label="Stats Table" value={`${systemStats.database.stats} records`} />
-              <InfoItem label="Database File" value={systemStats.database.dbPath.split(/[/\\]/).pop() || 'locus.db'} />
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ==================== HELPER COMPONENTS ====================
-
-interface StatusCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  status: 'success' | 'warning' | 'error' | 'loading' | 'info';
-  detail?: string;
-}
-
-const StatusCard = ({ icon, label, value, status, detail }: StatusCardProps) => {
-  const statusColors = {
-    success: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-400',
-    warning: 'from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-400',
-    error: 'from-red-500/20 to-red-600/10 border-red-500/30 text-red-400',
-    loading: 'from-slate-500/20 to-slate-600/10 border-slate-500/30 text-slate-400',
-    info: 'from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 text-cyan-400'
+  const toggleRegion = (regionId: RegionId) => {
+    setSelectedRegions((prev) =>
+      prev.includes(regionId) ? prev.filter((id) => id !== regionId) : [...prev, regionId]
+    );
   };
 
   return (
-    <div className={`bg-gradient-to-br ${statusColors[status]} rounded-xl border p-4`}>
-      <div className="flex items-center gap-3 mb-2">
-        <div className={statusColors[status].split(' ').pop()}>{icon}</div>
-        <span className="text-xs font-bold text-slate-400 uppercase">{label}</span>
+    <div className="flex-1 bg-[#040507] overflow-y-auto">
+      <div
+        className="relative mx-auto max-w-7xl px-6 pb-10 pt-10"
+        style={{ fontFamily: '"Sora", "Space Grotesk", sans-serif' }}
+      >
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-24 left-10 h-80 w-80 rounded-full bg-emerald-500/10 blur-[90px]" />
+          <div className="absolute top-20 right-10 h-72 w-72 rounded-full bg-amber-500/10 blur-[90px]" />
+          <div className="absolute bottom-0 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[110px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_55%)]" />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 flex items-center justify-center">
+              <Radar size={24} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold text-white">Provincial News Briefing</h1>
+              <p className="text-sm text-slate-400">สรุปสถานการณ์รายจังหวัดเพื่อการประเมินและเฝ้าระวัง</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300">
+              <Clock3 size={14} />
+              {lastUpdated ? lastUpdated.toLocaleTimeString('th-TH') : '--:--'}
+            </div>
+            <button
+              onClick={loadNews}
+              disabled={isLoading}
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 transition-colors hover:bg-white/10 disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+              รีเฟรช
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryCard
+            icon={<Newspaper size={18} />}
+            label="จังหวัดที่มีข่าว"
+            value={`${stats.total}`}
+            hint="ชุดข่าวล่าสุด"
+            accent="emerald"
+          />
+          <SummaryCard
+            icon={<AlertTriangle size={18} />}
+            label="เร่งประเมิน"
+            value={`${stats.red}`}
+            hint="ระดับสีแดง"
+            accent="rose"
+          />
+          <SummaryCard
+            icon={<CheckCircle2 size={18} />}
+            label="เสถียร"
+            value={`${stats.green}`}
+            hint="ระดับสีเขียว"
+            accent="teal"
+          />
+          <SummaryCard
+            icon={<Layers size={18} />}
+            label="Coverage เฉลี่ย"
+            value={`${stats.coverage}`}
+            hint="แหล่งข่าว/จังหวัด"
+            accent="amber"
+          />
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-white/10 bg-[#0b0f14]/90 p-6 shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+              <input
+                type="text"
+                placeholder="ค้นหาจังหวัด..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Filter size={14} className="text-slate-500" />
+              {Object.entries(regionTheme).map(([regionId, theme]) => (
+                <button
+                  key={regionId}
+                  onClick={() => toggleRegion(regionId as RegionId)}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
+                    selectedRegions.includes(regionId as RegionId)
+                      ? `${theme.bg} ${theme.text} ${theme.border}`
+                      : 'border-white/10 text-slate-400 hover:text-white hover:border-white/30'
+                  }`}
+                >
+                  {theme.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1">
+              {(['all', 'green', 'amber', 'red'] as const).map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setRiskFilter(level)}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
+                    riskFilter === level
+                      ? 'bg-white/15 text-white'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {level === 'all' ? 'ทั้งหมด' : riskTone[level].label}
+                </button>
+              ))}
+            </div>
+
+            <div className="ml-auto flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1">
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
+                  viewMode === 'cards' ? 'bg-white/15 text-white' : 'text-slate-400'
+                }`}
+              >
+                Cards
+              </button>
+              <button
+                onClick={() => setViewMode('compact')}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
+                  viewMode === 'compact' ? 'bg-white/15 text-white' : 'text-slate-400'
+                }`}
+              >
+                Compact
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          {isLoading ? (
+            <div className="flex items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-10 text-slate-400">
+              <RefreshCw size={18} className="mr-2 animate-spin" />
+              กำลังโหลดสรุปข่าว...
+            </div>
+          ) : filteredNews.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-10 text-slate-400">
+              <SlidersHorizontal size={20} className="mb-3" />
+              ไม่พบผลลัพธ์ตามตัวกรอง
+            </div>
+          ) : (
+            <div className={viewMode === 'cards' ? 'grid gap-6 md:grid-cols-2' : 'space-y-4'}>
+              {filteredNews.map((province) => (
+                <ProvinceNewsCard key={province.id} data={province} compact={viewMode === 'compact'} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-      <div className="text-lg font-bold text-white">{value}</div>
-      {detail && <div className="text-xs text-slate-500 mt-1">{detail}</div>}
     </div>
   );
 };
 
-interface StatBoxProps {
+interface SummaryCardProps {
   icon: React.ReactNode;
   label: string;
   value: string;
-  color: string;
+  hint: string;
+  accent: 'emerald' | 'rose' | 'teal' | 'amber';
 }
 
-const StatBox = ({ icon, label, value, color }: StatBoxProps) => (
-  <div className="bg-[#0f1115] rounded-xl p-4 border border-white/5">
-    <div className={`${color} mb-2`}>{icon}</div>
-    <div className="text-2xl font-bold text-white">{value}</div>
-    <div className="text-xs text-slate-500 uppercase">{label}</div>
-  </div>
-);
+const SummaryCard = ({ icon, label, value, hint, accent }: SummaryCardProps) => {
+  const accentMap = {
+    emerald: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300',
+    rose: 'from-rose-500/20 to-rose-600/10 border-rose-500/30 text-rose-300',
+    teal: 'from-teal-500/20 to-teal-600/10 border-teal-500/30 text-teal-300',
+    amber: 'from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-300'
+  };
 
-interface RegionStatCardProps {
-  name: string;
-  count: number;
-  safety: number;
-  color: string;
-}
-
-const RegionStatCard = ({ name, count, safety, color }: RegionStatCardProps) => {
-  // Extract color class for background
-  const bgColor = color.replace('text-', 'bg-').replace('-400', '-500/20');
-  const borderColor = color.replace('text-', 'border-').replace('-400', '-500/30');
-  
   return (
-    <div className={`${bgColor} ${borderColor} border rounded-xl p-4 text-center`}>
-      <div className="text-2xl font-bold text-white mb-1">{count}</div>
-      <div className="text-xs text-slate-400 uppercase mb-2">{name}</div>
-      <div className="flex items-center justify-center gap-1">
-        <Shield size={12} className={color} />
-        <span className={`text-xs font-bold ${color}`}>{safety}%</span>
+    <div className={`rounded-2xl border bg-gradient-to-br ${accentMap[accent]} p-4 backdrop-blur`}> 
+      <div className="flex items-center gap-3">
+        <div className="rounded-xl bg-white/10 p-2">{icon}</div>
+        <div>
+          <div className="text-xs uppercase text-slate-400">{label}</div>
+          <div className="text-2xl font-semibold text-white">{value}</div>
+          <div className="text-xs text-slate-500">{hint}</div>
+        </div>
       </div>
     </div>
   );
 };
 
-const InfoItem = ({ label, value }: { label: string; value: string }) => (
-  <div className="bg-[#0f1115] rounded-lg p-3 border border-white/5">
-    <div className="text-xs text-slate-500 mb-1">{label}</div>
-    <div className="text-sm font-mono text-white truncate" title={value}>{value}</div>
-  </div>
-);
+const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compact?: boolean }) => {
+  const region = regionTheme[data.regionId];
+  const sentiment = sentimentTone[data.sentiment];
+  const risk = riskTone[data.alertLevel];
+  const riskWidth = `${Math.min(100, Math.max(0, data.riskScore))}%`;
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0b0f14]/90 p-5 shadow-[0_22px_80px_rgba(0,0,0,0.35)] transition-transform duration-300 hover:-translate-y-1">
+      <div className="absolute inset-0 opacity-0 transition-opacity duration-300 hover:opacity-100" style={{ background: 'radial-gradient(circle at top, rgba(34,197,94,0.12), transparent 55%)' }} />
+
+      <div className="relative flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-white">{data.name}</h3>
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${region.bg} ${region.text} ${region.border}`}>
+              {data.regionName}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
+            <span className="flex items-center gap-1"><MapPin size={12} />Coverage {data.coverage} แหล่ง</span>
+            <span className="flex items-center gap-1"><Clock3 size={12} />{formatTime(data.lastUpdated)}</span>
+          </div>
+        </div>
+        <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${risk.bg} ${risk.border} ${risk.text}`}>
+          {risk.label}
+        </div>
+      </div>
+
+      <div className="relative mt-4">
+        <div className="flex items-center justify-between text-xs text-slate-400">
+          <span>Risk Index</span>
+          <span className="text-white font-semibold">{data.riskScore}</span>
+        </div>
+        <div className="mt-2 h-2 w-full rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500"
+            style={{ width: riskWidth }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-300">
+        <div className={`flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 ${sentiment.text}`}>
+          {sentiment.icon}
+          {sentiment.label}
+        </div>
+        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300">
+          Confidence {data.confidence}%
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {data.signals.map((signal) => (
+          <span key={signal} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-slate-300">
+            {signal}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-5 space-y-3">
+        {data.topStories.slice(0, compact ? 1 : 2).map((story) => (
+          <div key={story.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-white">{story.title}</div>
+                <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
+                  <span>{story.source}</span>
+                  <span>•</span>
+                  <span>{story.tag}</span>
+                  <span>•</span>
+                  <span>{formatTime(story.publishedAt)}</span>
+                </div>
+              </div>
+              <a
+                href={story.url}
+                className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 hover:bg-white/10"
+              >
+                <ExternalLink size={14} />
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
