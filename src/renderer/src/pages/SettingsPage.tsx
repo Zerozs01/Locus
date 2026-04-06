@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Zap,
   Cloud,
+  Wind,
   Shield,
   Activity,
   Wifi,
@@ -87,6 +88,7 @@ export const SettingsPage = () => {
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [strictOfflineMode, setStrictOfflineMode] = useState<OfflineMode>(false);
+  const [aqiProvider, setAqiProvider] = useState<'openweather' | 'aqicn'>('openweather');
   
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([
     {
@@ -150,6 +152,15 @@ export const SettingsPage = () => {
       value: '',
       placeholder: 'xxxxxxxxxxxxxxxxxxxx',
       icon: <Cloud size={18} />,
+      required: false,
+    },
+    {
+      id: 'aqicn',
+      name: 'AQICN API Token (World AQI)',
+      description: 'สำหรับดึงค่าฝุ่น PM2.5 ที่แม่นยำจากสถานีจริง (แนะนําให้ใช้แทน OpenWeather)',
+      value: '',
+      placeholder: 'your_aqicn_token',
+      icon: <Wind size={18} />,
       required: false,
     },
     {
@@ -219,6 +230,13 @@ export const SettingsPage = () => {
         
         // Load Strict Offline Mode
         setStrictOfflineMode(parsed['strict_offline_mode'] === 'true');
+
+        // Load AQI Provider
+        if (parsed['aqi_provider']) {
+          setAqiProvider(parsed['aqi_provider'] as 'openweather' | 'aqicn');
+        } else if (parsed['aqicn']) {
+          setAqiProvider('aqicn'); // Automatically switch if they have the key but no setting
+        }
       } catch (error) {
         console.error('Failed to load API keys:', error);
       }
@@ -317,6 +335,7 @@ export const SettingsPage = () => {
     }, {} as Record<string, string>);
     
     keysToSave['strict_offline_mode'] = String(strictOfflineMode);
+    keysToSave['aqi_provider'] = aqiProvider;
 
     if (window.api?.config?.set) {
       await window.api.config.set(keysToSave);
@@ -601,6 +620,61 @@ export const SettingsPage = () => {
                 testState={connectionTests[key.id] || 'idle'}
               />
             ))}
+          </div>
+        </div>
+
+        {/* AQI Data Source Selection */}
+        <div className="bg-[#0a0c10] rounded-xl border border-white/5 p-6 mb-8">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                <Wind size={20} />
+              </div>
+              <div>
+                <h3 className="text-white font-medium mb-1">Air Quality API Source</h3>
+                <p className="text-xs text-slate-500 max-w-lg mb-3">
+                  เลือกแหล่งที่มาของข้อมูลสำหรับค่าฝุ่น PM2.5 แนะนำให้ใช้ AQICN เนื่องจากดึงค่าจากสถานีภาคพื้นดินโดยตรง ทำให้แม่นยำกว่าการพยากรณ์ด้วยโมเดลดาวเทียมจาก OpenWeather
+                </p>
+                <div className="flex bg-[#0f1115] border border-white/10 rounded-lg overflow-hidden w-fit">
+                  <button
+                    onClick={async () => {
+                      setAqiProvider('openweather');
+                      setSaveStatus('idle');
+                      try {
+                        const keysToSave = apiKeys.reduce((acc, key) => { acc[key.id] = key.value; return acc; }, {} as Record<string, string>);
+                        keysToSave['strict_offline_mode'] = String(strictOfflineMode);
+                        keysToSave['aqi_provider'] = 'openweather';
+                        if (window.api?.config?.set) await window.api.config.set(keysToSave);
+                        else localStorage.setItem('locus_api_keys', JSON.stringify(keysToSave));
+                      } catch(e) {}
+                    }}
+                    className={`px-4 py-2 text-sm font-bold transition-colors border-r border-white/10 ${
+                      aqiProvider === 'openweather' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    OpenWeather
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setAqiProvider('aqicn');
+                      setSaveStatus('idle');
+                      try {
+                        const keysToSave = apiKeys.reduce((acc, key) => { acc[key.id] = key.value; return acc; }, {} as Record<string, string>);
+                        keysToSave['strict_offline_mode'] = String(strictOfflineMode);
+                        keysToSave['aqi_provider'] = 'aqicn';
+                        if (window.api?.config?.set) await window.api.config.set(keysToSave);
+                        else localStorage.setItem('locus_api_keys', JSON.stringify(keysToSave));
+                      } catch(e) {}
+                    }}
+                    className={`px-4 py-2 text-sm font-bold transition-colors ${
+                      aqiProvider === 'aqicn' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    AQICN (แนะนำ)
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

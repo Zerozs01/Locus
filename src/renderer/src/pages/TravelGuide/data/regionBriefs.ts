@@ -12,6 +12,7 @@ export interface RegionBrief {
   localFoods: { name: string; price: string }[];
   essentialItems: string[];
   emergencyContacts: { label: string; number: string }[];
+  ecoIds: string[]; // Replacing static ecology/terrain text
 }
 
 export const regionBriefs: Record<RegionId, RegionBrief> = {
@@ -35,7 +36,8 @@ export const regionBriefs: Record<RegionId, RegionBrief> = {
       { label: 'ตำรวจท่องเที่ยว', number: '1155' },
       { label: 'แพทย์ฉุกเฉิน', number: '1669' },
       { label: 'กู้ภัย เชียงใหม่', number: '053-999-999' }
-    ]
+    ],
+    ecoIds: ['f_elephant', 'f_boar', 'fl_mushroom_poison', 'fl_bamboo', 't_mountain', 't_rainforest', 'c_pm25']
   },
   northeast: {
     season: 'พ.ย. - ม.ค. (หนาว)',
@@ -56,7 +58,8 @@ export const regionBriefs: Record<RegionId, RegionBrief> = {
     emergencyContacts: [
       { label: 'ตำรวจท่องเที่ยว', number: '1155' },
       { label: 'แพทย์ฉุกเฉิน', number: '1669' }
-    ]
+    ],
+    ecoIds: ['f_snake_cobra', 'f_dog_stray', 'fl_yanang', 't_mountain', 'c_heat_stroke', 'c_flash_flood']
   },
   central: {
     season: 'พ.ย. - ก.พ. (เย็น)',
@@ -78,7 +81,8 @@ export const regionBriefs: Record<RegionId, RegionBrief> = {
       { label: 'ตำรวจท่องเที่ยว', number: '1155' },
       { label: 'แพทย์ฉุกเฉิน', number: '1669' },
       { label: 'สายด่วน กทม.', number: '1555' }
-    ]
+    ],
+    ecoIds: ['f_dog_stray', 'f_monkey', 't_urban', 'c_pm25', 'c_heat_stroke']
   },
   west: {
     season: 'พ.ย. - ก.พ. (หนาว)',
@@ -98,7 +102,8 @@ export const regionBriefs: Record<RegionId, RegionBrief> = {
     emergencyContacts: [
       { label: 'ตำรวจท่องเที่ยว', number: '1155' },
       { label: 'แพทย์ฉุกเฉิน', number: '1669' }
-    ]
+    ],
+    ecoIds: ['f_elephant', 'f_snake_green', 'f_boar_hunt', 'fl_bamboo', 'fl_nettle', 't_rainforest', 'c_flash_flood']
   },
   east: {
     season: 'ธ.ค. - พ.ค. (ชายหาด)',
@@ -118,7 +123,8 @@ export const regionBriefs: Record<RegionId, RegionBrief> = {
     emergencyContacts: [
       { label: 'ตำรวจท่องเที่ยว', number: '1155' },
       { label: 'กู้ภัยทางทะเล', number: '1196' }
-    ]
+    ],
+    ecoIds: ['f_jellyfish_box', 'f_monkey', 'fl_seaweed', 't_urban', 'c_monsoon', 'c_heat_stroke']
   },
   south: {
     season: 'ธ.ค. - เม.ย. (แล้ง)',
@@ -140,6 +146,7 @@ export const regionBriefs: Record<RegionId, RegionBrief> = {
       { label: 'ตำรวจท่องเที่ยว', number: '1155' },
       { label: 'กู้ภัยทางทะเล', number: '1196' },
       { label: 'แพทย์ฉุกเฉิน', number: '1669' }
-    ]
+    ],
+    ecoIds: ['f_jellyfish_box', 'fl_kratom', 't_rainforest', 't_mangrove', 'c_monsoon', 'c_flash_flood', 't_cave']
   }
 };

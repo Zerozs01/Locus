@@ -70,10 +70,11 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
         const fetchTargets = activeProvinces.length > 0 ? activeProvinces : provinces;
         console.log(`[Weather Modal] Fetching data for ${fetchTargets.length} provinces.`);
         
-        await Promise.all(fetchTargets.map(async (prov) => {
+        for (const prov of fetchTargets) {
           try {
-            console.log(`[Weather Modal] Fetching current weather for ${prov.name}...`);
-            const qStr = encodeURIComponent(`${prov.name},th`);
+            const cleanName = prov.name.replace(' Metropolis', '').replace(' (Pattaya)', '').trim();
+            console.log(`[Weather Modal] Fetching current weather for ${cleanName}...`);
+            const qStr = encodeURIComponent(`${cleanName},th`);
             // Fetch current weather
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${qStr}&units=metric&appid=${apiKey}`);
             const data = await res.json();
@@ -87,10 +88,10 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
                  aqi: 50 // placeholder
                });
             } else {
-               console.warn(`[Weather Modal] Invalid response for current weather of ${prov.name}:`, data);
+               console.warn(`[Weather Modal] Invalid response for current weather of ${cleanName}:`, data);
             }
             
-            console.log(`[Weather Modal] Fetching 5-day forecast for ${prov.name}...`);
+            console.log(`[Weather Modal] Fetching 5-day forecast for ${cleanName}...`);
             // Fetch 5-day forecast (every 3h = 40 entries)
             const forecastRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${qStr}&units=metric&appid=${apiKey}`);
             if (!forecastRes.ok) {
@@ -120,7 +121,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
           } catch (e) {
             console.error(`Failed to fetch weather for ${prov.name}`, e);
           }
-        }));
+        }
       } catch (e) {
         console.error('[Weather Modal] Failed batch weather sync', e);
       }
@@ -343,14 +344,19 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
                         </button>
                     </div>
                     <div className="p-3 overflow-y-auto custom-scrollbar flex-1 space-y-1">
-                        {provinceList.map((p, idx) => (
-                            <div key={p.id} className="flex justify-between items-center p-2 rounded-lg hover:bg-white/5 transition-colors group cursor-default">
-                                <span className="text-sm text-slate-300 group-hover:text-amber-400 transition-colors truncate pr-2">
-                                    <span className="opacity-40 text-xs mr-2">{idx+1}.</span>{p.name}
+                        {provinceList.map((p, idx) => {
+                            const isSelected = p.name === provinceName || p.id === provinceName;
+                            return (
+                            <div key={p.id} className={`flex justify-between items-center p-2 rounded-lg transition-colors group cursor-default ${isSelected ? 'bg-amber-500/10 border-l-4 border-amber-500 shadow-inner' : 'hover:bg-white/5'}`}>
+                                <span className={`text-sm transition-colors truncate pr-2 ${isSelected ? 'text-amber-400 font-bold' : 'text-slate-300 group-hover:text-amber-400'}`}>
+                                    {isSelected && <span className="opacity-50 text-xs mr-1">{idx+1}.</span>}
+                                    {!isSelected && <span className="opacity-40 text-xs mr-2">{idx+1}.</span>}
+                                    {p.name} {isSelected && <span className="text-[10px] ml-1 bg-amber-500/20 px-1 py-0.5 rounded text-amber-300 font-bold border border-amber-500/30">Target</span>}
                                 </span>
-                                <span className="text-sm font-bold font-mono text-white text-right shrink-0">{p.temp.toFixed(1)}°C</span>
+                                <span className={`text-sm font-bold font-mono text-right shrink-0 ${isSelected ? 'text-amber-300' : 'text-white'}`}>{p.temp.toFixed(1)}°C</span>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}

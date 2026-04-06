@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
-import { X, Filter, Wind } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { X, Filter, Wind, RefreshCw, AlertCircle, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { Province } from '../data/regions';
-import { getRecords, useMockCSVGenerator } from '../utils/csvDb';
+import { getRecords, saveRecord, useMockCSVGenerator } from '../utils/csvDb';
 
 interface AQIModalProps {
   isOpen: boolean;
@@ -11,57 +11,203 @@ interface AQIModalProps {
 }
 
 const getAQILevel = (aqi: number) => {
-  if (aqi <= 50) return { label: 'Good (ฟ้า)', color: '#38bdf8', min: 0, max: 50 };
-  if (aqi <= 100) return { label: 'Moderate (เขียว)', color: '#4ade80', min: 51, max: 100 };
-  if (aqi <= 200) return { label: 'Unhealthy for Sensitive (เหลือง)', color: '#facc15', min: 101, max: 200 };
-  if (aqi <= 300) return { label: 'Unhealthy (ส้ม)', color: '#fb923c', min: 201, max: 300 };
-  return { label: 'Hazardous (แดง)', color: '#ef4444', min: 301, max: 999 };
+  if (aqi <= 50) return { label: 'Good', color: '#38bdf8', bg: 'bg-sky-500/10' };
+  if (aqi <= 100) return { label: 'Moderate', color: '#4ade80', bg: 'bg-emerald-500/10' };
+  if (aqi <= 200) return { label: 'Unhealthy (Sensitive)', color: '#facc15', bg: 'bg-amber-500/10' };
+  if (aqi <= 300) return { label: 'Unhealthy', color: '#fb923c', bg: 'bg-orange-500/10' };
+  return { label: 'Hazardous', color: '#ef4444', bg: 'bg-red-500/10' };
 };
 
 export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalProps) => {
-  // Generate mock past/future data if doesn't exist
-  useMockCSVGenerator(provinces.map(p => ({id: p.id, name: p.name})));
+  useMockCSVGenerator(provinces.map(p => ({ id: p.id, name: p.name })));
 
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string>('');
+  const [aqiProvider, setAqiProvider] = useState<'openweather' | 'aqicn'>('openweather');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<string>(() => localStorage.getItem('locus_aqi_last_sync') || 'Never');
+  const [syncCount, setSyncCount] = useState(0);
+  const hasAutoSynced = useRef(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      if (window.api?.config?.get) {
+        window.api.config.get().then((conf: any) => {
+          const provider = conf?.aqi_provider || 'openweather';
+          setAqiProvider(provider as any);
+          if (provider === 'aqicn' && conf?.aqicn) {
+            setApiKey(conf.aqicn);
+          } else if (conf?.openweather) {
+            setApiKey(conf.openweather);
+          }
+        }).catch(console.error);
+      }
+    }
+  }, [isOpen]);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    if (apiKey) {
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        console.log(`[AQI Modal] Syncing ${provinces.length} provinces using ${aqiProvider}...`);
+        for (const prov of provinces) {
+          try {
+            const cleanName = prov.name.replace(' Metropolis', '').replace(' (Pattaya)', '').trim();
+            console.log(`[AQI Modal] Fetching for ${cleanName} (${prov.id})...`);
+            
+            let aqiVal = 50;
+            let success = false;
+            
+            if (aqiProvider === 'aqicn') {
+              const res = await fetch(`https://api.waqi.info/feed/${encodeURIComponent(cleanName)}/?token=${apiKey}`);
+              const data = await res.json();
+              if (data.status === 'ok' && data.data?.aqi && !isNaN(Number(data.data.aqi))) {
+                aqiVal = Number(data.data.aqi);
+                success = true;
+                console.log(`[AQI Modal] AQICN ${prov.id} => AQI=${aqiVal}`);
+              } else {
+                console.warn(`[AQI Modal] AQICN failed for ${cleanName}:`, data.data);
+              }
+            } else {
+              // OpenWeather fallback
+              const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cleanName)},th&limit=1&appid=${apiKey}`);
+              const geoData = await geoRes.json();
+              let lat = 13.75, lon = 100.5;
+              if (geoData && geoData.length > 0) { lat = geoData[0].lat; lon = geoData[0].lon; }
+
+              const aqiRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`);
+              const aqiData = await aqiRes.json();
+              if (aqiData && aqiData.list && aqiData.list[0]) {
+                const pm25 = aqiData.list[0].components.pm2_5;
+                if (pm25 != null) {
+                  if (pm25 <= 12.0) aqiVal = Math.round((50 / 12) * pm25);
+                  else if (pm25 <= 35.4) aqiVal = Math.round(((49) / 23.4) * (pm25 - 12) + 51);
+                  else if (pm25 <= 55.4) aqiVal = Math.round(((49) / 20) * (pm25 - 35.5) + 101);
+                  else if (pm25 <= 150.4) aqiVal = Math.round(((49) / 95) * (pm25 - 55.5) + 151);
+                  else if (pm25 <= 250.4) aqiVal = Math.round(((99) / 100) * (pm25 - 150.5) + 201);
+                  else aqiVal = Math.round(((199) / 249.5) * (pm25 - 250.5) + 301);
+                }
+                success = true;
+                console.log(`[AQI Modal] OpenWeather ${prov.id} => PM2.5=${pm25}, AQI=${aqiVal}`);
+              }
+            }
+
+            if (success) {
+              const allRecs = getRecords();
+              const existingRec = allRecs.find(r => r.id === prov.id && r.date === todayStr);
+              saveRecord({
+                id: prov.id,
+                date: todayStr,
+                temperature: existingRec ? existingRec.temperature : 30,
+                aqi: aqiVal,
+              });
+            }
+          } catch (e) {
+            console.error(`[AQI Modal] Failed for ${prov.name}`, e);
+          }
+          await new Promise(r => setTimeout(r, aqiProvider === 'aqicn' ? 1000 : 250)); // AQICN rate limit is generous but 1 req/s is safe, OpenWeather is 60/min
+        }
+        console.log('[AQI Modal] Sync complete.');
+      } catch (e) {
+        console.error('[AQI Modal] Batch sync failed', e);
+      }
+    } else {
+      await new Promise(r => setTimeout(r, 1500));
+    }
+    const newSync = new Date().toLocaleString('th-TH');
+    localStorage.setItem('locus_aqi_last_sync', newSync);
+    setLastSync(newSync);
+    setSyncCount(c => c + 1);
+    setIsSyncing(false);
+  };
+
+  useEffect(() => {
+    if (isOpen && apiKey && !hasAutoSynced.current && provinces.length > 0) {
+      hasAutoSynced.current = true;
+      
+      const todayStr = new Date().toISOString().split('T')[0];
+      const allRecs = getRecords();
+      // Check if we already have records for all provinces in this region for today
+      const alreadySyncedToday = provinces.every(p => allRecs.some(r => r.id === p.id && r.date === todayStr && !isNaN(r.aqi)));
+      
+      if (!alreadySyncedToday) {
+        handleSync();
+      } else {
+        console.log('[AQI Modal] Data already synced today, skipping auto-sync.');
+      }
+    }
+  }, [isOpen, apiKey, provinces]);
+
+  useEffect(() => {
+    if (!isOpen) hasAutoSynced.current = false;
+  }, [isOpen]);
+
+  // === Today's per-province AQI ===
   const aqiDataList = useMemo(() => {
     if (!isOpen) return [];
-    
-    // Get newest record for today
     const allRecords = getRecords();
     const todayStr = new Date().toISOString().split('T')[0];
-    
     const data = provinces.map(prov => {
-      // Pick record for today
       let record = allRecords.find(r => r.id === prov.id && r.date === todayStr);
-      // fallback to mock current if none matching
-      if (!record) {
-          record = { id: prov.id, date: todayStr, temperature: 30, aqi: 20 + Math.random() * 150 };
-      }
-      return {
-        ...prov,
-        aqi: Math.round(record.aqi),
-        level: getAQILevel(record.aqi)
-      };
+      if (!record) record = { id: prov.id, date: todayStr, temperature: 30, aqi: 20 + Math.random() * 150 };
+      return { ...prov, aqi: Math.round(record.aqi), level: getAQILevel(record.aqi) };
     });
     return data.sort((a, b) => b.aqi - a.aqi);
-  }, [isOpen, provinces]);
+  }, [isOpen, provinces, syncCount]);
+
+  // === Region Summary: avg, worst, best, 7-day trend ===
+  const regionSummary = useMemo(() => {
+    if (!isOpen || aqiDataList.length === 0) return null;
+    const allRecords = getRecords();
+    const provIds = new Set(provinces.map(p => p.id));
+    const today = new Date();
+
+    // Today's stats
+    const todayAqis = aqiDataList.map(d => d.aqi);
+    const avg = Math.round(todayAqis.reduce((a, b) => a + b, 0) / todayAqis.length);
+    const worst = aqiDataList[0];
+    const best = aqiDataList[aqiDataList.length - 1];
+
+    // 7-day trend (past 6 days + today)
+    const trend: { date: string; displayDate: string; avg: number; isToday: boolean }[] = [];
+    for (let i = -6; i <= 0; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayRecs = allRecords.filter(r => provIds.has(r.id) && r.date === dateStr);
+      const dayAvg = dayRecs.length > 0
+        ? Math.round(dayRecs.reduce((sum, r) => sum + r.aqi, 0) / dayRecs.length)
+        : 0;
+      trend.push({
+        date: dateStr,
+        displayDate: `${d.getDate()}/${d.getMonth() + 1}`,
+        avg: dayAvg,
+        isToday: i === 0,
+      });
+    }
+    return { avg, worst, best, trend, avgLevel: getAQILevel(avg) };
+  }, [isOpen, aqiDataList, provinces, syncCount]);
 
   const filteredData = useMemo(() => {
     if (!activeFilter) return aqiDataList;
     return aqiDataList.filter(d => {
-        if (activeFilter === 'good') return d.aqi <= 50;
-        if (activeFilter === 'moderate') return d.aqi > 50 && d.aqi <= 100;
-        if (activeFilter === 'unhealthy+') return d.aqi > 100;
-        return true;
+      if (activeFilter === 'good') return d.aqi <= 50;
+      if (activeFilter === 'moderate') return d.aqi > 50 && d.aqi <= 100;
+      if (activeFilter === 'unhealthy+') return d.aqi > 100;
+      return true;
     });
   }, [aqiDataList, activeFilter]);
 
+  console.log('[AQI Modal Render] isOpen:', isOpen, 'provinces:', provinces, 'aqiDataList:', aqiDataList);
+
   if (!isOpen) return null;
+
+  const trendMax = regionSummary ? Math.max(...regionSummary.trend.map(t => t.avg), 1) : 1;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#0f1115] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="bg-[#0f1115] border border-white/10 rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex justify-between items-center p-5 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -70,7 +216,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">Air Quality (PM2.5)</h2>
-              <p className="text-sm text-slate-400">Current AQI Index for {regionName} Region</p>
+              <p className="text-sm text-slate-400">AQI Overview — {regionName} Region</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors">
@@ -78,40 +224,112 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="p-4 border-b border-white/5 flex gap-2 overflow-x-auto">
-            <span className="flex items-center gap-1 text-sm text-slate-400 mr-2"><Filter size={14}/> Filter:</span>
-            <button onClick={() => setActiveFilter(null)} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${!activeFilter ? 'bg-cyan-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>All</button>
-            <button onClick={() => setActiveFilter('good')} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${activeFilter === 'good' ? 'bg-[#38bdf8] text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Good (0-50)</button>
-            <button onClick={() => setActiveFilter('moderate')} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${activeFilter === 'moderate' ? 'bg-[#4ade80] text-black' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Moderate (51-100)</button>
-            <button onClick={() => setActiveFilter('unhealthy+')} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${activeFilter === 'unhealthy+' ? 'bg-[#facc15] text-black' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Unhealthy (101+)</button>
+        {/* Sync Status */}
+        <div className={`px-5 py-2.5 border-b flex items-center justify-between ${apiKey ? 'bg-emerald-950/30 border-emerald-900/40' : 'bg-cyan-950/30 border-cyan-900/40'}`}>
+          <div className="flex items-center gap-2">
+            <AlertCircle size={14} className={apiKey ? 'text-emerald-500' : 'text-cyan-500'} />
+            <span className={`text-xs ${apiKey ? 'text-emerald-200/90' : 'text-cyan-200/70'}`}>
+              {apiKey ? `Real Data Mode (${aqiProvider === 'aqicn' ? 'AQICN' : 'OpenWeather'}).` : 'Mock Data Mode.'} Last sync: <span className="text-white font-mono">{lastSync}</span>
+            </span>
+          </div>
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded bg-black/40 text-[10px] font-bold border transition-colors ${isSyncing ? 'text-slate-500 border-white/5 cursor-not-allowed' : 'text-white border-white/10 hover:bg-white/10'}`}
+          >
+            <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
+            {isSyncing ? 'Syncing...' : 'Sync Data'}
+          </button>
         </div>
 
-        {/* Content - Bar Chart */}
+        {/* === Region Summary === */}
+        {regionSummary && (
+          <div className="p-4 border-b border-white/5">
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {/* Average */}
+              <div className={`rounded-xl p-3 border ${regionSummary.avgLevel.bg} border-white/5`}>
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 flex items-center gap-1"><BarChart3 size={10} /> Regional Avg</div>
+                <div className="text-2xl font-black" style={{ color: regionSummary.avgLevel.color }}>{regionSummary.avg}</div>
+                <div className="text-[10px] mt-0.5" style={{ color: regionSummary.avgLevel.color }}>{regionSummary.avgLevel.label}</div>
+              </div>
+              {/* Worst */}
+              <div className="rounded-xl p-3 border bg-red-500/5 border-white/5">
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 flex items-center gap-1"><TrendingUp size={10} /> Worst (Today)</div>
+                <div className="text-lg font-black text-red-400">{regionSummary.worst.aqi}</div>
+                <div className="text-[10px] text-red-400/80 truncate">{regionSummary.worst.name}</div>
+              </div>
+              {/* Best */}
+              <div className="rounded-xl p-3 border bg-emerald-500/5 border-white/5">
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 flex items-center gap-1"><TrendingDown size={10} /> Best (Today)</div>
+                <div className="text-lg font-black text-emerald-400">{regionSummary.best.aqi}</div>
+                <div className="text-[10px] text-emerald-400/80 truncate">{regionSummary.best.name}</div>
+              </div>
+            </div>
+
+            {/* 7-Day Trend */}
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">7-Day Regional AQI Trend</div>
+              <div className="flex items-end gap-1 h-[60px]">
+                {regionSummary.trend.map((t, i) => {
+                  const heightPct = trendMax > 0 ? (t.avg / trendMax) * 100 : 0;
+                  const level = getAQILevel(t.avg);
+                  return (
+                    <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group relative">
+                      <div className="absolute -top-5 opacity-0 group-hover:opacity-100 transition-opacity text-[9px] font-bold whitespace-nowrap" style={{ color: level.color }}>
+                        {t.avg}
+                      </div>
+                      <div
+                        className={`w-full rounded-t-sm transition-all duration-500 ${t.isToday ? 'border-t-2' : ''}`}
+                        style={{
+                          height: `${Math.max(heightPct, 4)}%`,
+                          backgroundColor: level.color + '60',
+                          borderColor: t.isToday ? level.color : 'transparent',
+                        }}
+                      />
+                      <div className={`text-[8px] mt-1 ${t.isToday ? 'font-bold text-white' : 'text-slate-500'}`}>
+                        {t.displayDate}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="p-4 border-b border-white/5 flex gap-2 overflow-x-auto">
+          <span className="flex items-center gap-1 text-sm text-slate-400 mr-2"><Filter size={14} /> Filter:</span>
+          <button onClick={() => setActiveFilter(null)} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${!activeFilter ? 'bg-cyan-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>All ({aqiDataList.length})</button>
+          <button onClick={() => setActiveFilter('good')} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${activeFilter === 'good' ? 'bg-[#38bdf8] text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Good (0-50)</button>
+          <button onClick={() => setActiveFilter('moderate')} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${activeFilter === 'moderate' ? 'bg-[#4ade80] text-black' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Moderate (51-100)</button>
+          <button onClick={() => setActiveFilter('unhealthy+')} className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${activeFilter === 'unhealthy+' ? 'bg-[#facc15] text-black' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>Unhealthy (101+)</button>
+        </div>
+
+        {/* Per Province Bars */}
         <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filteredData.map((item, idx) => (
               <div key={item.id} className="flex flex-col gap-1.5 group">
                 <div className="flex justify-between text-sm">
-                  <span className="font-medium text-slate-200 group-hover:text-cyan-400 transition-colors">{idx + 1}. {item.name}</span>
+                  <span className="font-medium text-slate-200 group-hover:text-cyan-400 transition-colors">
+                    <span className="text-xs text-slate-500 mr-1.5">{idx + 1}.</span>{item.name}
+                  </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs" style={{ color: item.level.color }}>{item.level.label}</span>
-                    <span className="font-bold w-12 text-right">{item.aqi}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded font-bold" style={{ color: item.level.color, backgroundColor: item.level.color + '15' }}>{item.level.label}</span>
+                    <span className="font-black w-10 text-right font-mono" style={{ color: item.level.color }}>{item.aqi}</span>
                   </div>
                 </div>
                 <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full rounded-full transition-all duration-1000 ease-out" 
-                    style={{ 
-                        width: `${Math.min(100, (item.aqi / 300) * 100)}%`,
-                        backgroundColor: item.level.color
-                    }}
+                  <div
+                    className="h-full rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min(100, (item.aqi / 300) * 100)}%`, backgroundColor: item.level.color }}
                   />
                 </div>
               </div>
             ))}
             {filteredData.length === 0 && (
-                <div className="text-center py-10 text-slate-400">No provinces match this AQI level.</div>
+              <div className="text-center py-10 text-slate-400">No provinces match this AQI level.</div>
             )}
           </div>
         </div>

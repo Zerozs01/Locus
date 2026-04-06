@@ -5,4 +5,4 @@ export { SettingsPage } from './SettingsPage';
 export { GeoArchivePage } from './GeoArchivePage';
 export { IntelligencePage } from './IntelligencePage';
 export { AnalyticsPage } from './AnalyticsPage';
-export { TravelGuidePage } from './TravelGuidePage';
+export { TravelGuidePage } from './TravelGuide/index';

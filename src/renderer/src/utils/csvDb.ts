@@ -51,30 +51,28 @@ export const useMockCSVGenerator = (regionProvinces: {id: string, name: string}[
   useEffect(() => {
     initDB();
     const records = getRecords();
-    if (records.length < 10 && regionProvinces.length > 0) {
-      // Create mock data
-      const today = new Date();
-      // Ensure we don't duplicate logic for provinces that already have records
-      const existingIds = new Set(records.map(r => r.id));
-      
-      regionProvinces.forEach(prov => {
-        if (existingIds.has(prov.id)) return;
+    // Only generate mock data for provinces that have ZERO records
+    const existingIds = new Set(records.map(r => r.id));
+    const missingProvs = regionProvinces.filter(p => !existingIds.has(p.id));
+    
+    if (missingProvs.length === 0) return; // All provinces already have data, skip
 
-        // mock 7 days past and 7 days future
-        for (let i = -7; i <= 7; i++) {
-          const d = new Date(today);
-          d.setDate(today.getDate() + i);
-          const dateStr = d.toISOString().split('T')[0];
-          
-          saveRecord({
-            id: prov.id,
-            date: dateStr,
-            temperature: 28 + Math.random() * 10,
-            aqi: 20 + Math.random() * 150
-          });
-        }
-      });
-    }
+    const today = new Date();
+    missingProvs.forEach(prov => {
+      // mock 7 days past and 7 days future
+      for (let i = -7; i <= 7; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        const dateStr = d.toISOString().split('T')[0];
+        
+        saveRecord({
+          id: prov.id,
+          date: dateStr,
+          temperature: 28 + Math.random() * 10,
+          aqi: 20 + Math.random() * 150
+        });
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regionProvinces.map(p => p.id).join(',')]);
 };

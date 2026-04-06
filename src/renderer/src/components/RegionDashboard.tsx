@@ -11,7 +11,7 @@ import {
   Wallet,
   Wind
 } from 'lucide-react';
-import { Region, Province } from '../data/regions';
+import { Region, Province, regionsData } from '../data/regions';
 import { regionTheme, type RegionId } from '../data/regionTheme';
 import { CachedImage } from './CachedImage';
 import { DetailCard } from './DetailCard';
@@ -19,6 +19,7 @@ import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatPro
 import { mixHex, toRgba } from '../utils/color';
 import { AQIModal } from './AQIModal';
 import { WeatherHistoryModal } from './WeatherHistoryModal';
+import { getRecords } from '../utils/csvDb';
 
 // Display names for provinces with long official names (GeoJSON names -> Display names)
 const provinceDisplayNames: Record<string, string> = {
@@ -179,7 +180,44 @@ const getStabilityProps = (safetyScore?: number): StabilityStatProps => {
   return { value: `${score}%`, label: 'ผันผวน', tone: 'volatile' };
 };
 
-const getPM25Stat = (regionId: string) => {
+const getAQILevelSub = (aqi: number) => {
+  if (aqi <= 50) return 'Good';
+  if (aqi <= 100) return 'Moderate';
+  if (aqi <= 200) return 'Unhealthy (Sens.)';
+  if (aqi <= 300) return 'Unhealthy';
+  return 'Hazardous';
+};
+
+const getPM25Stat = (reg: Region) => {
+  const allRecords = getRecords();
+  const todayStr = new Date().toISOString().split('T')[0];
+  
+  let provs = reg.subProvinces;
+  if (!provs || provs.length === 0) {
+    provs = regionsData.find(r => r.id === reg.id)?.subProvinces || [];
+  }
+  
+  if (provs && provs.length > 0) {
+    const provIds = new Set(provs.map(p => p.id));
+    const todayRecs = allRecords.filter(r => provIds.has(r.id) && r.date === todayStr);
+    
+    if (todayRecs.length > 0) {
+      let totalAQI = 0;
+      let validCount = 0;
+      todayRecs.forEach(r => {
+        if (!isNaN(r.aqi)) {
+          totalAQI += r.aqi;
+          validCount++;
+        }
+      });
+      if (validCount > 0) {
+        const avg = Math.round(totalAQI / validCount);
+        return { value: `${avg} AQI`, sub: getAQILevelSub(avg) };
+      }
+    }
+  }
+
+  // Fallback bounds
   const data: Record<string, { value: string, sub: string }> = {
     north: { value: '45-120 AQI', sub: 'Moderate - Unhealthy' },
     northeast: { value: '35-80 AQI', sub: 'Moderate' },
@@ -188,7 +226,7 @@ const getPM25Stat = (regionId: string) => {
     west: { value: '25-60 AQI', sub: 'Moderate' },
     east: { value: '30-70 AQI', sub: 'Moderate' }
   };
-  return data[regionId] || data.central;
+  return data[reg.id] || data.central;
 };
 
 const getBestSeason = (regionId: string) => {
@@ -252,7 +290,11 @@ export const RegionDashboard = memo(({
   const sortedProvincesByRegion = useMemo(() => {
     const map = new Map<string, Province[]>();
     for (const reg of regions) {
-      map.set(reg.id, [...reg.subProvinces].sort((a, b) => a.name.localeCompare(b.name)));
+      let provs = reg.subProvinces;
+      if (!provs || provs.length === 0) {
+        provs = regionsData.find(r => r.id === reg.id)?.subProvinces || [];
+      }
+      map.set(reg.id, [...provs].sort((a, b) => a.name.localeCompare(b.name)));
     }
     return map;
   }, [regions]);
@@ -285,7 +327,7 @@ export const RegionDashboard = memo(({
         const stability = getStabilityProps(reg.safety);
         const theme = getRegionTheme(reg.id);
         const accentHex = getRegionAccent(theme);
-        const pm25 = getPM25Stat(reg.id);
+        const pm25 = getPM25Stat(reg);
         const detailCards = [
           { key: 'cost', icon: <Wallet />, label: 'Avg Daily Cost', value: reg.stats.dailyCost, sub: 'Expenses/Day', emphasis: 0.34 },
           { key: 'air', icon: <Wind />, label: 'Air Quality (PM2.5)', value: pm25.value, sub: pm25.sub, emphasis: 0.3, isAqi: true },
