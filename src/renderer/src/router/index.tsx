@@ -14,7 +14,7 @@ const ProvinceTacticalPage = lazy(() => import('../pages/ProvinceTactical').then
 const SettingsPage = lazy(() => import('../pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const IntelligencePage = lazy(() => import('../pages/IntelligencePage').then(m => ({ default: m.IntelligencePage })));
 const AnalyticsPage = lazy(() => import('../pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
-const TravelGuidePage = lazy(() => import('../pages/TravelGuidePage').then(m => ({ default: m.TravelGuidePage })));
+const TravelGuidePage = lazy(() => import('../pages/TravelGuide').then(m => ({ default: m.TravelGuidePage })));
 
 /**
  * Locus Navigation Routes

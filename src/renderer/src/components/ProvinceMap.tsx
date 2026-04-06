@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Loader2, WifiOff, RefreshCw, Search, Navigation, LocateFixed, Route, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin } from 'lucide-react';
+import { Loader2, WifiOff, RefreshCw, Search, Navigation, LocateFixed, Route, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin, Compass } from 'lucide-react';
 import thailandGeo from '../data/thailand-geo.json';
 
 // Fix Leaflet default marker icon issue
@@ -441,12 +441,23 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     setIsCalculatingRoute(true);
     setRouteData(null);
     try {
-      const res = await fetch(`https://router.project-osrm.org/route/v1/${mode}/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`);
+      // Use 'driving' profile universally for reliable path geometry from free public OSRM server
+      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`);
       const data = await res.json();
       if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const distance = data.routes[0].distance; // meters
+        let duration = data.routes[0].duration; // seconds
+
+        // Adjust duration mathematically for walking/cycling along road paths
+        if (mode === 'walking') {
+           duration = distance / 1.4; // avg 5 km/h
+        } else if (mode === 'cycling') {
+           duration = distance / 4.1; // avg 15 km/h
+        }
+
         setRouteData({
-          distance: data.routes[0].distance,
-          duration: data.routes[0].duration,
+          distance,
+          duration,
           geojson: data.routes[0].geometry
         });
       } else {
@@ -992,7 +1003,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           if (!map) return;
 
           // Only draw the fallback circle if the API timed out and couldn't find a polygon
-          highlightLocation(fallback.lat, fallback.lng, undefined, undefined, fallback.radiusMeters || 600, 'circle');
+          highlightLocation(fallback.lat, fallback.lng, undefined, undefined, fallback.radiusMeters || 600, 'rectangle');
           setPendingAutoFocusQuery('');
           pendingFallbackRef.current = null;
           setPendingAutoFocusSearch(false);
@@ -1462,10 +1473,17 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         </div>
       )}
 
+      {/* Compass Icon */}
+      <div className="absolute top-5 right-5 z-[500]">
+         <div className="bg-[#0b1018]/80 backdrop-blur-md border border-white/10 p-2.5 rounded-full shadow-lg text-slate-400 hover:text-cyan-400 transition-colors pointer-events-auto cursor-help" title="แผนที่ชี้ทิศเหนือเสมอ (Locked to North)">
+            <Compass size={20} />
+         </div>
+      </div>
+
       {/* Place Search, Map Controls & Routing UI */}
-      <div className="absolute bottom-6 left-5 z-[1000] w-[calc(100%-2.5rem)] pointer-events-auto">
-        <div className="flex items-end justify-between w-full relative mb-3">
-           <div className="flex-1 max-w-[420px]" ref={searchBoxRef}>
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] w-full pointer-events-auto flex flex-col items-center px-4">
+        <div className="flex items-end justify-center w-full relative mb-3 gap-3">
+           <div className="w-[min(420px,100%)] flex-1" ref={searchBoxRef}>
              
             {/* Unified Suggestion Box */}
             {(showSuggestions && searchQuery.trim()) && (
@@ -1716,9 +1734,9 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
 
             {/* Quick Map Controls (Locate Me) */}
             {!isRoutingMode && (
-              <div className="flex flex-col gap-2 shrink-0 self-end ml-4 shadow-2xl">
+              <div className="flex flex-col gap-2 shrink-0 h-full justify-end pb-[10px] shadow-2xl">
                 <button 
-                  className="p-3 bg-[#0b1018]/95 border border-white/10 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 rounded-xl shadow-lg backdrop-blur-md transition-all flex items-center justify-center group"
+                  className="p-3 bg-[#0b1018]/95 border border-white/10 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all flex items-center justify-center group"
                   title="My Current Location"
                   onClick={handleLocateMe}
                   disabled={isLocating}
@@ -1735,7 +1753,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
 
         {/* Map Filter Pills */}
         {!isRoutingMode && (
-          <div className="flex w-full flex-nowrap gap-2 overflow-x-auto pb-1 mt-1">
+          <div className="flex w-[min(420px,100%)] flex-nowrap gap-2 overflow-x-auto pb-1 mt-0">
             <FilterPill color="#14b8a6" label="Attractions" icon="🎯" type="attraction" isActive={visibleFilters.has('attraction')} onToggle={() => toggleFilter('attraction')} />
             <FilterPill color="#f59e0b" label="Restaurants" icon="🍜" type="restaurant" isActive={visibleFilters.has('restaurant')} onToggle={() => toggleFilter('restaurant')} />
             <FilterPill color="#8b5cf6" label="Hotels" icon="🏨" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />

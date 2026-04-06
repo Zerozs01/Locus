@@ -8,6 +8,7 @@ import {
 import { FlyToHandler, ProvinceData } from '../types';
 import * as Helpers from '../components/HelperComponents';
 import { useEffect, useState } from 'react';
+import { WeatherHistoryModal } from '../../../components/WeatherHistoryModal';
 
 interface ProvinceOverviewInfo {
   displayName: string;
@@ -20,6 +21,7 @@ interface ProvinceOverviewInfo {
 
 export const ExploreTab = ({ data, onFlyTo, provinceInfo }: { data: ProvinceData; onFlyTo?: FlyToHandler; provinceInfo?: ProvinceOverviewInfo }) => {
   const [currentSeason, setCurrentSeason] = useState<{name: string; months: string; description: string}>({ name: 'Season', months: '', description: '' });
+  const [showWeatherHistory, setShowWeatherHistory] = useState(false);
 
   useEffect(() => {
     // Thailand seasonal cycle: Nov-Feb cool, Mar-May hot, Jun-Oct rainy
@@ -67,7 +69,7 @@ export const ExploreTab = ({ data, onFlyTo, provinceInfo }: { data: ProvinceData
               
               {/* Right Column: Quick Stats */}
               <div className="flex flex-row gap-2 shrink-0">
-                <Helpers.QuickBadge icon={<Thermometer size={16} />} value={data.weather.temp} label={data.weather.condition} color="amber" />
+                <Helpers.QuickBadge icon={<Thermometer size={16} />} value={data.weather.temp} label={data.weather.condition} color="amber" onClick={() => setShowWeatherHistory(true)} />
                 <Helpers.QuickBadge icon={<Wallet size={16} />} value={data.dailyCost} label="avg/day" color="cyan" />
               </div>
             </div>
@@ -137,6 +139,16 @@ export const ExploreTab = ({ data, onFlyTo, provinceInfo }: { data: ProvinceData
           ))}
         </div>
       </Helpers.ContentCard>
+
+      {/* Weather History Modal */}
+      {provinceInfo && (
+          <WeatherHistoryModal 
+            isOpen={showWeatherHistory}
+            onClose={() => setShowWeatherHistory(false)}
+            provinceName={provinceInfo.displayName}
+            provinces={[{ id: provinceInfo.displayName, name: provinceInfo.displayName }]}
+          />
+      )}
     </div>
   );
 };

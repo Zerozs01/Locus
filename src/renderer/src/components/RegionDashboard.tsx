@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, type CSSProperties } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ExternalLink,
@@ -17,6 +17,8 @@ import { CachedImage } from './CachedImage';
 import { DetailCard } from './DetailCard';
 import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatProps } from './RegionalIntelBar';
 import { mixHex, toRgba } from '../utils/color';
+import { AQIModal } from './AQIModal';
+import { WeatherHistoryModal } from './WeatherHistoryModal';
 
 // Display names for provinces with long official names (GeoJSON names -> Display names)
 const provinceDisplayNames: Record<string, string> = {
@@ -241,6 +243,12 @@ export const RegionDashboard = memo(({
   const navigate = useNavigate();
   const provinceListRef = useRef<HTMLDivElement | null>(null);
   const provinceCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const [isAQIModalOpen, setIsAQIModalOpen] = useState(false);
+  const [selectedRegionForAQI, setSelectedRegionForAQI] = useState<Region | null>(null);
+  
+  const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
+  const [selectedRegionForWeather, setSelectedRegionForWeather] = useState<Region | null>(null);
+
   const sortedProvincesByRegion = useMemo(() => {
     const map = new Map<string, Province[]>();
     for (const reg of regions) {
@@ -280,7 +288,7 @@ export const RegionDashboard = memo(({
         const pm25 = getPM25Stat(reg.id);
         const detailCards = [
           { key: 'cost', icon: <Wallet />, label: 'Avg Daily Cost', value: reg.stats.dailyCost, sub: 'Expenses/Day', emphasis: 0.34 },
-          { key: 'air', icon: <Wind />, label: 'Air Quality (PM2.5)', value: pm25.value, sub: pm25.sub, emphasis: 0.3 },
+          { key: 'air', icon: <Wind />, label: 'Air Quality (PM2.5)', value: pm25.value, sub: pm25.sub, emphasis: 0.3, isAqi: true },
           { key: 'provinces', icon: <MapPin />, label: 'Popular Provinces', value: getPopularProvinces(reg), sub: 'Top Destinations', emphasis: 0.4, valueClass: 'text-[0.8rem]' },
           { key: 'season', icon: <Sun />, label: 'Best Season', value: getBestSeason(reg.id), sub: 'Recommended', emphasis: 0.18, valueClass: 'text-[0.8rem]' }
         ];
@@ -370,6 +378,11 @@ export const RegionDashboard = memo(({
                           labelStyle={getDetailLabelStyle(theme)}
                           valueStyle={getDetailValueStyle()}
                           subStyle={getDetailSubStyle()}
+                          onClick={item.isAqi ? (e) => {
+                            e.stopPropagation();
+                            setSelectedRegionForAQI(reg);
+                            setIsAQIModalOpen(true);
+                          } : undefined}
                         />
                       ))}
                     </div>
@@ -432,7 +445,20 @@ export const RegionDashboard = memo(({
                         </span>
                       </button>
                     </div>
-                    <RegionalIntelBar climate={climate} stability={stability} mobility={mobility} accentHex={accentHex} dimHex={theme.mapDimmed} toneRamp={theme.toneRamp} />
+                    <RegionalIntelBar 
+                      climate={{
+                        ...climate,
+                        onClick: () => {
+                          setSelectedRegionForWeather(reg);
+                          setIsWeatherModalOpen(true);
+                        }
+                      }} 
+                      stability={stability} 
+                      mobility={mobility} 
+                      accentHex={accentHex} 
+                      dimHex={theme.mapDimmed} 
+                      toneRamp={theme.toneRamp} 
+                    />
                   </div>
                 </div>
               )}
@@ -520,6 +546,26 @@ export const RegionDashboard = memo(({
           </div>
         );
       })}
+      
+      {/* Modals */}
+      {selectedRegionForAQI && (
+        <AQIModal 
+          isOpen={isAQIModalOpen}
+          onClose={() => setIsAQIModalOpen(false)}
+          regionName={selectedRegionForAQI.name}
+          provinces={sortedProvincesByRegion.get(selectedRegionForAQI.id) || selectedRegionForAQI.subProvinces}
+        />
+      )}
+
+      {selectedRegionForWeather && (
+        <WeatherHistoryModal 
+          isOpen={isWeatherModalOpen}
+          onClose={() => setIsWeatherModalOpen(false)}
+          provinceName={`${selectedRegionForWeather.name} Region`}
+          regionId={selectedRegionForWeather.id}
+          provinces={sortedProvincesByRegion.get(selectedRegionForWeather.id) || selectedRegionForWeather.subProvinces}
+        />
+      )}
     </section>
   );
 });

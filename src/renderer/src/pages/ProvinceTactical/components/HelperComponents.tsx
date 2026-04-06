@@ -11,7 +11,7 @@ import {
 import { FlyToHandler } from '../types';
 
 
-export const QuickBadge = ({ icon, value, label, color }: { icon: React.ReactNode; value: string; label: string; color: string }) => {
+export const QuickBadge = ({ icon, value, label, color, onClick }: { icon: React.ReactNode; value: string; label: string; color: string; onClick?: () => void; }) => {
   const colors: Record<string, string> = {
     amber: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
     emerald: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
@@ -19,7 +19,10 @@ export const QuickBadge = ({ icon, value, label, color }: { icon: React.ReactNod
     red: 'bg-red-500/20 text-red-400 border-red-500/30',
   };
   return (
-    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${colors[color]}`}>
+    <div 
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${colors[color]} ${onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:brightness-110 transition-all' : ''}`}
+      onClick={onClick}
+    >
       {icon}
       <span className="font-bold">{value}</span>
       <span className="text-xs opacity-70">{label}</span>

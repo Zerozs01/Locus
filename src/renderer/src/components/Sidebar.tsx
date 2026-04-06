@@ -46,12 +46,7 @@ export const Sidebar = () => {
 
         {/* Navigation */}
         <div className="flex-1 w-full px-2 space-y-4">
-          <SidebarBtn 
-            icon={<Compass size={20}/>} 
-            label="Explore" 
-            active={isActive('/')} 
-            onClick={() => navigate('/')}
-          />
+
           <SidebarBtn 
             icon={<Map size={20}/>} 
             label="Thai Map" 
