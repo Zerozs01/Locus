@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal } from './database/db'
 import { initialRegions } from './database/initialData'
 import { readRuntimeConfig, writeRuntimeConfig } from './config/runtimeConfig'
 import { createHash } from 'crypto'
@@ -453,6 +453,7 @@ app.whenReady().then(async () => {
 
   // IPC handlers
   ipcMain.on('ping', () => console.log('pong'))
+
   ipcMain.handle('db:getRegions', () => {
      return getRegions();
   })
@@ -464,10 +465,13 @@ app.whenReady().then(async () => {
   ipcMain.handle('db:getRegion', (_, id) => {
      return getRegion(id);
   })
-  
-  // Example of parameter usage, though currently not heavily used by frontend yet
+
   ipcMain.handle('db:getProvince', (_, id) => {
      return getProvince(id);
+  })
+
+  ipcMain.handle('db:getProvincePortal', (_, id) => {
+     return getProvincePortal(id);
   })
 
   ipcMain.handle('db:getProvincesByRegion', (_, id) => {
@@ -477,7 +481,6 @@ app.whenReady().then(async () => {
   ipcMain.handle('db:getProvinceIndex', () => {
      return getProvinceIndex();
   })
-
   ipcMain.handle('db:getArchiveProvinces', (_, params) => {
      return getArchiveProvinces(params);
   })

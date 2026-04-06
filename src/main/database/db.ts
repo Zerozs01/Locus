@@ -84,6 +84,89 @@ export function initDatabase() {
     );
   `);
 
+  // ====== 1. Transport: ระบบขนส่งรายจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_transport (
+      id TEXT PRIMARY KEY,
+      province_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      short_name TEXT,
+      type TEXT NOT NULL,
+      operator TEXT,
+      description TEXT,
+      warp_url TEXT,
+      logo_text TEXT,
+      color TEXT,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_transport_province ON province_transport(province_id);`);
+
+  // ====== 2. Transport Routes: เส้นทางเดินทาง ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_routes (
+      id TEXT PRIMARY KEY,
+      province_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      operator TEXT,
+      origin TEXT NOT NULL,
+      destination TEXT NOT NULL,
+      via TEXT,
+      departure_times TEXT,
+      duration TEXT,
+      base_fare INTEGER,
+      frequency TEXT,
+      terminal TEXT,
+      notes TEXT,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_routes_province ON province_routes(province_id);`);
+
+  // ====== 3. Local Food: อาหารท้องถิ่นรายจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_foods (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      province_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      price_range TEXT,
+      note TEXT,
+      category TEXT DEFAULT 'local',
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_foods_province ON province_foods(province_id);`);
+
+  // ====== 4. Accommodation: ที่พักรายจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_accommodation (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      province_id TEXT NOT NULL,
+      tier TEXT NOT NULL,
+      label TEXT NOT NULL,
+      price_range TEXT,
+      examples TEXT,
+      booking_url TEXT,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_accom_province ON province_accommodation(province_id);`);
+
+  // ====== 5. Danger Zones & Warnings: โซนอันตรายรายจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_dangers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      province_id TEXT NOT NULL,
+      label TEXT NOT NULL,
+      severity TEXT DEFAULT 'medium',
+      note TEXT,
+      season TEXT,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_dangers_province ON province_dangers(province_id);`);
+
   // Indexes creation moved after column migrations to ensure columns exist
 
   // Migrations: ensure numeric columns exist for legacy DBs
@@ -94,6 +177,8 @@ export function initDatabase() {
   ensureColumn('provinces', 'population_value', 'INTEGER');
   ensureColumn('provinces', 'area_value', 'REAL');
   ensureColumn('provinces', 'dailyCost_value', 'INTEGER');
+  ensureColumn('provinces', 'eco_ids', 'TEXT');
+  ensureColumn('provinces', 'best_season', 'TEXT');
 
   backfillNumericColumns();
 
@@ -155,6 +240,63 @@ interface ProvinceRow {
   dailyCost: string | null;
   dailyCost_value: number | null;
   safety: number | null;
+  eco_ids: string | null;
+  best_season: string | null;
+}
+
+interface ProvinceTransportRow {
+  id: string;
+  province_id: string;
+  name: string;
+  short_name: string | null;
+  type: string;
+  operator: string | null;
+  description: string | null;
+  warp_url: string | null;
+  logo_text: string | null;
+  color: string | null;
+}
+
+interface ProvinceRouteRow {
+  id: string;
+  province_id: string;
+  name: string;
+  type: string;
+  operator: string | null;
+  origin: string;
+  destination: string;
+  via: string | null; // JSON
+  departure_times: string | null; // JSON
+  duration: string;
+  base_fare: number;
+  frequency: string | null;
+  terminal: string | null;
+  notes: string | null;
+}
+
+interface ProvinceFoodRow {
+  province_id: string;
+  name: string;
+  price_range: string | null;
+  note: string | null;
+  category: string;
+}
+
+interface ProvinceAccommodationRow {
+  province_id: string;
+  tier: string;
+  label: string;
+  price_range: string | null;
+  examples: string | null; // JSON
+  booking_url: string | null;
+}
+
+interface ProvinceDangerRow {
+  province_id: string;
+  label: string;
+  severity: string;
+  note: string | null;
+  season: string | null;
 }
 
 interface ArchiveProvinceRow {
@@ -418,6 +560,71 @@ export function getProvince(id: string): Province | undefined {
       areaValue: row.area_value ?? undefined,
       dailyCostValue: row.dailyCost_value ?? undefined
     };
+}
+
+export function getProvincePortal(provinceId: string) {
+  const province = db.prepare('SELECT * FROM provinces WHERE id = ?').get(provinceId) as ProvinceRow | undefined;
+  if (!province) return null;
+
+  const transport = db.prepare('SELECT * FROM province_transport WHERE province_id = ?').all(provinceId) as ProvinceTransportRow[];
+  const routes = db.prepare('SELECT * FROM province_routes WHERE province_id = ?').all(provinceId) as ProvinceRouteRow[];
+  const foods = db.prepare('SELECT * FROM province_foods WHERE province_id = ?').all(provinceId) as ProvinceFoodRow[];
+  const accommodation = db.prepare('SELECT * FROM province_accommodation WHERE province_id = ?').all(provinceId) as ProvinceAccommodationRow[];
+  const dangers = db.prepare('SELECT * FROM province_dangers WHERE province_id = ?').all(provinceId) as ProvinceDangerRow[];
+
+  return {
+    provinceId: province.id,
+    bestSeason: province.best_season,
+    ecoIds: province.eco_ids ? JSON.parse(province.eco_ids) : [],
+    // Map to frontend interface:
+    transport: transport.map(t => ({
+      name: t.name,
+      shortName: t.short_name || '',
+      type: t.type,
+      description: t.description || '',
+      warpUrl: t.warp_url || '',
+      logoText: t.logo_text || '',
+      color: t.color || '#fbbf24'
+    })),
+    transportRoutes: routes.map(r => ({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      operator: r.operator || 'บขส.',
+      from: r.origin,
+      to: r.destination,
+      via: r.via ? JSON.parse(r.via) : [],
+      departureTime: r.departure_times ? JSON.parse(r.departure_times) : [],
+      duration: r.duration,
+      baseFare: r.base_fare,
+      frequency: r.frequency || 'N/A',
+      terminal: r.terminal || '',
+      notes: r.notes || ''
+    })),
+    localFood: foods.map(f => ({
+      name: f.name,
+      priceRange: f.price_range || '',
+      note: f.note || ''
+    })),
+    accommodation: accommodation.map(a => ({
+      tier: a.tier,
+      label: a.label,
+      priceRange: a.price_range || '',
+      examples: a.examples ? JSON.parse(a.examples) : [],
+      bookingUrl: a.booking_url || ''
+    })),
+    dangerZones: dangers.map(d => ({
+      label: d.label,
+      severity: d.severity,
+      note: d.note || '',
+      season: d.season || ''
+    })),
+    // Mock for now until more tables are added
+    supply: [],
+    tips: [],
+    emergencyNumbers: [],
+    eco: { animals: [], plants: [], terrain: '', climate: '' }
+  };
 }
 
 export function getRegionSummaries(): Region[] {

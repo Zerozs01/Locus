@@ -34,12 +34,11 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
         }).catch((err: any) => console.error('[Weather Modal] Config read error:', err));
       }
 
-      const syncTime = localStorage.getItem('locus_weather_last_sync');
-      if (syncTime) {
-        setLastSync(syncTime);
+      const syncStr = localStorage.getItem('locus_weather_last_sync');
+      if (syncStr) {
+        setLastSync(syncStr);
       } else {
-        const defaultTime = new Date().toLocaleString() + ' (Auto)';
-        localStorage.setItem('locus_weather_last_sync', defaultTime);
+        const defaultTime = new Date().toLocaleString() + ' (Never)';
         setLastSync(defaultTime);
       }
       
@@ -132,18 +131,29 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
     }
 
     console.log('[Weather Modal] Sync complete.');
-    const newSync = new Date().toLocaleString();
+    const now = new Date();
+    const newSync = now.toLocaleString();
     localStorage.setItem('locus_weather_last_sync', newSync);
+    localStorage.setItem('locus_weather_last_sync_timestamp', Date.now().toString());
     setLastSync(newSync);
     setIsSyncing(false);
   };
   
-  // Auto-sync if we have the key, and we enter the modal
+  // Auto-sync if we have the key, and we enter the modal (12-hour cache)
   useEffect(() => {
     if (isOpen && apiKey && !hasAutoSynced.current && activeProvinces.length > 0) {
-       hasAutoSynced.current = true;
-       console.log('[Weather Modal] Auto-sync triggered because API Key is available.');
-       handleSync();
+       const lastTs = Number(localStorage.getItem('locus_weather_last_sync_timestamp') || 0);
+       const now = Date.now();
+       const twelveHours = 12 * 60 * 60 * 1000; // 43,200,000 ms
+       const isExpired = (now - lastTs) > twelveHours;
+
+       if (isExpired) {
+          hasAutoSynced.current = true;
+          console.log('[Weather Modal] Auto-sync triggered: Cache expired (>12h).');
+          handleSync();
+       } else {
+          console.log(`[Weather Modal] Skipping auto-sync: Last sync was ${((now - lastTs) / 3600000).toFixed(1)} hours ago.`);
+       }
     }
   }, [isOpen, apiKey, activeProvinces]);
   

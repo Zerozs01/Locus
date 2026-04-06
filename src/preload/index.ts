@@ -9,6 +9,7 @@ const api = {
     getRegionSummaries: () => ipcRenderer.invoke('db:getRegionSummaries'),
     getRegion: (id: string) => ipcRenderer.invoke('db:getRegion', id),
     getProvince: (id: string) => ipcRenderer.invoke('db:getProvince', id),
+    getProvincePortal: (id: string) => ipcRenderer.invoke('db:getProvincePortal', id),
     getProvincesByRegion: (id: string) => ipcRenderer.invoke('db:getProvincesByRegion', id),
     getProvinceIndex: () => ipcRenderer.invoke('db:getProvinceIndex'),
     getArchiveProvinces: (params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number }) =>
