@@ -111,7 +111,7 @@ const bangkokPortal: ProvincePortalData = {
     companies: {
       rail: [
         { name: 'BTS สายสีเขียว / สายสีทอง', shortName: 'BTS', type: 'rail', description: 'รถไฟฟ้าสายสีเขียว (หมอชิต-เคหะฯ) / สายสีทอง', warpUrl: 'https://www.bts.co.th/', logoText: 'BTS', color: '#22c55e' },
-        { name: 'MRT สายสีน้ำเงิน / สายสีม่วง', shortName: 'BEM', type: 'rail', description: 'รถไฟฟ้าใต้ดิน (หัวลำโพง-หลักสอง-ท่าพระ)', warpUrl: 'https://www.bangkokmetro.co.th/', logoText: 'BEM', color: '#3b82f6' },
+        { name: 'MRT สายสีน้ำเงิน / สายสีม่วง', shortName: 'BEM', type: 'rail', description: 'รถไฟฟ้าใต้ดิน (หัวลำโพง-หลักสอง-ท่าพระ)', warpUrl: 'https://www.bemplc.co.th/', logoText: 'BEM', color: '#3b82f6' },
         { name: 'Airport Rail Link (แอร์พอร์ตเรลลิงก์)', shortName: 'ARL', type: 'rail', description: 'รถไฟฟ้าเชื่อมสนามบินสุวรรณภูมิ', warpUrl: 'https://www.srtet.co.th/', logoText: 'ARL', color: '#ef4444' }
       ],
       bus: [
