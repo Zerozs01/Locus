@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Navigation2, Search, ExternalLink, MapPin,
@@ -13,6 +13,7 @@ import { regionBriefs } from './data/regionBriefs';
 import { calculateTripCost, budgetLabels, type BudgetTier } from './data/regionExpenses';
 import { getTravelConditionForDate } from './data/calendarHelpers';
 import { ThailandMap } from '../../components/ThailandMap';
+import { getRecords } from '../../utils/csvDb';
 
 import { getEcoEntities, expandEcoTags, type EcoEntity } from './data/ecoDb';
 import { WeatherHistoryModal } from '../../components/WeatherHistoryModal';
@@ -70,33 +71,95 @@ export function TravelGuidePage() {
 
   const [syncedAqiMap, setSyncedAqiMap] = useState<Record<string, number>>({});
   const [syncedTempMap, setSyncedTempMap] = useState<Record<string, number>>({});
+  const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
+
+  const normalizeKey = useCallback((value: string) => value.toLowerCase().replace(/[^a-z]/g, ''), []);
+
+  const provinceNameToId = useMemo(() => {
+    const map = new Map<string, string>();
+    provinceIndex.forEach((p) => {
+      map.set(p.name, p.id);
+      map.set(normalizeKey(p.name), p.id);
+    });
+    return map;
+  }, [provinceIndex, normalizeKey]);
+
+  const selectedProvinceId = useMemo(() => {
+    const byName = provinceNameToId.get(selectedProvinceName) || provinceNameToId.get(normalizeKey(selectedProvinceName));
+    if (byName) return byName;
+    // Fallback: legacy normalization
+    let dbId = normalizeKey(selectedProvinceName);
+    if (dbId === 'bangkokmetropolis') dbId = 'bangkok';
+    if (dbId === 'phranakhonsiayutthaya') dbId = 'ayutthaya';
+    return dbId;
+  }, [provinceNameToId, selectedProvinceName, normalizeKey]);
 
   useEffect(() => {
-    import("../../utils/csvDb").then(({ getRecords }) => {
-      const allRecs = getRecords();
-      const todayStr = new Date().toISOString().split('T')[0];
-      const aqiMap: Record<string, number> = {};
-      const tempMap: Record<string, number> = {};
-      allRecs.forEach(r => {
-        if (r.date === todayStr) {
-          if (!isNaN(r.aqi)) aqiMap[r.id] = r.aqi;
-          if (!isNaN(r.temperature)) tempMap[r.id] = r.temperature;
-        }
-      });
-      setSyncedAqiMap(prev => ({ ...prev, ...aqiMap }));
-      setSyncedTempMap(prev => ({ ...prev, ...tempMap }));
-    }).catch(console.warn);
+    const api = (window as any).api;
+    if (!api?.db?.getProvinceIndex) return;
+    api.db.getProvinceIndex()
+      .then((rows: Array<{ id: string; name: string }>) => setProvinceIndex(Array.isArray(rows) ? rows : []))
+      .catch((e: unknown) => console.warn('[TravelGuide] getProvinceIndex failed', e));
   }, []);
-  
+
   const [previewEco, setPreviewEco] = useState<EcoEntity | null>(null);
   const [showWeatherModal, setShowWeatherModal] = useState(false);
   const [portalData, setPortalData] = useState<any>(null);
+
+  useEffect(() => {
+    const syncData = () => {
+      const rows = getRecords();
+      if (!Array.isArray(rows) || rows.length === 0) return;
+
+      const groupedByProvince = new Map<string, Array<{ date: string; aqi: number; temperature: number }>>();
+      rows.forEach((r) => {
+        if (!r) return;
+        const normalizedId = normalizeKey(r.id);
+        const date = typeof r.date === 'string' ? r.date : '';
+        const aqi = typeof r.aqi === 'number' && Number.isFinite(r.aqi) ? r.aqi : NaN;
+        const temperature = typeof r.temperature === 'number' && Number.isFinite(r.temperature) ? r.temperature : NaN;
+        if (isNaN(aqi) && isNaN(temperature)) return;
+
+        const list = groupedByProvince.get(normalizedId) || [];
+        list.push({ date, aqi, temperature });
+        groupedByProvince.set(normalizedId, list);
+      });
+
+      const aqiMap: Record<string, number> = {};
+      const tempMap: Record<string, number> = {};
+      groupedByProvince.forEach((list, id) => {
+        const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date));
+        const latestTemp = sorted.find((value) => !isNaN(value.temperature));
+        const preferredAqi = sorted.find((value) => !isNaN(value.aqi) && value.aqi !== 50)
+          || sorted.find((value) => !isNaN(value.aqi));
+
+        if (preferredAqi) aqiMap[id] = preferredAqi.aqi;
+        if (latestTemp) tempMap[id] = latestTemp.temperature;
+      });
+
+      // Do not overwrite with empty maps (prevents rollback to static fallback)
+      if (Object.keys(aqiMap).length > 0) setSyncedAqiMap(aqiMap);
+      if (Object.keys(tempMap).length > 0) setSyncedTempMap(tempMap);
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'locus_weather_aqi_csv_db') syncData();
+    };
+
+    syncData();
+    const interval = setInterval(syncData, 3000);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [showWeatherModal, normalizeKey]);
   
   // Fetch portal data: try DB first, always fallback to static data
   useEffect(() => {
     const fetchPortal = async () => {
       try {
-        const dbData = await (window as any).api.db.getProvincePortal(selectedProvinceName);
+        const dbData = await (window as any).api.db.getProvincePortal(selectedProvinceId);
         // DB returns transport as an array – only use if we actually have rows
         if (dbData && Array.isArray(dbData.transport) && dbData.transport.length > 0) {
           setPortalData(dbData);
@@ -111,7 +174,7 @@ export function TravelGuidePage() {
       setPortalData(staticData);
     };
     fetchPortal();
-  }, [selectedProvinceName, displayName]);
+  }, [selectedProvinceId, selectedProvinceName, displayName]);
 
   const portal = portalData || getProvincePortal('default');
 
@@ -125,6 +188,12 @@ export function TravelGuidePage() {
     : (portal.transport?.companies ? (portal.transport.companies[currentTab] || []) : (portal.transport || []));
 
   const currentProvinces = provincesByRegion[activeRegion] || [];
+  const weatherModalProvinces = useMemo(() => {
+    return currentProvinces.map((name) => {
+      const id = provinceNameToId.get(name) || provinceNameToId.get(normalizeKey(name)) || normalizeKey(name);
+      return { id, name: provinceThaiNames[name] || name };
+    });
+  }, [currentProvinces, provinceNameToId, normalizeKey]);
 
   const switchToRegion = useCallback((regionId: string, province?: string) => {
     setActiveRegion(regionId);
@@ -156,9 +225,7 @@ export function TravelGuidePage() {
   const costResult = confirmedTrip ? calculateTripCost(activeRegion as RegionId, confirmedTrip.budgetLevel, 1, 1, 0) : null;
 
   if (!region) return null;
-  const currentAqi = syncedAqiMap[selectedProvinceName] ?? brief.avgAqi;
-  const currentTemp = syncedTempMap[selectedProvinceName] ?? null; // null = ไม่มีข้อมูลวันนี้
-
+  
   // Helper: temp label
   const getTempLabel = (t: number) => {
     if (t <= 15) return { label: 'เย็นมาก', color: 'text-blue-400' };
@@ -167,6 +234,24 @@ export function TravelGuidePage() {
     if (t <= 35) return { label: 'ร้อน', color: 'text-amber-400' };
     return { label: 'ร้อนมาก', color: 'text-red-400' };
   };
+
+  const regionAvgAqi = useMemo(() => {
+    const values = (provincesByRegion[activeRegion] || [])
+      .map((name) => {
+        const id = provinceNameToId.get(name) || provinceNameToId.get(normalizeKey(name)) || normalizeKey(name);
+        const value = syncedAqiMap[normalizeKey(id)];
+        return typeof value === 'number' && Number.isFinite(value) ? value : null;
+      })
+      .filter((value): value is number => value !== null);
+
+    if (values.length === 0) return null;
+    const total = values.reduce((sum, value) => sum + value, 0);
+    return Math.round(total / values.length);
+  }, [activeRegion, provinceNameToId, normalizeKey, syncedAqiMap]);
+
+  const normalizedSelectedProvinceId = normalizeKey(selectedProvinceId);
+  const currentAqi = syncedAqiMap[normalizedSelectedProvinceId] ?? regionAvgAqi ?? brief.avgAqi;
+  const currentTemp = syncedTempMap[normalizedSelectedProvinceId] ?? null; // null = ไม่มีข้อมูลวันนี้
   const tempInfo = currentTemp !== null ? getTempLabel(currentTemp) : null;
 
   return (
@@ -366,7 +451,13 @@ export function TravelGuidePage() {
         </div></div>
       )}
 
-      <WeatherHistoryModal isOpen={showWeatherModal} onClose={() => setShowWeatherModal(false)} provinceName={provinceThaiNames[selectedProvinceName] || selectedProvinceName} provinces={currentProvinces.map(p => ({id: p, name: provinceThaiNames[p] || p}))} regionId={activeRegion} />
+      <WeatherHistoryModal
+        isOpen={showWeatherModal}
+        onClose={() => setShowWeatherModal(false)}
+        provinceName={provinceThaiNames[selectedProvinceName] || selectedProvinceName}
+        provinces={weatherModalProvinces}
+        regionId={activeRegion}
+      />
     </div>
   );
 }

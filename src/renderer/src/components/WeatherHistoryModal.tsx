@@ -74,17 +74,40 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
             const cleanName = prov.name.replace(' Metropolis', '').replace(' (Pattaya)', '').trim();
             console.log(`[Weather Modal] Fetching current weather for ${cleanName}...`);
             const qStr = encodeURIComponent(`${cleanName},th`);
+            const allRecordsSnapshot = getRecords();
             // Fetch current weather
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${qStr}&units=metric&appid=${apiKey}`);
             const data = await res.json();
+            let todayAqi: number | null = null;
+            let todayDateStr = today.toISOString().split('T')[0];
             if (data && data.main) {
                // Update today's record
                const dateStr = today.toISOString().split('T')[0];
+               todayDateStr = dateStr;
+               
+               let currentAqi = 50;
+               // Fetch AQI using coord
+               try {
+                 if (data.coord && data.coord.lat && data.coord.lon) {
+                   const aqiRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${data.coord.lat}&lon=${data.coord.lon}&appid=${apiKey}`);
+                   const aqiData = await aqiRes.json();
+                   if (aqiData && aqiData.list && aqiData.list.length > 0) {
+                     // OpenWeather AQI is 1 (Good) to 5 (Very Poor). We map it roughly to US AQI value:
+                     const owAqi = aqiData.list[0].main.aqi;
+                     const aqiMap = { 1: 25, 2: 70, 3: 120, 4: 160, 5: 220 };
+                     currentAqi = aqiMap[owAqi] || Math.round(owAqi * 40);
+                   }
+                 }
+               } catch (ae) {
+                 console.warn('[Weather Modal] Failed to fetch real AQI', ae);
+               }
+               todayAqi = currentAqi;
+
                saveRecord({
                  id: prov.id,
                  date: dateStr,
                  temperature: data.main.temp,
-                 aqi: 50 // placeholder
+                 aqi: currentAqi
                });
             } else {
                console.warn(`[Weather Modal] Invalid response for current weather of ${cleanName}:`, data);
@@ -108,11 +131,15 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
                 
                 dailyData.forEach((temps, dStr) => {
                    const avgT = temps.reduce((a, b) => a + b, 0) / temps.length;
+                   const existingRec = allRecordsSnapshot.find(r => r.id === prov.id && r.date === dStr);
+                   const preservedAqi = dStr === todayDateStr && todayAqi !== null
+                     ? todayAqi
+                     : (existingRec && !isNaN(existingRec.aqi) ? existingRec.aqi : 50);
                    saveRecord({
                      id: prov.id,
                      date: dStr,
                      temperature: avgT,
-                     aqi: 50 // placeholder
+                     aqi: preservedAqi
                    });
                 });
             }

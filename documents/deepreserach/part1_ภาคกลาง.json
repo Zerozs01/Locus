@@ -1,0 +1,2738 @@
+{
+  "Bangkok": {
+    "transport": [
+      {
+        "name": "รถไฟฟ้าบีทีเอส สกายเทรน",
+        "shortName": "BTS",
+        "type": "rail",
+        "description": "รถไฟฟ้ายกระดับครอบคลุมย่านธุรกิจและท่องเที่ยวหลัก",
+        "warpUrl": "https://www.bts.co.th",
+        "logoText": "🚆",
+        "color": "#16a34a"
+      },
+      {
+        "name": "รถไฟฟ้ามหานคร MRT",
+        "shortName": "MRT",
+        "type": "rail",
+        "description": "รถไฟฟ้าใต้ดินและสายสีม่วงเชื่อมเมืองหลัก",
+        "warpUrl": "https://metro.bemplc.co.th",
+        "logoText": "🚇",
+        "color": "#2563eb"
+      },
+      {
+        "name": "รถเมล์องค์การขนส่งมวลชนกรุงเทพ",
+        "shortName": "รถเมล์",
+        "type": "bus",
+        "description": "เครือข่ายรถเมล์หลักครอบคลุมกรุงเทพฯและปริมณฑล",
+        "warpUrl": "https://www.bmta.co.th",
+        "logoText": "🚌",
+        "color": "#ea580c"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - รังสิต",
+        "type": "train",
+        "operator": "รถไฟชานเมืองสายสีแดง",
+        "from": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "to": "รังสิต",
+        "via": [
+          "ดอนเมือง",
+          "หลักสี่"
+        ],
+        "departureTimes": [
+          "05:00",
+          "06:00",
+          "07:00"
+        ],
+        "duration": "45-55 นาที",
+        "baseFare": 20,
+        "frequency": "ทุก 10-20 นาที",
+        "terminal": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "notes": "ใช้ต่อไปปทุมธานีได้สะดวก"
+      },
+      {
+        "name": "สาย 2: พญาไท - สุวรรณภูมิ",
+        "type": "train",
+        "operator": "แอร์พอร์ต เรล ลิงก์",
+        "from": "สถานีพญาไท",
+        "to": "สนามบินสุวรรณภูมิ",
+        "via": [
+          "มักกะสัน",
+          "หัวหมาก"
+        ],
+        "departureTimes": [
+          "05:30",
+          "06:00",
+          "06:30"
+        ],
+        "duration": "30-35 นาที",
+        "baseFare": 45,
+        "frequency": "ทุก 10-15 นาที",
+        "terminal": "สถานีพญาไท",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: สาทร - พระนครริมน้ำ",
+        "type": "boat",
+        "operator": "เรือด่วนเจ้าพระยา",
+        "from": "ท่าเรือสาทร",
+        "to": "ท่าพระอาทิตย์",
+        "via": [
+          "ไอคอนสยาม",
+          "ราชวงศ์",
+          "ท่าช้าง"
+        ],
+        "departureTimes": [
+          "06:00",
+          "07:00",
+          "08:00"
+        ],
+        "duration": "35-45 นาที",
+        "baseFare": 16,
+        "frequency": "ทุก 15-30 นาที",
+        "terminal": "ท่าเรือสาทร",
+        "notes": "เวลาเรือเปลี่ยนตามวันและธงเรือ"
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "ผัดไทย",
+        "priceRange": "70-120฿",
+        "category": "street",
+        "note": "ย่านเมืองเก่ามีร้านเก่าแก่จำนวนมาก"
+      },
+      {
+        "name": "ข้าวแช่ชาววัง",
+        "priceRange": "120-250฿",
+        "category": "local",
+        "note": "เด่นช่วงหน้าร้อน"
+      },
+      {
+        "name": "บะหมี่ปู",
+        "priceRange": "60-120฿",
+        "category": "street",
+        "note": null
+      },
+      {
+        "name": "โรตี-ชาชัก",
+        "priceRange": "25-70฿",
+        "category": "drink",
+        "note": "พบมากในย่านบางลำพูและคลองโอ่งอ่าง"
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "500-1,200฿/คืน",
+        "examples": [
+          "Lub d Bangkok Siam",
+          "Nasa Bangkok"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,500-3,500฿/คืน",
+        "examples": [
+          "ASAI Bangkok Chinatown",
+          "Prince Palace Hotel Bangkok"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "5,000-18,000฿/คืน",
+        "examples": [
+          "Mandarin Oriental Bangkok",
+          "Capella Bangkok"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำท่วมขังในเขตเมือง",
+        "severity": "medium",
+        "note": "พื้นที่ลุ่มต่ำหลายเขตมีน้ำรอระบายเมื่อฝนหนัก",
+        "season": "พ.ค.-ต.ค."
+      },
+      {
+        "label": "ฝุ่น PM2.5",
+        "severity": "high",
+        "note": "คุณภาพอากาศแย่ในช่วงอากาศปิดและการจราจรหนาแน่น",
+        "season": "ธ.ค.-เม.ย."
+      },
+      {
+        "label": "ฮีทสโตรก",
+        "severity": "medium",
+        "note": "เดินกลางแจ้งนานในเมืองร้อนจัดเสี่ยงอ่อนเพลียจากความร้อน",
+        "season": "มี.ค.-พ.ค."
+      }
+    ],
+    "ecoIds": [
+      "t_urban",
+      "c_heat_stroke",
+      "c_pm25",
+      "c_monsoon",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 24-36°C, ร้อนชื้น ฝนมากช่วงมรสุม",
+      "terrain": "เมืองราบลุ่มแม่น้ำเจ้าพระยา มีคลองและพื้นที่เมืองหนาแน่น",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Nonthaburi": {
+    "transport": [
+      {
+        "name": "รถไฟฟ้ามหานคร สายสีม่วง",
+        "shortName": "MRT Purple",
+        "type": "rail",
+        "description": "แกนหลักเชื่อมนนทบุรีกับกรุงเทพฯ",
+        "warpUrl": "https://metro.bemplc.co.th",
+        "logoText": "🚇",
+        "color": "#7c3aed"
+      },
+      {
+        "name": "เรือด่วนเจ้าพระยา",
+        "shortName": "เรือด่วน",
+        "type": "boat",
+        "description": "ใช้เดินทางตามแนวเจ้าพระยาและต่อไปเกาะเกร็ด",
+        "warpUrl": "https://www.chaophrayaexpressboat.com",
+        "logoText": "⛴️",
+        "color": "#0ea5e9"
+      },
+      {
+        "name": "รถสองแถวนนทบุรี",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "เชื่อมปากเกร็ด บางใหญ่ และชุมชนย่อย",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: เตาปูน - คลองบางไผ่",
+        "type": "train",
+        "operator": "MRT สายสีม่วง",
+        "from": "สถานีเตาปูน",
+        "to": "สถานีคลองบางไผ่",
+        "via": [
+          "แยกนนทบุรี 1",
+          "บางรักใหญ่"
+        ],
+        "departureTimes": [
+          "06:00",
+          "06:15",
+          "06:30"
+        ],
+        "duration": "35-40 นาที",
+        "baseFare": 17,
+        "frequency": "ทุก 5-10 นาที",
+        "terminal": "สถานีเตาปูน",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: สาทร - นนทบุรี",
+        "type": "boat",
+        "operator": "เรือด่วนเจ้าพระยา",
+        "from": "ท่าเรือสาทร",
+        "to": "ท่าเรือนนทบุรี",
+        "via": [
+          "ราชวงศ์",
+          "สะพานพระนั่งเกล้า"
+        ],
+        "departureTimes": [
+          "06:15",
+          "07:00",
+          "07:45"
+        ],
+        "duration": "50-70 นาที",
+        "baseFare": 20,
+        "frequency": "ทุก 20-40 นาที",
+        "terminal": "ท่าเรือสาทร",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: นนทบุรี - เกาะเกร็ด",
+        "type": "boat",
+        "operator": "เรือข้ามฟากท้องถิ่น",
+        "from": "ท่าวัดสนามเหนือ",
+        "to": "เกาะเกร็ด",
+        "via": [],
+        "departureTimes": [
+          "06:00",
+          "08:00",
+          "10:00"
+        ],
+        "duration": "5-10 นาที",
+        "baseFare": 3,
+        "frequency": "ออกตลอดวัน",
+        "terminal": "ท่าวัดสนามเหนือ",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "ทอดมันหน่อกะลา",
+        "priceRange": "50-120฿",
+        "category": "local",
+        "note": "เมนูเด่นของเกาะเกร็ด"
+      },
+      {
+        "name": "ข้าวแช่มอญ",
+        "priceRange": "80-150฿",
+        "category": "local",
+        "note": "พบมากบนเกาะเกร็ด"
+      },
+      {
+        "name": "ขนมหวานมอญ",
+        "priceRange": "25-60฿",
+        "category": "dessert",
+        "note": null
+      },
+      {
+        "name": "ทุเรียนนนท์",
+        "priceRange": "150-400฿",
+        "category": "dessert",
+        "note": "มีตามฤดูกาลและราคาสูง"
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "600-1,200฿/คืน",
+        "examples": [
+          "Bed By Cruise Hotel",
+          "Anna-Nava Pakkret Hotel"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,200-2,800฿/คืน",
+        "examples": [
+          "Best Western Plus Wanda Grand Hotel",
+          "Mida Hotel Ngamwongwan"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "2,800-6,000฿/คืน",
+        "examples": [
+          "Oakwood Suites Tiwanon Bangkok",
+          "Riverine Place Hotel and Residence"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำท่วมริมเจ้าพระยา",
+        "severity": "medium",
+        "note": "ชุมชนริมน้ำบางส่วนเสี่ยงน้ำเอ่อ",
+        "season": "ก.ย.-พ.ย."
+      },
+      {
+        "label": "ฝุ่น PM2.5",
+        "severity": "high",
+        "note": "กระทบชัดในแนวเมืองต่อเนื่องจากกรุงเทพฯ",
+        "season": "ธ.ค.-เม.ย."
+      }
+    ],
+    "ecoIds": [
+      "t_urban",
+      "c_pm25",
+      "c_monsoon",
+      "c_heat_stroke",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 24-35°C, ร้อนชื้น ฝนตามฤดู",
+      "terrain": "ที่ราบลุ่มริมเจ้าพระยา มีคลองและเกาะแม่น้ำ",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Pathum Thani": {
+    "transport": [
+      {
+        "name": "รถไฟชานเมืองสายสีแดงเข้ม",
+        "shortName": "สายสีแดง",
+        "type": "rail",
+        "description": "เชื่อมรังสิต ดอนเมือง และกรุงเทพฯ",
+        "warpUrl": "https://www.srtet.co.th",
+        "logoText": "🚆",
+        "color": "#b91c1c"
+      },
+      {
+        "name": "รถตู้รังสิต-คลองหลวง-ลำลูกกา",
+        "shortName": "รถตู้",
+        "type": "van",
+        "description": "เส้นทางหลักเชื่อมมหาวิทยาลัย ตลาด และย่านพักอาศัย",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#2563eb"
+      },
+      {
+        "name": "รถสองแถวท้องถิ่น",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "เหมาะกับการต่อจากสถานีรถไฟหรือรถตู้",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - รังสิต",
+        "type": "train",
+        "operator": "รถไฟชานเมืองสายสีแดง",
+        "from": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "to": "สถานีรังสิต",
+        "via": [
+          "ดอนเมือง",
+          "หลักสี่"
+        ],
+        "departureTimes": [
+          "05:00",
+          "06:00",
+          "07:00"
+        ],
+        "duration": "45-55 นาที",
+        "baseFare": 20,
+        "frequency": "ทุก 10-20 นาที",
+        "terminal": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: หมอชิต - คลองหลวง",
+        "type": "van",
+        "operator": "รถตู้โดยสารประจำทาง",
+        "from": "สถานีขนส่งหมอชิต",
+        "to": "คลองหลวง",
+        "via": [
+          "ฟิวเจอร์พาร์ค รังสิต",
+          "ธรรมศาสตร์ รังสิต"
+        ],
+        "departureTimes": [
+          "06:00",
+          "07:00",
+          "08:00"
+        ],
+        "duration": "1-1.5 ชม.",
+        "baseFare": 50,
+        "frequency": "ทุก 20-30 นาที",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: รังสิต - ธัญบุรี",
+        "type": "bus",
+        "operator": "รถโดยสารท้องถิ่น",
+        "from": "รังสิต",
+        "to": "ธัญบุรี",
+        "via": [
+          "คลอง 1",
+          "คลอง 7"
+        ],
+        "departureTimes": [
+          "06:00",
+          "09:00",
+          "12:00"
+        ],
+        "duration": "45-90 นาที",
+        "baseFare": 15,
+        "frequency": "ทุก 20-40 นาที",
+        "terminal": "ศูนย์รถรังสิต",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "กุยช่ายตลาดรังสิต",
+        "priceRange": "30-60฿",
+        "category": "street",
+        "note": null
+      },
+      {
+        "name": "ก๋วยเตี๋ยวเรือรังสิต",
+        "priceRange": "20-60฿",
+        "category": "street",
+        "note": null
+      },
+      {
+        "name": "ข้าวแช่ปทุม",
+        "priceRange": "80-140฿",
+        "category": "local",
+        "note": "พบในชุมชนมอญและร้านเก่า"
+      },
+      {
+        "name": "ขนมพื้นบ้านชุมชนมอญ",
+        "priceRange": "25-50฿",
+        "category": "dessert",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "500-1,100฿/คืน",
+        "examples": [
+          "PP@Hotel Rangsit",
+          "Triple Trees Hotel"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,200-2,500฿/คืน",
+        "examples": [
+          "Tara Grand Hotel",
+          "Novotel Bangkok Future Park Rangsit"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "2,500-5,500฿/คืน",
+        "examples": [
+          "The Idle Hotel and Residence",
+          "Tinidee Hotel Bangkok Golf Club"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำท่วมพื้นที่ลุ่มและริมคลอง",
+        "severity": "medium",
+        "note": "พื้นที่คลองรังสิตและลำลูกกาบางช่วงเสี่ยงน้ำท่วมขัง",
+        "season": "ก.ย.-พ.ย."
+      },
+      {
+        "label": "ฝุ่น PM2.5",
+        "severity": "medium",
+        "note": "กระทบจากเมือง การก่อสร้าง และการเผาพื้นที่โล่งบางช่วง",
+        "season": "ธ.ค.-เม.ย."
+      }
+    ],
+    "ecoIds": [
+      "t_urban",
+      "c_monsoon",
+      "c_heat_stroke",
+      "c_pm25",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 23-36°C, ร้อนชื้น ฝนชุกกลางปี",
+      "terrain": "ที่ราบลุ่มเจ้าพระยา มีคลองชลประทานหนาแน่นและชุมชนเมืองขยายตัวเร็ว",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Samut Prakan": {
+    "transport": [
+      {
+        "name": "รถไฟฟ้าบีทีเอสสายสุขุมวิท ช่วงสมุทรปราการ",
+        "shortName": "BTS",
+        "type": "rail",
+        "description": "เชื่อมสำโรง ปากน้ำ แพรกษา และเคหะฯ",
+        "warpUrl": "https://www.bts.co.th",
+        "logoText": "🚆",
+        "color": "#16a34a"
+      },
+      {
+        "name": "แอร์พอร์ต เรล ลิงก์",
+        "shortName": "ARL",
+        "type": "rail",
+        "description": "ใช้เดินทางเข้าออกสนามบินสุวรรณภูมิ",
+        "warpUrl": "https://www.srtet.co.th",
+        "logoText": "✈️",
+        "color": "#dc2626"
+      },
+      {
+        "name": "รถสองแถวสมุทรปราการ",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "เชื่อมปากน้ำ บางปู บางพลี และชุมชนอุตสาหกรรม",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - เคหะสมุทรปราการ",
+        "type": "train",
+        "operator": "BTS สายสุขุมวิท",
+        "from": "สถานีสยาม",
+        "to": "สถานีเคหะฯ",
+        "via": [
+          "อุดมสุข",
+          "สำโรง",
+          "ปากน้ำ"
+        ],
+        "departureTimes": [
+          "06:00",
+          "06:10",
+          "06:20"
+        ],
+        "duration": "55-70 นาที",
+        "baseFare": 17,
+        "frequency": "ทุก 5-8 นาที",
+        "terminal": "สถานีสยาม",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: พญาไท - สุวรรณภูมิ",
+        "type": "train",
+        "operator": "แอร์พอร์ต เรล ลิงก์",
+        "from": "สถานีพญาไท",
+        "to": "สนามบินสุวรรณภูมิ",
+        "via": [
+          "มักกะสัน",
+          "ลาดกระบัง"
+        ],
+        "departureTimes": [
+          "05:30",
+          "06:00",
+          "06:30"
+        ],
+        "duration": "30-35 นาที",
+        "baseFare": 45,
+        "frequency": "ทุก 10-15 นาที",
+        "terminal": "สถานีพญาไท",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: เอกมัย - ปากน้ำ",
+        "type": "bus",
+        "operator": "รถโดยสารประจำทางและรถตู้",
+        "from": "สถานีขนส่งเอกมัย",
+        "to": "ปากน้ำ",
+        "via": [
+          "บางนา",
+          "สำโรง"
+        ],
+        "departureTimes": [
+          "06:00",
+          "07:00",
+          "08:00"
+        ],
+        "duration": "1-1.5 ชม.",
+        "baseFare": 35,
+        "frequency": "ทุก 20-30 นาที",
+        "terminal": "สถานีขนส่งเอกมัย",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "ปลาสลิดบางบ่อ",
+        "priceRange": "80-180฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ข้าวแช่มอญพระประแดง",
+        "priceRange": "80-150฿",
+        "category": "local",
+        "note": "เด่นช่วงสงกรานต์พระประแดง"
+      },
+      {
+        "name": "ขนมจาก",
+        "priceRange": "20-40฿",
+        "category": "dessert",
+        "note": null
+      },
+      {
+        "name": "ซีฟู้ดบางปู",
+        "priceRange": "150-350฿",
+        "category": "local",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "600-1,300฿/คืน",
+        "examples": [
+          "Blue Sky Residence Airport",
+          "Na Siri Lake View"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,300-3,000฿/คืน",
+        "examples": [
+          "Bay Hotel Srinakarin",
+          "Clef Hotel"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "3,500-8,500฿/คืน",
+        "examples": [
+          "Novotel Bangkok Suvarnabhumi Airport",
+          "Summit Windmill Golf Residence"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำทะเลหนุนและน้ำท่วมชายฝั่ง",
+        "severity": "medium",
+        "note": "บางปูและพื้นที่ปากแม่น้ำเสี่ยงเมื่อน้ำสูง",
+        "season": "ก.ย.-พ.ย."
+      },
+      {
+        "label": "ฝุ่น PM2.5 และมลพิษอุตสาหกรรม",
+        "severity": "high",
+        "note": "แนวโรงงานและถนนหลักมีความเสี่ยงอากาศแย่",
+        "season": "ธ.ค.-เม.ย."
+      }
+    ],
+    "ecoIds": [
+      "t_urban",
+      "t_mangrove",
+      "c_pm25",
+      "c_monsoon",
+      "c_heat_stroke",
+      "f_dog_stray",
+      "fl_seaweed"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 24-35°C, ร้อนชื้นและฝนทะเลอ่าวไทย",
+      "terrain": "ที่ราบลุ่มปากแม่น้ำเจ้าพระยา มีเขตเมือง อุตสาหกรรม และชายฝั่งป่าชายเลน",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Ayutthaya": {
+    "transport": [
+      {
+        "name": "การรถไฟแห่งประเทศไทย สายเหนือ/อีสาน",
+        "shortName": "รถไฟ",
+        "type": "rail",
+        "description": "รถไฟผ่านอยุธยาถี่ เหมาะกับวันเดย์ทริป",
+        "warpUrl": "https://www.railway.co.th",
+        "logoText": "🚆",
+        "color": "#1d4ed8"
+      },
+      {
+        "name": "รถตุ๊กตุ๊กอยุธยา",
+        "shortName": "ตุ๊กตุ๊ก",
+        "type": "tuk_tuk",
+        "description": "พาหนะยอดนิยมสำหรับเที่ยววัดและโบราณสถาน",
+        "warpUrl": "",
+        "logoText": "🛺",
+        "color": "#f59e0b"
+      },
+      {
+        "name": "จักรยานให้เช่าเกาะเมือง",
+        "shortName": "จักรยาน",
+        "type": "bike",
+        "description": "เหมาะกับการเที่ยวเกาะเมืองระยะสั้น",
+        "warpUrl": "",
+        "logoText": "🚲",
+        "color": "#22c55e"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - อยุธยา",
+        "type": "train",
+        "operator": "การรถไฟแห่งประเทศไทย",
+        "from": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "to": "สถานีอยุธยา",
+        "via": [
+          "ดอนเมือง",
+          "รังสิต",
+          "บางปะอิน"
+        ],
+        "departureTimes": [
+          "07:30",
+          "09:05",
+          "10:35"
+        ],
+        "duration": "1.5-2 ชม.",
+        "baseFare": 20,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: หมอชิต - อยุธยา",
+        "type": "van",
+        "operator": "รถตู้โดยสารประจำทาง",
+        "from": "สถานีขนส่งหมอชิต",
+        "to": "อยุธยา",
+        "via": [
+          "รังสิต",
+          "บางปะอิน"
+        ],
+        "departureTimes": [
+          "06:00",
+          "07:00",
+          "08:00"
+        ],
+        "duration": "1.5-2 ชม.",
+        "baseFare": 70,
+        "frequency": "ทุก 30-60 นาที",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: สถานีอยุธยา - เกาะเมือง",
+        "type": "bus",
+        "operator": "รถท้องถิ่น/ตุ๊กตุ๊ก",
+        "from": "สถานีอยุธยา",
+        "to": "อุทยานประวัติศาสตร์พระนครศรีอยุธยา",
+        "via": [
+          "ตลาดเจ้าพรหม",
+          "วัดมหาธาตุ"
+        ],
+        "departureTimes": [
+          "08:00",
+          "10:00",
+          "12:00"
+        ],
+        "duration": "15-30 นาที",
+        "baseFare": 20,
+        "frequency": "ตลอดวัน",
+        "terminal": "สถานีอยุธยา",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "กุ้งแม่น้ำเผา",
+        "priceRange": "350-900฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "โรตีสายไหม",
+        "priceRange": "35-80฿",
+        "category": "dessert",
+        "note": null
+      },
+      {
+        "name": "ก๋วยเตี๋ยวเรืออยุธยา",
+        "priceRange": "20-50฿",
+        "category": "street",
+        "note": null
+      },
+      {
+        "name": "ปลาแม่น้ำทอดกระเทียม",
+        "priceRange": "180-350฿",
+        "category": "local",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "450-1,100฿/คืน",
+        "examples": [
+          "Baan Are Gong Riverside Homestay",
+          "Plus Hostel Ayutthaya"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,200-3,000฿/คืน",
+        "examples": [
+          "Krungsri River Hotel",
+          "Classic Kameo Hotel Ayutthaya"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "3,500-9,000฿/คืน",
+        "examples": [
+          "sala ayutthaya",
+          "iuDia on the River"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "อากาศร้อนจัดในโบราณสถาน",
+        "severity": "medium",
+        "note": "พื้นที่เปิดโล่งและพื้นอิฐสะสมความร้อนสูงมาก",
+        "season": "มี.ค.-พ.ค."
+      },
+      {
+        "label": "น้ำหลากริมแม่น้ำ",
+        "severity": "medium",
+        "note": "บางจุดริมน้ำและนอกเกาะเมืองมีความเสี่ยงน้ำท่วม",
+        "season": "ก.ย.-พ.ย."
+      }
+    ],
+    "ecoIds": [
+      "t_urban",
+      "c_heat_stroke",
+      "c_monsoon",
+      "c_flash_flood",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 23-36°C, ร้อนและฝนตามฤดู",
+      "terrain": "ที่ราบลุ่มแม่น้ำสามสายล้อมเกาะเมืองประวัติศาสตร์",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Nakhon Pathom": {
+    "transport": [
+      {
+        "name": "รถไฟสายใต้และสายชานเมืองตะวันตก",
+        "shortName": "รถไฟ",
+        "type": "rail",
+        "description": "เชื่อมนครปฐมกับกรุงเทพฯ ศาลายา และราชบุรี",
+        "warpUrl": "https://www.railway.co.th",
+        "logoText": "🚆",
+        "color": "#1d4ed8"
+      },
+      {
+        "name": "รถตู้หมอชิต-นครปฐม",
+        "shortName": "รถตู้",
+        "type": "van",
+        "description": "วิ่งถี่ระหว่างกรุงเทพฯ ศาลายา และนครปฐม",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#2563eb"
+      },
+      {
+        "name": "รถสองแถวนครปฐม",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "ใช้เชื่อมองค์พระปฐมเจดีย์ มหาวิทยาลัย และอำเภอใกล้เคียง",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - นครปฐม",
+        "type": "train",
+        "operator": "การรถไฟแห่งประเทศไทย",
+        "from": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "to": "สถานีนครปฐม",
+        "via": [
+          "ตลิ่งชัน",
+          "ศาลายา"
+        ],
+        "departureTimes": [
+          "06:50",
+          "08:20",
+          "10:50"
+        ],
+        "duration": "1-1.5 ชม.",
+        "baseFare": 20,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: หมอชิต - นครปฐม",
+        "type": "van",
+        "operator": "รถตู้โดยสารประจำทาง",
+        "from": "สถานีขนส่งหมอชิต",
+        "to": "นครปฐม",
+        "via": [
+          "พุทธมณฑล",
+          "ศาลายา"
+        ],
+        "departureTimes": [
+          "06:00",
+          "07:00",
+          "08:00"
+        ],
+        "duration": "1.5-2 ชม.",
+        "baseFare": 90,
+        "frequency": "ทุก 30-60 นาที",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: นครปฐม - สามพราน",
+        "type": "bus",
+        "operator": "รถโดยสารท้องถิ่น",
+        "from": "ตัวเมืองนครปฐม",
+        "to": "สามพราน",
+        "via": [
+          "พระปฐมเจดีย์",
+          "ตลาดน้ำดอนหวาย"
+        ],
+        "departureTimes": [
+          "06:00",
+          "09:00",
+          "12:00"
+        ],
+        "duration": "40-60 นาที",
+        "baseFare": 20,
+        "frequency": "ทุก 20-30 นาที",
+        "terminal": "สถานีขนส่งนครปฐม",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "ข้าวหมูแดงนครปฐม",
+        "priceRange": "50-90฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ส้มโอพันธุ์ขาวน้ำผึ้ง",
+        "priceRange": "80-180฿",
+        "category": "dessert",
+        "note": null
+      },
+      {
+        "name": "เป็ดพะโล้นครชัยศรี",
+        "priceRange": "60-120฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ลอดช่องวัดเจษ",
+        "priceRange": "25-50฿",
+        "category": "dessert",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "500-1,100฿/คืน",
+        "examples": [
+          "Xen Hotel Nakhon Pathom",
+          "Diary Suite"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,200-2,800฿/คืน",
+        "examples": [
+          "Mida Grande Hotel Dhavaravati Nakhon Pathom",
+          "RK Riverside Resort & Spa"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "3,000-7,000฿/คืน",
+        "examples": [
+          "Sampran Riverside",
+          "Mida Grande Hotel Dhavaravati Nakhon Pathom"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำท่วมพื้นที่ลุ่มริมท่าจีน",
+        "severity": "medium",
+        "note": "พื้นที่เกษตรและชุมชนริมน้ำมีความเสี่ยงช่วงน้ำมาก",
+        "season": "ก.ย.-พ.ย."
+      },
+      {
+        "label": "ฝุ่น PM2.5",
+        "severity": "medium",
+        "note": "กระทบจากการจราจรและการเผาในภาคกลาง",
+        "season": "ธ.ค.-เม.ย."
+      }
+    ],
+    "ecoIds": [
+      "c_pm25",
+      "c_monsoon",
+      "c_heat_stroke",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 23-36°C, ร้อนชื้น ฝนตามฤดู",
+      "terrain": "ที่ราบลุ่มแม่น้ำท่าจีนและพื้นที่เกษตรสวนผลไม้กว้าง",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Samut Sakhon": {
+    "transport": [
+      {
+        "name": "รถไฟสายวงเวียนใหญ่-มหาชัย",
+        "shortName": "รถไฟมหาชัย",
+        "type": "rail",
+        "description": "รถไฟท้องถิ่นยอดนิยมเชื่อมกรุงเทพฯฝั่งธนกับมหาชัย",
+        "warpUrl": "https://www.railway.co.th",
+        "logoText": "🚆",
+        "color": "#1d4ed8"
+      },
+      {
+        "name": "เรือข้ามฟากมหาชัย-ท่าฉลอม",
+        "shortName": "เรือข้ามฟาก",
+        "type": "boat",
+        "description": "ข้ามแม่น้ำท่าจีนระหว่างมหาชัยกับท่าฉลอม",
+        "warpUrl": "",
+        "logoText": "⛴️",
+        "color": "#0ea5e9"
+      },
+      {
+        "name": "รถสองแถวมหาชัย",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "เชื่อมตัวเมือง มหาชัย ท่าฉลอม บ้านแพ้ว และกระทุ่มแบน",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: วงเวียนใหญ่ - มหาชัย",
+        "type": "train",
+        "operator": "การรถไฟแห่งประเทศไทย",
+        "from": "สถานีวงเวียนใหญ่",
+        "to": "สถานีมหาชัย",
+        "via": [
+          "ตลาดพลู"
+        ],
+        "departureTimes": [
+          "05:30",
+          "07:00",
+          "08:30"
+        ],
+        "duration": "1 ชม.",
+        "baseFare": 10,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีวงเวียนใหญ่",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: กรุงเทพฯ - มหาชัย",
+        "type": "van",
+        "operator": "รถตู้โดยสารประจำทาง",
+        "from": "สายใต้ใหม่/เอกชัย",
+        "to": "มหาชัย",
+        "via": [
+          "บางบอน",
+          "เอกชัย"
+        ],
+        "departureTimes": [
+          "06:00",
+          "07:00",
+          "08:00"
+        ],
+        "duration": "1-1.5 ชม.",
+        "baseFare": 70,
+        "frequency": "ทุก 30 นาที",
+        "terminal": "สายใต้ใหม่",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: มหาชัย - ท่าฉลอม",
+        "type": "boat",
+        "operator": "เรือข้ามฟากท้องถิ่น",
+        "from": "ท่ามหาชัย",
+        "to": "ท่าฉลอม",
+        "via": [],
+        "departureTimes": [
+          "06:00",
+          "08:00",
+          "10:00"
+        ],
+        "duration": "5-10 นาที",
+        "baseFare": 3,
+        "frequency": "ออกถี่ตลอดวัน",
+        "terminal": "ท่ามหาชัย",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "ซีฟู้ดมหาชัย",
+        "priceRange": "150-400฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "หอยนางรมสด",
+        "priceRange": "100-250฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "กะปิมหาชัย",
+        "priceRange": "40-120฿",
+        "category": "local",
+        "note": "ของฝากเด่นสายอาหารทะเลแปรรูป"
+      },
+      {
+        "name": "ขนมจาก",
+        "priceRange": "20-40฿",
+        "category": "dessert",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "500-1,000฿/คืน",
+        "examples": [
+          "Grand Sansook Omnoi",
+          "Central Place Serviced Apartment"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,100-2,500฿/คืน",
+        "examples": [
+          "Grand Inter Hotel",
+          "The Residence Thepkanjana"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "2,500-5,500฿/คืน",
+        "examples": [
+          "Grand Inter Hotel",
+          "Park Village Rama II"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำทะเลหนุนและน้ำท่วมปากอ่าว",
+        "severity": "medium",
+        "note": "พื้นที่ชายฝั่งและท่าฉลอมเสี่ยงเมื่อน้ำสูงและฝนหนัก",
+        "season": "ก.ย.-พ.ย."
+      },
+      {
+        "label": "มลพิษอุตสาหกรรมและฝุ่น",
+        "severity": "medium",
+        "note": "บางอำเภอมีโรงงานหนาแน่นและรถบรรทุกมาก",
+        "season": "ธ.ค.-เม.ย."
+      }
+    ],
+    "ecoIds": [
+      "t_mangrove",
+      "c_monsoon",
+      "c_pm25",
+      "c_heat_stroke",
+      "fl_seaweed",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 24-35°C, ร้อนชื้นและมีอิทธิพลทะเล",
+      "terrain": "ที่ราบชายฝั่ง ป่าชายเลน ปากแม่น้ำท่าจีน และเขตอุตสาหกรรม",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Samut Songkhram": {
+    "transport": [
+      {
+        "name": "รถไฟสายแม่กลอง",
+        "shortName": "รถไฟแม่กลอง",
+        "type": "rail",
+        "description": "รถไฟท้องถิ่นผ่านตลาดร่มหุบและสถานีแม่กลอง",
+        "warpUrl": "https://www.railway.co.th",
+        "logoText": "🚆",
+        "color": "#1d4ed8"
+      },
+      {
+        "name": "เรือหางยาวอัมพวา",
+        "shortName": "เรืออัมพวา",
+        "type": "boat",
+        "description": "ใช้เที่ยวตลาดน้ำ ชมหิ่งห้อย และคลองชุมชน",
+        "warpUrl": "",
+        "logoText": "⛴️",
+        "color": "#0ea5e9"
+      },
+      {
+        "name": "รถสองแถวแม่กลอง-อัมพวา",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "เชื่อมแม่กลอง อัมพวา ดอนหอยหลอด และชุมชนริมน้ำ",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - แม่กลอง",
+        "type": "van",
+        "operator": "รถตู้โดยสารประจำทาง",
+        "from": "สถานีขนส่งสายใต้ใหม่",
+        "to": "แม่กลอง",
+        "via": [
+          "พระราม 2",
+          "สมุทรสาคร"
+        ],
+        "departureTimes": [
+          "06:00",
+          "07:00",
+          "08:00"
+        ],
+        "duration": "1.5-2 ชม.",
+        "baseFare": 100,
+        "frequency": "ทุก 30-60 นาที",
+        "terminal": "สายใต้ใหม่",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: วงเวียนใหญ่ - มหาชัย - บ้านแหลม - แม่กลอง",
+        "type": "train",
+        "operator": "การรถไฟแห่งประเทศไทย",
+        "from": "สถานีวงเวียนใหญ่",
+        "to": "สถานีแม่กลอง",
+        "via": [
+          "มหาชัย",
+          "บ้านแหลม"
+        ],
+        "departureTimes": [
+          "05:30",
+          "07:00",
+          "08:30"
+        ],
+        "duration": "2.5-3 ชม. รวมต่อเรือ",
+        "baseFare": 20,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีวงเวียนใหญ่",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: แม่กลอง - อัมพวา - ดอนหอยหลอด",
+        "type": "bus",
+        "operator": "รถโดยสารท้องถิ่น",
+        "from": "ตลาดแม่กลอง",
+        "to": "ดอนหอยหลอด",
+        "via": [
+          "อัมพวา"
+        ],
+        "departureTimes": [
+          "08:00",
+          "10:00",
+          "13:00"
+        ],
+        "duration": "30-50 นาที",
+        "baseFare": 20,
+        "frequency": "ทุก 20-30 นาที",
+        "terminal": "ตลาดแม่กลอง",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "ปลาทูแม่กลอง",
+        "priceRange": "80-180฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "น้ำตาลมะพร้าวอัมพวา",
+        "priceRange": "40-120฿",
+        "category": "dessert",
+        "note": null
+      },
+      {
+        "name": "หอยหลอดผัดฉ่า",
+        "priceRange": "120-220฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ขนมไทยอัมพวา",
+        "priceRange": "20-50฿",
+        "category": "dessert",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "500-1,200฿/คืน",
+        "examples": [
+          "Baanrimklong Homestay",
+          "At Casa Guesthouse Amphawa"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,300-3,000฿/คืน",
+        "examples": [
+          "Asita Eco Resort",
+          "Thanicha Resort"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "3,000-7,500฿/คืน",
+        "examples": [
+          "Chuchaiburi Sri Amphawa",
+          "Na Tree Tara Riverside Resort"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำทะเลหนุนและน้ำท่วมคลอง",
+        "severity": "medium",
+        "note": "พื้นที่ริมน้ำและตลาดน้ำบางช่วงมีน้ำเอ่อได้",
+        "season": "ก.ย.-พ.ย."
+      },
+      {
+        "label": "โป๊ะเรือลื่นและอุบัติเหตุทางน้ำ",
+        "severity": "low",
+        "note": "ช่วงตลาดน้ำคึกคักและเรือขึ้นลงถี่",
+        "season": null
+      }
+    ],
+    "ecoIds": [
+      "t_mangrove",
+      "c_monsoon",
+      "c_heat_stroke",
+      "fl_seaweed",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 24-34°C, ร้อนชื้นแบบลุ่มน้ำปากอ่าว",
+      "terrain": "ที่ราบลุ่มแม่กลอง สวนมะพร้าว คลอง และพื้นที่ชายฝั่งบางส่วน",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Suphan Buri": {
+    "transport": [
+      {
+        "name": "รถทัวร์กรุงเทพฯ-สุพรรณบุรี",
+        "shortName": "รถทัวร์",
+        "type": "bus",
+        "description": "เส้นทางหลักจากกรุงเทพฯเข้าสุพรรณบุรีผ่านบางบัวทอง",
+        "warpUrl": "",
+        "logoText": "🚌",
+        "color": "#ea580c"
+      },
+      {
+        "name": "รถตู้หมอชิต-สุพรรณบุรี",
+        "shortName": "รถตู้",
+        "type": "van",
+        "description": "เดินทางรวดเร็วสู่ตัวเมืองและบางปลาม้า",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#2563eb"
+      },
+      {
+        "name": "รถสองแถวสุพรรณบุรี",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "ใช้เชื่อมตัวเมือง ดอนเจดีย์ อู่ทอง และชุมชนย่อย",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - สุพรรณบุรี",
+        "type": "coach",
+        "operator": "รถโดยสารประจำทาง",
+        "from": "สถานีขนส่งหมอชิต",
+        "to": "สถานีขนส่งสุพรรณบุรี",
+        "via": [
+          "บางบัวทอง",
+          "ลาดบัวหลวง"
+        ],
+        "departureTimes": [
+          "06:00",
+          "08:00",
+          "10:00"
+        ],
+        "duration": "2-2.5 ชม.",
+        "baseFare": 120,
+        "frequency": "ทุก 1-2 ชม.",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: กรุงเทพฯ - อู่ทอง",
+        "type": "van",
+        "operator": "รถตู้โดยสารประจำทาง",
+        "from": "หมอชิต",
+        "to": "อู่ทอง",
+        "via": [
+          "สุพรรณบุรีเมือง"
+        ],
+        "departureTimes": [
+          "06:30",
+          "09:00",
+          "12:00"
+        ],
+        "duration": "2.5-3 ชม.",
+        "baseFare": 140,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: สุพรรณบุรี - บึงฉวาก",
+        "type": "bus",
+        "operator": "รถโดยสารท้องถิ่น",
+        "from": "ตัวเมืองสุพรรณบุรี",
+        "to": "บึงฉวาก",
+        "via": [
+          "ดอนเจดีย์",
+          "เดิมบางนางบวช"
+        ],
+        "departureTimes": [
+          "07:00",
+          "10:00",
+          "13:00"
+        ],
+        "duration": "1-1.5 ชม.",
+        "baseFare": 30,
+        "frequency": "ทุก 30-60 นาที",
+        "terminal": "สถานีขนส่งสุพรรณบุรี",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "สาลี่สุพรรณ",
+        "priceRange": "35-120฿",
+        "category": "dessert",
+        "note": null
+      },
+      {
+        "name": "ปลาม้าแม่น้ำท่าจีน",
+        "priceRange": "180-350฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ก๋วยเตี๋ยวลูกชิ้นปลาสุพรรณ",
+        "priceRange": "40-70฿",
+        "category": "street",
+        "note": null
+      },
+      {
+        "name": "ขนมสาลี่โบราณ",
+        "priceRange": "25-50฿",
+        "category": "dessert",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "500-1,000฿/คืน",
+        "examples": [
+          "Songphanburi Hotel",
+          "CPS Mansion Suphanburi"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,100-2,500฿/คืน",
+        "examples": [
+          "Vasidtee City Hotel",
+          "Sri U-Thong Grand Hotel"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "2,500-5,500฿/คืน",
+        "examples": [
+          "Muaan Resort",
+          "Tolopoti Hotel & Resort"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำท่วมลุ่มท่าจีน",
+        "severity": "medium",
+        "note": "พื้นที่เกษตรและชุมชนริมน้ำเสี่ยงน้ำเอ่อบางปี",
+        "season": "ก.ย.-พ.ย."
+      },
+      {
+        "label": "ความร้อนจัดในพื้นที่โล่ง",
+        "severity": "medium",
+        "note": "พื้นที่นาและที่โล่งกว้างมาก",
+        "season": "มี.ค.-พ.ค."
+      }
+    ],
+    "ecoIds": [
+      "t_mountain",
+      "t_cave",
+      "c_heat_stroke",
+      "c_monsoon",
+      "f_dog_stray",
+      "f_monkey",
+      "fl_bamboo"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 22-36°C, ร้อนค่อนข้างแห้งกว่าชายฝั่งแต่มีฝนกลางปี",
+      "terrain": "มีทั้งที่ราบลุ่มแม่น้ำท่าจีน พื้นที่นา และแนวภูเขา/ถ้ำทางตะวันตก",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Sing Buri": {
+    "transport": [
+      {
+        "name": "รถทัวร์กรุงเทพฯ-สิงห์บุรี",
+        "shortName": "รถทัวร์",
+        "type": "bus",
+        "description": "เส้นทางหลักขึ้นภาคกลางตอนบนผ่านสายเอเชีย",
+        "warpUrl": "",
+        "logoText": "🚌",
+        "color": "#ea580c"
+      },
+      {
+        "name": "รถตู้หมอชิต-สิงห์บุรี",
+        "shortName": "รถตู้",
+        "type": "van",
+        "description": "เชื่อมกรุงเทพฯ ตัวเมืองสิงห์บุรี และอำเภอพรหมบุรี",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#2563eb"
+      },
+      {
+        "name": "รถสองแถวท้องถิ่น",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "ใช้เดินทางระหว่างตัวเมือง วัดสำคัญ และตลาดชุมชน",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - สิงห์บุรี",
+        "type": "coach",
+        "operator": "รถโดยสารประจำทาง",
+        "from": "สถานีขนส่งหมอชิต",
+        "to": "สถานีขนส่งสิงห์บุรี",
+        "via": [
+          "อยุธยา",
+          "อ่างทอง"
+        ],
+        "departureTimes": [
+          "06:00",
+          "08:00",
+          "10:00"
+        ],
+        "duration": "2.5-3 ชม.",
+        "baseFare": 150,
+        "frequency": "ทุก 1-2 ชม.",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: กรุงเทพฯ - พรหมบุรี",
+        "type": "van",
+        "operator": "รถตู้โดยสารประจำทาง",
+        "from": "หมอชิต",
+        "to": "พรหมบุรี",
+        "via": [
+          "อ่างทอง",
+          "ตัวเมืองสิงห์บุรี"
+        ],
+        "departureTimes": [
+          "06:30",
+          "09:30",
+          "12:30"
+        ],
+        "duration": "2.5-3 ชม.",
+        "baseFare": 150,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: ตัวเมืองสิงห์บุรี - บางระจัน",
+        "type": "bus",
+        "operator": "รถโดยสารท้องถิ่น",
+        "from": "ตัวเมืองสิงห์บุรี",
+        "to": "ค่ายบางระจัน",
+        "via": [
+          "อินทร์บุรี"
+        ],
+        "departureTimes": [
+          "07:00",
+          "10:00",
+          "14:00"
+        ],
+        "duration": "30-50 นาที",
+        "baseFare": 20,
+        "frequency": "ทุก 30-60 นาที",
+        "terminal": "สถานีขนส่งสิงห์บุรี",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "ปลาช่อนแม่ลาเผา",
+        "priceRange": "180-350฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ปลาเนื้ออ่อนทอดกระเทียม",
+        "priceRange": "150-280฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "กุ้งแม่น้ำเผาแม่น้ำน้อย",
+        "priceRange": "250-600฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ขนมเปี๊ยะสิงห์บุรี",
+        "priceRange": "35-90฿",
+        "category": "dessert",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "450-900฿/คืน",
+        "examples": [
+          "Central Park Hotel Singburi",
+          "Chaisaeng Villa"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,000-2,200฿/คืน",
+        "examples": [
+          "Chaisaeng Palace Hotel",
+          "Sumali Villa"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "2,200-4,500฿/คืน",
+        "examples": [
+          "Chaisaeng Palace Hotel",
+          "Rungaroon Resort"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำท่วมลุ่มเจ้าพระยา/แม่น้ำน้อย",
+        "severity": "medium",
+        "note": "พื้นที่ติดแม่น้ำและทุ่งลุ่มเสี่ยงน้ำหลาก",
+        "season": "ก.ย.-พ.ย."
+      },
+      {
+        "label": "ฮีทสโตรกในพื้นที่โล่ง",
+        "severity": "medium",
+        "note": "ภาคกลางตอนบนแดดแรงและร่มเงาน้อย",
+        "season": "มี.ค.-พ.ค."
+      }
+    ],
+    "ecoIds": [
+      "c_monsoon",
+      "c_heat_stroke",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 22-36°C, ร้อนค่อนข้างแห้งและฝนตามฤดู",
+      "terrain": "ที่ราบลุ่มแม่น้ำเจ้าพระยาและแม่น้ำน้อย มีพื้นที่เกษตรและชุมชนประวัติศาสตร์",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Ang Thong": {
+    "transport": [
+      {
+        "name": "รถทัวร์กรุงเทพฯ-อ่างทอง",
+        "shortName": "รถทัวร์",
+        "type": "bus",
+        "description": "เส้นทางหลักจากหมอชิตสู่อ่างทองผ่านสายเอเชีย",
+        "warpUrl": "",
+        "logoText": "🚌",
+        "color": "#ea580c"
+      },
+      {
+        "name": "รถตู้หมอชิต-อ่างทอง",
+        "shortName": "รถตู้",
+        "type": "van",
+        "description": "เดินทางสะดวกสำหรับตัวเมืองและวิเศษชัยชาญ",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#2563eb"
+      },
+      {
+        "name": "รถสองแถวท้องถิ่นอ่างทอง",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "ใช้เชื่อมตัวเมือง วัดม่วง วิเศษชัยชาญ และป่าโมก",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - อ่างทอง",
+        "type": "coach",
+        "operator": "รถโดยสารประจำทาง",
+        "from": "สถานีขนส่งหมอชิต",
+        "to": "สถานีขนส่งอ่างทอง",
+        "via": [
+          "อยุธยา"
+        ],
+        "departureTimes": [
+          "06:00",
+          "08:00",
+          "10:00"
+        ],
+        "duration": "2-2.5 ชม.",
+        "baseFare": 130,
+        "frequency": "ทุก 1-2 ชม.",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: กรุงเทพฯ - วิเศษชัยชาญ",
+        "type": "van",
+        "operator": "รถตู้โดยสารประจำทาง",
+        "from": "หมอชิต",
+        "to": "วิเศษชัยชาญ",
+        "via": [
+          "ตัวเมืองอ่างทอง"
+        ],
+        "departureTimes": [
+          "06:30",
+          "09:00",
+          "12:00"
+        ],
+        "duration": "2-2.5 ชม.",
+        "baseFare": 130,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: ตัวเมืองอ่างทอง - วัดม่วง - ป่าโมก",
+        "type": "bus",
+        "operator": "รถโดยสารท้องถิ่น",
+        "from": "ตัวเมืองอ่างทอง",
+        "to": "ป่าโมก",
+        "via": [
+          "วัดม่วง",
+          "วิเศษชัยชาญ"
+        ],
+        "departureTimes": [
+          "07:00",
+          "10:00",
+          "14:00"
+        ],
+        "duration": "40-70 นาที",
+        "baseFare": 20,
+        "frequency": "ทุก 30-60 นาที",
+        "terminal": "ตลาดอ่างทอง",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "ปลาช่อนเผาอ่างทอง",
+        "priceRange": "180-320฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ขนมเกสรลำเจียก",
+        "priceRange": "35-70฿",
+        "category": "dessert",
+        "note": null
+      },
+      {
+        "name": "ก๋วยเตี๋ยวเรืออ่างทอง",
+        "priceRange": "25-60฿",
+        "category": "street",
+        "note": null
+      },
+      {
+        "name": "ปลาตะเพียนต้มเค็ม",
+        "priceRange": "120-220฿",
+        "category": "local",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "450-900฿/คืน",
+        "examples": [
+          "Smile Resort Ang Thong",
+          "Bualuang Hotel"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,000-2,200฿/คืน",
+        "examples": [
+          "Clover Hill Resort",
+          "I Residence Hotel"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "2,200-4,500฿/คืน",
+        "examples": [
+          "Clover Hill Resort",
+          "Rachapruek Resort"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำท่วมลุ่มเจ้าพระยา",
+        "severity": "medium",
+        "note": "พื้นที่ริมน้ำและทุ่งรับน้ำมีความเสี่ยงตามรอบน้ำ",
+        "season": "ก.ย.-พ.ย."
+      },
+      {
+        "label": "ความร้อนจัด",
+        "severity": "medium",
+        "note": "พื้นที่เปิดโล่งและการเที่ยววัดใหญ่กลางแดดต้องระวัง",
+        "season": "มี.ค.-พ.ค."
+      }
+    ],
+    "ecoIds": [
+      "c_monsoon",
+      "c_heat_stroke",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 22-36°C, ร้อนและฝนตามฤดู",
+      "terrain": "ที่ราบลุ่มภาคกลางตอนบน มีแม่น้ำและพื้นที่เกษตรเป็นหลัก",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Lop Buri": {
+    "transport": [
+      {
+        "name": "รถไฟสายเหนือผ่านลพบุรี",
+        "shortName": "รถไฟ",
+        "type": "rail",
+        "description": "เชื่อมกรุงเทพฯ ลพบุรี และภาคเหนือตอนล่าง",
+        "warpUrl": "https://www.railway.co.th",
+        "logoText": "🚆",
+        "color": "#1d4ed8"
+      },
+      {
+        "name": "รถตู้หมอชิต-ลพบุรี",
+        "shortName": "รถตู้",
+        "type": "van",
+        "description": "ทางเลือกหลักจากกรุงเทพฯไปตัวเมืองลพบุรี",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#2563eb"
+      },
+      {
+        "name": "รถตุ๊กตุ๊กลพบุรี",
+        "shortName": "ตุ๊กตุ๊ก",
+        "type": "tuk_tuk",
+        "description": "เหมาะกับท่องเที่ยวย่านพระปรางค์สามยอดและพระนารายณ์ราชนิเวศน์",
+        "warpUrl": "",
+        "logoText": "🛺",
+        "color": "#eab308"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - ลพบุรี",
+        "type": "train",
+        "operator": "การรถไฟแห่งประเทศไทย",
+        "from": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "to": "สถานีลพบุรี",
+        "via": [
+          "อยุธยา",
+          "สระบุรี"
+        ],
+        "departureTimes": [
+          "06:10",
+          "08:30",
+          "11:00"
+        ],
+        "duration": "2.5-3 ชม.",
+        "baseFare": 30,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: หมอชิต - ลพบุรี",
+        "type": "coach",
+        "operator": "รถโดยสารประจำทาง",
+        "from": "สถานีขนส่งหมอชิต",
+        "to": "สถานีขนส่งลพบุรี",
+        "via": [
+          "สระบุรี"
+        ],
+        "departureTimes": [
+          "06:00",
+          "08:00",
+          "10:00"
+        ],
+        "duration": "2.5-3 ชม.",
+        "baseFare": 170,
+        "frequency": "ทุก 1-2 ชม.",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: สถานีลพบุรี - พระปรางค์สามยอด",
+        "type": "bus",
+        "operator": "สองแถว/ตุ๊กตุ๊ก",
+        "from": "สถานีลพบุรี",
+        "to": "พระปรางค์สามยอด",
+        "via": [
+          "พระนารายณ์ราชนิเวศน์"
+        ],
+        "departureTimes": [
+          "08:00",
+          "10:00",
+          "12:00"
+        ],
+        "duration": "10-20 นาที",
+        "baseFare": 20,
+        "frequency": "ตลอดวัน",
+        "terminal": "สถานีลพบุรี",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "ไข่เค็มดินสอพอง",
+        "priceRange": "50-120฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ปลาส้มลพบุรี",
+        "priceRange": "60-150฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "เมล็ดทานตะวันอบกรอบ",
+        "priceRange": "30-80฿",
+        "category": "dessert",
+        "note": null
+      },
+      {
+        "name": "ข้าวเหนียวหมูฝอย",
+        "priceRange": "25-50฿",
+        "category": "street",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "450-1,000฿/คืน",
+        "examples": [
+          "Noom Guesthouse Lopburi",
+          "Benjatara Boutique Resort"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,100-2,500฿/คืน",
+        "examples": [
+          "Hop Inn Lopburi",
+          "O2 Hotel Lopburi"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "2,500-5,000฿/คืน",
+        "examples": [
+          "Lopburi Inn Resort",
+          "Windsor Resort Lopburi"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "ลิงกวนและแย่งของ",
+        "severity": "high",
+        "note": "พระปรางค์สามยอดและย่านเมืองเก่ามีลิงจำนวนมาก",
+        "season": null
+      },
+      {
+        "label": "ความร้อนจัดในแหล่งท่องเที่ยวเปิดโล่ง",
+        "severity": "medium",
+        "note": "เมืองเก่าและทุ่งทานตะวันแดดแรงมาก",
+        "season": "มี.ค.-พ.ค."
+      }
+    ],
+    "ecoIds": [
+      "f_monkey",
+      "t_mountain",
+      "c_heat_stroke",
+      "c_pm25",
+      "c_monsoon",
+      "f_dog_stray",
+      "t_cave"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 21-37°C, ร้อนค่อนข้างแห้งและมีฝนกลางปี",
+      "terrain": "มีทั้งที่ราบเมืองเก่า พื้นที่เกษตร และภูเขาหินปูนบางส่วน",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Saraburi": {
+    "transport": [
+      {
+        "name": "รถไฟสายตะวันออกเฉียงเหนือผ่านสระบุรี",
+        "shortName": "รถไฟ",
+        "type": "rail",
+        "description": "เชื่อมกรุงเทพฯ สระบุรี และภาคอีสาน",
+        "warpUrl": "https://www.railway.co.th",
+        "logoText": "🚆",
+        "color": "#1d4ed8"
+      },
+      {
+        "name": "รถตู้หมอชิต-สระบุรี",
+        "shortName": "รถตู้",
+        "type": "van",
+        "description": "เส้นทางหลักเข้าตัวเมืองสระบุรีและพระพุทธบาท",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#2563eb"
+      },
+      {
+        "name": "รถสองแถวสระบุรี",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "เชื่อมตัวเมือง พระพุทธบาท มวกเหล็ก และแก่งคอย",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - สระบุรี",
+        "type": "train",
+        "operator": "การรถไฟแห่งประเทศไทย",
+        "from": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "to": "สถานีสระบุรี",
+        "via": [
+          "ดอนเมือง",
+          "อยุธยา"
+        ],
+        "departureTimes": [
+          "06:10",
+          "08:30",
+          "11:00"
+        ],
+        "duration": "2-2.5 ชม.",
+        "baseFare": 25,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีกลางกรุงเทพอภิวัฒน์",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: หมอชิต - สระบุรี",
+        "type": "coach",
+        "operator": "รถโดยสารประจำทาง",
+        "from": "สถานีขนส่งหมอชิต",
+        "to": "สถานีขนส่งสระบุรี",
+        "via": [
+          "รังสิต",
+          "อยุธยา"
+        ],
+        "departureTimes": [
+          "06:00",
+          "07:30",
+          "09:00"
+        ],
+        "duration": "2-2.5 ชม.",
+        "baseFare": 140,
+        "frequency": "ทุก 1-2 ชม.",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: สระบุรี - มวกเหล็ก",
+        "type": "bus",
+        "operator": "รถโดยสารท้องถิ่น",
+        "from": "ตัวเมืองสระบุรี",
+        "to": "มวกเหล็ก",
+        "via": [
+          "แก่งคอย",
+          "น้ำตกเจ็ดสาวน้อย"
+        ],
+        "departureTimes": [
+          "07:00",
+          "10:00",
+          "13:00"
+        ],
+        "duration": "1-1.5 ชม.",
+        "baseFare": 35,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีขนส่งสระบุรี",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "นมสดมวกเหล็ก",
+        "priceRange": "20-60฿",
+        "category": "drink",
+        "note": null
+      },
+      {
+        "name": "สเต๊กและผลิตภัณฑ์นมมวกเหล็ก",
+        "priceRange": "120-280฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "กะหรี่ปั๊บสระบุรี",
+        "priceRange": "25-50฿",
+        "category": "street",
+        "note": null
+      },
+      {
+        "name": "ไก่ย่างพระพุทธบาท",
+        "priceRange": "120-220฿",
+        "category": "local",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "450-1,000฿/คืน",
+        "examples": [
+          "Glai Gan Place Hotel",
+          "Queen Place Saraburi"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,100-2,800฿/คืน",
+        "examples": [
+          "Sir James Resort",
+          "Icorn Siam Resort"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "3,000-7,000฿/คืน",
+        "examples": [
+          "The Soul Resort",
+          "Sir James Resort"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำป่าไหลหลากตามน้ำตก",
+        "severity": "medium",
+        "note": "เจ็ดสาวน้อยและแหล่งน้ำธรรมชาติต้องระวังเมื่อฝนตกต่อเนื่อง",
+        "season": "พ.ค.-ต.ค."
+      },
+      {
+        "label": "สัตว์ป่าใกล้แนวป่า",
+        "severity": "low",
+        "note": "เส้นทางธรรมชาติบางแห่งอาจพบงูหรือหมูป่า",
+        "season": null
+      }
+    ],
+    "ecoIds": [
+      "t_mountain",
+      "t_rainforest",
+      "c_heat_stroke",
+      "c_monsoon",
+      "c_flash_flood",
+      "f_snake_cobra",
+      "f_boar",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 21-36°C, ร้อนค่อนข้างแห้งและฝนชุกบริเวณแนวเขา",
+      "terrain": "ที่ราบสลับเขา น้ำตก และพื้นที่ป่าใกล้แนวเขาใหญ่/แก่งคอย",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Chai Nat": {
+    "transport": [
+      {
+        "name": "รถทัวร์กรุงเทพฯ-ชัยนาท",
+        "shortName": "รถทัวร์",
+        "type": "bus",
+        "description": "เส้นหลักจากหมอชิตสู่ชัยนาทและต่อขึ้นนครสวรรค์",
+        "warpUrl": "",
+        "logoText": "🚌",
+        "color": "#ea580c"
+      },
+      {
+        "name": "รถตู้หมอชิต-ชัยนาท",
+        "shortName": "รถตู้",
+        "type": "van",
+        "description": "เดินทางรวดเร็วจากกรุงเทพฯสู่ตัวเมืองชัยนาท",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#2563eb"
+      },
+      {
+        "name": "รถสองแถวชัยนาท",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "ใช้เชื่อมสรรพยา มโนรมย์ เขื่อนเจ้าพระยา และตัวเมือง",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - ชัยนาท",
+        "type": "coach",
+        "operator": "รถโดยสารประจำทาง",
+        "from": "สถานีขนส่งหมอชิต",
+        "to": "สถานีขนส่งชัยนาท",
+        "via": [
+          "อ่างทอง",
+          "สิงห์บุรี"
+        ],
+        "departureTimes": [
+          "06:00",
+          "08:00",
+          "10:00"
+        ],
+        "duration": "3-3.5 ชม.",
+        "baseFare": 180,
+        "frequency": "ทุก 1-2 ชม.",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: กรุงเทพฯ - มโนรมย์",
+        "type": "van",
+        "operator": "รถตู้โดยสารประจำทาง",
+        "from": "หมอชิต",
+        "to": "มโนรมย์",
+        "via": [
+          "ชัยนาทเมือง"
+        ],
+        "departureTimes": [
+          "06:30",
+          "09:00",
+          "12:00"
+        ],
+        "duration": "3-3.5 ชม.",
+        "baseFare": 180,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "สถานีขนส่งหมอชิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: ตัวเมืองชัยนาท - เขื่อนเจ้าพระยา",
+        "type": "bus",
+        "operator": "รถโดยสารท้องถิ่น",
+        "from": "ตัวเมืองชัยนาท",
+        "to": "สรรพยา",
+        "via": [
+          "เขื่อนเจ้าพระยา",
+          "ชัยนาทเบิร์ดพาร์ค"
+        ],
+        "departureTimes": [
+          "07:00",
+          "10:00",
+          "14:00"
+        ],
+        "duration": "30-60 นาที",
+        "baseFare": 20,
+        "frequency": "ทุก 30-60 นาที",
+        "terminal": "ตลาดชัยนาท",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "ปลากรายชัยนาท",
+        "priceRange": "120-280฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ปลาแม่น้ำเจ้าพระยาเผา",
+        "priceRange": "180-350฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ก๋วยเตี๋ยวปลา",
+        "priceRange": "40-70฿",
+        "category": "street",
+        "note": null
+      },
+      {
+        "name": "ขนมเปี๊ยะชัยนาท",
+        "priceRange": "35-90฿",
+        "category": "dessert",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "450-900฿/คืน",
+        "examples": [
+          "Baan Ton Jaeng Resort",
+          "111 Resort & Spa"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,000-2,200฿/คืน",
+        "examples": [
+          "Fantasy Resort Chainat",
+          "Chainatthani Hotel"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "2,200-4,500฿/คืน",
+        "examples": [
+          "Fantasy Resort Chainat",
+          "Riche Farm"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำท่วมลุ่มเจ้าพระยา",
+        "severity": "medium",
+        "note": "พื้นที่ติดแม่น้ำและเหนือเขื่อนมีความเสี่ยงเป็นช่วง",
+        "season": "ก.ย.-พ.ย."
+      },
+      {
+        "label": "อากาศร้อนจัด",
+        "severity": "medium",
+        "note": "ภาคกลางตอนบนมีอุณหภูมิสูงช่วงหน้าร้อน",
+        "season": "มี.ค.-พ.ค."
+      }
+    ],
+    "ecoIds": [
+      "c_monsoon",
+      "c_heat_stroke",
+      "f_dog_stray"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 21-36°C, ร้อนค่อนข้างแห้งและฝนตามฤดู",
+      "terrain": "ที่ราบลุ่มเจ้าพระยา มีเขื่อน พื้นที่เกษตร และแหล่งนกน้ำ",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  },
+  "Nakhon Nayok": {
+    "transport": [
+      {
+        "name": "รถตู้กรุงเทพฯ-นครนายก",
+        "shortName": "รถตู้",
+        "type": "van",
+        "description": "เส้นทางหลักจากรังสิตและหมอชิตสู่นครนายก",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#2563eb"
+      },
+      {
+        "name": "รถโดยสารประจำนครนายก",
+        "shortName": "รถบัส",
+        "type": "bus",
+        "description": "มีรถระหว่างอำเภอและต่อไปปราจีนบุรีบางเที่ยว",
+        "warpUrl": "",
+        "logoText": "🚌",
+        "color": "#ea580c"
+      },
+      {
+        "name": "รถสองแถวนครนายก",
+        "shortName": "สองแถว",
+        "type": "songthaew",
+        "description": "เชื่อมตัวเมือง น้ำตกสาริกา เขื่อนขุนด่าน และจุดท่องเที่ยว",
+        "warpUrl": "",
+        "logoText": "🚐",
+        "color": "#f59e0b"
+      }
+    ],
+    "routes": [
+      {
+        "name": "สาย 1: กรุงเทพฯ - นครนายก",
+        "type": "van",
+        "operator": "รถตู้โดยสารประจำทาง",
+        "from": "ฟิวเจอร์พาร์ค รังสิต/หมอชิต",
+        "to": "ตัวเมืองนครนายก",
+        "via": [
+          "องครักษ์"
+        ],
+        "departureTimes": [
+          "06:00",
+          "07:00",
+          "08:00"
+        ],
+        "duration": "1.5-2 ชม.",
+        "baseFare": 110,
+        "frequency": "ทุก 30-60 นาที",
+        "terminal": "ฟิวเจอร์พาร์ค รังสิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 2: กรุงเทพฯ - น้ำตกสาริกา",
+        "type": "van",
+        "operator": "รถตู้ต่อรถท้องถิ่น",
+        "from": "รังสิต",
+        "to": "น้ำตกสาริกา",
+        "via": [
+          "ตัวเมืองนครนายก"
+        ],
+        "departureTimes": [
+          "07:00",
+          "09:00",
+          "11:00"
+        ],
+        "duration": "2-2.5 ชม.",
+        "baseFare": 130,
+        "frequency": "หลายเที่ยวต่อวัน",
+        "terminal": "ฟิวเจอร์พาร์ค รังสิต",
+        "notes": null
+      },
+      {
+        "name": "สาย 3: ตัวเมืองนครนายก - เขื่อนขุนด่านปราการชล",
+        "type": "bus",
+        "operator": "รถสองแถวท้องถิ่น",
+        "from": "ตัวเมืองนครนายก",
+        "to": "เขื่อนขุนด่านปราการชล",
+        "via": [
+          "น้ำตกนางรอง"
+        ],
+        "departureTimes": [
+          "08:00",
+          "10:00",
+          "13:00"
+        ],
+        "duration": "30-50 นาที",
+        "baseFare": 25,
+        "frequency": "ทุก 30-60 นาที",
+        "terminal": "ตลาดนครนายก",
+        "notes": null
+      }
+    ],
+    "localFoods": [
+      {
+        "name": "แกงป่าปลาคัง",
+        "priceRange": "120-250฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "ไก่บ้านต้มสมุนไพร",
+        "priceRange": "120-220฿",
+        "category": "local",
+        "note": null
+      },
+      {
+        "name": "มะยงชิดนครนายก",
+        "priceRange": "80-220฿",
+        "category": "dessert",
+        "note": "มีฤดูราว ก.พ.-มี.ค."
+      },
+      {
+        "name": "ขนมหวานมะยงชิด",
+        "priceRange": "40-90฿",
+        "category": "dessert",
+        "note": null
+      }
+    ],
+    "accommodation": [
+      {
+        "tier": "budget",
+        "label": "ประหยัด",
+        "priceRange": "500-1,200฿/คืน",
+        "examples": [
+          "Loft Village Nakhon Nayok",
+          "Kannawat Resort"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "midrange",
+        "label": "ปานกลาง",
+        "priceRange": "1,300-3,000฿/คืน",
+        "examples": [
+          "Phumontra Resort Nakhon Nayok",
+          "The Forest Home Resort"
+        ],
+        "bookingUrl": null
+      },
+      {
+        "tier": "premium",
+        "label": "หรูหรา",
+        "priceRange": "3,000-7,500฿/คืน",
+        "examples": [
+          "Royal Hills Golf Resort and Spa",
+          "Phumontra Resort Nakhon Nayok"
+        ],
+        "bookingUrl": null
+      }
+    ],
+    "dangerZones": [
+      {
+        "label": "น้ำป่าไหลหลากตามน้ำตกและลำธาร",
+        "severity": "high",
+        "note": "สาริกา นางรอง และลำธารท่องเที่ยวเสี่ยงเมื่อฝนหนัก",
+        "season": "พ.ค.-ต.ค."
+      },
+      {
+        "label": "ช้างป่าและสัตว์ป่าแนวเขาใหญ่",
+        "severity": "medium",
+        "note": "พื้นที่เชิงเขาและเส้นทางป่าบางช่วงอาจพบสัตว์ป่า",
+        "season": null
+      },
+      {
+        "label": "ทาก งู และแมลงป่า",
+        "severity": "medium",
+        "note": "เส้นทางชื้นและป่าฝนมีสัตว์และแมลงรบกวน",
+        "season": "พ.ค.-ต.ค."
+      }
+    ],
+    "ecoIds": [
+      "t_rainforest",
+      "t_mountain",
+      "c_flash_flood",
+      "c_monsoon",
+      "c_heat_stroke",
+      "f_elephant",
+      "f_snake_cobra",
+      "f_snake_green",
+      "f_boar",
+      "f_dog_stray",
+      "fl_bamboo"
+    ],
+    "newEcoEntities": [],
+    "metadata": {
+      "climate": "อุณหภูมิประมาณ 21-34°C, ร้อนชื้น ฝนเยอะบริเวณแนวเขา",
+      "terrain": "ที่ราบเชิงเขา น้ำตก เขื่อน และป่าฝนเชื่อมเขาใหญ่",
+      "bestSeason": "พ.ย.-ก.พ.",
+      "emergencyContacts": []
+    }
+  }
+}

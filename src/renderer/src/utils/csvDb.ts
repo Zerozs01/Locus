@@ -9,6 +9,13 @@ export interface WeatherRecord {
   aqi: number;
 }
 
+const normalizeId = (id: string) => {
+  let dbId = id.toLowerCase().replace(/[^a-z]/g, '');
+  if (dbId === 'bangkokmetropolis') dbId = 'bangkok';
+  if (dbId === 'phranakhonsiayutthaya') dbId = 'ayutthaya';
+  return dbId;
+};
+
 const initDB = () => {
   if (!localStorage.getItem(CSV_KEY)) {
     localStorage.setItem(CSV_KEY, 'id,date,temperature,aqi\n');
@@ -22,7 +29,7 @@ export const getRecords = (): WeatherRecord[] => {
   return lines.map(line => {
     const [id, date, temperature, aqi] = line.split(',');
     return {
-      id,
+      id: normalizeId(id),
       date,
       temperature: parseFloat(temperature),
       aqi: parseInt(aqi, 10)
@@ -33,11 +40,12 @@ export const getRecords = (): WeatherRecord[] => {
 export const saveRecord = (record: WeatherRecord) => {
   initDB();
   const csv = localStorage.getItem(CSV_KEY) || '';
-  const newLine = `${record.id},${record.date},${record.temperature},${record.aqi}`;
+  const nid = normalizeId(record.id);
+  const newLine = `${nid},${record.date},${record.temperature},${record.aqi}`;
   
   // if exists, replace it
   const lines = csv.split('\n');
-  const index = lines.findIndex(l => l.startsWith(`${record.id},${record.date},`));
+  const index = lines.findIndex(l => l.startsWith(`${nid},${record.date},`));
   if (index >= 0) {
     lines[index] = newLine;
     localStorage.setItem(CSV_KEY, lines.join('\n'));
@@ -46,33 +54,14 @@ export const saveRecord = (record: WeatherRecord) => {
   }
 };
 
-// Generate some mock defaults for demo if empty
-export const useMockCSVGenerator = (regionProvinces: {id: string, name: string}[]) => {
+/**
+ * Mock generator is now a NO-OP.
+ * Real data comes from AQI/Weather sync via OpenWeather or AQICN APIs.
+ * Keeping the function signature so existing callers don't break.
+ */
+export const useMockCSVGenerator = (_regionProvinces: {id: string, name: string}[]) => {
   useEffect(() => {
-    initDB();
-    const records = getRecords();
-    // Only generate mock data for provinces that have ZERO records
-    const existingIds = new Set(records.map(r => r.id));
-    const missingProvs = regionProvinces.filter(p => !existingIds.has(p.id));
-    
-    if (missingProvs.length === 0) return; // All provinces already have data, skip
-
-    const today = new Date();
-    missingProvs.forEach(prov => {
-      // mock 7 days past and 7 days future
-      for (let i = -7; i <= 7; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        const dateStr = d.toISOString().split('T')[0];
-        
-        saveRecord({
-          id: prov.id,
-          date: dateStr,
-          temperature: 28 + Math.random() * 10,
-          aqi: 20 + Math.random() * 150
-        });
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [regionProvinces.map(p => p.id).join(',')]);
+    // Intentionally empty — mock data generation disabled.
+    // Real-time AQI/temp data is synced via the AQI Modal and Weather Modal.
+  }, []);
 };

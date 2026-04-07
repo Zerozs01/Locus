@@ -1,8 +1,24 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi } from './database/db'
 import { initialRegions } from './database/initialData'
+import { isanUpper1 } from './database/portalSeed_isanUpper1'
+import { isanUpper2 } from './database/portalSeed_isanUpper2'
+import { isanLower1 } from './database/portalSeed_isanLower1'
+import { isanLower2 } from './database/portalSeed_isanLower2'
+import { eastWest1 } from './database/portalSeed_eastWest1'
+import { eastWest2 } from './database/portalSeed_eastWest2'
+import { eastWest3 } from './database/portalSeed_eastWest3'
+import { southPart1 } from './database/portalSeed_south1'
+import { southPart2 } from './database/portalSeed_south2'
+import { southPart3 } from './database/portalSeed_south3'
+import { centralPart1 } from './database/portalSeed_central1'
+import { centralPart2 } from './database/portalSeed_central2'
+import { centralPart3 } from './database/portalSeed_central3'
+import { northPart1 } from './database/portalSeed_north1'
+import { northPart2 } from './database/portalSeed_north2'
+import { northPart3 } from './database/portalSeed_north3'
 import { readRuntimeConfig, writeRuntimeConfig } from './config/runtimeConfig'
 import { createHash } from 'crypto'
 import { promises as fs } from 'fs'
@@ -444,6 +460,7 @@ app.whenReady().then(async () => {
   // Initialize and Seed Database
   initDatabase()
   seedDatabase(initialRegions)
+  seedProvincePortalData({ ...isanUpper1, ...isanUpper2, ...isanLower1, ...isanLower2, ...eastWest1, ...eastWest2, ...eastWest3, ...southPart1, ...southPart2, ...southPart3, ...centralPart1, ...centralPart2, ...centralPart3, ...northPart1, ...northPart2, ...northPart3 })
   await registerImageProtocol().catch((error) => console.error('Failed to register image protocol:', error))
 
   // Default open or close DevTools by F12 in development
