@@ -512,6 +512,14 @@ app.whenReady().then(async () => {
      return getDatabaseStats();
   })
 
+  ipcMain.handle('db:saveWeatherAqi', (_, records: { provinceId: string; date: string; temperature: number; aqi: number }[]) => {
+     return saveWeatherAqi(records);
+  })
+
+  ipcMain.handle('db:getWeatherAqi', (_, provinceId?: string, date?: string) => {
+     return getWeatherAqi(provinceId, date);
+  })
+
   ipcMain.handle('assets:getImageCacheStats', () => {
      return getImageCacheStats();
   })

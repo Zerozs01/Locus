@@ -2,6 +2,17 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { X, ThermometerSun, RefreshCw, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import { getRecords, useMockCSVGenerator, saveRecord } from '../utils/csvDb';
 
+const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
+
+const normalizeProvinceId = (id: string) => {
+  let normalized = id.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (normalized === 'bangkokmetropolis') normalized = 'bangkok';
+  if (normalized === 'phranakhonsiayutthaya') normalized = 'ayutthaya';
+  return normalized;
+};
+
+const normalizeProvinceNameKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
 interface WeatherHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -17,7 +28,36 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
   const [lastSync, setLastSync] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [apiKey, setApiKey] = useState<string>('');
+  const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
   const hasAutoSynced = useRef(false);
+
+  const provinceIdByName = useMemo(() => {
+    const map = new Map<string, string>();
+    provinceIndex.forEach((province) => {
+      const id = normalizeProvinceId(province.id);
+      map.set(province.name.toLowerCase(), id);
+      map.set(normalizeProvinceNameKey(province.name), id);
+    });
+    return map;
+  }, [provinceIndex]);
+
+  const resolvedActiveProvinces = useMemo(() => {
+    const source = activeProvinces.length > 0 ? activeProvinces : provinces;
+    const deduped = new Map<string, { id: string; name: string }>();
+
+    source.forEach((province) => {
+      const canonicalId =
+        provinceIdByName.get(province.name.toLowerCase()) ||
+        provinceIdByName.get(normalizeProvinceNameKey(province.name)) ||
+        normalizeProvinceId(province.id);
+
+      if (!deduped.has(canonicalId)) {
+        deduped.set(canonicalId, { id: canonicalId, name: province.name });
+      }
+    });
+
+    return Array.from(deduped.values());
+  }, [activeProvinces, provinces, provinceIdByName]);
 
   useEffect(() => {
     if (isOpen) {
@@ -32,6 +72,14 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
             console.log('[Weather Modal] No OpenWeather API Key found in config');
           }
         }).catch((err: any) => console.error('[Weather Modal] Config read error:', err));
+      }
+
+      if ((window as any).api?.db?.getProvinceIndex) {
+        (window as any).api.db.getProvinceIndex().then((rows: any[]) => {
+          if (Array.isArray(rows)) {
+            setProvinceIndex(rows.map((row) => ({ id: String(row.id), name: String(row.name) })));
+          }
+        }).catch((err: any) => console.warn('[Weather Modal] Province index read error:', err));
       }
 
       const syncStr = localStorage.getItem('locus_weather_last_sync');
@@ -66,7 +114,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
         const today = new Date();
         today.setHours(0,0,0,0);
         
-        const fetchTargets = activeProvinces.length > 0 ? activeProvinces : provinces;
+        const fetchTargets = resolvedActiveProvinces;
         console.log(`[Weather Modal] Fetching data for ${fetchTargets.length} provinces.`);
         
         for (const prov of fetchTargets) {
@@ -158,6 +206,29 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
     }
 
     console.log('[Weather Modal] Sync complete.');
+
+    // Persist all csvDb records to SQLite for cross-page access
+    try {
+      const api = (window as any).api;
+      if (api?.db?.saveWeatherAqi) {
+        const allRecords = getRecords();
+        if (allRecords.length > 0) {
+          const dbRecords = allRecords.map(r => ({
+            provinceId: r.id,
+            date: r.date,
+            temperature: r.temperature,
+            aqi: r.aqi
+          }));
+          const saved = await api.db.saveWeatherAqi(dbRecords);
+          console.log(`[Weather Modal] Persisted ${saved} records to SQLite DB.`);
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[Weather Modal] Failed to persist to DB:', dbErr);
+    }
+
+    window.dispatchEvent(new CustomEvent(WEATHER_AQI_UPDATED_EVENT, { detail: { source: 'weather-modal' } }));
+
     const now = new Date();
     const newSync = now.toLocaleString();
     localStorage.setItem('locus_weather_last_sync', newSync);
@@ -168,7 +239,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
   
   // Auto-sync if we have the key, and we enter the modal (12-hour cache)
   useEffect(() => {
-    if (isOpen && apiKey && !hasAutoSynced.current && activeProvinces.length > 0) {
+    if (isOpen && apiKey && !hasAutoSynced.current && resolvedActiveProvinces.length > 0) {
        const lastTs = Number(localStorage.getItem('locus_weather_last_sync_timestamp') || 0);
        const now = Date.now();
        const twelveHours = 12 * 60 * 60 * 1000; // 43,200,000 ms
@@ -182,7 +253,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
           console.log(`[Weather Modal] Skipping auto-sync: Last sync was ${((now - lastTs) / 3600000).toFixed(1)} hours ago.`);
        }
     }
-  }, [isOpen, apiKey, activeProvinces]);
+  }, [isOpen, apiKey, resolvedActiveProvinces]);
   
   // reset autosync when modal closes
   useEffect(() => {
@@ -192,7 +263,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
   }, [isOpen]);
 
   // Generate mocks to ensure data exists
-  const mockDeps = useMemo(() => activeProvinces.map(p => ({ id: p.id, name: p.name })), [activeProvinces]);
+  const mockDeps = useMemo(() => resolvedActiveProvinces.map(p => ({ id: p.id, name: p.name })), [resolvedActiveProvinces]);
   useMockCSVGenerator(mockDeps);
 
   // Today string for highlighting
@@ -223,7 +294,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
     });
 
     return targetDates.map(dateStr => {
-      const dateRecords = allRecords.filter(r => r.date === dateStr && activeProvinces.some(p => p.id === r.id));
+      const dateRecords = allRecords.filter(r => r.date === dateStr && resolvedActiveProvinces.some(p => p.id === r.id));
       const avgTemp = dateRecords.length > 0 
           ? dateRecords.reduce((acc, r) => acc + r.temperature, 0) / dateRecords.length 
           : 0;
@@ -235,13 +306,13 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
         isToday: dateStr === todayStr
       };
     });
-  }, [isOpen, activeProvinces, viewMode, isSyncing, todayStr]);
+  }, [isOpen, resolvedActiveProvinces, viewMode, isSyncing, todayStr]);
 
   // Province list data for current day
   const provinceList = useMemo(() => {
     if (!isOpen) return [];
     const allRecords = getRecords();
-    const records = activeProvinces.map(prov => {
+    const records = resolvedActiveProvinces.map(prov => {
       let rec = allRecords.find(r => r.id === prov.id && r.date === todayStr);
       return {
         id: prov.id,
@@ -251,7 +322,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
     });
 
     return records.sort((a, b) => sortOrder === 'desc' ? b.temp - a.temp : a.temp - b.temp);
-  }, [isOpen, activeProvinces, sortOrder, isSyncing, todayStr]);
+  }, [isOpen, resolvedActiveProvinces, sortOrder, isSyncing, todayStr]);
 
   if (!isOpen) return null;
 
@@ -365,7 +436,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
             </div>
 
             {/* Right: Province List */}
-            {activeProvinces.length > 1 && (
+            {resolvedActiveProvinces.length > 1 && (
                 <div className="flex-[2] bg-white/[0.01] flex flex-col border-l border-white/5 min-h-[200px]">
                     <div className="flex items-center justify-between p-4 border-b border-white/5">
                         <div>

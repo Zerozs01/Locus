@@ -18,6 +18,8 @@ import { getRecords } from '../../utils/csvDb';
 import { getEcoEntities, expandEcoTags, type EcoEntity } from './data/ecoDb';
 import { WeatherHistoryModal } from '../../components/WeatherHistoryModal';
 
+const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
+
 // Header Gradient Pair logic
 const regionGradientPairs: Record<string, string> = {
   central: '#f59e0b', north: '#d946ef', northeast: '#ef4444', 
@@ -73,7 +75,7 @@ export function TravelGuidePage() {
   const [syncedTempMap, setSyncedTempMap] = useState<Record<string, number>>({});
   const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
 
-  const normalizeKey = useCallback((value: string) => value.toLowerCase().replace(/[^a-z]/g, ''), []);
+  const normalizeKey = useCallback((value: string) => value.toLowerCase().replace(/[^a-z0-9_-]/g, ''), []);
 
   const provinceNameToId = useMemo(() => {
     const map = new Map<string, string>();
@@ -107,51 +109,93 @@ export function TravelGuidePage() {
   const [portalData, setPortalData] = useState<any>(null);
 
   useEffect(() => {
-    const syncData = () => {
-      const rows = getRecords();
-      if (!Array.isArray(rows) || rows.length === 0) return;
+    const syncFromDb = async () => {
+      const api = (window as any).api;
+      if (!api?.db?.getWeatherAqi) {
+        // Fallback: try legacy csvDb if IPC not available
+        const rows = getRecords();
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        const aqiMap: Record<string, number> = {};
+        const tempMap: Record<string, number> = {};
+        rows.forEach((r) => {
+          if (!r) return;
+          const nid = normalizeKey(r.id);
+          if (typeof r.aqi === 'number' && Number.isFinite(r.aqi)) aqiMap[nid] = r.aqi;
+          if (typeof r.temperature === 'number' && Number.isFinite(r.temperature)) tempMap[nid] = r.temperature;
+        });
+        if (Object.keys(aqiMap).length > 0) setSyncedAqiMap(aqiMap);
+        if (Object.keys(tempMap).length > 0) setSyncedTempMap(tempMap);
+        return;
+      }
 
-      const groupedByProvince = new Map<string, Array<{ date: string; aqi: number; temperature: number }>>();
-      rows.forEach((r) => {
-        if (!r) return;
-        const normalizedId = normalizeKey(r.id);
-        const date = typeof r.date === 'string' ? r.date : '';
-        const aqi = typeof r.aqi === 'number' && Number.isFinite(r.aqi) ? r.aqi : NaN;
-        const temperature = typeof r.temperature === 'number' && Number.isFinite(r.temperature) ? r.temperature : NaN;
-        if (isNaN(aqi) && isNaN(temperature)) return;
+      try {
+        // Fetch ALL weather records from SQLite (no province filter = get everything)
+        // console.log('[TravelGuide] Fetching weather from SQLite...');
+        const dbRows: { provinceId: string; date: string; temperature: number; aqi: number }[] =
+          await api.db.getWeatherAqi();
 
-        const list = groupedByProvince.get(normalizedId) || [];
-        list.push({ date, aqi, temperature });
-        groupedByProvince.set(normalizedId, list);
-      });
+        // console.log('[TravelGuide] DB Rows fetched:', dbRows?.length || 0);
+        if (!Array.isArray(dbRows) || dbRows.length === 0) return;
 
-      const aqiMap: Record<string, number> = {};
-      const tempMap: Record<string, number> = {};
-      groupedByProvince.forEach((list, id) => {
-        const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date));
-        const latestTemp = sorted.find((value) => !isNaN(value.temperature));
-        const preferredAqi = sorted.find((value) => !isNaN(value.aqi) && value.aqi !== 50)
-          || sorted.find((value) => !isNaN(value.aqi));
+        // Group by provinceId, pick latest date per province
+        const groupedByProvince = new Map<string, { date: string; aqi: number; temperature: number }[]>();
+        dbRows.forEach((r) => {
+          const nid = normalizeKey(r.provinceId);
+          const list = groupedByProvince.get(nid) || [];
+          list.push({ date: r.date, aqi: r.aqi, temperature: r.temperature });
+          groupedByProvince.set(nid, list);
+        });
 
-        if (preferredAqi) aqiMap[id] = preferredAqi.aqi;
-        if (latestTemp) tempMap[id] = latestTemp.temperature;
-      });
+        const aqiMap: Record<string, number> = {};
+        const tempMap: Record<string, number> = {};
+        groupedByProvince.forEach((list, id) => {
+          const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date));
+          const latestTemp = sorted.find((v) => typeof v.temperature === 'number' && Number.isFinite(v.temperature));
+          const preferredAqi = sorted.find((v) => typeof v.aqi === 'number' && Number.isFinite(v.aqi) && v.aqi !== 50)
+            || sorted.find((v) => typeof v.aqi === 'number' && Number.isFinite(v.aqi));
 
-      // Do not overwrite with empty maps (prevents rollback to static fallback)
-      if (Object.keys(aqiMap).length > 0) setSyncedAqiMap(aqiMap);
-      if (Object.keys(tempMap).length > 0) setSyncedTempMap(tempMap);
+          if (preferredAqi) aqiMap[id] = preferredAqi.aqi;
+          if (latestTemp) tempMap[id] = latestTemp.temperature;
+        });
+
+        // console.log('[TravelGuide] aqiMap constructed:', aqiMap);
+        if (Object.keys(aqiMap).length > 0) setSyncedAqiMap(aqiMap);
+        if (Object.keys(tempMap).length > 0) setSyncedTempMap(tempMap);
+
+        // Also add a debug log for selected province matching
+        // console.log('[TravelGuide] Current selected province map:', {
+        //   selectedProvinceId,
+        //   normalizedSelectedProvinceId: normalizeKey(selectedProvinceId)
+        // });
+      } catch (e) {
+        console.error('[TravelGuide] DB weather fetch failed totally:', e);
+        // Fallback to csvDb
+        const rows = getRecords();
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        const aqiMap: Record<string, number> = {};
+        const tempMap: Record<string, number> = {};
+        rows.forEach((r) => {
+          if (!r) return;
+          const nid = normalizeKey(r.id);
+          if (typeof r.aqi === 'number' && Number.isFinite(r.aqi)) aqiMap[nid] = r.aqi;
+          if (typeof r.temperature === 'number' && Number.isFinite(r.temperature)) tempMap[nid] = r.temperature;
+        });
+        if (Object.keys(aqiMap).length > 0) setSyncedAqiMap(aqiMap);
+        if (Object.keys(tempMap).length > 0) setSyncedTempMap(tempMap);
+      }
     };
 
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === 'locus_weather_aqi_csv_db') syncData();
+    syncFromDb();
+    const interval = setInterval(syncFromDb, 10000); // Re-sync every 10s
+    const onWeatherUpdated = () => {
+      void syncFromDb();
     };
 
-    syncData();
-    const interval = setInterval(syncData, 3000);
-    window.addEventListener('storage', onStorage);
+    window.addEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+
     return () => {
       clearInterval(interval);
-      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
     };
   }, [showWeatherModal, normalizeKey]);
   

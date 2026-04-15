@@ -15,7 +15,11 @@ const api = {
     getArchiveProvinces: (params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number }) =>
       ipcRenderer.invoke('db:getArchiveProvinces', params),
     getStats: () => ipcRenderer.invoke('db:getStats'),
-    forceReseed: () => ipcRenderer.invoke('db:forceReseed')
+    forceReseed: () => ipcRenderer.invoke('db:forceReseed'),
+    saveWeatherAqi: (records: { provinceId: string; date: string; temperature: number; aqi: number }[]) =>
+      ipcRenderer.invoke('db:saveWeatherAqi', records),
+    getWeatherAqi: (provinceId?: string, date?: string) =>
+      ipcRenderer.invoke('db:getWeatherAqi', provinceId, date)
   },
   assets: {
     getImageCacheStats: () => ipcRenderer.invoke('assets:getImageCacheStats'),

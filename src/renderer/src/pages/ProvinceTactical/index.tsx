@@ -32,6 +32,7 @@ export const ProvinceTacticalPage = () => {
   const [activeTab, setActiveTab] = useState<'explore' | 'stay' | 'eat' | 'travel' | 'essentials'>('explore');
   const [region, setRegion] = useState<Region | null>(null);
   const [province, setProvince] = useState<Province | null>(null);
+  const [liveWeather, setLiveWeather] = useState<{temp: number, aqi: number} | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Ref for ProvinceMap to trigger fly animations
@@ -57,15 +58,19 @@ export const ProvinceTacticalPage = () => {
       try {
         if (window.api && window.api.db) {
           if (regionId && provinceId && window.api.db.getRegion) {
-            const [regionData, provinceData] = await measureAsync(
+            const [regionData, provinceData, weatherData] = await measureAsync(
               'db:getRegion+Province@ProvinceTacticalPage',
               () => Promise.all([
                 window.api.db.getRegion(regionId),
-                window.api.db.getProvince(provinceId)
+                window.api.db.getProvince(provinceId),
+                window.api.db.getWeatherAqi ? window.api.db.getWeatherAqi(provinceId) : Promise.resolve([])
               ])
             );
             if (regionData) setRegion(regionData);
             if (provinceData) setProvince(provinceData);
+            if (weatherData && weatherData.length > 0) {
+              setLiveWeather({ temp: weatherData[0].temperature, aqi: weatherData[0].aqi });
+            }
           } else {
             const regions = await measureAsync('db:getRegions@ProvinceTacticalPage', () => window.api.db.getRegions());
             const foundRegion = regions.find((r: Region) => r.id === regionId);
@@ -89,8 +94,13 @@ export const ProvinceTacticalPage = () => {
 
   const provinceData = useMemo(() => {
     if (!region || !province) return null;
-    return generateProvinceData(province, region);
-  }, [province, region]);
+    const baseData = generateProvinceData(province, region);
+    if (liveWeather) {
+       baseData.weather.temp = `${liveWeather.temp.toFixed(1)}°`;
+       baseData.weather.aqi = liveWeather.aqi;
+    }
+    return baseData;
+  }, [province, region, liveWeather]);
 
   useEffect(() => {
     const state = location.state as {

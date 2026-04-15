@@ -23,6 +23,8 @@ declare global {
         getArchiveProvinces: (params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number }) => Promise<{ rows: any[]; total: number }>
         getStats: () => Promise<DatabaseStats>
         forceReseed: () => Promise<DatabaseStats>
+        saveWeatherAqi: (records: { provinceId: string; date: string; temperature: number; aqi: number }[]) => Promise<number>
+        getWeatherAqi: (provinceId?: string, date?: string) => Promise<Array<{ provinceId: string; date: string; temperature: number; aqi: number }>>
       }
       assets: {
         getImageCacheStats: () => Promise<{ fileCount: number; totalBytes: number; path: string }>

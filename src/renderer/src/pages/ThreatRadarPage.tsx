@@ -670,6 +670,7 @@ export const ThreatRadarPage = () => {
       {/* RIGHT: DASHBOARD */}
       <RegionDashboard 
         regions={regions}
+        provinceIndex={provinceIndex}
         selectedRegionId={selectedRegionId} 
         onSelectRegion={handleRegionSelect}
         mapMode={mapMode}

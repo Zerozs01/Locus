@@ -1,13 +1,42 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { X, Filter, Wind, RefreshCw, AlertCircle, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
-import { Province } from '../data/regions';
 import { getRecords, saveRecord, useMockCSVGenerator } from '../utils/csvDb';
 
 interface AQIModalProps {
   isOpen: boolean;
   onClose: () => void;
   regionName: string;
-  provinces: Province[];
+  provinces: { id: string; name: string }[];
+}
+
+interface WeatherAqiRow {
+  provinceId: string;
+  date: string;
+  temperature: number;
+  aqi: number;
+}
+
+const normalizeProvinceId = (id: string) => {
+  let normalized = id.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (normalized === 'bangkokmetropolis') normalized = 'bangkok';
+  if (normalized === 'phranakhonsiayutthaya') normalized = 'ayutthaya';
+  return normalized;
+};
+
+const normalizeProvinceNameKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
+
+const toWeatherRows = (rows: any[]): WeatherAqiRow[] => {
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .filter((row) => row && typeof row.provinceId === 'string')
+    .map((row) => ({
+      provinceId: normalizeProvinceId(row.provinceId),
+      date: typeof row.date === 'string' ? row.date : '',
+      temperature: Number(row.temperature),
+      aqi: Number(row.aqi)
+    }));
 }
 
 const getAQILevel = (aqi: number) => {
@@ -27,7 +56,64 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string>(() => localStorage.getItem('locus_aqi_last_sync') || 'Never');
   const [syncCount, setSyncCount] = useState(0);
+  const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
+  const [weatherRows, setWeatherRows] = useState<WeatherAqiRow[]>([]);
   const hasAutoSynced = useRef(false);
+
+  const loadWeatherRows = useCallback(async () => {
+    const api = (window as any).api;
+
+    try {
+      if (api?.db?.getWeatherAqi) {
+        const dbRows = await api.db.getWeatherAqi();
+        const normalizedRows = toWeatherRows(dbRows);
+        if (normalizedRows.length > 0) {
+          setWeatherRows(normalizedRows);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('[AQI Modal] Failed loading weather rows from DB, fallback to csvDb', error);
+    }
+
+    const fallbackRows = getRecords().map((row) => ({
+      provinceId: normalizeProvinceId(row.id),
+      date: row.date,
+      temperature: row.temperature,
+      aqi: row.aqi
+    }));
+    setWeatherRows(fallbackRows);
+  }, []);
+
+  const provinceIdByName = useMemo(() => {
+    const map = new Map<string, string>();
+    provinceIndex.forEach((province) => {
+      const id = normalizeProvinceId(province.id);
+      map.set(province.name.toLowerCase(), id);
+      map.set(normalizeProvinceNameKey(province.name), id);
+    });
+    return map;
+  }, [provinceIndex]);
+
+  const resolvedProvinces = useMemo(() => {
+    const deduped = new Map<string, { id: string; name: string }>();
+
+    provinces.forEach((province) => {
+      const canonicalId =
+        provinceIdByName.get(province.name.toLowerCase()) ||
+        provinceIdByName.get(normalizeProvinceNameKey(province.name)) ||
+        normalizeProvinceId(province.id);
+
+      if (!deduped.has(canonicalId)) {
+        deduped.set(canonicalId, {
+          id: canonicalId,
+          name: province.name
+        });
+      }
+    });
+
+    return Array.from(deduped.values());
+  }, [provinceIdByName, provinces]);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,13 +131,51 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const api = (window as any).api;
+    let cancelled = false;
+
+    const hydrate = async () => {
+      try {
+        if (api?.db?.getProvinceIndex) {
+          const indexRows = await api.db.getProvinceIndex();
+          if (!cancelled && Array.isArray(indexRows)) {
+            setProvinceIndex(indexRows.map((row: any) => ({ id: String(row.id), name: String(row.name) })));
+          }
+        }
+      } catch (error) {
+        console.warn('[AQI Modal] Failed loading province index', error);
+      }
+
+      if (!cancelled) {
+        await loadWeatherRows();
+      }
+    };
+
+    const onWeatherUpdated = () => {
+      void loadWeatherRows();
+    };
+
+    hydrate();
+    window.addEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+    };
+  }, [isOpen, loadWeatherRows]);
+
   const handleSync = async () => {
     setIsSyncing(true);
     if (apiKey) {
       try {
         const todayStr = new Date().toISOString().split('T')[0];
-        console.log(`[AQI Modal] Syncing ${provinces.length} provinces using ${aqiProvider}...`);
-        for (const prov of provinces) {
+        const syncedRows: WeatherAqiRow[] = [];
+
+        console.log(`[AQI Modal] Syncing ${resolvedProvinces.length} provinces using ${aqiProvider}...`);
+        for (const prov of resolvedProvinces) {
           try {
             const cleanName = prov.name.replace(' Metropolis', '').replace(' (Pattaya)', '').trim();
             console.log(`[AQI Modal] Fetching for ${cleanName} (${prov.id})...`);
@@ -94,13 +218,22 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
             }
 
             if (success) {
-              const allRecs = getRecords();
-              const existingRec = allRecs.find(r => r.id === prov.id && r.date === todayStr);
+              const existingRec = weatherRows.find(
+                (row) => row.provinceId === prov.id && row.date === todayStr
+              );
+
               saveRecord({
                 id: prov.id,
                 date: todayStr,
                 temperature: existingRec ? existingRec.temperature : 30,
                 aqi: aqiVal,
+              });
+
+              syncedRows.push({
+                provinceId: prov.id,
+                date: todayStr,
+                temperature: existingRec ? existingRec.temperature : 30,
+                aqi: aqiVal
               });
             }
           } catch (e) {
@@ -109,6 +242,21 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
           await new Promise(r => setTimeout(r, aqiProvider === 'aqicn' ? 1000 : 250)); // AQICN rate limit is generous but 1 req/s is safe, OpenWeather is 60/min
         }
         console.log('[AQI Modal] Sync complete.');
+        
+        // Persist all csvDb records to SQLite for cross-page access
+        try {
+          const api = (window as any).api;
+          if (api?.db?.saveWeatherAqi && syncedRows.length > 0) {
+            await api.db.saveWeatherAqi(syncedRows);
+            console.log(`[AQI Modal] Persisted ${syncedRows.length} records to SQLite DB.`);
+          }
+        } catch (dbErr) {
+          console.warn('[AQI Modal] Failed to persist to DB:', dbErr);
+        }
+
+        await loadWeatherRows();
+        window.dispatchEvent(new CustomEvent(WEATHER_AQI_UPDATED_EVENT, { detail: { source: 'aqi-modal' } }));
+
       } catch (e) {
         console.error('[AQI Modal] Batch sync failed', e);
       }
@@ -123,13 +271,16 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
   };
 
   useEffect(() => {
-    if (isOpen && apiKey && !hasAutoSynced.current && provinces.length > 0) {
+    if (isOpen && apiKey && !hasAutoSynced.current && resolvedProvinces.length > 0) {
       hasAutoSynced.current = true;
       
       const todayStr = new Date().toISOString().split('T')[0];
-      const allRecs = getRecords();
       // Check if we already have records for all provinces in this region for today
-      const alreadySyncedToday = provinces.every(p => allRecs.some(r => r.id === p.id && r.date === todayStr && !isNaN(r.aqi)));
+      const alreadySyncedToday = resolvedProvinces.every((province) =>
+        weatherRows.some(
+          (row) => row.provinceId === province.id && row.date === todayStr && Number.isFinite(row.aqi)
+        )
+      );
       
       if (!alreadySyncedToday) {
         handleSync();
@@ -137,7 +288,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
         console.log('[AQI Modal] Data already synced today, skipping auto-sync.');
       }
     }
-  }, [isOpen, apiKey, provinces]);
+  }, [apiKey, isOpen, resolvedProvinces, weatherRows]);
 
   useEffect(() => {
     if (!isOpen) hasAutoSynced.current = false;
@@ -146,21 +297,37 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
   // === Today's per-province AQI ===
   const aqiDataList = useMemo(() => {
     if (!isOpen) return [];
-    const allRecords = getRecords();
-    const todayStr = new Date().toISOString().split('T')[0];
-    const data = provinces.map(prov => {
-      let record = allRecords.find(r => r.id === prov.id && r.date === todayStr);
-      if (!record) record = { id: prov.id, date: todayStr, temperature: 30, aqi: 20 + Math.random() * 150 };
-      return { ...prov, aqi: Math.round(record.aqi), level: getAQILevel(record.aqi) };
+
+    const groupedByProvince = new Map<string, Array<{ date: string; temperature: number; aqi: number }>>();
+    weatherRows.forEach((row) => {
+      if (!Number.isFinite(row.aqi)) return;
+      const records = groupedByProvince.get(row.provinceId) || [];
+      records.push({ date: row.date, temperature: row.temperature, aqi: row.aqi });
+      groupedByProvince.set(row.provinceId, records);
     });
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const data = resolvedProvinces.map((province) => {
+      const records = groupedByProvince.get(province.id) || [];
+      const todayRecord = records.find((record) => record.date === todayStr);
+      const latestRecord = [...records].sort((a, b) => b.date.localeCompare(a.date))[0];
+      const resolved = todayRecord || latestRecord;
+      const aqi = resolved && Number.isFinite(resolved.aqi) ? Math.round(resolved.aqi) : 50;
+
+      return {
+        ...province,
+        aqi,
+        level: getAQILevel(aqi)
+      };
+    });
+
     return data.sort((a, b) => b.aqi - a.aqi);
-  }, [isOpen, provinces, syncCount]);
+  }, [isOpen, resolvedProvinces, syncCount, weatherRows]);
 
   // === Region Summary: avg, worst, best, 7-day trend ===
   const regionSummary = useMemo(() => {
     if (!isOpen || aqiDataList.length === 0) return null;
-    const allRecords = getRecords();
-    const provIds = new Set(provinces.map(p => p.id));
+    const provIds = new Set(resolvedProvinces.map((province) => province.id));
     const today = new Date();
 
     // Today's stats
@@ -175,7 +342,9 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       const dateStr = d.toISOString().split('T')[0];
-      const dayRecs = allRecords.filter(r => provIds.has(r.id) && r.date === dateStr);
+      const dayRecs = weatherRows.filter(
+        (row) => provIds.has(row.provinceId) && row.date === dateStr && Number.isFinite(row.aqi)
+      );
       const dayAvg = dayRecs.length > 0
         ? Math.round(dayRecs.reduce((sum, r) => sum + r.aqi, 0) / dayRecs.length)
         : 0;
@@ -187,7 +356,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
       });
     }
     return { avg, worst, best, trend, avgLevel: getAQILevel(avg) };
-  }, [isOpen, aqiDataList, provinces, syncCount]);
+  }, [isOpen, aqiDataList, resolvedProvinces, syncCount, weatherRows]);
 
   const filteredData = useMemo(() => {
     if (!activeFilter) return aqiDataList;

@@ -10,7 +10,7 @@ export interface WeatherRecord {
 }
 
 const normalizeId = (id: string) => {
-  let dbId = id.toLowerCase().replace(/[^a-z]/g, '');
+  let dbId = id.toLowerCase().replace(/[^a-z0-9_-]/g, '');
   if (dbId === 'bangkokmetropolis') dbId = 'bangkok';
   if (dbId === 'phranakhonsiayutthaya') dbId = 'ayutthaya';
   return dbId;

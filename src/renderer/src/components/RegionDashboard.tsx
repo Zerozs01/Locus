@@ -21,6 +21,32 @@ import { AQIModal } from './AQIModal';
 import { WeatherHistoryModal } from './WeatherHistoryModal';
 import { getRecords } from '../utils/csvDb';
 
+interface ProvinceIndexItem {
+  id: string;
+  name: string;
+  regionId: string;
+  regionName: string;
+  dailyCostValue?: number | null;
+  populationValue?: number | null;
+  safety?: number | null;
+}
+
+interface WeatherAqiRow {
+  provinceId: string;
+  date: string;
+  temperature: number;
+  aqi: number;
+}
+
+interface AQIProvinceItem {
+  id: string;
+  name: string;
+}
+
+const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
+
+const normalizeProvinceNameKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
 // Display names for provinces with long official names (GeoJSON names -> Display names)
 const provinceDisplayNames: Record<string, string> = {
   'Bangkok Metropolis': 'Bangkok',
@@ -188,45 +214,24 @@ const getAQILevelSub = (aqi: number) => {
   return 'Hazardous';
 };
 
-const getPM25Stat = (reg: Region) => {
-  const allRecords = getRecords();
-  const todayStr = new Date().toISOString().split('T')[0];
-  
-  let provs = reg.subProvinces;
-  if (!provs || provs.length === 0) {
-    provs = regionsData.find(r => r.id === reg.id)?.subProvinces || [];
-  }
-  
-  if (provs && provs.length > 0) {
-    const provIds = new Set(provs.map(p => p.id));
-    const todayRecs = allRecords.filter(r => provIds.has(r.id) && r.date === todayStr);
-    
-    if (todayRecs.length > 0) {
-      let totalAQI = 0;
-      let validCount = 0;
-      todayRecs.forEach(r => {
-        if (!isNaN(r.aqi)) {
-          totalAQI += r.aqi;
-          validCount++;
-        }
-      });
-      if (validCount > 0) {
-        const avg = Math.round(totalAQI / validCount);
-        return { value: `${avg} AQI`, sub: getAQILevelSub(avg) };
-      }
-    }
-  }
+const normalizeWeatherProvinceId = (id: string) => {
+  let normalized = id.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (normalized === 'bangkokmetropolis') normalized = 'bangkok';
+  if (normalized === 'phranakhonsiayutthaya') normalized = 'ayutthaya';
+  return normalized;
+};
 
-  // Fallback bounds
-  const data: Record<string, { value: string, sub: string }> = {
-    north: { value: '45-120 AQI', sub: 'Moderate - Unhealthy' },
-    northeast: { value: '35-80 AQI', sub: 'Moderate' },
-    central: { value: '40-90 AQI', sub: 'Moderate' },
-    south: { value: '15-35 AQI', sub: 'Good (Clean Air)' },
-    west: { value: '25-60 AQI', sub: 'Moderate' },
-    east: { value: '30-70 AQI', sub: 'Moderate' }
-  };
-  return data[reg.id] || data.central;
+const fallbackPm25ByRegion: Record<string, { value: string; sub: string }> = {
+  north: { value: '45-120 AQI', sub: 'Moderate - Unhealthy' },
+  northeast: { value: '35-80 AQI', sub: 'Moderate' },
+  central: { value: '40-90 AQI', sub: 'Moderate' },
+  south: { value: '15-35 AQI', sub: 'Good (Clean Air)' },
+  west: { value: '25-60 AQI', sub: 'Moderate' },
+  east: { value: '30-70 AQI', sub: 'Moderate' }
+};
+
+const getFallbackPM25Stat = (regionId: string) => {
+  return fallbackPm25ByRegion[regionId] || fallbackPm25ByRegion.central;
 };
 
 const getBestSeason = (regionId: string) => {
@@ -255,6 +260,7 @@ const getPopularProvinces = (reg: Region) => {
 
 export interface RegionDashboardProps {
   regions: Region[];
+  provinceIndex?: ProvinceIndexItem[];
   selectedRegionId: string | null;
   onSelectRegion: (id: string) => void;
   mapMode: 'region' | 'province';
@@ -268,6 +274,7 @@ export interface RegionDashboardProps {
 
 export const RegionDashboard = memo(({
   regions,
+  provinceIndex = [],
   selectedRegionId,
   onSelectRegion,
   mapMode,
@@ -286,6 +293,148 @@ export const RegionDashboard = memo(({
   
   const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
   const [selectedRegionForWeather, setSelectedRegionForWeather] = useState<Region | null>(null);
+  const [weatherRows, setWeatherRows] = useState<WeatherAqiRow[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncWeatherRows = async () => {
+      let nextRows: WeatherAqiRow[] = [];
+      try {
+        const api = (window as any).api;
+        if (api?.db?.getWeatherAqi) {
+          const dbRows = await api.db.getWeatherAqi();
+          if (Array.isArray(dbRows) && dbRows.length > 0) {
+            nextRows = dbRows
+              .filter((r: any) => r && typeof r.provinceId === 'string')
+              .map((r: any) => ({
+                provinceId: r.provinceId,
+                date: typeof r.date === 'string' ? r.date : '',
+                temperature: Number(r.temperature),
+                aqi: Number(r.aqi)
+              }));
+          }
+        }
+      } catch {
+        // Use csvDb fallback when IPC/SQLite is unavailable.
+      }
+
+      if (nextRows.length === 0) {
+        nextRows = getRecords().map((r) => ({
+          provinceId: r.id,
+          date: r.date,
+          temperature: r.temperature,
+          aqi: r.aqi
+        }));
+      }
+
+      if (!cancelled) {
+        setWeatherRows(nextRows);
+      }
+    };
+
+    syncWeatherRows();
+    const intervalId = window.setInterval(syncWeatherRows, 10000);
+    const onWeatherUpdated = () => {
+      void syncWeatherRows();
+    };
+
+    window.addEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+    };
+  }, [isAQIModalOpen, isWeatherModalOpen]);
+
+  const latestAqiByProvince = useMemo(() => {
+    const grouped = new Map<string, Array<{ date: string; aqi: number }>>();
+
+    weatherRows.forEach((row) => {
+      if (!row || typeof row.provinceId !== 'string') return;
+      if (typeof row.aqi !== 'number' || !Number.isFinite(row.aqi)) return;
+
+      const id = normalizeWeatherProvinceId(row.provinceId);
+      const list = grouped.get(id) || [];
+      list.push({ date: row.date, aqi: row.aqi });
+      grouped.set(id, list);
+    });
+
+    const result: Record<string, number> = {};
+    grouped.forEach((records, provinceId) => {
+      const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+      const preferred = sorted.find((item) => item.aqi !== 50) || sorted[0];
+      if (preferred) {
+        result[provinceId] = preferred.aqi;
+      }
+    });
+
+    return result;
+  }, [weatherRows]);
+
+  const provinceIdsByRegion = useMemo(() => {
+    const map = new Map<string, string[]>();
+    provinceIndex.forEach((item) => {
+      const list = map.get(item.regionId) || [];
+      list.push(normalizeWeatherProvinceId(item.id));
+      map.set(item.regionId, list);
+    });
+    return map;
+  }, [provinceIndex]);
+
+  const provinceIdByName = useMemo(() => {
+    const map = new Map<string, string>();
+    provinceIndex.forEach((item) => {
+      const canonicalId = normalizeWeatherProvinceId(item.id);
+      map.set(item.name.toLowerCase(), canonicalId);
+      map.set(normalizeProvinceNameKey(item.name), canonicalId);
+    });
+    return map;
+  }, [provinceIndex]);
+
+  const aqiModalProvincesByRegion = useMemo(() => {
+    const map = new Map<string, AQIProvinceItem[]>();
+
+    if (provinceIndex.length > 0) {
+      provinceIndex.forEach((item) => {
+        const list = map.get(item.regionId) || [];
+        list.push({ id: normalizeWeatherProvinceId(item.id), name: item.name });
+        map.set(item.regionId, list);
+      });
+    }
+
+    for (const reg of regions) {
+      if ((map.get(reg.id) || []).length > 0) {
+        continue;
+      }
+
+      let provinces = reg.subProvinces;
+      if (!provinces || provinces.length === 0) {
+        provinces = regionsData.find((r) => r.id === reg.id)?.subProvinces || [];
+      }
+
+      const deduped = new Map<string, AQIProvinceItem>();
+      provinces.forEach((province) => {
+        const canonicalId =
+          provinceIdByName.get(province.name.toLowerCase()) ||
+          provinceIdByName.get(normalizeProvinceNameKey(province.name)) ||
+          normalizeWeatherProvinceId(province.id);
+
+        if (!deduped.has(canonicalId)) {
+          deduped.set(canonicalId, { id: canonicalId, name: province.name });
+        }
+      });
+
+      map.set(reg.id, Array.from(deduped.values()));
+    }
+
+    map.forEach((items, regionId) => {
+      map.set(regionId, [...items].sort((a, b) => a.name.localeCompare(b.name)));
+    });
+
+    return map;
+  }, [provinceIdByName, provinceIndex, regions]);
 
   const sortedProvincesByRegion = useMemo(() => {
     const map = new Map<string, Province[]>();
@@ -309,6 +458,34 @@ export const RegionDashboard = memo(({
     });
   }, [regions]);
 
+  const pm25ByRegion = useMemo(() => {
+    const map = new Map<string, { value: string; sub: string }>();
+
+    for (const reg of orderedRegions) {
+      let provinceIds = provinceIdsByRegion.get(reg.id);
+      if (!provinceIds || provinceIds.length === 0) {
+        let provinces = reg.subProvinces;
+        if (!provinces || provinces.length === 0) {
+          provinces = regionsData.find((r) => r.id === reg.id)?.subProvinces || [];
+        }
+        provinceIds = provinces.map((p) => normalizeWeatherProvinceId(p.id));
+      }
+
+      const values = provinceIds
+        .map((id) => latestAqiByProvince[normalizeWeatherProvinceId(id)])
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+
+      if (values.length > 0) {
+        const avg = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+        map.set(reg.id, { value: `${avg} AQI`, sub: getAQILevelSub(avg) });
+      } else {
+        map.set(reg.id, getFallbackPM25Stat(reg.id));
+      }
+    }
+
+    return map;
+  }, [latestAqiByProvince, orderedRegions, provinceIdsByRegion]);
+
   useEffect(() => {
     if (mapMode !== 'province' || !selectedProvince) return;
     const target = provinceCardRefs.current.get(selectedProvince.id);
@@ -327,7 +504,7 @@ export const RegionDashboard = memo(({
         const stability = getStabilityProps(reg.safety);
         const theme = getRegionTheme(reg.id);
         const accentHex = getRegionAccent(theme);
-        const pm25 = getPM25Stat(reg);
+        const pm25 = pm25ByRegion.get(reg.id) || getFallbackPM25Stat(reg.id);
         const detailCards = [
           { key: 'cost', icon: <Wallet />, label: 'Avg Daily Cost', value: reg.stats.dailyCost, sub: 'Expenses/Day', emphasis: 0.34 },
           { key: 'air', icon: <Wind />, label: 'Air Quality (PM2.5)', value: pm25.value, sub: pm25.sub, emphasis: 0.3, isAqi: true },
@@ -595,7 +772,7 @@ export const RegionDashboard = memo(({
           isOpen={isAQIModalOpen}
           onClose={() => setIsAQIModalOpen(false)}
           regionName={selectedRegionForAQI.name}
-          provinces={sortedProvincesByRegion.get(selectedRegionForAQI.id) || selectedRegionForAQI.subProvinces}
+          provinces={aqiModalProvincesByRegion.get(selectedRegionForAQI.id) || []}
         />
       )}
 

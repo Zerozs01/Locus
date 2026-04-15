@@ -1473,17 +1473,23 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         </div>
       )}
 
-      {/* Compass Icon */}
-      <div className="absolute top-5 right-5 z-[500]">
-         <div className="bg-[#0b1018]/80 backdrop-blur-md border border-white/10 p-2.5 rounded-full shadow-lg text-slate-400 hover:text-cyan-400 transition-colors pointer-events-auto cursor-help" title="แผนที่ชี้ทิศเหนือเสมอ (Locked to North)">
-            <Compass size={20} />
-         </div>
-      </div>
+
 
       {/* Place Search, Map Controls & Routing UI */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] w-full pointer-events-auto flex flex-col items-center px-4">
-        <div className="flex items-end justify-center w-full relative mb-3 gap-3">
-           <div className="w-[min(420px,100%)] flex-1" ref={searchBoxRef}>
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-full pointer-events-auto flex flex-col items-center px-4">
+        {/* Map Filter Pills */}
+        {!isRoutingMode && (
+          <div className="flex w-max max-w-full flex-nowrap gap-2 overflow-x-auto pb-3 scrollbar-hide px-4">
+            <FilterPill color="#14b8a6" label="Attractions" icon="🎯" type="attraction" isActive={visibleFilters.has('attraction')} onToggle={() => toggleFilter('attraction')} />
+            <FilterPill color="#f59e0b" label="Restaurants" icon="🍜" type="restaurant" isActive={visibleFilters.has('restaurant')} onToggle={() => toggleFilter('restaurant')} />
+            <FilterPill color="#8b5cf6" label="Hotels" icon="🏨" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />
+            <FilterPill color="#ef4444" label="Hospitals" icon="🏥" type="hospital" isActive={visibleFilters.has('hospital')} onToggle={() => toggleFilter('hospital')} />
+            <FilterPill color="#3b82f6" label="Transport" icon="🚌" type="transport" isActive={visibleFilters.has('transport')} onToggle={() => toggleFilter('transport')} />
+          </div>
+        )}
+
+        <div className="flex items-center justify-center w-full max-w-[480px] relative gap-2">
+           <div className="flex-1 w-full" ref={searchBoxRef}>
              
             {/* Unified Suggestion Box */}
             {(showSuggestions && searchQuery.trim()) && (
@@ -1734,33 +1740,22 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
 
             {/* Quick Map Controls (Locate Me) */}
             {!isRoutingMode && (
-              <div className="flex flex-col gap-2 shrink-0 h-full justify-end pb-[10px] shadow-2xl">
+              <div className="flex flex-col gap-2 shrink-0 shadow-2xl h-[46px]">
                 <button 
-                  className="p-3 bg-[#0b1018]/95 border border-white/10 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all flex items-center justify-center group"
+                  className="w-[46px] h-[46px] bg-[#0b1018]/95 border border-white/10 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all flex items-center justify-center group"
                   title="My Current Location"
                   onClick={handleLocateMe}
                   disabled={isLocating}
                 >
                   {isLocating ? (
-                    <Loader2 size={20} className="animate-spin text-cyan-400" />
+                    <Loader2 size={18} className="animate-spin text-cyan-400" />
                   ) : (
-                    <LocateFixed size={20} className="group-hover:scale-110 transition-transform" />
+                    <LocateFixed size={18} className="group-hover:scale-110 transition-transform" />
                   )}
                 </button>
               </div>
             )}
         </div>
-
-        {/* Map Filter Pills */}
-        {!isRoutingMode && (
-          <div className="flex w-[min(420px,100%)] flex-nowrap gap-2 overflow-x-auto pb-1 mt-0">
-            <FilterPill color="#14b8a6" label="Attractions" icon="🎯" type="attraction" isActive={visibleFilters.has('attraction')} onToggle={() => toggleFilter('attraction')} />
-            <FilterPill color="#f59e0b" label="Restaurants" icon="🍜" type="restaurant" isActive={visibleFilters.has('restaurant')} onToggle={() => toggleFilter('restaurant')} />
-            <FilterPill color="#8b5cf6" label="Hotels" icon="🏨" type="hotel" isActive={visibleFilters.has('hotel')} onToggle={() => toggleFilter('hotel')} />
-            <FilterPill color="#ef4444" label="Hospitals" icon="🏥" type="hospital" isActive={visibleFilters.has('hospital')} onToggle={() => toggleFilter('hospital')} />
-            <FilterPill color="#3b82f6" label="Transport" icon="🚌" type="transport" isActive={visibleFilters.has('transport')} onToggle={() => toggleFilter('transport')} />
-          </div>
-        )}
       </div>
 
       {/* CSS for pulse animation */}
