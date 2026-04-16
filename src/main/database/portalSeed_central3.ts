@@ -144,10 +144,123 @@ export const centralPart3: Record<string, ProvincePortalSeedData> = {
     }
   ],
   "ecoIds": [
-    "c_heat_stroke",
-    "c_pm25"
+    "fl_rice",
+    "f_openbill_stork",
+    "f_aedes_mosquito",
+    "t_chao_phraya_plain",
+    "c_heat",
+    "c_monsoon_rain",
+    "h_flood",
+    "h_dengue"
   ],
-  "newEcoEntities": [],
+  "newEcoEntities": [
+    { id: "fl_rice", name: "นาข้าว", category: "flora", tags: ["common","edible","seasonal"], desc: "อ่างทองเป็นจังหวัดเกษตรในที่ราบภาคกลาง นาข้าวเป็นองค์ประกอบหลักของภูมิทัศน์" },
+    { id: "f_openbill_stork", name: "นกปากห่าง", category: "fauna", tags: ["common","protected"], desc: "นกน้ำที่พบหากินในนาข้าวและแหล่งน้ำตื้นทั่วภาคกลาง" },
+    { id: "f_aedes_mosquito", name: "ยุงลาย", category: "fauna", tags: ["danger","common","seasonal"], desc: "ยุงลายเป็นพาหะโรคที่ต้องเฝ้าระวัง โดยเฉพาะในเขตชุมชนหนาแน่น" },
+    { id: "t_chao_phraya_plain", name: "ที่ราบลุ่มเจ้าพระยา", category: "terrain", tags: ["common"], desc: "จังหวัดมีลักษณะเป็นที่ราบลุ่มและเครือข่ายคลอง เหมาะกับเกษตรกรรมและเสี่ยงน้ำหลาก" },
+    { id: "c_heat", name: "อากาศร้อนอบอ้าว", category: "climate", tags: ["common","danger","seasonal"], desc: "ฤดูร้อนมีแดดแรงและอุณหภูมิสูง โดยเฉพาะในพื้นที่เกษตรโล่ง" },
+    { id: "c_monsoon_rain", name: "ฝนมรสุมภาคกลาง", category: "climate", tags: ["common","danger","seasonal"], desc: "ฤดูฝนมีฝนสะสมต่อเนื่องและส่งผลต่อระดับน้ำในคลองและแม่น้ำ" },
+    { id: "h_flood", name: "น้ำท่วมทุ่งและชุมชนลุ่มต่ำ", category: "climate", tags: ["danger","common","seasonal","extreme"], desc: "อ่างทองมีความเสี่ยงน้ำท่วมในช่วงฝนหนักและน้ำหลากจากลุ่มเจ้าพระยา" },
+    { id: "h_dengue", name: "ความเสี่ยงโรคไข้เลือดออก", category: "climate", tags: ["common","danger","seasonal","extreme"], desc: "น้ำขังในชุมชนและพื้นที่เกษตรเพิ่มโอกาสเพาะพันธุ์ยุงลาย" }
+  ],
+  "knowledgeTips": [
+      {
+        "title": "ไหว้หลวงพ่อใหญ่ วัดม่วง",
+        "content": "วัดม่วง จ.อ่างทอง มีพระพุทธมหานวมินทร์ศากยมุนีศรีวิเศษชัยชาญ หรือ 'หลวงพ่อใหญ่' ที่ใหญ่ที่สุดในไทย ควรไปนมัสการเพื่อความเป็นสิริมงคล",
+        "type": "culture"
+      },
+      {
+        "title": "ช้อปตลาดโบราณบ้านลาด",
+        "content": "ตลาดบ้านลาดเก่า มีสินค้าพื้นเมืองและขนมไทยโบราณ ให้เดินชมวิถีเก่าๆ และถ่ายรูปย้อนยุค",
+        "type": "culture"
+      },
+      {
+        "title": "ชมวิวสะพานแม่น้ำเจ้าพระยา",
+        "content": "สะพานใหม่เชื่อมพระนครศรีอยุธยา-อ่างทอง เป็นจุดชมวิวแม่น้ำเจ้าพระยาที่สวยงาม",
+        "type": "route"
+      },
+      {
+        "title": "ของฝากพื้นเมือง",
+        "content": "อ่างทองขึ้นชื่อผลไม้สด เช่น ส้มโอหวาน (สมันตาโอหวาน) ควรลองชิมและซื้อกลับบ้าน",
+        "type": "food"
+      },
+      {
+        "title": "วัดสังกระต่ายโบราณ",
+        "content": "วัดเก่าชื่อดังในอ่างทอง มีศาลา 12 นักษัตรและโบสถ์ทรงไทยสุดงดงาม แวะกราบไหว้พระ",
+        "type": "culture"
+      }
+    ],
+  "supplyPoints": [
+      {
+        "type": "bank",
+        "label": "ธนาคารกรุงศรีอยุธยา สาขาศาลเจ้าพ่อหลักเมือง",
+        "area": "อ่างทอง",
+        "note": null,
+        "openHours": null,
+        "mapUrl": ""
+      },
+      {
+        "type": "gas",
+        "label": "ปั๊มบางจาก ถนนสายเอเซีย อ่างทอง",
+        "area": "ถนนสิงห์บุรี-ไชโย",
+        "note": null,
+        "openHours": null,
+        "mapUrl": ""
+      },
+      {
+        "type": "toilet",
+        "label": "ห้องน้ำสาธารณะ วัดม่วง",
+        "area": "อำเภอวิเศษชัยชาญ",
+        "note": null,
+        "openHours": null,
+        "mapUrl": ""
+      },
+      {
+        "type": "pharmacy",
+        "label": "ร้านขายยา 7-11 บ้านลาด",
+        "area": "อำเภอเมืองอ่างทอง",
+        "note": null,
+        "openHours": null,
+        "mapUrl": ""
+      },
+      {
+        "type": "clinic",
+        "label": "โรงพยาบาลอ่างทอง",
+        "area": "ตัวเมืองอ่างทอง",
+        "note": null,
+        "openHours": null,
+        "mapUrl": ""
+      },
+      {
+        "type": "police",
+        "label": "สถานีตำรวจภูธรเมืองอ่างทอง",
+        "area": "ตัวเมืองอ่างทอง",
+        "note": null,
+        "openHours": null,
+        "mapUrl": ""
+      }
+    ],
+  "plannerHints": {
+      "commonOrigins": [
+        "ทางหลวงหมายเลข 32",
+        "สะพานข้ามเจ้าพระยา (อ่างทอง-อยุธยา)",
+        "อู่ทองวัดไทรใหญ่"
+      ],
+      "commonDestinations": [
+        "วัดม่วง",
+        "วัดสังกระต่าย",
+        "ศาลเจ้าพ่อหลักเมือง",
+        "ตลาดโบราณบ้านลาด"
+      ],
+      "transitHubs": [
+        "สถานีขนส่งอ่างทอง",
+        "ถนนสายเอเซีย (32)"
+      ],
+      "routeNotes": [
+        "ถนนทางขึ้นสะพานแม่น้ำต้องระวังน้ำท่วมตอนปลายฝน",
+        "ส่วนใหญ่ใช้ทางหลวงหลักสาย 32 ผ่านอ่างทอง"
+      ]
+    },
   "metadata": {
     "climate": "อุณหภูมิ 23-33°C, ฝนตกชุก ก.ค.-ก.ย.",
     "terrain": "ที่ราบลุ่มกว้างขวาง แบ่งโดยคลองภาษีเจริญ",
@@ -309,10 +422,57 @@ export const centralPart3: Record<string, ProvincePortalSeedData> = {
     }
   ],
   "ecoIds": [
-    "f_monkey",
-    "c_heat_stroke"
+    "fl_sunflower",
+    "f_macaque",
+    "f_aedes_mosquito",
+    "t_plain_reservoir",
+    "c_heat",
+    "c_pm25",
+    "h_macaque_conflict",
+    "h_drought"
   ],
-  "newEcoEntities": [],
+  "newEcoEntities": [
+    { id: "fl_sunflower", name: "ทุ่งทานตะวัน", category: "flora", tags: ["common","edible","seasonal"], desc: "ลพบุรีมีชื่อเสียงเรื่องทุ่งทานตะวันในฤดูหนาว เป็นพืชเศรษฐกิจและภาพจำสำคัญของจังหวัด" },
+    { id: "f_macaque", name: "ลิงแสม/ลิงหางยาวในเขตเมืองเก่า", category: "fauna", tags: ["danger","common","protected"], desc: "ลิงเป็นสัญลักษณ์ของลพบุรี แต่สามารถแย่งของ กัด หรือข่วนได้หากเข้าใกล้หรือถืออาหาร" },
+    { id: "f_aedes_mosquito", name: "ยุงลาย", category: "fauna", tags: ["danger","common","seasonal"], desc: "พบทั่วไปในเขตชุมชนและพื้นที่น้ำขัง เป็นพาหะโรคที่ต้องระวัง" },
+    { id: "t_plain_reservoir", name: "ที่ราบภาคกลางสลับอ่างเก็บน้ำและเชิงเขา", category: "terrain", tags: ["common"], desc: "ลพบุรีมีทั้งพื้นที่ราบเกษตร อ่างเก็บน้ำขนาดใหญ่ และแนวเชิงเขาทางตะวันออก" },
+    { id: "c_heat", name: "อากาศร้อนและแห้ง", category: "climate", tags: ["common","danger","seasonal"], desc: "ฤดูร้อนของลพบุรีร้อนจัดและค่อนข้างแห้ง โดยเฉพาะพื้นที่โล่งและเชิงเขา" },
+    { id: "c_pm25", name: "ฝุ่น PM2.5 ช่วงอากาศแห้ง", category: "climate", tags: ["danger","common","seasonal"], desc: "ในฤดูแล้งอาจมีฝุ่นสะสมจากการจราจรและกิจกรรมเผาในพื้นที่โล่ง" },
+    { id: "h_macaque_conflict", name: "ความเสี่ยงจากลิงรบกวน", category: "climate", tags: ["danger","common","extreme"], desc: "นักท่องเที่ยวควรเก็บอาหาร ของมีค่า และหลีกเลี่ยงการสบตาหรือให้อาหารลิงโดยตรง" },
+    { id: "h_drought", name: "ภัยแล้งและขาดน้ำภาคเกษตร", category: "climate", tags: ["common","danger","seasonal","extreme"], desc: "ฝนน้อยและอากาศร้อนยาวนานอาจกระทบผลผลิตเกษตรและแหล่งน้ำในบางอำเภอ" }
+  ],
+  "knowledgeTips": [
+      {
+        "title": "ระวังลิงบริเวณสถานที่ท่องเที่ยว",
+        "content": "ส่วนตัวเมืองลพบุรีโดยเฉพาะบริเวณพระปรางค์สามยอดและศาลพระกาฬลิงค่อนข้างชุกชุมและซน ควรเก็บข้าวของมีค่า แว่นตา และอาหารให้มิดชิด",
+        "type": "safety"
+      },
+      {
+        "title": "เที่ยวชมทุ่งทานตะวัน",
+        "content": "เวลาที่เหมาะสมที่สุดสำหรับการชมทุ่งทานตะวันบานสะพรั่งคือช่วงเดือนพฤศจิกายนถึงมกราคม (พ.ย.-ม.ค.) ได้ภาพสวยแน่นอน",
+        "type": "nature"
+      }
+    ],
+  "supplyPoints": [],
+  "plannerHints": {
+      "commonOrigins": [
+        "ถนนพหลโยธิน",
+        "ทางหลวงสาย 3196"
+      ],
+      "commonDestinations": [
+        "พระปรางค์สามยอด",
+        "ศาลพระกาฬ",
+        "พระนารายณ์ราชนิเวศน์",
+        "ทุ่งทานตะวัน"
+      ],
+      "transitHubs": [
+        "สถานีรถไฟลพบุรี",
+        "สถานีขนส่งลพบุรี"
+      ],
+      "routeNotes": [
+        "การเดินชมโบราณสถานในเมืองสะดวกคล่องตัว แต่อย่าลืมระมัดระวังฝูงลิงข้ามถนน"
+      ]
+    },
   "metadata": {
     "climate": "อุณหภูมิ 24-34°C, ฝนมาก ก.ค.-ต.ค.",
     "terrain": "พื้นที่ราบลุ่มกว้าง มีโบราณสถานและภูเขาล้อมรอบ",
@@ -466,10 +626,56 @@ export const centralPart3: Record<string, ProvincePortalSeedData> = {
     }
   ],
   "ecoIds": [
-    "fl_mushroom_poison",
-    "c_pm25"
+    "fl_bamboo",
+    "f_hornbill",
+    "f_wild_elephant",
+    "t_mountain_forest",
+    "c_cool_forest_edge",
+    "c_pm25",
+    "h_flash_flood",
+    "h_wildfire"
   ],
-  "newEcoEntities": [],
+  "newEcoEntities": [
+    { id: "fl_bamboo", name: "ไผ่และพืชป่าริมเขา", category: "flora", tags: ["common","edible"], desc: "พื้นที่เชิงเขาและป่าของสระบุรีพบไผ่และพืชป่าหลายชนิด เป็นส่วนหนึ่งของแนวต่อเนื่องระบบนิเวศเขาใหญ่" },
+    { id: "f_hornbill", name: "นกเงือก", category: "fauna", tags: ["common","rare","protected"], desc: "แนวป่าที่ต่อกับเขาใหญ่เป็นถิ่นอาศัยของนกเงือกและสัตว์ป่าป่าดิบแล้งหลายชนิด" },
+    { id: "f_wild_elephant", name: "ช้างป่า", category: "fauna", tags: ["danger","rare","protected"], desc: "พื้นที่ป่าเชื่อมเขาใหญ่มีโอกาสพบช้างป่าได้ โดยเฉพาะใกล้แนวป่าและจุดทางผ่านสัตว์" },
+    { id: "t_mountain_forest", name: "ภูเขา ป่า และน้ำตกเชิงเขา", category: "terrain", tags: ["common"], desc: "สระบุรีต่างจากจังหวัดลุ่มเจ้าพระยาเพราะมีทั้งเชิงเขา ป่า และแหล่งน้ำตกจำนวนมาก" },
+    { id: "c_cool_forest_edge", name: "อากาศเย็นกว่าพื้นราบในเขตเชิงเขา", category: "climate", tags: ["common","seasonal"], desc: "พื้นที่เชิงเขาและป่ามักเย็นกว่าพื้นที่เมืองและพื้นที่อุตสาหกรรมของจังหวัด" },
+    { id: "c_pm25", name: "ฝุ่น PM2.5 ภาคกลางตอนบน", category: "climate", tags: ["danger","common","seasonal"], desc: "สระบุรีมีความเสี่ยงฝุ่นจากการคมนาคม อุตสาหกรรม และอากาศนิ่งในฤดูแล้ง" },
+    { id: "h_flash_flood", name: "น้ำป่าไหลหลากตามน้ำตกและเชิงเขา", category: "climate", tags: ["danger","common","seasonal","extreme"], desc: "ฝนหนักในพื้นที่ป่าต้นน้ำอาจทำให้เกิดน้ำป่าไหลหลากฉับพลันตามลำธารและน้ำตก" },
+    { id: "h_wildfire", name: "ไฟป่าฤดูแล้ง", category: "climate", tags: ["common","danger","seasonal","extreme"], desc: "พื้นที่ป่าและหญ้าแห้งมีความเสี่ยงไฟป่าในช่วงอากาศร้อนและฝนน้อย" }
+  ],
+  "knowledgeTips": [
+      {
+        "title": "การเตรียมตัวเที่ยวน้ำตก",
+        "content": "ควรเตรียมรองเท้าสำหรับเดินป่าหรือพื้นที่ลื่นให้พร้อม และควรตรวจสอบระดับน้ำตกเช่น น้ำตกเจ็ดสาวน้อยและสามหลั่น ก่อนการเดินทาง",
+        "type": "safety"
+      },
+      {
+        "title": "หลีกเลี่ยงวันหยุดยาว",
+        "content": "เนื่องจากสระบุรีอยู่ใกล้กรุงเทพฯและเดินทางง่าย วันหยุดยาวคนจึงไปเที่ยวธรรมชาติกันเยอะ อาจต้องเตรียมตัวให้พร้อมเรื่องรถติดหรือเผื่อไปวันธรรมดา",
+        "type": "culture"
+      }
+    ],
+  "supplyPoints": [],
+  "plannerHints": {
+      "commonOrigins": [
+        "ถนนมิตรภาพ"
+      ],
+      "commonDestinations": [
+        "น้ำตกเจ็ดสาวน้อย",
+        "น้ำตกสามหลั่น",
+        "วัดพระพุทธบาท",
+        "เขื่อนป่าสักชลสิทธิ์"
+      ],
+      "transitHubs": [
+        "สถานีขนส่งผู้โดยสารสระบุรี",
+        "สถานีรถไฟชุมทางแก่งคอย"
+      ],
+      "routeNotes": [
+        "ถนนมิตรภาพฝั่งขาออกมักจะมีปริมาณรถมากและติดสะสมช่วงวันหยุด"
+      ]
+    },
   "metadata": {
     "climate": "อุณหภูมิ 23-33°C, ฝนตกชุก ก.ค.-ต.ค.",
     "terrain": "ที่ราบกลางภูเขาตะวันออก มีเขาหินปูนและแม่น้ำป่าสัก",
@@ -614,10 +820,55 @@ export const centralPart3: Record<string, ProvincePortalSeedData> = {
     }
   ],
   "ecoIds": [
-    "c_heat_stroke",
-    "c_flash_flood"
+    "fl_rice",
+    "f_waterbird",
+    "f_aedes_mosquito",
+    "t_floodplain_dam",
+    "c_heat",
+    "c_monsoon_rain",
+    "h_flood",
+    "h_drought"
   ],
-  "newEcoEntities": [],
+  "newEcoEntities": [
+    { id: "fl_rice", name: "นาข้าว", category: "flora", tags: ["common","edible","seasonal"], desc: "ชัยนาทเป็นจังหวัดเกษตรในลุ่มเจ้าพระยาตอนบนตอนกลาง มีนาข้าวเป็นภูมิทัศน์เด่น" },
+    { id: "f_waterbird", name: "นกน้ำและนกสวนสัตว์น้ำจืด", category: "fauna", tags: ["common","protected"], desc: "จังหวัดมีแหล่งเรียนรู้นกขนาดใหญ่และพื้นที่ชุ่มน้ำรองรับนกน้ำหลายชนิด" },
+    { id: "f_aedes_mosquito", name: "ยุงลาย", category: "fauna", tags: ["danger","common","seasonal"], desc: "ยุงเป็นพาหะโรคที่พบทั่วไปในพื้นที่ชุมชนและเกษตรของชัยนาท" },
+    { id: "t_floodplain_dam", name: "ที่ราบลุ่มและระบบชลประทานจากเขื่อนเจ้าพระยา", category: "terrain", tags: ["common"], desc: "ชัยนาทมีภูมิประเทศที่เชื่อมกับแม่น้ำเจ้าพระยาและระบบชลประทานสำคัญของภาคกลาง" },
+    { id: "c_heat", name: "อากาศร้อนจัดพื้นที่โล่ง", category: "climate", tags: ["common","danger","seasonal"], desc: "พื้นที่เปิดโล่งรับแดดแรง ทำให้อุณหภูมิสูงในฤดูร้อน" },
+    { id: "c_monsoon_rain", name: "ฝนมรสุมและความชื้นสูง", category: "climate", tags: ["common","danger","seasonal"], desc: "ฤดูฝนมีผลต่อระดับน้ำในแม่น้ำและการจัดสรรน้ำเพื่อเกษตรกรรม" },
+    { id: "h_flood", name: "น้ำท่วมพื้นที่เกษตรและชุมชนลุ่มต่ำ", category: "climate", tags: ["common","danger","seasonal","extreme"], desc: "แม้มีระบบชลประทาน แต่ฝนหนักและน้ำเหนือยังอาจส่งผลต่อพื้นที่ลุ่มต่ำ" },
+    { id: "h_drought", name: "ภัยแล้งในฤดูร้อน", category: "climate", tags: ["common","danger","seasonal","extreme"], desc: "ช่วงฝนน้อยยาวนานอาจกระทบการเพาะปลูกและความเพียงพอของน้ำชลประทาน" }
+  ],
+  "knowledgeTips": [
+      {
+        "title": "จุดหมายปลายทางที่เงียบสงบ",
+        "content": "เหมาะสำหรับสายเที่ยวแบบชิลๆ หนีความวุ่นวาย มีแหล่งพักผ่อนทางธรรมชาติและการเรียนรู้ เช่น เขื่อนเจ้าพระยาและพิพิธภัณฑ์สวนนก",
+        "type": "culture"
+      },
+      {
+        "title": "เดินทางคล่องตัว",
+        "content": "การกระจายตัวของสถานที่เที่ยวค่อนข้างห่างกัน และขนส่งสาธารณะในจังหวัดอาจไม่ครอบคลุม 100% จึงเหมาะกับการเข้าชมโดยใช้รถยนต์ส่วนตัวที่สุด",
+        "type": "route"
+      }
+    ],
+  "supplyPoints": [],
+  "plannerHints": {
+      "commonOrigins": [
+        "ถนนสายเอเชีย (หมายเลข 32)"
+      ],
+      "commonDestinations": [
+        "เขื่อนเจ้าพระยา",
+        "สวนนกชัยนาท",
+        "วัดปากคลองมะขามเฒ่า",
+        "ศูนย์วิจัยประมงน้ำจืด"
+      ],
+      "transitHubs": [
+        "สถานีขนส่งผู้โดยสารจังหวัดชัยนาท"
+      ],
+      "routeNotes": [
+        "ที่เที่ยวบางประการเป็นพื้นที่เปิดโล่ง ควรมีร่มกันแดดหรือหลีกเลี่ยงช่วงสภาพอากาศร้อนจัด"
+      ]
+    },
   "metadata": {
     "climate": "อุณหภูมิ 24-33°C, ฝนตกชุก ก.ค.-ก.ย.",
     "terrain": "ที่ราบลุ่มแม่น้ำเจ้าพระยา",
@@ -773,10 +1024,55 @@ export const centralPart3: Record<string, ProvincePortalSeedData> = {
     }
   ],
   "ecoIds": [
-    "t_mountain",
-    "c_flash_flood"
+    "fl_bamboo",
+    "f_wild_elephant",
+    "f_hornbill",
+    "t_mountain_waterfall_forest",
+    "c_heavy_rain",
+    "c_cool_forest",
+    "h_flash_flood",
+    "h_elephant_conflict"
   ],
-  "newEcoEntities": [],
+  "newEcoEntities": [
+    { id: "fl_bamboo", name: "ไผ่ป่า", category: "flora", tags: ["common","edible"], desc: "พื้นที่ป่าและเชิงเขาของนครนายกพบไผ่และพืชป่าหลากชนิดซึ่งเป็นส่วนหนึ่งของระบบนิเวศเขาใหญ่" },
+    { id: "f_wild_elephant", name: "ช้างป่า", category: "fauna", tags: ["danger","common","protected"], desc: "นครนายกติดเขาใหญ่และมีข่าวช้างป่าออกนอกป่ามาถึงชุมชนเป็นระยะ ต้องระวังอย่างมาก" },
+    { id: "f_hornbill", name: "นกเงือก", category: "fauna", tags: ["common","protected"], desc: "แนวป่าเขาใหญ่เป็นถิ่นอาศัยสำคัญของนกเงือกหลายชนิด ซึ่งบ่งชี้ความสมบูรณ์ของป่า" },
+    { id: "t_mountain_waterfall_forest", name: "ภูเขา ป่าต้นน้ำ และน้ำตก", category: "terrain", tags: ["common"], desc: "นครนายกมีภูมิประเทศต่างจากจังหวัดลุ่มเจ้าพระยาอย่างชัดเจน โดยมีภูเขา ป่าต้นน้ำ และน้ำตกจำนวนมาก" },
+    { id: "c_heavy_rain", name: "ฝนมากในเขตป่าต้นน้ำ", category: "climate", tags: ["common","danger","seasonal"], desc: "ฝนตกมากในพื้นที่ป่าต้นน้ำทำให้ลำธารและน้ำตกมีน้ำแรงในฤดูฝน" },
+    { id: "c_cool_forest", name: "อากาศเย็นกว่าพื้นราบตามแนวป่า", category: "climate", tags: ["common","seasonal"], desc: "พื้นที่ติดป่าและภูเขามักมีอุณหภูมิต่ำกว่าพื้นราบภาคกลาง โดยเฉพาะตอนเช้าและหลังฝน" },
+    { id: "h_flash_flood", name: "น้ำป่าไหลหลาก", category: "climate", tags: ["danger","common","seasonal","extreme"], desc: "พื้นที่ท่องเที่ยวน้ำตกและลำธารเสี่ยงน้ำป่าไหลหลากฉับพลันหลังฝนตกหนักบนเขา" },
+    { id: "h_elephant_conflict", name: "ช้างป่าออกนอกพื้นที่ป่า", category: "climate", tags: ["danger","common","extreme"], desc: "ช้างป่าออกมาหากินใกล้ชุมชนและสวนเกษตรเป็นความเสี่ยงจริงของจังหวัดในช่วงหลัง" }
+  ],
+  "knowledgeTips": [
+      {
+        "title": "ระวังน้ำหลากในฤดูฝน",
+        "content": "ปริมาณน้ำตกและน้ำเหนือในหน้าฝนมีมาก หากมีฝนตกชุกควรติดตามข่าวสารเพื่อหลีกเลี่ยงเหตุการณ์น้ำป่าไหลหลากในลานกางเต็นท์",
+        "type": "safety"
+      },
+      {
+        "title": "เตรียมพร้อมล่องแก่ง",
+        "content": "กิจกรรมเด่นคือการเล่นน้ำ ล่องแก่ง และเดินป่า เตรียมชุดเปียก ซองกันน้ำ และรองเท้ารัดส้นให้พร้อมรับมือการผจญภัย",
+        "type": "culture"
+      }
+    ],
+  "supplyPoints": [],
+  "plannerHints": {
+      "commonOrigins": [
+        "ถนนรังสิต-นครนายก (305)"
+      ],
+      "commonDestinations": [
+        "เขื่อนขุนด่านปราการชล",
+        "น้ำตกนางรอง",
+        "น้ำตกสาริกา",
+        "อุทยานแห่งชาติเขาใหญ่"
+      ],
+      "transitHubs": [
+        "ท่ารถตู้นครนายก"
+      ],
+      "routeNotes": [
+        "ถนนรังสิต-นครนายก สามารถเข้าถึงได้ง่าย แต่การจราจรอาจติดขัดช่วงเช้าและเย็นในวันหยุดสุดสัปดาห์"
+      ]
+    },
   "metadata": {
     "climate": "อุณหภูมิ 23-33°C, ฝนตกชุก ก.ค.-ต.ค.",
     "terrain": "ภูเขาและลำธาร อากาศเย็นช่วงฤดูหนาว",

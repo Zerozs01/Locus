@@ -26,6 +26,8 @@ const normalizeProvinceId = (id: string) => {
 const normalizeProvinceNameKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
+const AQI_LAST_SYNC_TIMESTAMP_KEY = 'locus_aqi_last_sync_timestamp';
+const AQI_AUTO_SYNC_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 const toWeatherRows = (rows: any[]): WeatherAqiRow[] => {
   if (!Array.isArray(rows)) return [];
@@ -263,8 +265,10 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     } else {
       await new Promise(r => setTimeout(r, 1500));
     }
-    const newSync = new Date().toLocaleString('th-TH');
+    const nowTs = Date.now();
+    const newSync = new Date(nowTs).toLocaleString('th-TH');
     localStorage.setItem('locus_aqi_last_sync', newSync);
+    localStorage.setItem(AQI_LAST_SYNC_TIMESTAMP_KEY, String(nowTs));
     setLastSync(newSync);
     setSyncCount(c => c + 1);
     setIsSyncing(false);
@@ -273,6 +277,14 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
   useEffect(() => {
     if (isOpen && apiKey && !hasAutoSynced.current && resolvedProvinces.length > 0) {
       hasAutoSynced.current = true;
+
+      const lastSyncTs = Number(localStorage.getItem(AQI_LAST_SYNC_TIMESTAMP_KEY) || 0);
+      const nowTs = Date.now();
+      if (lastSyncTs > 0 && nowTs - lastSyncTs < AQI_AUTO_SYNC_COOLDOWN_MS) {
+        const remainingHours = ((AQI_AUTO_SYNC_COOLDOWN_MS - (nowTs - lastSyncTs)) / 3600000).toFixed(1);
+        console.log(`[AQI Modal] Auto-sync skipped: cooldown active (${remainingHours}h remaining).`);
+        return;
+      }
       
       const todayStr = new Date().toISOString().split('T')[0];
       // Check if we already have records for all provinces in this region for today

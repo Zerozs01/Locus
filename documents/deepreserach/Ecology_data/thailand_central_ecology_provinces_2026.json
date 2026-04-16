@@ -1,0 +1,2842 @@
+{
+  "Bangkok": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove",
+        "name": "ป่าชายเลนบางขุนเทียน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": null
+        },
+        "context": {
+          "location": [
+            "บางขุนเทียนชายทะเล",
+            "ชายฝั่งอ่าวไทย"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พืชป่าชายเลนพบที่แนวชายฝั่งบางขุนเทียน ช่วยลดการกัดเซาะและเป็นที่อยู่อาศัยของสัตว์น้ำวัยอ่อน"
+      },
+      {
+        "id": "f_monitor_lizard",
+        "name": "เหี้ยหรือตัวเงินตัวทอง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "สวนลุมพินี",
+            "คลองในเมือง",
+            "พื้นที่ชุ่มน้ำ"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พบได้ตามสวนใหญ่และคลองในเมือง มักหลบคนแต่ควรเว้นระยะเพราะอาจกัดเมื่อถูกรบกวน"
+      },
+      {
+        "id": "f_dog_stray",
+        "name": "สุนัขจรจัด",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": true
+        },
+        "context": {
+          "location": [
+            "ซอยทั่วไป",
+            "ตลาด",
+            "วัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พบทั่วเขตเมือง โดยเฉพาะใกล้ตลาดและชุมชน ควรหลีกเลี่ยงการเข้าใกล้ฝูงโดยเฉพาะเวลากลางคืน"
+      },
+      {
+        "id": "t_urban_dense",
+        "name": "เขตเมืองหนาแน่น",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "กรุงเทพฯ มีสภาพเป็นเมืองหนาแน่น มีถนน คลอง และสิ่งปลูกสร้างต่อเนื่อง ทำให้การระบายความร้อนและน้ำทำได้ยากในบางพื้นที่"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่นละออง PM2.5",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ทั่วเมือง",
+            "ริมถนนใหญ่",
+            "เขตก่อสร้าง"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "กรุงเทพฯ เผชิญปัญหาฝุ่น PM2.5 เป็นประจำในฤดูแล้งและช่วงอากาศปิด ควรเช็กค่าฝุ่นก่อนทำกิจกรรมกลางแจ้ง"
+      },
+      {
+        "id": "c_urban_heat",
+        "name": "เกาะความร้อนเมือง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "ย่านธุรกิจ",
+            "เขตเมืองชั้นใน"
+          ],
+          "season": [
+            "มี.ค.-พ.ค.",
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นผิวคอนกรีตและการจราจรหนาแน่นทำให้อุณหภูมิในเมืองสูงกว่าพื้นที่รอบนอก โดยเฉพาะช่วงบ่าย"
+      },
+      {
+        "id": "h_urban_flood",
+        "name": "น้ำท่วมขังเมือง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ถนนสายหลัก",
+            "จุดลุ่มต่ำ",
+            "ชุมชนริมคลอง"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักและการระบายน้ำไม่ทันทำให้เกิดน้ำท่วมขังฉับพลันในหลายเขต ส่งผลต่อการเดินทางและสุขอนามัย"
+      },
+      {
+        "id": "h_heat_stress",
+        "name": "ความเสี่ยงลมแดดและขาดน้ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "พื้นที่กลางแจ้ง",
+            "ป้ายรถเมล์",
+            "ลานคอนกรีต"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "อากาศร้อนจัดในเขตเมืองเพิ่มความเสี่ยงต่อภาวะลมแดด โดยเฉพาะผู้ที่เดินทางกลางแจ้งนาน"
+      }
+    ]
+  },
+  "Nonthaburi": {
+    "ecoEntities": [
+      {
+        "id": "fl_durian",
+        "name": "ทุเรียนนนท์",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "สวนริมน้ำ",
+            "บางกรวย",
+            "บางใหญ่",
+            "ปากเกร็ด"
+          ],
+          "season": [
+            "เม.ย.-ก.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "สวนทุเรียนเป็นอัตลักษณ์สำคัญของนนทบุรี โดยมากอยู่ในพื้นที่ดินตะกอนริมน้ำและระบบร่องสวน"
+      },
+      {
+        "id": "f_monitor_lizard",
+        "name": "เหี้ยหรือตัวเงินตัวทอง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ริมแม่น้ำเจ้าพระยา",
+            "คลอง",
+            "สวนสาธารณะ"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พบได้ตามพื้นที่ริมน้ำและคลองของจังหวัด มักหลบคนแต่ไม่ควรเข้าใกล้"
+      },
+      {
+        "id": "f_aedes_mosquito",
+        "name": "ยุงลาย",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true
+        },
+        "context": {
+          "location": [
+            "ชุมชนเมือง",
+            "บ้านเรือน",
+            "แหล่งน้ำขัง"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นพาหะโรคไข้เลือดออก พบมากในเขตชุมชนหนาแน่นและบริเวณที่มีภาชนะน้ำขัง"
+      },
+      {
+        "id": "t_river_orchard",
+        "name": "สวนผลไม้และที่ราบริมน้ำ",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "ริมเจ้าพระยา",
+            "เกาะเกร็ด",
+            "พื้นที่สวนเก่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "นนทบุรีมีภูมิประเทศแบบที่ราบลุ่มแม่น้ำและสวนร่องน้ำเก่า เหมาะกับไม้ผลโดยเฉพาะทุเรียน"
+      },
+      {
+        "id": "c_humidity",
+        "name": "อากาศชื้นลุ่มน้ำ",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดมีความชื้นค่อนข้างสูงจากแม่น้ำและคลองจำนวนมาก ทำให้รู้สึกร้อนอบอ้าวในฤดูฝน"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5 ปริมณฑล",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ริมถนนใหญ่",
+            "พื้นที่เมืองต่อเนื่องกับกรุงเทพฯ"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ติดกรุงเทพฯ ทำให้รับผลกระทบฝุ่น PM2.5 คล้ายกัน โดยเฉพาะช่วงอากาศนิ่ง"
+      },
+      {
+        "id": "h_river_flood",
+        "name": "น้ำหลากและน้ำเอ่อจากลุ่มเจ้าพระยา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ปากเกร็ด",
+            "พื้นที่ริมน้ำ",
+            "จุดลุ่มต่ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ริมน้ำและจุดลุ่มต่ำเสี่ยงต่อน้ำเอ่อจากแม่น้ำเจ้าพระยาและฝนหนักในฤดูน้ำหลาก"
+      },
+      {
+        "id": "h_dengue",
+        "name": "ความเสี่ยงไข้เลือดออก",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ชุมชนเมือง",
+            "โรงเรียน",
+            "หมู่บ้าน"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงฝนทำให้แหล่งเพาะพันธุ์ยุงเพิ่มขึ้น ควรป้องกันยุงกัดและกำจัดน้ำขัง"
+      }
+    ]
+  },
+  "Pathum Thani": {
+    "ecoEntities": [
+      {
+        "id": "fl_lotus",
+        "name": "บัวหลวง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": true
+        },
+        "context": {
+          "location": [
+            "บึง",
+            "คลอง",
+            "แหล่งน้ำตื้น"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "บัวเป็นสัญลักษณ์ของปทุมธานี พบในแหล่งน้ำตื้นและพื้นที่ชุ่มน้ำหลายแห่ง"
+      },
+      {
+        "id": "f_marble_goby",
+        "name": "ปลาบู่ทราย",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": null
+        },
+        "context": {
+          "location": [
+            "คลอง",
+            "บึง",
+            "แหล่งน้ำจืด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ปลาน้ำจืดที่พบในระบบคลองและบึงของภาคกลาง สะท้อนระบบนิเวศแหล่งน้ำของจังหวัด"
+      },
+      {
+        "id": "f_aedes_mosquito",
+        "name": "ยุงลาย",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true
+        },
+        "context": {
+          "location": [
+            "ชุมชน",
+            "หอพัก",
+            "แหล่งน้ำขัง"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นพาหะสำคัญของโรคไข้เลือดออก พบมากในพื้นที่ชุมชนและเมืองขยายตัว"
+      },
+      {
+        "id": "t_alluvial_canal_plain",
+        "name": "ที่ราบตะกอนลุ่มเจ้าพระยาและเครือข่ายคลอง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ปทุมธานีเป็นที่ราบลุ่มตะกอน มีคลองจำนวนมากรองรับนาข้าว สวน และชุมชน"
+      },
+      {
+        "id": "c_humid_heat",
+        "name": "อากาศร้อนชื้น",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "มี.ค.-พ.ค.",
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "อุณหภูมิสูงและความชื้นมากทำให้รู้สึกร้อนอบอ้าว โดยเฉพาะในเขตเมืองและนิคมอุตสาหกรรม"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5 ปริมณฑลตอนเหนือ",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ริมถนน",
+            "เขตเมืองรังสิต",
+            "พื้นที่ต่อเนื่องกับกรุงเทพฯ"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่เมืองขยายตัวและจราจรหนาแน่นทำให้มีความเสี่ยงฝุ่น PM2.5 ในฤดูแล้ง"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมลุ่มต่ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "รังสิต",
+            "ธัญบุรี",
+            "พื้นที่ริมน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ปทุมธานีเป็นจังหวัดเสี่ยงน้ำท่วมจากฝนหนักและการระบายน้ำของลุ่มเจ้าพระยาตอนล่าง"
+      },
+      {
+        "id": "h_dengue",
+        "name": "ความเสี่ยงโรคจากยุง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ชุมชน",
+            "มหาวิทยาลัย",
+            "หมู่บ้าน"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "น้ำขังในชุมชนเมืองและพื้นที่อยู่อาศัยเพิ่มความเสี่ยงโรคไข้เลือดออกและโรคจากยุง"
+      }
+    ]
+  },
+  "Samut Prakan": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove",
+        "name": "โกงกางและพืชป่าชายเลน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": null
+        },
+        "context": {
+          "location": [
+            "บางปู",
+            "ชายฝั่งอ่าวไทย",
+            "ป่าชายเลน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "แนวป่าชายเลนเป็นระบบนิเวศสำคัญของสมุทรปราการ ช่วยดักตะกอน ลดคลื่น และเป็นแหล่งอนุบาลสัตว์น้ำ"
+      },
+      {
+        "id": "f_migratory_gull",
+        "name": "นกนางนวลอพยพ",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "สถานตากอากาศบางปู",
+            "ชายฝั่ง"
+          ],
+          "season": [
+            "ต.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "บางปูเป็นจุดดูนกเด่นของจังหวัด ช่วงฤดูหนาวจะมีนกอพยพจำนวนมากใช้พื้นที่ชายฝั่งพักและหาอาหาร"
+      },
+      {
+        "id": "f_mudskipper",
+        "name": "ปลาตีน",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false
+        },
+        "context": {
+          "location": [
+            "โคลนเลน",
+            "ป่าชายเลน",
+            "ชายฝั่ง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "สัตว์เด่นของเขตโคลนเลน พบตามพื้นเลนและรากโกงกาง เป็นตัวชี้วัดสภาพระบบนิเวศชายฝั่ง"
+      },
+      {
+        "id": "t_mudflat_mangrove",
+        "name": "โคลนเลนและป่าชายเลนชายฝั่ง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "บางปู",
+            "ปากแม่น้ำ",
+            "ชายฝั่งอ่าวไทย"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดมีภูมิประเทศชายฝั่งอ่าวไทย มีทั้งโคลนเลน ป่าชายเลน และพื้นที่ชุ่มน้ำชายฝั่ง"
+      },
+      {
+        "id": "c_sea_breeze",
+        "name": "อากาศชื้นลมทะเล",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "เขตชายฝั่ง",
+            "บางปู"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ชายฝั่งมีลมทะเลช่วยระบายอากาศ แต่ยังคงร้อนชื้นตามแบบอ่าวไทยตอนใน"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5 เขตอุตสาหกรรม-ปริมณฑล",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "แนวเมืองอุตสาหกรรม",
+            "ถนนสายหลัก"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "สมุทรปราการได้รับผลกระทบทั้งจากการจราจรและมลพิษข้ามพื้นที่ ทำให้ค่าฝุ่นสูงได้ในฤดูแล้ง"
+      },
+      {
+        "id": "h_coastal_flood",
+        "name": "น้ำทะเลหนุนและน้ำท่วมชายฝั่ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "พื้นที่ชายฝั่งต่ำ",
+            "ชุมชนริมน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ช่วงน้ำทะเลหนุน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ชายฝั่งต่ำมีความเสี่ยงน้ำทะเลหนุนและน้ำท่วมร่วมกับฝนหนัก"
+      },
+      {
+        "id": "h_coastal_erosion",
+        "name": "การกัดเซาะชายฝั่ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "บางขุนเทียนต่อเนื่องถึงชายฝั่งสมุทรปราการ",
+            "แนวป่าชายเลน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "คลื่น ลม และการเปลี่ยนแปลงตะกอนทำให้ชายฝั่งบางส่วนเสื่อมโทรม ต้องพึ่งแนวป่าชายเลนช่วยชะลอ"
+      }
+    ]
+  },
+  "Phra Nakhon Si Ayutthaya": {
+    "ecoEntities": [
+      {
+        "id": "fl_rice",
+        "name": "นาข้าวลุ่มน้ำ",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "ที่ราบลุ่ม",
+            "พื้นที่เกษตรรอบเกาะเมือง"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูปลูก"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "อยุธยาเป็นพื้นที่เกษตรลุ่มน้ำสำคัญของภาคกลาง นาข้าวพบกว้างขวางในพื้นที่ราบรอบจังหวัด"
+      },
+      {
+        "id": "f_openbill_stork",
+        "name": "นกปากห่าง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "นาข้าว",
+            "บึงน้ำตื้น",
+            "ทุ่งนา"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พบหากินตามท้องนาและแหล่งน้ำตื้นของภาคกลาง โดยกินหอยและสัตว์น้ำขนาดเล็ก"
+      },
+      {
+        "id": "f_aedes_mosquito",
+        "name": "ยุงลาย",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true
+        },
+        "context": {
+          "location": [
+            "ชุมชน",
+            "จุดน้ำขัง",
+            "พื้นที่น้ำท่วม"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "น้ำขังหลังฝนและน้ำท่วมเพิ่มความเสี่ยงการระบาดของยุงพาหะในเขตชุมชน"
+      },
+      {
+        "id": "t_floodplain_island",
+        "name": "เกาะเมืองและที่ราบน้ำท่วมถึง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "เกาะเมืองอยุธยา",
+            "ลุ่มแม่น้ำเจ้าพระยา ป่าสัก ลพบุรี"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดตั้งอยู่ในจุดบรรจบของแม่น้ำหลายสาย จึงเป็นพื้นที่ราบน้ำท่วมถึงที่อุดมสมบูรณ์"
+      },
+      {
+        "id": "c_monsoon_rain",
+        "name": "ฝนมรสุมลุ่มเจ้าพระยา",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "พ.ค.-ต.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงมรสุมมีฝนสะสมต่อเนื่อง ส่งผลโดยตรงต่อระดับน้ำในแม่น้ำสายหลักของจังหวัด"
+      },
+      {
+        "id": "c_heat",
+        "name": "อากาศร้อนอบอ้าว",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "พื้นที่โล่ง",
+            "ทุ่งนา",
+            "เขตเมือง"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นที่ราบโล่งทำให้อุณหภูมิกลางวันสูงและแดดแรงในฤดูร้อน"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมลุ่มน้ำเจ้าพระยาตอนล่าง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "เกาะเมือง",
+            "พื้นที่ลุ่มต่ำ",
+            "ชุมชนริมน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "อยุธยามีความเสี่ยงน้ำท่วมซ้ำซากจากการเป็นพื้นที่ต่ำและรับน้ำจากหลายลุ่มน้ำ"
+      },
+      {
+        "id": "h_bank_erosion",
+        "name": "ตลิ่งพังและน้ำกัดเซาะ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ริมแม่น้ำ",
+            "ชุมชนริมน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ช่วงน้ำหลาก"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "กระแสน้ำแรงในช่วงน้ำมากอาจทำให้ตลิ่งทรุดและกระทบพื้นที่ชุมชนริมแม่น้ำ"
+      }
+    ]
+  },
+  "Nakhon Pathom": {
+    "ecoEntities": [
+      {
+        "id": "fl_pomelo",
+        "name": "ส้มโอ",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "สวนส้มโอ",
+            "สามพราน",
+            "นครชัยศรี"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "นครปฐมขึ้นชื่อเรื่องส้มโอหวาน เป็นพืชเศรษฐกิจสำคัญของสวนผลไม้ในลุ่มน้ำท่าจีน"
+      },
+      {
+        "id": "f_fruit_bat",
+        "name": "ค้างคาวกินผลไม้",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": null
+        },
+        "context": {
+          "location": [
+            "สวนผลไม้",
+            "แนวต้นไม้ใหญ่"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "night"
+        },
+        "description": "พบหากินตามสวนผลไม้และต้นไม้ใหญ่ในเวลากลางคืน ควรหลีกเลี่ยงการสัมผัสโดยตรง"
+      },
+      {
+        "id": "f_aedes_mosquito",
+        "name": "ยุงลาย",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true
+        },
+        "context": {
+          "location": [
+            "ชุมชน",
+            "สวน",
+            "น้ำขัง"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พบได้ทั่วไปในชุมชนและพื้นที่สวน เป็นพาหะโรคที่ต้องระวังในฤดูฝน"
+      },
+      {
+        "id": "t_orchard_plain",
+        "name": "สวนผลไม้และที่ราบลุ่มท่าจีน",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "นครชัยศรี",
+            "สามพราน",
+            "พื้นที่ลุ่ม"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดเป็นที่ราบลุ่มเชื่อมกับแม่น้ำท่าจีน มีสวนผลไม้ คลอง และพื้นที่เกษตรหนาแน่น"
+      },
+      {
+        "id": "c_humid_heat",
+        "name": "อากาศร้อนชื้นภาคกลาง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "มี.ค.-พ.ค.",
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "อากาศร้อนและชื้น ทำให้กลางวันร้อนจัดโดยเฉพาะพื้นที่โล่งและชุมชนเมือง"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5 ภาคกลางตอนล่าง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ริมถนน",
+            "เขตเมือง",
+            "พื้นที่กิจกรรมเผา"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝุ่น PM2.5 อาจสูงในฤดูแล้งจากการจราจรและมลพิษสะสมในบรรยากาศ"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมที่ราบลุ่มท่าจีน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "พื้นที่ลุ่มต่ำ",
+            "ริมคลอง",
+            "ริมแม่น้ำท่าจีน"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักและน้ำเอ่อจากลำน้ำสายหลักทำให้เกิดน้ำท่วมในพื้นที่ลุ่มต่ำได้"
+      },
+      {
+        "id": "h_dengue",
+        "name": "ความเสี่ยงไข้เลือดออกในชุมชนและสวน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "บ้านเรือน",
+            "สวนผลไม้",
+            "โรงเรียน"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่สวนและชุมชนที่มีน้ำขังเป็นจุดเสี่ยงต่อการเพาะพันธุ์ยุงลาย"
+      }
+    ]
+  },
+  "Samut Sakhon": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove",
+        "name": "ป่าชายเลน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "ชายฝั่ง",
+            "คลองโคกขาม",
+            "พื้นที่อนุรักษ์ชายฝั่ง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ป่าชายเลนเป็นโครงสร้างหลักของระบบนิเวศชายฝั่งสมุทรสาคร ช่วยรักษาตะกอนและเป็นแหล่งอนุบาลสัตว์น้ำ"
+      },
+      {
+        "id": "f_shorebird_migratory",
+        "name": "นกชายเลนอพยพ",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "โคกขาม",
+            "นาเกลือ",
+            "โคลนเลนชายฝั่ง"
+          ],
+          "season": [
+            "ต.ค.-เม.ย."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นที่โคลนเลนและนาเกลือของสมุทรสาครเป็นแหล่งพักและหาอาหารของนกชายเลนอพยพ"
+      },
+      {
+        "id": "f_mudskipper",
+        "name": "ปลาตีน",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false
+        },
+        "context": {
+          "location": [
+            "โคลนเลน",
+            "ป่าชายเลน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พบตามพื้นเลนบริเวณชายฝั่ง เป็นสัตว์เด่นในระบบนิเวศโคลนเลนของอ่าวไทยตอนใน"
+      },
+      {
+        "id": "t_salt_pan_mudflat",
+        "name": "นาเกลือและโคลนเลนชายฝั่ง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "โคกขาม",
+            "ชายฝั่งอ่าวไทย"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดมีภูมิประเทศชายฝั่งที่โดดเด่นด้วยนาเกลือ โคลนเลน และปากคลองน้ำกร่อย"
+      },
+      {
+        "id": "c_coastal_humidity",
+        "name": "อากาศชื้นเค็มชายฝั่ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "ชายฝั่ง",
+            "ชุมชนประมง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ชายฝั่งมีอากาศชื้นสูงและได้รับอิทธิพลจากลมทะเลตลอดปี"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5 เขตอุตสาหกรรมชายฝั่ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "เมืองมหาชัย",
+            "ถนนสายหลัก",
+            "เขตอุตสาหกรรม"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่เมืองและอุตสาหกรรมมีความเสี่ยงค่าฝุ่นสูงในบางช่วงของฤดูแล้ง"
+      },
+      {
+        "id": "h_coastal_erosion",
+        "name": "การกัดเซาะชายฝั่ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "แนวชายฝั่ง",
+            "พื้นที่ป่าชายเลนเสื่อมโทรม"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "คลื่นและการเปลี่ยนแปลงตะกอนชายฝั่งส่งผลต่อความมั่นคงของแนวชายฝั่งและชุมชน"
+      },
+      {
+        "id": "h_tidal_flood",
+        "name": "น้ำทะเลหนุนและน้ำท่วมชุมชนชายฝั่ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ชุมชนชายฝั่ง",
+            "ปากคลอง",
+            "พื้นที่ต่ำ"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ช่วงน้ำทะเลหนุน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ชุมชนชายฝั่งเสี่ยงต่อน้ำท่วมจากฝนหนักร่วมกับน้ำทะเลหนุน โดยเฉพาะจุดต่ำ"
+      }
+    ]
+  },
+  "Samut Songkhram": {
+    "ecoEntities": [
+      {
+        "id": "fl_nipa_palm",
+        "name": "จาก",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "คลองน้ำกร่อย",
+            "คลองโคน",
+            "ป่าชายเลน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พืชเด่นของพื้นที่ปากแม่น้ำและน้ำกร่อย ใช้ประโยชน์ได้หลายส่วนและช่วยยึดตลิ่ง"
+      },
+      {
+        "id": "f_firefly",
+        "name": "หิ่งห้อย",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": null
+        },
+        "context": {
+          "location": [
+            "อัมพวา",
+            "คลองโคน",
+            "แนวต้นลำพู"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูชื้น"
+          ],
+          "timeOfDay": "night"
+        },
+        "description": "สมุทรสงครามมีชื่อเสียงเรื่องชมหิ่งห้อยตามคลอง โดยเฉพาะบริเวณที่มีต้นลำพูและน้ำคุณภาพพอเหมาะ"
+      },
+      {
+        "id": "f_mudskipper",
+        "name": "ปลาตีน",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false
+        },
+        "context": {
+          "location": [
+            "โคลนเลน",
+            "ป่าชายเลน",
+            "คลองโคน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พบตามโคลนเลนของพื้นที่ป่าชายเลนและปากแม่น้ำ เป็นสัตว์สะท้อนความสมบูรณ์ของระบบนิเวศน้ำกร่อย"
+      },
+      {
+        "id": "t_estuary_canal",
+        "name": "ปากแม่น้ำและเครือข่ายคลองสวน",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "อัมพวา",
+            "แม่กลอง",
+            "คลองโคน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดมีภูมิประเทศปากแม่น้ำแม่กลอง เชื่อมกับคลองสวนและพื้นที่น้ำกร่อยจำนวนมาก"
+      },
+      {
+        "id": "c_humid_coastal",
+        "name": "อากาศชื้นชายฝั่ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "อิทธิพลจากปากแม่น้ำและทะเลทำให้สมุทรสงครามมีอากาศชื้นตลอดปี"
+      },
+      {
+        "id": "c_heat",
+        "name": "อากาศร้อนอบอ้าว",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "ตลาดน้ำ",
+            "สวนมะพร้าว",
+            "พื้นที่โล่ง"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ฤดูร้อนมีอุณหภูมิสูงและความชื้นมาก ทำให้รู้สึกร้อนอบอ้าวกว่าพื้นที่แห้ง"
+      },
+      {
+        "id": "h_tidal_flood",
+        "name": "น้ำทะเลหนุนและน้ำท่วมริมน้ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ชุมชนริมน้ำ",
+            "ปากแม่น้ำ",
+            "คลองสวน"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ช่วงน้ำหนุน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ชุมชนริมน้ำและพื้นที่ต่ำมีความเสี่ยงต่อน้ำทะเลหนุนและน้ำเอ่อเข้าคลอง"
+      },
+      {
+        "id": "h_bank_erosion",
+        "name": "ตลิ่งพังในคลองและปากแม่น้ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "คลองสวน",
+            "ริมแม่น้ำแม่กลอง"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "คลื่นจากเรือและการเปลี่ยนแปลงกระแสน้ำอาจเร่งการพังทลายของตลิ่งในบางจุด"
+      }
+    ]
+  },
+  "Suphan Buri": {
+    "ecoEntities": [
+      {
+        "id": "fl_rice",
+        "name": "นาข้าว",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "ทุ่งนา",
+            "ที่ราบลุ่มท่าจีน"
+          ],
+          "season": [
+            "ฤดูปลูก",
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "สุพรรณบุรีเป็นจังหวัดเกษตรสำคัญ มีนาข้าวกว้างขวางในพื้นที่ราบลุ่ม"
+      },
+      {
+        "id": "f_openbill_stork",
+        "name": "นกปากห่าง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "นาข้าว",
+            "บึง",
+            "คูน้ำเกษตร"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พบบ่อยในพื้นที่เกษตรภาคกลาง กินหอยและสัตว์น้ำในทุ่งนา"
+      },
+      {
+        "id": "f_water_buffalo",
+        "name": "ควายน้ำ",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": false
+        },
+        "context": {
+          "location": [
+            "พื้นที่เกษตร",
+            "ศรีประจันต์",
+            "หมู่บ้านอนุรักษ์ควายไทย"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ควายเป็นสัตว์คู่เกษตรกรรมของจังหวัด และยังมีแหล่งอนุรักษ์ควายไทยในสุพรรณบุรี"
+      },
+      {
+        "id": "t_plain_forest_mix",
+        "name": "ที่ราบลุ่มผสมเนินเขาและป่า",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "ลุ่มน้ำท่าจีน",
+            "ตอนตะวันตกของจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "สุพรรณบุรีมีทั้งที่ราบเกษตรขนาดใหญ่และพื้นที่เนินเขา/ป่าทางฝั่งตะวันตก"
+      },
+      {
+        "id": "c_heat",
+        "name": "อากาศร้อนแห้งในฤดูแล้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "ทุ่งนา",
+            "พื้นที่โล่ง"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นที่เกษตรโล่งทำให้รับแดดจัดและอุณหภูมิสูงมากในฤดูร้อน"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5 จากอากาศนิ่งและการเผา",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "เขตเมือง",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝุ่นสะสมในฤดูแล้งอาจมาจากการจราจรและกิจกรรมเผาในพื้นที่เกษตรใกล้เคียง"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมพื้นที่เกษตรลุ่มต่ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ลุ่มน้ำท่าจีน",
+            "พื้นที่นอกคันกั้นน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักและน้ำล้นลำน้ำอาจกระทบพื้นที่เกษตรและชุมชนลุ่มต่ำ"
+      },
+      {
+        "id": "h_drought",
+        "name": "ภัยแล้งและขาดน้ำชลประทาน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ทุ่งนา",
+            "พื้นที่เกษตรโล่ง"
+          ],
+          "season": [
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงฝนน้อยหรืออากาศร้อนต่อเนื่องอาจกระทบผลผลิตทางเกษตรและแหล่งน้ำ"
+      }
+    ]
+  },
+  "Sing Buri": {
+    "ecoEntities": [
+      {
+        "id": "fl_rice",
+        "name": "นาข้าว",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "ทุ่งนา",
+            "ที่ราบลุ่ม"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูปลูก"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "สิงห์บุรีเป็นจังหวัดที่ราบเกษตรในลุ่มเจ้าพระยา มีนาข้าวเป็นภูมิทัศน์หลัก"
+      },
+      {
+        "id": "f_openbill_stork",
+        "name": "นกปากห่าง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "นาข้าว",
+            "หนองน้ำ",
+            "คูน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "นกน้ำที่พบตามพื้นที่เกษตรและบึงตื้นในภาคกลาง กินหอยเชอรี่และสัตว์น้ำขนาดเล็ก"
+      },
+      {
+        "id": "f_aedes_mosquito",
+        "name": "ยุงลาย",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true
+        },
+        "context": {
+          "location": [
+            "ชุมชน",
+            "น้ำขัง",
+            "สวนครัว"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นที่ชุมชนและน้ำขังเป็นแหล่งเพาะพันธุ์ยุงพาหะโรคสำคัญของจังหวัด"
+      },
+      {
+        "id": "t_floodplain",
+        "name": "ที่ราบน้ำท่วมถึงลุ่มเจ้าพระยา",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "สิงห์บุรีเป็นที่ราบลุ่มเกือบทั้งหมด มีลำน้ำและคลองหล่อเลี้ยงพื้นที่เกษตร"
+      },
+      {
+        "id": "c_heat",
+        "name": "อากาศร้อนจัดในพื้นที่โล่ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "ทุ่งนา",
+            "ถนนโล่ง"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ภูมิประเทศโล่งทำให้แดดแรงและอุณหภูมิสูงในฤดูร้อน"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5 ฤดูแล้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "เขตเมือง",
+            "แนวถนน",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ในฤดูแล้งอาจเกิดฝุ่นสะสมจากอากาศนิ่งและกิจกรรมเผาในที่โล่ง"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมพื้นที่ลุ่มต่ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ริมแม่น้ำ",
+            "ทุ่งนา",
+            "พื้นที่ลุ่ม"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "น้ำหลากจากลุ่มเจ้าพระยาอาจกระทบพื้นที่เกษตรและชุมชนในจุดลุ่มต่ำ"
+      },
+      {
+        "id": "h_dengue",
+        "name": "ความเสี่ยงไข้เลือดออก",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ชุมชน",
+            "โรงเรียน",
+            "น้ำขัง"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฤดูฝนเพิ่มจำนวนยุงลายและความเสี่ยงโรคในชุมชน"
+      }
+    ]
+  },
+  "Ang Thong": {
+    "ecoEntities": [
+      {
+        "id": "fl_rice",
+        "name": "นาข้าว",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "ทุ่งนา",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูปลูก"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "อ่างทองเป็นจังหวัดเกษตรในที่ราบภาคกลาง นาข้าวเป็นองค์ประกอบหลักของภูมิทัศน์"
+      },
+      {
+        "id": "f_openbill_stork",
+        "name": "นกปากห่าง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "นาข้าว",
+            "บึงน้ำตื้น"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "นกน้ำที่พบหากินในนาข้าวและแหล่งน้ำตื้นทั่วภาคกลาง"
+      },
+      {
+        "id": "f_aedes_mosquito",
+        "name": "ยุงลาย",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true
+        },
+        "context": {
+          "location": [
+            "ชุมชน",
+            "น้ำขัง",
+            "โรงเรียน"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ยุงลายเป็นพาหะโรคที่ต้องเฝ้าระวัง โดยเฉพาะในเขตชุมชนหนาแน่น"
+      },
+      {
+        "id": "t_chao_phraya_plain",
+        "name": "ที่ราบลุ่มเจ้าพระยา",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดมีลักษณะเป็นที่ราบลุ่มและเครือข่ายคลอง เหมาะกับเกษตรกรรมและเสี่ยงน้ำหลาก"
+      },
+      {
+        "id": "c_heat",
+        "name": "อากาศร้อนอบอ้าว",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "พื้นที่โล่ง",
+            "ชุมชน"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ฤดูร้อนมีแดดแรงและอุณหภูมิสูง โดยเฉพาะในพื้นที่เกษตรโล่ง"
+      },
+      {
+        "id": "c_monsoon_rain",
+        "name": "ฝนมรสุมภาคกลาง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "พ.ค.-ต.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฤดูฝนมีฝนสะสมต่อเนื่องและส่งผลต่อระดับน้ำในคลองและแม่น้ำ"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมทุ่งและชุมชนลุ่มต่ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "พื้นที่ลุ่มต่ำ",
+            "ริมคลอง",
+            "ทุ่งนา"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "อ่างทองมีความเสี่ยงน้ำท่วมในช่วงฝนหนักและน้ำหลากจากลุ่มเจ้าพระยา"
+      },
+      {
+        "id": "h_dengue",
+        "name": "ความเสี่ยงโรคไข้เลือดออก",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ชุมชน",
+            "แหล่งน้ำขัง"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "น้ำขังในชุมชนและพื้นที่เกษตรเพิ่มโอกาสเพาะพันธุ์ยุงลาย"
+      }
+    ]
+  },
+  "Lop Buri": {
+    "ecoEntities": [
+      {
+        "id": "fl_sunflower",
+        "name": "ทุ่งทานตะวัน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "พัฒนานิคม",
+            "เส้นทางลพบุรี-สระบุรี"
+          ],
+          "season": [
+            "ธ.ค.-ม.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ลพบุรีมีชื่อเสียงเรื่องทุ่งทานตะวันในฤดูหนาว เป็นพืชเศรษฐกิจและภาพจำสำคัญของจังหวัด"
+      },
+      {
+        "id": "f_macaque",
+        "name": "ลิงแสม/ลิงหางยาวในเขตเมืองเก่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "พระปรางค์สามยอด",
+            "ศาลพระกาฬ",
+            "เมืองเก่าลพบุรี"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ลิงเป็นสัญลักษณ์ของลพบุรี แต่สามารถแย่งของ กัด หรือข่วนได้หากเข้าใกล้หรือถืออาหาร"
+      },
+      {
+        "id": "f_aedes_mosquito",
+        "name": "ยุงลาย",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true
+        },
+        "context": {
+          "location": [
+            "ชุมชน",
+            "น้ำขัง"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พบทั่วไปในเขตชุมชนและพื้นที่น้ำขัง เป็นพาหะโรคที่ต้องระวัง"
+      },
+      {
+        "id": "t_plain_reservoir",
+        "name": "ที่ราบภาคกลางสลับอ่างเก็บน้ำและเชิงเขา",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "พัฒนานิคม",
+            "รอบเขื่อนป่าสักชลสิทธิ์"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ลพบุรีมีทั้งพื้นที่ราบเกษตร อ่างเก็บน้ำขนาดใหญ่ และแนวเชิงเขาทางตะวันออก"
+      },
+      {
+        "id": "c_heat",
+        "name": "อากาศร้อนและแห้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "พื้นที่โล่ง",
+            "ทุ่งเกษตร"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ฤดูร้อนของลพบุรีร้อนจัดและค่อนข้างแห้ง โดยเฉพาะพื้นที่โล่งและเชิงเขา"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5 ช่วงอากาศแห้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "เขตเมือง",
+            "ถนนหลัก",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ในฤดูแล้งอาจมีฝุ่นสะสมจากการจราจรและกิจกรรมเผาในพื้นที่โล่ง"
+      },
+      {
+        "id": "h_macaque_conflict",
+        "name": "ความเสี่ยงจากลิงรบกวน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "เมืองเก่า",
+            "ย่านท่องเที่ยว"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "นักท่องเที่ยวควรเก็บอาหาร ของมีค่า และหลีกเลี่ยงการสบตาหรือให้อาหารลิงโดยตรง"
+      },
+      {
+        "id": "h_drought",
+        "name": "ภัยแล้งและขาดน้ำภาคเกษตร",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "พื้นที่เกษตรโล่ง",
+            "เชิงเขา"
+          ],
+          "season": [
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนน้อยและอากาศร้อนยาวนานอาจกระทบผลผลิตเกษตรและแหล่งน้ำในบางอำเภอ"
+      }
+    ]
+  },
+  "Saraburi": {
+    "ecoEntities": [
+      {
+        "id": "fl_bamboo",
+        "name": "ไผ่และพืชป่าริมเขา",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "มวกเหล็ก",
+            "ชายป่า",
+            "เขตใกล้เขาใหญ่"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่เชิงเขาและป่าของสระบุรีพบไผ่และพืชป่าหลายชนิด เป็นส่วนหนึ่งของแนวต่อเนื่องระบบนิเวศเขาใหญ่"
+      },
+      {
+        "id": "f_hornbill",
+        "name": "นกเงือก",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขาใหญ่ฝั่งสระบุรี",
+            "ป่าเขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "แนวป่าที่ต่อกับเขาใหญ่เป็นถิ่นอาศัยของนกเงือกและสัตว์ป่าป่าดิบแล้งหลายชนิด"
+      },
+      {
+        "id": "f_wild_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขาใหญ่ฝั่งสระบุรี",
+            "แนวป่าเชื่อมต่อ"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ป่าเชื่อมเขาใหญ่มีโอกาสพบช้างป่าได้ โดยเฉพาะใกล้แนวป่าและจุดทางผ่านสัตว์"
+      },
+      {
+        "id": "t_mountain_forest",
+        "name": "ภูเขา ป่า และน้ำตกเชิงเขา",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "มวกเหล็ก",
+            "เจ็ดคต",
+            "เขาใหญ่ฝั่งสระบุรี"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "สระบุรีต่างจากจังหวัดลุ่มเจ้าพระยาเพราะมีทั้งเชิงเขา ป่า และแหล่งน้ำตกจำนวนมาก"
+      },
+      {
+        "id": "c_cool_forest_edge",
+        "name": "อากาศเย็นกว่าพื้นราบในเขตเชิงเขา",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "มวกเหล็ก",
+            "พื้นที่ป่า"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูหนาว"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่เชิงเขาและป่ามักเย็นกว่าพื้นที่เมืองและพื้นที่อุตสาหกรรมของจังหวัด"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5 ภาคกลางตอนบน",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "เขตเมือง",
+            "ริมถนน",
+            "พื้นที่อุตสาหกรรม"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "สระบุรีมีความเสี่ยงฝุ่นจากการคมนาคม อุตสาหกรรม และอากาศนิ่งในฤดูแล้ง"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำป่าไหลหลากตามน้ำตกและเชิงเขา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "น้ำตก",
+            "ลำธาร",
+            "พื้นที่กางเต็นท์"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักในพื้นที่ป่าต้นน้ำอาจทำให้เกิดน้ำป่าไหลหลากฉับพลันตามลำธารและน้ำตก"
+      },
+      {
+        "id": "h_wildfire",
+        "name": "ไฟป่าฤดูแล้ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "เชิงเขา",
+            "ป่าโปร่ง",
+            "พื้นที่หญ้าแห้ง"
+          ],
+          "season": [
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ป่าและหญ้าแห้งมีความเสี่ยงไฟป่าในช่วงอากาศร้อนและฝนน้อย"
+      }
+    ]
+  },
+  "Chai Nat": {
+    "ecoEntities": [
+      {
+        "id": "fl_rice",
+        "name": "นาข้าว",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "ที่ราบลุ่ม",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูปลูก"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ชัยนาทเป็นจังหวัดเกษตรในลุ่มเจ้าพระยาตอนบนตอนกลาง มีนาข้าวเป็นภูมิทัศน์เด่น"
+      },
+      {
+        "id": "f_waterbird",
+        "name": "นกน้ำและนกสวนสัตว์น้ำจืด",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "สวนนกชัยนาท",
+            "บึงน้ำจืด",
+            "คูคลอง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "จังหวัดมีแหล่งเรียนรู้นกขนาดใหญ่และพื้นที่ชุ่มน้ำรองรับนกน้ำหลายชนิด"
+      },
+      {
+        "id": "f_aedes_mosquito",
+        "name": "ยุงลาย",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true
+        },
+        "context": {
+          "location": [
+            "ชุมชน",
+            "น้ำขัง",
+            "สวน"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ยุงเป็นพาหะโรคที่พบทั่วไปในพื้นที่ชุมชนและเกษตรของชัยนาท"
+      },
+      {
+        "id": "t_floodplain_dam",
+        "name": "ที่ราบลุ่มและระบบชลประทานจากเขื่อนเจ้าพระยา",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด",
+            "แนวแม่น้ำเจ้าพระยา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ชัยนาทมีภูมิประเทศที่เชื่อมกับแม่น้ำเจ้าพระยาและระบบชลประทานสำคัญของภาคกลาง"
+      },
+      {
+        "id": "c_heat",
+        "name": "อากาศร้อนจัดพื้นที่โล่ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "ทุ่งนา",
+            "ถนนโล่ง"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นที่เปิดโล่งรับแดดแรง ทำให้อุณหภูมิสูงในฤดูร้อน"
+      },
+      {
+        "id": "c_monsoon_rain",
+        "name": "ฝนมรสุมและความชื้นสูง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "พ.ค.-ต.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฤดูฝนมีผลต่อระดับน้ำในแม่น้ำและการจัดสรรน้ำเพื่อเกษตรกรรม"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมพื้นที่เกษตรและชุมชนลุ่มต่ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "ริมแม่น้ำ",
+            "พื้นที่ลุ่มต่ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "แม้มีระบบชลประทาน แต่ฝนหนักและน้ำเหนือยังอาจส่งผลต่อพื้นที่ลุ่มต่ำ"
+      },
+      {
+        "id": "h_drought",
+        "name": "ภัยแล้งในฤดูร้อน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "พื้นที่เกษตรโล่ง"
+          ],
+          "season": [
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงฝนน้อยยาวนานอาจกระทบการเพาะปลูกและความเพียงพอของน้ำชลประทาน"
+      }
+    ]
+  },
+  "Nakhon Nayok": {
+    "ecoEntities": [
+      {
+        "id": "fl_bamboo",
+        "name": "ไผ่ป่า",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false
+        },
+        "context": {
+          "location": [
+            "เขาใหญ่",
+            "แนวป่า",
+            "เชิงเขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ป่าและเชิงเขาของนครนายกพบไผ่และพืชป่าหลากชนิดซึ่งเป็นส่วนหนึ่งของระบบนิเวศเขาใหญ่"
+      },
+      {
+        "id": "f_wild_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขาใหญ่",
+            "สาริกา",
+            "แนวป่าต่อเนื่อง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "นครนายกติดเขาใหญ่และมีข่าวช้างป่าออกนอกป่ามาถึงชุมชนเป็นระยะ ต้องระวังอย่างมาก"
+      },
+      {
+        "id": "f_hornbill",
+        "name": "นกเงือก",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขาใหญ่",
+            "ป่าดิบเขา",
+            "แนวป่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "แนวป่าเขาใหญ่เป็นถิ่นอาศัยสำคัญของนกเงือกหลายชนิด ซึ่งบ่งชี้ความสมบูรณ์ของป่า"
+      },
+      {
+        "id": "t_mountain_waterfall_forest",
+        "name": "ภูเขา ป่าต้นน้ำ และน้ำตก",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "สาริกา",
+            "นางรอง",
+            "เขาใหญ่ฝั่งนครนายก"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "นครนายกมีภูมิประเทศต่างจากจังหวัดลุ่มเจ้าพระยาอย่างชัดเจน โดยมีภูเขา ป่าต้นน้ำ และน้ำตกจำนวนมาก"
+      },
+      {
+        "id": "c_heavy_rain",
+        "name": "ฝนมากในเขตป่าต้นน้ำ",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "context": {
+          "location": [
+            "แนวภูเขา",
+            "น้ำตก",
+            "ลำธาร"
+          ],
+          "season": [
+            "พ.ค.-ต.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนตกมากในพื้นที่ป่าต้นน้ำทำให้ลำธารและน้ำตกมีน้ำแรงในฤดูฝน"
+      },
+      {
+        "id": "c_cool_forest",
+        "name": "อากาศเย็นกว่าพื้นราบตามแนวป่า",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "context": {
+          "location": [
+            "เชิงเขา",
+            "ป่า",
+            "น้ำตก"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูหนาว"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ติดป่าและภูเขามักมีอุณหภูมิต่ำกว่าพื้นราบภาคกลาง โดยเฉพาะตอนเช้าและหลังฝน"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำป่าไหลหลาก",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "น้ำตก",
+            "ลำธาร",
+            "จุดเล่นน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ท่องเที่ยวน้ำตกและลำธารเสี่ยงน้ำป่าไหลหลากฉับพลันหลังฝนตกหนักบนเขา"
+      },
+      {
+        "id": "h_elephant_conflict",
+        "name": "ช้างป่าออกนอกพื้นที่ป่า",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "context": {
+          "location": [
+            "สาริกา",
+            "หมู่บ้านติดป่า",
+            "สวนเกษตรใกล้เขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช้างป่าออกมาหากินใกล้ชุมชนและสวนเกษตรเป็นความเสี่ยงจริงของจังหวัดในช่วงหลัง"
+      }
+    ]
+  }
+}

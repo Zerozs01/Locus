@@ -1,0 +1,2218 @@
+{
+  "Chon Buri": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove_rhizophora",
+        "name": "โกงกาง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ป่าชายเลนอ่างศิลา",
+            "ปากคลองชายฝั่ง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ไม้ป่าชายเลนเด่นของชายฝั่งชลบุรี ช่วยยึดตะกอนและเป็นแหล่งอนุบาลสัตว์น้ำวัยอ่อน"
+      },
+      {
+        "id": "fl_mangrove_avicennia",
+        "name": "แสมทะเล",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ป่าชายเลน",
+            "ดินเลนริมอ่าว"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พบร่วมกับโกงกางในพื้นที่เลนชายฝั่ง ทนความเค็มได้ดีและช่วยรักษาสมดุลระบบนิเวศปากอ่าว"
+      },
+      {
+        "id": "f_long_tailed_macaque",
+        "name": "ลิงแสม",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขาสามมุก",
+            "ป่าชายเลน",
+            "แหล่งท่องเที่ยวริมเขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พบได้จริงตามชายฝั่งและจุดท่องเที่ยวบางแห่ง ไม่ควรให้อาหารหรือเข้าใกล้ฝูงเพราะอาจแย่งของได้"
+      },
+      {
+        "id": "f_mudskipper",
+        "name": "ปลาตีน",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ดินเลนป่าชายเลน",
+            "ริมคลองน้ำกร่อย"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "สัตว์เด่นของระบบนิเวศดินเลนป่าชายเลน มักพบเดินบนเลนช่วงน้ำลง"
+      },
+      {
+        "id": "t_mangrove_coast",
+        "name": "ป่าชายเลนและชายฝั่งอ่าวไทย",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "อ่างศิลา",
+            "บางแสนตอนล่าง",
+            "แนวชายฝั่งจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ชลบุรีมีทั้งชายหาด เมืองชายฝั่ง และป่าชายเลน ทำให้ระบบนิเวศทะเลตื้นกับพื้นที่ชุมชนอยู่ใกล้กันมาก"
+      },
+      {
+        "id": "c_pm25_industrial",
+        "name": "ฝุ่น PM2.5 และหมอกควันเมืองอุตสาหกรรม",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เมืองชลบุรี",
+            "ศรีราชา",
+            "แนวถนนหลักและนิคมอุตสาหกรรม"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงอากาศปิดและการจราจรหนาแน่น คุณภาพอากาศมีโอกาสแย่ลง โดยเฉพาะพื้นที่เมืองและอุตสาหกรรม"
+      },
+      {
+        "id": "h_coastal_erosion",
+        "name": "การกัดเซาะชายฝั่ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "แนวชายฝั่งเปิดรับคลื่น",
+            "ชุมชนริมทะเล"
+          ],
+          "season": [
+            "ฤดูมรสุม"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ชายฝั่งบางช่วงเสี่ยงถูกคลื่นกัดเซาะ โดยเฉพาะตอนคลื่นลมแรงและช่วงมรสุม"
+      },
+      {
+        "id": "h_urban_flood",
+        "name": "น้ำท่วมขังเขตเมือง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ย่านเมืองต่ำ",
+            "ริมคลองระบายน้ำ",
+            "ถนนสายหลัก"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักระยะสั้นทำให้เกิดน้ำท่วมขังได้ในเขตเมืองชายฝั่งและพื้นที่ระบายน้ำช้า"
+      }
+    ]
+  },
+  "Rayong": {
+    "ecoEntities": [
+      {
+        "id": "fl_durian",
+        "name": "ทุเรียน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "สวนผลไม้เชิงเขา",
+            "อำเภอเขาชะเมา",
+            "อำเภอแกลง"
+          ],
+          "season": [
+            "ฤดูผลไม้"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ระยองเป็นหนึ่งในพื้นที่สวนผลไม้สำคัญของภาคตะวันออก ทุเรียนพบมากในโซนเชิงเขาและดินชุ่มชื้น"
+      },
+      {
+        "id": "fl_mangosteen",
+        "name": "มังคุด",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "สวนผลไม้",
+            "พื้นที่ชื้นมีฝนดี"
+          ],
+          "season": [
+            "ฤดูผลไม้"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "มังคุดเป็นพืชเศรษฐกิจเด่นของระยอง พบคู่กับสวนทุเรียนในพื้นที่ฝนชุกของจังหวัด"
+      },
+      {
+        "id": "f_hornbill",
+        "name": "นกเงือก",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ป่าดิบชื้นเขาชะเมา",
+            "แนวเขาติดผืนป่าตะวันออก"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "นกเงือกพบในผืนป่าที่สมบูรณ์ของระยอง เป็นตัวชี้วัดความต่อเนื่องของป่าดิบชื้น"
+      },
+      {
+        "id": "f_long_tailed_macaque",
+        "name": "ลิงแสม",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ป่าชายเลน",
+            "ชายฝั่ง",
+            "ชุมชนติดป่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พบได้ตามป่าชายเลนและบางจุดชายฝั่ง ไม่ควรถืออาหารล่อหรือเข้าใกล้ฝูง"
+      },
+      {
+        "id": "t_rainforest_watershed",
+        "name": "ป่าดิบชื้นต้นน้ำ",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "อุทยานแห่งชาติเขาชะเมา-เขาวง",
+            "พื้นที่ภูเขาตะวันออก"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ป่าฝนสมบูรณ์เป็นแหล่งต้นน้ำสำคัญของระยอง และเป็นแกนหลักของความหลากหลายทางชีวภาพ"
+      },
+      {
+        "id": "c_southwest_monsoon_rain",
+        "name": "ฝนชุกจากมรสุมตะวันตกเฉียงใต้",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั่วจังหวัด",
+            "พื้นที่เชิงเขาและชายฝั่ง"
+          ],
+          "season": [
+            "พ.ค.-ต.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ระยองรับอิทธิพลฝนจากมรสุมชัดเจน ทำให้พื้นที่เชิงเขาและสวนผลไม้มีความชื้นสูงในฤดูฝน"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำป่าไหลหลาก",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เชิงเขา",
+            "ลำห้วยใกล้น้ำตก",
+            "ป่าต้นน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "เมื่อฝนตกหนักต่อเนื่อง พื้นที่น้ำตกและลำห้วยเชิงเขามีความเสี่ยงน้ำหลากฉับพลัน"
+      },
+      {
+        "id": "h_rough_sea",
+        "name": "คลื่นลมแรงชายฝั่ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ชายหาดเปิด",
+            "แนวเกาะเสม็ดและชายฝั่งทะเล"
+          ],
+          "season": [
+            "ฤดูมรสุม"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ทะเลระยองมีช่วงคลื่นลมแรงและฝนฟ้าคะนอง ทำให้กิจกรรมเรือเล็กและเล่นน้ำมีความเสี่ยงมากขึ้น"
+      }
+    ]
+  },
+  "Chanthaburi": {
+    "ecoEntities": [
+      {
+        "id": "fl_durian",
+        "name": "ทุเรียน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "สวนผลไม้",
+            "แก่งหางแมว",
+            "มะขาม",
+            "เขาคิชฌกูฏ"
+          ],
+          "season": [
+            "ฤดูผลไม้"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "จันทบุรีเป็นฐานผลิตทุเรียนสำคัญของประเทศ สวนผลไม้กระจายกว้างในพื้นที่ฝนดีและดินอุดมสมบูรณ์"
+      },
+      {
+        "id": "fl_mangosteen",
+        "name": "มังคุด",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "สวนผลไม้ชื้น",
+            "เชิงเขา"
+          ],
+          "season": [
+            "ฤดูผลไม้"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "มังคุดเป็นผลไม้เด่นอีกชนิดของจันทบุรี พบมากในสวนผสมกับทุเรียนและลองกอง"
+      },
+      {
+        "id": "f_hornbill",
+        "name": "นกเงือก",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ป่าดิบชื้น",
+            "พื้นที่เขาสระบาป",
+            "แนวป่าเชื่อมต่อ"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ป่าที่สมบูรณ์ของจันทบุรีรองรับนกเงือกและสัตว์ป่าป่าดิบหลายชนิด เป็นตัวแทนความสมบูรณ์ของผืนป่า"
+      },
+      {
+        "id": "f_stream_fish",
+        "name": "ปลาน้ำตกพลิ้ว",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ลำธารน้ำตกพลิ้ว",
+            "แอ่งน้ำใสตามป่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ลำธารใสในเขตน้ำตกพลิ้วมีปลาน้ำจืดจำนวนมาก เป็นภาพจำของระบบนิเวศน้ำไหลในจังหวัด"
+      },
+      {
+        "id": "t_fruit_mountain_foothill",
+        "name": "สวนผลไม้เชิงเขาและป่าต้นน้ำ",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เขาสระบาป",
+            "เขาคิชฌกูฏ",
+            "ลุ่มน้ำจันทบุรี"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จันทบุรีมีลักษณะเด่นเป็นภูเขาชื้น ป่าต้นน้ำ และสวนผลไม้หนาแน่นในพื้นที่เชิงเขา"
+      },
+      {
+        "id": "c_high_rainfall",
+        "name": "ฝนชุกและความชื้นสูง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "พ.ค.-ต.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดนี้รับฝนมากกว่าหลายพื้นที่ในภาคตะวันออก ทำให้ป่าชื้นและสวนผลไม้เติบโตดี แต่เพิ่มความเสี่ยงน้ำหลาก"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำป่าไหลหลาก",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "น้ำตก",
+            "ลำห้วยเชิงเขา",
+            "พื้นที่ลาดชัน"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักในพื้นที่ภูเขาทำให้ลำธารและน้ำตกมีโอกาสเกิดน้ำหลากฉับพลัน"
+      },
+      {
+        "id": "h_landslide",
+        "name": "ดินถล่มเชิงเขา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "พื้นที่ลาดชัน",
+            "สวนบนไหล่เขา",
+            "ริมทางภูเขา"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ลาดชันและฝนสะสมสูงทำให้บางจุดเสี่ยงดินไหลหรือดินถล่ม โดยเฉพาะถนนภูเขาและสวนเชิงเขา"
+      }
+    ]
+  },
+  "Trat": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove_rhizophora",
+        "name": "โกงกาง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "แหลมงอบ",
+            "ชายฝั่งแผ่นดินใหญ่",
+            "คลองน้ำกร่อย"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ตราดมีแนวป่าชายเลนกว้างหลายจุด ทำหน้าที่เป็นแหล่งอนุบาลสัตว์น้ำและกันคลื่นชายฝั่ง"
+      },
+      {
+        "id": "fl_seagrass",
+        "name": "หญ้าทะเล",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "อ่าวตื้น",
+            "ชายฝั่งน้ำใส",
+            "พื้นที่คุ้มครองทางทะเล"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "แปลงหญ้าทะเลพบในน่านน้ำตื้นบางส่วนของตราด เป็นฐานอาหารและที่หลบภัยของสัตว์น้ำทะเลวัยอ่อน"
+      },
+      {
+        "id": "f_white_bellied_sea_eagle",
+        "name": "อินทรีทะเลท้องขาว",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "หมู่เกาะช้าง",
+            "แนวชายฝั่ง",
+            "เกาะหินริมทะเล"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "นกล่าเหยื่อชายฝั่งที่พบได้ในเขตทะเลและเกาะของตราด เป็นดัชนีความสมบูรณ์ของระบบนิเวศชายฝั่ง"
+      },
+      {
+        "id": "f_long_tailed_macaque",
+        "name": "ลิงแสม",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ป่าชายเลน",
+            "เกาะบางแห่ง",
+            "ชุมชนติดป่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พบตามชายฝั่งและบางเกาะ ไม่ควรให้อาหารหรือเข้าใกล้ เพราะลิงอาจแย่งของและกัดได้"
+      },
+      {
+        "id": "t_archipelago_coral",
+        "name": "หมู่เกาะ ปะการัง และชายฝั่งทะเล",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "หมู่เกาะช้าง",
+            "เกาะกูด",
+            "เกาะหมาก",
+            "ชายฝั่งตราด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ตราดเด่นด้วยหมู่เกาะจำนวนมาก แนวปะการัง และอ่าวน้ำตื้นสลับกับป่าชายเลนแผ่นดินใหญ่"
+      },
+      {
+        "id": "c_monsoon_sea",
+        "name": "มรสุมทะเลและฝนชุกชายฝั่ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทะเลตราด",
+            "เกาะด้านรับลม",
+            "ชายฝั่งเปิด"
+          ],
+          "season": [
+            "พ.ค.-ต.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงมรสุมตะวันตกเฉียงใต้ ทะเลฝั่งตราดโดยเฉพาะด้านรับลมของเกาะจะมีคลื่นแรงและฝนตกชุก"
+      },
+      {
+        "id": "h_rough_sea",
+        "name": "คลื่นลมแรงและเรือเล็กเสี่ยง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ด้านตะวันตกของเกาะ",
+            "เส้นทางเรือระหว่างเกาะ"
+          ],
+          "season": [
+            "ฤดูมรสุม"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงทะเลแรงอาจมีผลต่อเรือเล็ก ดำน้ำ และการเดินทางข้ามเกาะ ควรเช็กประกาศอากาศก่อนเดินทาง"
+      },
+      {
+        "id": "h_landslide_island",
+        "name": "ดินถล่มและน้ำหลากบนเกาะภูเขา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "พื้นที่ลาดชันบนเกาะช้าง",
+            "ถนนภูเขา",
+            "ลำห้วยบนเกาะ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "เกาะภูเขาของตราดมีความเสี่ยงน้ำหลากและดินไหลเมื่อฝนตกหนักต่อเนื่องบนพื้นที่ลาดชัน"
+      }
+    ]
+  },
+  "Sa Kaeo": {
+    "ecoEntities": [
+      {
+        "id": "fl_bamboo",
+        "name": "ไผ่ป่า",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ป่าผสมผลัดใบ",
+            "ชายป่า",
+            "เชิงเขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ไผ่พบกว้างในป่าของสระแก้ว เป็นองค์ประกอบสำคัญของป่าผสมและเป็นแหล่งอาหารสัตว์หลายชนิด"
+      },
+      {
+        "id": "fl_cassava",
+        "name": "มันสำปะหลัง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "พื้นที่เกษตรที่ดอน",
+            "อำเภอรอบนอก"
+          ],
+          "season": [
+            "ฤดูเพาะปลูก"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "สระแก้วมีพื้นที่เกษตรไร่ค่อนข้างมาก มันสำปะหลังเป็นพืชเศรษฐกิจเด่นของภูมิประเทศแห้งสลับป่า"
+      },
+      {
+        "id": "f_butterfly",
+        "name": "ผีเสื้อป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "อุทยานแห่งชาติปางสีดา",
+            "ลำธารและแอ่งดินชื้น"
+          ],
+          "season": [
+            "พ.ค.-ก.ค.",
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ปางสีดามีชื่อเสียงด้านความหลากหลายของผีเสื้อ โดยเฉพาะช่วงเทศกาลดูผีเสื้อ"
+      },
+      {
+        "id": "f_wild_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ปางสีดา",
+            "ตาพระยา",
+            "ขอบป่าชายแดน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช้างป่าพบจริงในผืนป่าดงพญาเย็น-เขาใหญ่ของสระแก้ว และอาจออกใกล้พื้นที่เกษตรหรือถนนป่า"
+      },
+      {
+        "id": "t_forest_border_mountain",
+        "name": "ป่าภูเขาชายแดนดงพญาเย็น",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ปางสีดา",
+            "ตาพระยา",
+            "แนวชายแดนกัมพูชา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "สระแก้วมีแนวป่าชายแดนและภูเขาต่อเนื่องกับผืนมรดกโลกดงพญาเย็น-เขาใหญ่"
+      },
+      {
+        "id": "c_pm25_burning",
+        "name": "ฝุ่นควันจากการเผาและอากาศแห้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "พื้นที่เกษตร",
+            "ชุมชนรอบป่า",
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "ธ.ค.-เม.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฤดูแล้งและการเผาในที่โล่งทำให้สระแก้วมีความเสี่ยงฝุ่นควันสะสมและทัศนวิสัยลดลง"
+      },
+      {
+        "id": "h_forest_fire",
+        "name": "ไฟป่า",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ป่าเต็งรัง",
+            "ชายป่า",
+            "พื้นที่แห้ง"
+          ],
+          "season": [
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ป่าที่ค่อนข้างแห้งในช่วงปลายหนาวถึงร้อนมีความเสี่ยงไฟป่า โดยเฉพาะเมื่อมีการเผาพื้นที่เกษตรใกล้ป่า"
+      },
+      {
+        "id": "h_elephant_conflict",
+        "name": "ช้างป่ารบกวนพื้นที่เกษตร",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ขอบป่า",
+            "ไร่มันสำปะหลัง",
+            "หมู่บ้านติดป่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "night"
+        },
+        "description": "พื้นที่ติดป่ามีเหตุช้างป่าเข้าหาแหล่งอาหารในชุมชนและไร่นาเป็นระยะ ต้องระวังการเดินทางกลางคืน"
+      }
+    ]
+  },
+  "Chachoengsao": {
+    "ecoEntities": [
+      {
+        "id": "fl_nipa_palm",
+        "name": "จาก",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ปากแม่น้ำบางปะกง",
+            "คลองน้ำกร่อย",
+            "ป่าชายเลน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จากเป็นพืชชายน้ำกร่อยเด่นของลุ่มน้ำบางปะกงตอนล่าง ช่วยยึดตลิ่งและเป็นฉากสำคัญของระบบนิเวศปากแม่น้ำ"
+      },
+      {
+        "id": "fl_mangrove_rhizophora",
+        "name": "โกงกาง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ป่าชายเลนบางปะกง",
+            "ชายฝั่งอ่าวไทย"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "แนวโกงกางในเขตน้ำกร่อยช่วยกรองตะกอน ลดแรงคลื่น และเป็นแหล่งอนุบาลสัตว์น้ำ"
+      },
+      {
+        "id": "f_irrawaddy_dolphin",
+        "name": "โลมาอิรวดี",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ปากแม่น้ำบางปะกง",
+            "ช่วงน้ำกร่อยใกล้อ่าว"
+          ],
+          "season": [
+            "ต.ค.-ก.พ."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "มีรายงานพบโลมาอิรวดีตามฤดูกาลบริเวณปากแม่น้ำบางปะกง เป็นชนิดหายากที่ต้องเฝ้าระวังการรบกวน"
+      },
+      {
+        "id": "f_egret",
+        "name": "นกกระยาง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "นาเลน",
+            "ป่าชายเลน",
+            "ริมแม่น้ำบางปะกง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "นกน้ำพบทั่วไปในพื้นที่ชุ่มน้ำและปากแม่น้ำของจังหวัด สะท้อนความเป็นระบบนิเวศน้ำกร่อยขนาดใหญ่"
+      },
+      {
+        "id": "t_estuary_floodplain",
+        "name": "ลุ่มน้ำบางปะกงและปากแม่น้ำ",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เมืองฉะเชิงเทรา",
+            "บางปะกง",
+            "พื้นที่ลุ่มริมแม่น้ำ"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ภูมิประเทศหลักเป็นลุ่มน้ำและพื้นที่ชุ่มน้ำตอนล่างเชื่อมต่อทะเล ทำให้มีทั้งน้ำจืด น้ำกร่อย และพื้นที่เกษตรลุ่ม"
+      },
+      {
+        "id": "c_pm25_dry_season",
+        "name": "ฝุ่น PM2.5 ฤดูแล้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เมือง",
+            "ริมถนน",
+            "พื้นที่อุตสาหกรรมและเกษตร"
+          ],
+          "season": [
+            "ธ.ค.-มี.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฤดูแล้งและอากาศนิ่งทำให้ฝุ่นสะสมได้ง่าย โดยเฉพาะในพื้นที่เมือง ทางหลวง และโซนกิจกรรมอุตสาหกรรม"
+      },
+      {
+        "id": "h_river_flood",
+        "name": "น้ำท่วมลุ่มน้ำบางปะกง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "พื้นที่ลุ่มริมแม่น้ำ",
+            "ทุ่งเกษตร",
+            "ชุมชนริมน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "เมื่อฝนมากหรือน้ำเหนือหลาก พื้นที่ลุ่มสองฝั่งบางปะกงเสี่ยงน้ำท่วมขังและน้ำเอ่อล้นตลิ่ง"
+      },
+      {
+        "id": "h_saline_intrusion",
+        "name": "น้ำเค็มรุกล้ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ตอนล่างแม่น้ำบางปะกง",
+            "พื้นที่เกษตรใกล้ปากแม่น้ำ"
+          ],
+          "season": [
+            "ปลายแล้ง"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงน้ำจืดน้อย น้ำทะเลสามารถดันเข้ามาในลำน้ำ ส่งผลต่อคุณภาพน้ำและพื้นที่เกษตรริมน้ำ"
+      }
+    ]
+  },
+  "Prachin Buri": {
+    "ecoEntities": [
+      {
+        "id": "fl_lan_palm",
+        "name": "ปาล์มลาน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ทับลาน",
+            "ป่าภูเขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ทับลานมีชื่อจากปาล์มลานซึ่งเป็นพืชเด่นของผืนป่าภาคตะวันออกตอนในและมีคุณค่าทางอนุรักษ์สูง"
+      },
+      {
+        "id": "fl_bamboo",
+        "name": "ไผ่ป่า",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ชายป่า",
+            "ป่าผสม",
+            "เชิงเขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ไผ่เป็นองค์ประกอบทั่วไปของป่าผสมในปราจีนบุรี และเป็นแหล่งอาหารของสัตว์กินพืชหลายชนิด"
+      },
+      {
+        "id": "f_wild_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขาใหญ่",
+            "ทับลาน",
+            "พื้นที่ขอบป่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช้างป่าพบจริงในผืนป่ามรดกโลกที่กินพื้นที่เข้ามาในปราจีนบุรี และมีเหตุออกใกล้ชุมชนเป็นระยะ"
+      },
+      {
+        "id": "f_gaur",
+        "name": "กระทิง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ทับลาน",
+            "ทุ่งหญ้าในป่า",
+            "แนวป่าดงพญาเย็น"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "กระทิงเป็นสัตว์กีบขนาดใหญ่ที่พบในผืนป่าปราจีนบุรี โดยเฉพาะพื้นที่คุ้มครองขนาดใหญ่และทุ่งหญ้าป่า"
+      },
+      {
+        "id": "t_world_heritage_forest",
+        "name": "ป่ามรดกโลกดงพญาเย็น-เขาใหญ่",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เขาใหญ่",
+            "ทับลาน",
+            "เชิงเขาปราจีนบุรี"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดนี้เชื่อมกับผืนป่ามรดกโลกขนาดใหญ่ มีทั้งภูเขา ป่าดิบ และลำน้ำต้นกำเนิดหลายสาย"
+      },
+      {
+        "id": "c_orographic_rain",
+        "name": "ฝนหนักเชิงเขา",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เชิงเขาใหญ่",
+            "พื้นที่ลาดชัน"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่เชิงเขารับฝนมากเมื่อมรสุมปะทะแนวเขา ทำให้ลำห้วยและน้ำตกมีน้ำมากในช่วงฝน"
+      },
+      {
+        "id": "h_elephant_conflict",
+        "name": "ช้างป่าออกนอกเขตป่า",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ถนนผ่านป่า",
+            "หมู่บ้านติดอุทยาน",
+            "ไร่สวน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "night"
+        },
+        "description": "ความขัดแย้งคนกับช้างเป็นความเสี่ยงสำคัญของปราจีนบุรี โดยเฉพาะในชุมชนและถนนใกล้ขอบป่า"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำป่าและดินไหลเชิงเขา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ลำห้วยเชิงเขา",
+            "ทางขึ้นอุทยาน",
+            "พื้นที่ลาดชัน"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนสะสมในแนวเขาอาจทำให้เกิดน้ำป่าไหลหลากและดินไหลในเส้นทางเชิงเขา"
+      }
+    ]
+  },
+  "Kanchanaburi": {
+    "ecoEntities": [
+      {
+        "id": "fl_teak",
+        "name": "ไม้สัก",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ป่าผลัดใบ",
+            "ผืนป่าตะวันตก",
+            "เชิงเขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "กาญจนบุรีมีป่าผสมผลัดใบและป่าตะวันตกขนาดใหญ่ ไม้สักเป็นหนึ่งในไม้เด่นของระบบนิเวศแห้งถึงกึ่งชื้น"
+      },
+      {
+        "id": "fl_bamboo",
+        "name": "ไผ่รวกและไผ่ป่า",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ชายป่า",
+            "ป่าเบญจพรรณ",
+            "เชิงเขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ไผ่เป็นพืชโครงสร้างสำคัญของป่าหลายแบบในกาญจนบุรี และเป็นแหล่งอาหารของสัตว์กินพืช"
+      },
+      {
+        "id": "f_tiger",
+        "name": "เสือโคร่ง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ผืนป่าตะวันตก",
+            "ไทรโยค",
+            "ทุ่งใหญ่นเรศวรเชื่อมต่อ"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "night"
+        },
+        "description": "กาญจนบุรีเป็นส่วนหนึ่งของผืนป่าตะวันตกที่ยังรองรับประชากรเสือโคร่งของไทยในระดับสำคัญ"
+      },
+      {
+        "id": "f_wild_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ไทรโยค",
+            "ทองผาภูมิ",
+            "ป่าตะวันตก"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช้างป่าพบจริงในหลายเขตป่าของกาญจนบุรี โดยอาจพบใกล้ถนนหรือพื้นที่เกษตรติดป่า"
+      },
+      {
+        "id": "t_tenasserim_forest",
+        "name": "เทือกเขาตะนาวศรีและผืนป่าตะวันตก",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ไทรโยค",
+            "ทองผาภูมิ",
+            "สังขละบุรี"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ภูมิประเทศหลักเป็นเทือกเขายาวและผืนป่าต่อเนื่องขนาดใหญ่ มีถ้ำ น้ำตก และลุ่มน้ำแควน้อยแควใหญ่"
+      },
+      {
+        "id": "c_hot_dry_season",
+        "name": "ฤดูร้อนแห้งและอากาศร้อนจัด",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "หุบเขา",
+            "พื้นที่เกษตร",
+            "ตัวเมือง"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "กาญจนบุรีมีหลายพื้นที่ร้อนและแห้งในช่วงปลายฤดูหนาวถึงฤดูร้อน ทำให้เสี่ยงไฟป่าและขาดน้ำชั่วคราว"
+      },
+      {
+        "id": "h_forest_fire",
+        "name": "ไฟป่าและหมอกควัน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ป่าแห้ง",
+            "ชายป่า",
+            "แนวภูเขา"
+          ],
+          "season": [
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ป่ากว้างและอากาศแห้งทำให้กาญจนบุรีมีความเสี่ยงไฟป่าและหมอกควันในบางช่วงของปี"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำป่าไหลหลาก",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "น้ำตก",
+            "ลำห้วยภูเขา",
+            "อุทยาน"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "เมื่อฝนตกหนักในเทือกเขา ลำห้วยและน้ำตกมีโอกาสเกิดน้ำหลากรวดเร็ว ควรระวังแคมป์และเส้นทางธรรมชาติ"
+      }
+    ]
+  },
+  "Ratchaburi": {
+    "ecoEntities": [
+      {
+        "id": "fl_bamboo",
+        "name": "ไผ่ป่า",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "สวนผึ้ง",
+            "บ้านคา",
+            "ชายป่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ราชบุรีฝั่งตะวันตกมีป่าภูเขาและชายป่ากว้าง ไผ่เป็นองค์ประกอบพืชสำคัญของพื้นที่ดังกล่าว"
+      },
+      {
+        "id": "fl_mangrove_halophyte",
+        "name": "ชะครามชายเลน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "พื้นที่เค็มชื้นบางส่วนของลุ่มน้ำแม่กลอง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พืชทนเค็มบางชนิดพบในพื้นที่ชุ่มน้ำเค็มหรือดินเค็มบางจุดของลุ่มน้ำตอนล่าง แม้ไม่เด่นเท่าชายฝั่งจังหวัดอื่น"
+      },
+      {
+        "id": "f_gaur",
+        "name": "กระทิง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขตรักษาพันธุ์สัตว์ป่าแม่น้ำภาชี",
+            "แนวป่าตะนาวศรี"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ราชบุรีตอนตะวันตกเชื่อมกับกลุ่มป่าแก่งกระจานและแม่น้ำภาชี จึงรองรับกระทิงในพื้นที่คุ้มครอง"
+      },
+      {
+        "id": "f_wild_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ชายแดนตะวันตก",
+            "บ้านคา",
+            "แนวป่าคุ้มครอง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช้างป่าพบในแนวป่าตะวันตกของราชบุรี แม้ไม่หนาแน่นเท่าจังหวัดถัดลงใต้แต่ยังเป็นสัตว์เสี่ยงสำคัญ"
+      },
+      {
+        "id": "t_tenasserim_foothill",
+        "name": "เชิงเขาตะนาวศรีและลุ่มน้ำแม่กลอง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "สวนผึ้ง",
+            "บ้านคา",
+            "ตอนกลางจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ราชบุรีมีทั้งแนวเขาตะวันตก พื้นที่เกษตรเชิงเขา และที่ราบลุ่มเชื่อมแม่น้ำแม่กลอง"
+      },
+      {
+        "id": "c_hot_haze",
+        "name": "อากาศร้อนแห้งและฝุ่นควัน",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "พื้นที่เกษตร",
+            "หุบเขา",
+            "ตัวเมือง"
+          ],
+          "season": [
+            "ธ.ค.-เม.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงอากาศแห้งและการเผาในที่โล่งอาจทำให้เกิดหมอกควันและฝุ่นสะสม โดยเฉพาะพื้นที่ลุ่มและหุบเขา"
+      },
+      {
+        "id": "h_forest_fire",
+        "name": "ไฟป่าชายเขา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "สวนผึ้ง",
+            "บ้านคา",
+            "ป่าแห้ง"
+          ],
+          "season": [
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ราชบุรีฝั่งภูเขามีความเสี่ยงไฟป่าในช่วงแห้งจัด โดยเฉพาะแนวป่าแห้งและพื้นที่เกษตรติดป่า"
+      },
+      {
+        "id": "h_flood_maeklong",
+        "name": "น้ำท่วมพื้นที่ลุ่มแม่กลอง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ที่ราบลุ่ม",
+            "ชุมชนริมน้ำ",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ต่ำตามระบบลุ่มน้ำแม่กลองมีโอกาสน้ำท่วมขังเมื่อฝนหนักหรือน้ำระบายช้า"
+      }
+    ]
+  },
+  "Phetchaburi": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove_rhizophora",
+        "name": "โกงกาง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "แหลมผักเบี้ย",
+            "ชายฝั่งป่าชายเลน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ชายฝั่งเพชรบุรีมีป่าชายเลนสำคัญ โดยเฉพาะโซนแหลมผักเบี้ยที่เป็นพื้นที่ชุ่มน้ำและแหล่งอาศัยสัตว์น้ำวัยอ่อน"
+      },
+      {
+        "id": "fl_samphire",
+        "name": "ชะคราม",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "นาเกลือ",
+            "ดินเค็มชายฝั่ง",
+            "พื้นที่ชุ่มน้ำ"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ชะครามเป็นพืชทนเค็มที่พบในพื้นที่ชายฝั่งเพชรบุรี และเกี่ยวข้องกับวิถีอาหารชายเลนท้องถิ่น"
+      },
+      {
+        "id": "f_migratory_shorebird",
+        "name": "นกชายเลนอพยพ",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "แหลมผักเบี้ย",
+            "ปากทะเล",
+            "นาเกลือ"
+          ],
+          "season": [
+            "ต.ค.-เม.ย."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "เพชรบุรีเป็นจุดสำคัญของนกชายเลนอพยพในอ่าวไทยตอนใน โดยพบได้มากในพื้นที่ชุ่มน้ำและนาเกลือ"
+      },
+      {
+        "id": "f_wild_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "อุทยานแห่งชาติแก่งกระจาน",
+            "ป่าตะนาวศรี"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ผืนป่าแก่งกระจานของเพชรบุรีรองรับช้างป่าจำนวนสำคัญของประเทศไทย"
+      },
+      {
+        "id": "t_wetland_tenasserim",
+        "name": "พื้นที่ชุ่มน้ำชายฝั่งและเทือกเขาแก่งกระจาน",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ชายฝั่งอ่าวไทย",
+            "แก่งกระจาน",
+            "หนองหญ้าปล้อง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "เพชรบุรีมีทั้งพื้นที่ชุ่มน้ำชายฝั่ง นาเกลือ และป่าภูเขาตะวันตกในกลุ่มป่าแก่งกระจาน"
+      },
+      {
+        "id": "c_heat_and_monsoon",
+        "name": "อากาศร้อนจัดสลับฝนมรสุม",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "มี.ค.-ต.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "เพชรบุรีมีฤดูร้อนเด่นในที่ราบชายฝั่ง ขณะที่ช่วงมรสุมทำให้ฝนเพิ่มขึ้นทั้งฝั่งทะเลและเชิงเขา"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำป่าไหลหลากจากเทือกเขา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "แก่งกระจาน",
+            "ลำห้วยเชิงเขา",
+            "พื้นที่ท้ายน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนสะสมบนเทือกเขาอาจทำให้เกิดน้ำป่าและกระทบพื้นที่ท้ายน้ำอย่างรวดเร็ว"
+      },
+      {
+        "id": "h_coastal_erosion",
+        "name": "การกัดเซาะชายฝั่งและคลื่นแรง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ชายฝั่งเพชรบุรี",
+            "พื้นที่เปิดรับคลื่น",
+            "นาเกลือใกล้ทะเล"
+          ],
+          "season": [
+            "ฤดูมรสุม"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ชายฝั่งอ่าวไทยของเพชรบุรีมีช่วงคลื่นแรงและเสี่ยงกัดเซาะ โดยเฉพาะช่วงมรสุมและน้ำทะเลหนุน"
+      }
+    ]
+  },
+  "Prachuap Khiri Khan": {
+    "ecoEntities": [
+      {
+        "id": "fl_pineapple",
+        "name": "สับปะรด",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "พื้นที่เกษตรที่ดอน",
+            "กุยบุรี",
+            "ปราณบุรี"
+          ],
+          "season": [
+            "ฤดูเก็บเกี่ยว"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ประจวบคีรีขันธ์เป็นแหล่งปลูกสับปะรดสำคัญของประเทศ พืชชนิดนี้เป็นภาพจำของภูมิประเทศเกษตรที่ดอนของจังหวัด"
+      },
+      {
+        "id": "fl_seagrass",
+        "name": "หญ้าทะเล",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "อ่าวตื้นบางส่วน",
+            "พื้นที่ชุ่มน้ำชายฝั่ง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ชายฝั่งและอ่าวตื้นบางช่วงมีแหล่งหญ้าทะเลซึ่งเป็นฐานของระบบนิเวศทะเลตื้น"
+      },
+      {
+        "id": "f_wild_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "อุทยานแห่งชาติกุยบุรี",
+            "กลุ่มป่าแก่งกระจาน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "กุยบุรีเป็นพื้นที่เด่นในการพบช้างป่าในธรรมชาติของไทย และเป็นจุดเฝ้าระวังความขัดแย้งคนกับสัตว์ป่า"
+      },
+      {
+        "id": "f_gaur",
+        "name": "กระทิง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "อุทยานแห่งชาติกุยบุรี",
+            "ทุ่งหญ้าในป่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "นอกจากช้างป่าแล้ว กุยบุรียังเป็นพื้นที่สำคัญของกระทิงซึ่งมักออกหากินในทุ่งหญ้าเปิด"
+      },
+      {
+        "id": "t_long_coast_wetland",
+        "name": "ชายฝั่งยาว พื้นที่ชุ่มน้ำ และเทือกเขาตะนาวศรี",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "สามร้อยยอด",
+            "กุยบุรี",
+            "แนวชายฝั่งอ่าวไทย"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดนี้มีชายฝั่งยาวมาก มีทั้งพื้นที่ชุ่มน้ำชายฝั่ง เขาหินปูน และป่าภูเขาด้านตะวันตก"
+      },
+      {
+        "id": "c_monsoon_coast",
+        "name": "มรสุมชายฝั่งและฝนฟ้าคะนองทะเล",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ชายฝั่ง",
+            "ทะเลอ่าวไทย",
+            "พื้นที่โล่ง"
+          ],
+          "season": [
+            "พ.ค.-พ.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ทะเลและชายฝั่งของประจวบฯ ได้รับอิทธิพลมรสุมชัดเจน ทำให้เกิดคลื่นแรงและพายุฝนฟ้าคะนองตามฤดูกาล"
+      },
+      {
+        "id": "h_rough_sea",
+        "name": "คลื่นลมแรงและกระแสน้ำชายฝั่ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ชายหาดเปิด",
+            "ทะเลนอกฝั่ง",
+            "เส้นทางเรือ"
+          ],
+          "season": [
+            "ฤดูมรสุม"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงทะเลแรงมีความเสี่ยงต่อเรือเล็ก นักตกปลา และผู้เล่นน้ำตามชายหาดเปิด"
+      },
+      {
+        "id": "h_elephant_conflict",
+        "name": "ช้างป่าใกล้พื้นที่เกษตร",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "กุยบุรี",
+            "ไร่สับปะรด",
+            "ชุมชนติดป่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "night"
+        },
+        "description": "พื้นที่ติดป่าในประจวบฯ มีความเสี่ยงช้างป่าเข้าหาแหล่งอาหารในไร่และแนวชุมชน โดยเฉพาะยามค่ำคืน"
+      }
+    ]
+  }
+}

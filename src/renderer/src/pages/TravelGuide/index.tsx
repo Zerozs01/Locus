@@ -15,10 +15,58 @@ import { getTravelConditionForDate } from './data/calendarHelpers';
 import { ThailandMap } from '../../components/ThailandMap';
 import { getRecords } from '../../utils/csvDb';
 
-import { getEcoEntities, expandEcoTags, type EcoEntity } from './data/ecoDb';
+import { getEcoEntities, expandEcoTags, type EcoEntity, type EcoTag } from './data/ecoDb';
 import { WeatherHistoryModal } from '../../components/WeatherHistoryModal';
 
 const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
+
+type TripPlan = {
+  origin: string;
+  dest: string;
+  budgetLevel: BudgetTier;
+  date: string;
+};
+
+const transportTypeOrder = ['rail', 'bus', 'van', 'plane', 'boat', 'songthaew', 'tuk_tuk', 'bike', 'other'];
+const transportTypeLabels: Record<string, string> = {
+  rail: 'รถไฟ',
+  bus: 'รถเมล์/บขส.',
+  van: 'รถตู้',
+  plane: 'เครื่องบิน',
+  boat: 'เรือ',
+  songthaew: 'สองแถว',
+  tuk_tuk: 'ตุ๊กตุ๊ก',
+  bike: 'มอเตอร์ไซค์',
+  other: 'อื่นๆ',
+};
+
+const normalizeTransportType = (rawType: string) => {
+  const type = (rawType || '').toLowerCase();
+  if (type === 'train') return 'rail';
+  if (type === 'coach') return 'bus';
+  if (type === 'ferry') return 'boat';
+  return transportTypeLabels[type] ? type : 'other';
+};
+
+const inferEcoCategoryFromId = (id: string): 'fauna' | 'flora' | 'terrain' | 'climate' => {
+  if (id.startsWith('fl_')) return 'flora';
+  if (id.startsWith('t_')) return 'terrain';
+  if (id.startsWith('c_')) return 'climate';
+  return 'fauna';
+};
+
+const prettifyEcoId = (id: string) => id.replace(/^[a-z]+_/, '').replace(/_/g, ' ');
+
+const allowedEcoTags: EcoTag[] = ['danger', 'edible', 'medicinal', 'common', 'rare', 'protected', 'seasonal', 'extreme'];
+const allowedEcoTagSet = new Set<EcoTag>(allowedEcoTags);
+
+const sanitizeEcoTags = (tags: unknown): EcoTag[] => {
+  if (!Array.isArray(tags)) return ['common'];
+  const normalized = tags
+    .map((tag) => String(tag).trim().toLowerCase())
+    .filter((tag): tag is EcoTag => allowedEcoTagSet.has(tag as EcoTag));
+  return normalized.length > 0 ? normalized : ['common'];
+};
 
 // Header Gradient Pair logic
 const regionGradientPairs: Record<string, string> = {
@@ -66,10 +114,11 @@ export function TravelGuidePage() {
 
   const [activeTransportTab, setActiveTransportTab] = useState('');
   const [showSearchPopup, setShowSearchPopup] = useState(false);
+  const [originText, setOriginText] = useState('กรุงเทพฯ');
   const [destText, setDestText] = useState('');
   const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
   const [tripBudgetLevel, setTripBudgetLevel] = useState<BudgetTier>('mid');
-  const [confirmedTrip, setConfirmedTrip] = useState<{ dest: string; budgetLevel: BudgetTier; date: string } | null>(null);
+  const [confirmedTrip, setConfirmedTrip] = useState<TripPlan | null>(null);
 
   const [syncedAqiMap, setSyncedAqiMap] = useState<Record<string, number>>({});
   const [syncedTempMap, setSyncedTempMap] = useState<Record<string, number>>({});
@@ -202,19 +251,34 @@ export function TravelGuidePage() {
   // Fetch portal data: try DB first, always fallback to static data
   useEffect(() => {
     const fetchPortal = async () => {
+      const pName = displayName.toLowerCase();
+      const staticData = getProvincePortal(pName === 'กรุงเทพมหานคร' ? 'bangkok' : pName);
+
       try {
         const dbData = await (window as any).api.db.getProvincePortal(selectedProvinceId);
         // DB returns transport as an array – only use if we actually have rows
         if (dbData && Array.isArray(dbData.transport) && dbData.transport.length > 0) {
-          setPortalData(dbData);
+          setPortalData({
+            ...dbData,
+            supply: Array.isArray(dbData.supply) && dbData.supply.length > 0 ? dbData.supply : staticData.supply,
+            knowledge: Array.isArray((dbData as any).knowledge) && (dbData as any).knowledge.length > 0
+              ? (dbData as any).knowledge
+              : (Array.isArray(dbData.tips) && dbData.tips.length > 0 ? dbData.tips : staticData.knowledge),
+            environment: (dbData as any).environment || staticData.environment,
+            emergencyNumbers: Array.isArray((dbData as any).emergencyNumbers) && (dbData as any).emergencyNumbers.length > 0
+              ? (dbData as any).emergencyNumbers
+              : staticData.emergencyNumbers,
+            localFoods: Array.isArray((dbData as any).localFoods) && (dbData as any).localFoods.length > 0
+              ? (dbData as any).localFoods
+              : (Array.isArray((dbData as any).localFood) ? (dbData as any).localFood : staticData.localFoods),
+          });
           return;
         }
       } catch (e) {
         console.warn('[TravelGuide] DB portal fetch failed, using static data:', e);
       }
+
       // Fallback: always use static data from portalData.ts
-      const pName = displayName.toLowerCase();
-      const staticData = getProvincePortal(pName === 'กรุงเทพมหานคร' ? 'bangkok' : pName);
       setPortalData(staticData);
     };
     fetchPortal();
@@ -222,14 +286,62 @@ export function TravelGuidePage() {
 
   const portal = portalData || getProvincePortal('default');
 
+  const normalizedTransport = useMemo(() => {
+    const source = portal?.transport;
 
-  const transportTabs = portal.transport?.tabs || [
-    { id: 'bus', label: 'รถเมล์/บขส.' }, { id: 'train', label: 'รถไฟ' }, { id: 'van', label: 'รถตู้' }
-  ];
+    if (Array.isArray(source)) {
+      const grouped: Record<string, any[]> = {};
+      source.forEach((item: any) => {
+        const type = normalizeTransportType(String(item?.type || 'other'));
+        if (!grouped[type]) grouped[type] = [];
+        grouped[type].push(item);
+      });
+
+      const tabs = transportTypeOrder
+        .filter((type) => Array.isArray(grouped[type]) && grouped[type].length > 0)
+        .map((type) => ({ id: type, label: transportTypeLabels[type] || type }));
+
+      return {
+        tabs,
+        companies: grouped,
+        others: grouped.other || []
+      };
+    }
+
+    if (source && typeof source === 'object') {
+      const companies = source.companies || {};
+      const tabs = Array.isArray(source.tabs)
+        ? source.tabs
+        : Object.keys(companies).map((id) => ({ id, label: transportTypeLabels[id] || id }));
+
+      return {
+        tabs,
+        companies,
+        others: source.others || []
+      };
+    }
+
+    return {
+      tabs: [] as Array<{ id: string; label: string }>,
+      companies: {} as Record<string, any[]>,
+      others: [] as any[]
+    };
+  }, [portal]);
+
+  const transportTabs = normalizedTransport.tabs.length > 0
+    ? normalizedTransport.tabs
+    : [
+      { id: 'bus', label: 'รถเมล์/บขส.' },
+      { id: 'rail', label: 'รถไฟ' },
+      { id: 'van', label: 'รถตู้' }
+    ];
+
   const currentTab = activeTransportTab || transportTabs[0]?.id || '';
   const currentTabCompanies = currentTab === '__others'
-    ? (portal.transport?.others || [])
-    : (portal.transport?.companies ? (portal.transport.companies[currentTab] || []) : (portal.transport || []));
+    ? (normalizedTransport.others || [])
+    : (normalizedTransport.companies[currentTab]
+      || normalizedTransport.companies[normalizeTransportType(currentTab)]
+      || []);
 
   const currentProvinces = provincesByRegion[activeRegion] || [];
   const weatherModalProvinces = useMemo(() => {
@@ -238,6 +350,40 @@ export function TravelGuidePage() {
       return { id, name: provinceThaiNames[name] || name };
     });
   }, [currentProvinces, provinceNameToId, normalizeKey]);
+
+  const plannerEndpointOptions = useMemo(() => {
+    const options = new Set<string>();
+    options.add('กรุงเทพฯ');
+    options.add(displayName);
+
+    const plannerHints = (portal as any)?.plannerHints;
+    const hintedOrigins = Array.isArray(plannerHints?.commonOrigins) ? plannerHints.commonOrigins : [];
+    const hintedDestinations = Array.isArray(plannerHints?.commonDestinations) ? plannerHints.commonDestinations : [];
+    const hintedHubs = Array.isArray(plannerHints?.transitHubs) ? plannerHints.transitHubs : [];
+
+    hintedOrigins.forEach((origin: unknown) => {
+      if (typeof origin === 'string' && origin.trim()) options.add(origin.trim());
+    });
+    hintedDestinations.forEach((destination: unknown) => {
+      if (typeof destination === 'string' && destination.trim()) options.add(destination.trim());
+    });
+    hintedHubs.forEach((hub: unknown) => {
+      if (typeof hub === 'string' && hub.trim()) options.add(hub.trim());
+    });
+
+    const routeRows = Array.isArray((portal as any)?.transportRoutes) ? (portal as any).transportRoutes : [];
+    routeRows.forEach((route: any) => {
+      if (typeof route?.from === 'string' && route.from.trim()) options.add(route.from.trim());
+      if (typeof route?.to === 'string' && route.to.trim()) options.add(route.to.trim());
+      if (Array.isArray(route?.via)) {
+        route.via.forEach((viaNode: any) => {
+          if (typeof viaNode === 'string' && viaNode.trim()) options.add(viaNode.trim());
+        });
+      }
+    });
+
+    return Array.from(options).sort((a, b) => a.localeCompare(b));
+  }, [displayName, portal]);
 
   const switchToRegion = useCallback((regionId: string, province?: string) => {
     setActiveRegion(regionId);
@@ -260,8 +406,10 @@ export function TravelGuidePage() {
   }, [activeRegion, switchToRegion]);
 
   const handleConfirmSearch = () => {
-    if (!destText) return;
-    setConfirmedTrip({ dest: destText, budgetLevel: tripBudgetLevel, date: tripDate });
+    const origin = originText.trim();
+    const dest = destText.trim();
+    if (!origin || !dest) return;
+    setConfirmedTrip({ origin, dest, budgetLevel: tripBudgetLevel, date: tripDate });
     setShowSearchPopup(false);
   };
 
@@ -298,20 +446,143 @@ export function TravelGuidePage() {
   const currentTemp = syncedTempMap[normalizedSelectedProvinceId] ?? null; // null = ไม่มีข้อมูลวันนี้
   const tempInfo = currentTemp !== null ? getTempLabel(currentTemp) : null;
 
+  const effectiveEcoIds = useMemo(() => {
+    const portalIds = Array.isArray((portal as any)?.ecoIds) ? (portal as any).ecoIds : [];
+    return portalIds.length > 0 ? portalIds : (brief.ecoIds || []);
+  }, [brief.ecoIds, portal]);
+
+  const ecoEntities = useMemo(() => {
+    const known = getEcoEntities(effectiveEcoIds);
+    const knownIds = new Set(known.map((entity) => entity.id));
+
+    const fallbackUnknown = effectiveEcoIds
+      .filter((id) => !knownIds.has(id))
+      .map((id) => ({
+        id,
+        name: prettifyEcoId(id),
+        category: inferEcoCategoryFromId(id),
+        tags: ['common'] as EcoTag[],
+        desc: 'ข้อมูลสิ่งแวดล้อมจากชุดวิจัยจังหวัด'
+      } as EcoEntity));
+
+    const dynamicProvinceEco = Array.isArray((portal as any)?.newEcoEntities)
+      ? (portal as any).newEcoEntities.map((entity: any, index: number) => {
+        const rawId = typeof entity?.id === 'string' && entity.id.trim()
+          ? entity.id.trim()
+          : `dynamic_eco_${index}`;
+        const rawCategory = String(entity?.category || '').toLowerCase();
+        const normalizedCategory = (rawCategory === 'fauna' || rawCategory === 'flora' || rawCategory === 'terrain' || rawCategory === 'climate')
+          ? rawCategory
+          : inferEcoCategoryFromId(rawId);
+
+        return {
+          id: rawId,
+          name: entity?.name || prettifyEcoId(rawId),
+          category: normalizedCategory,
+          tags: sanitizeEcoTags(entity?.tags),
+          desc: entity?.desc || 'ข้อมูลสิ่งแวดล้อมเฉพาะจังหวัด'
+        } as EcoEntity;
+      })
+      : [];
+
+    const merged = new Map<string, EcoEntity>();
+    // Prioritize dynamic (research data), then known (master DB), then fallback
+    [...dynamicProvinceEco, ...known, ...fallbackUnknown].forEach((entity) => {
+      if (!merged.has(entity.id)) {
+        merged.set(entity.id, entity);
+      }
+    });
+
+    return Array.from(merged.values());
+  }, [effectiveEcoIds, portal]);
+
+  const knowledgeTips = useMemo(() => {
+    const directKnowledge = Array.isArray((portal as any)?.knowledge) ? (portal as any).knowledge : [];
+    if (directKnowledge.length > 0) {
+      return directKnowledge
+        .map((item: any, index: number) => {
+          if (typeof item === 'string') {
+            return { title: `Tip ${index + 1}`, content: item };
+          }
+          return {
+            title: item?.title || `Tip ${index + 1}`,
+            content: item?.content || item?.note || ''
+          };
+        })
+        .filter((item: { title: string; content: string }) => item.content);
+    }
+
+    const directTips = Array.isArray((portal as any)?.tips) ? (portal as any).tips : [];
+    if (directTips.length > 0) {
+      return directTips
+        .map((item: any, index: number) => {
+          if (typeof item === 'string') {
+            return { title: `Tip ${index + 1}`, content: item };
+          }
+          return {
+            title: item?.title || `Tip ${index + 1}`,
+            content: item?.content || item?.note || ''
+          };
+        })
+        .filter((item: { title: string; content: string }) => item.content);
+    }
+
+    const derived: Array<{ title: string; content: string }> = [];
+
+    if ((portal as any)?.bestSeason) {
+      derived.push({ title: 'ช่วงเที่ยวแนะนำ', content: `จังหวัดนี้เหมาะเที่ยวช่วง ${(portal as any).bestSeason}` });
+    }
+
+    const firstDanger = Array.isArray((portal as any)?.dangerZones) ? (portal as any).dangerZones[0] : null;
+    if (firstDanger?.label && firstDanger?.note) {
+      derived.push({ title: 'จุดต้องระวัง', content: `${firstDanger.label}: ${firstDanger.note}` });
+    }
+
+    const firstRoute = Array.isArray((portal as any)?.transportRoutes) ? (portal as any).transportRoutes[0] : null;
+    if (firstRoute?.from && firstRoute?.to) {
+      derived.push({ title: 'เส้นทางนิยม', content: `${firstRoute.from} → ${firstRoute.to} (${firstRoute.duration || 'ดูเวลาหน้างาน'})` });
+    }
+
+    const foods = Array.isArray((portal as any)?.localFoods)
+      ? (portal as any).localFoods
+      : (Array.isArray((portal as any)?.localFood) ? (portal as any).localFood : []);
+    const firstFood = foods[0];
+    if (firstFood?.name) {
+      derived.push({ title: 'เมนูท้องถิ่น', content: `ลอง ${firstFood.name}${firstFood.priceRange ? ` (${firstFood.priceRange})` : ''}` });
+    }
+
+    if (derived.length === 0 && brief?.seasonAdvice) {
+      derived.push({ title: 'คำแนะนำการเดินทาง', content: brief.seasonAdvice });
+    }
+
+    return derived.slice(0, 5);
+  }, [brief.seasonAdvice, portal]);
+
+  const supplyItems = useMemo(() => {
+    const direct = Array.isArray((portal as any)?.supply) ? (portal as any).supply : [];
+    if (direct.length > 0) return direct;
+
+    return [
+      { type: 'bank', label: 'ธนาคาร / ATM', note: 'มีในเขตอำเภอเมืองและศูนย์การค้า' },
+      { type: 'gas', label: 'ปั๊มน้ำมัน', note: 'อยู่ตามทางหลวงและถนนสายหลักของจังหวัด' },
+      { type: 'other', label: 'ห้องน้ำ / จุดพัก', note: 'ปั๊มน้ำมันและร้านสะดวกซื้อส่วนใหญ่มีบริการ' }
+    ];
+  }, [portal]);
+
   return (
     <div className="h-full w-full flex-1 min-w-0 flex flex-col bg-[#020305] overflow-hidden relative">
       <div className="shrink-0 flex items-center pr-[120px] pl-4 py-3 gap-3"
         style={{ background: `linear-gradient(90deg, ${accent}, ${accentSecondary} 80%, #000 100%)` }}>
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur flex items-center justify-center text-white/80 hover:bg-black/50 hover:text-white transition-all shrink-0"><ArrowLeft size={18} /></button>
+        <button title="ย้อนกลับ" onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur flex items-center justify-center text-white/80 hover:bg-black/50 hover:text-white transition-all shrink-0"><ArrowLeft size={18} /></button>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-white/15 backdrop-blur shadow-inner"><Navigation2 size={20} className="text-white drop-shadow-md" /></div>
         <h1 className="text-lg font-black text-white drop-shadow-md tracking-tight mr-1 shrink-0">Travel Guide</h1>
-        <select value={activeRegion} onChange={(e) => switchToRegion(e.target.value)} className="bg-black/40 backdrop-blur border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-w-[120px] cursor-pointer ml-1">
+        <select title="เลือกภูมิภาค" value={activeRegion} onChange={(e) => switchToRegion(e.target.value)} className="bg-black/40 backdrop-blur border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-w-[120px] cursor-pointer ml-1">
           {Object.entries(regionTheme).map(([id, r]) => (<option key={id} value={id} className="bg-[#0f1115] text-white">{r.label}</option>))}
         </select>
-        <select value={selectedProvinceName} onChange={(e) => setSelectedProvinceName(e.target.value)} className="bg-black/40 backdrop-blur border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-w-[150px] cursor-pointer">
+        <select title="เลือกจังหวัด" value={selectedProvinceName} onChange={(e) => setSelectedProvinceName(e.target.value)} className="bg-black/40 backdrop-blur border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-w-[150px] cursor-pointer">
           {currentProvinces.map(p => (<option key={p} value={p} className="bg-[#0f1115] text-white">{provinceThaiNames[p] || p}</option>))}
         </select>
-        <button onClick={() => setShowSearchPopup(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/20 text-sm text-white hover:bg-white/20 transition-all flex-1 max-w-[260px] justify-start shadow-sm"><Search size={16} /><span className="truncate">{confirmedTrip?.dest || 'ค้นหาสถานที่...'}</span></button>
+        <button onClick={() => setShowSearchPopup(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/20 text-sm text-white hover:bg-white/20 transition-all flex-1 max-w-[320px] justify-start shadow-sm"><Search size={16} /><span className="truncate">{confirmedTrip ? `${confirmedTrip.origin} → ${confirmedTrip.dest}` : 'ค้นหาสถานที่...'}</span></button>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
@@ -355,7 +626,7 @@ export function TravelGuidePage() {
                 <div key={i} className="rounded-lg border p-3 flex items-center gap-2.5 group hover:border-opacity-80 transition-all" style={{ borderColor: `${co.color || '#fff'}25`, background: `${co.color || '#fff'}08` }}>
                   <div className="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-black shrink-0" style={{ background: `${co.color || '#fff'}18`, color: co.color || '#fff' }}>{co.logoText || 'TR'}</div>
                   <div className="min-w-0 flex-1"><div className="text-xs font-bold text-white truncate">{co.shortName || co.name}</div><div className="text-[10px] text-slate-500 line-clamp-2">{co.description}</div></div>
-                  {co.warpUrl && (<button onClick={() => window.open(co.warpUrl, '_blank')} className="w-8 h-8 rounded-md flex items-center justify-center bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white shrink-0"><ExternalLink size={14} /></button>)}
+                  {co.warpUrl && (<button title={`เปิดลิงก์ ${co.shortName || co.name || 'ผู้ให้บริการ'}`} onClick={() => window.open(co.warpUrl, '_blank')} className="w-8 h-8 rounded-md flex items-center justify-center bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white shrink-0"><ExternalLink size={14} /></button>)}
                 </div>
               ))}
             </div>
@@ -371,7 +642,7 @@ export function TravelGuidePage() {
                    { id: 'terrain', label: 'พื้นที่ (Terrain)', icon: <Mountain size={14} /> },
                    { id: 'climate', label: 'สภาพอากาศ (Climate)', icon: <Thermometer size={14} /> }
                  ].map(cat => {
-                   const items = getEcoEntities(brief.ecoIds || []).filter(e => e.category === cat.id);
+                   const items = ecoEntities.filter(e => e.category === cat.id);
                    if (items.length === 0) return null;
                    return (
                      <details key={cat.id} className="group bg-white/5 border border-white/10 rounded-lg overflow-hidden transition-all">
@@ -399,15 +670,18 @@ export function TravelGuidePage() {
                      </details>
                    );
                  })}
+                 {ecoEntities.length === 0 && (
+                   <div className="text-xs text-slate-500">ยังไม่มีข้อมูลสิ่งแวดล้อมเฉพาะจังหวัด</div>
+                 )}
                </div>
             </DashCard>
 
             {/* Knowledge / Tips */}
              <DashCard title="Knowledge / Tips" icon={<Lightbulb size={14} />} accent={accent}>
               <ul className="space-y-1.5 text-xs text-slate-300">
-                {portal.knowledge?.map((k: any, i: number) => (
+                {knowledgeTips.length > 0 ? knowledgeTips.map((k: any, i: number) => (
                   <li key={i}><div className="font-bold text-white text-[11px]">{k.title}</div><div className="text-[10px] text-slate-400">{k.content}</div></li>
-                )) || <li className="text-slate-500">ยังไม่มีข้อมูลแนะนำ</li>}
+                )) : <li className="text-slate-500">ยังไม่มีข้อมูลแนะนำ</li>}
               </ul>
             </DashCard>
 
@@ -416,7 +690,8 @@ export function TravelGuidePage() {
               {!confirmedTrip ? (<><MapPin size={24} style={{ color: accent }} className="mb-2 opacity-50" /><button onClick={() => setShowSearchPopup(true)} className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow-md" style={{ background: accent }}>กำหนดแผนเที่ยว</button></>) : (
                 <div className="w-full text-left">
                   <div className="text-[10px] font-bold text-slate-500 mb-1">{budgetLabels[confirmedTrip.budgetLevel]} BUDGET</div>
-                  <div className="text-base font-black text-white truncate mb-3">{confirmedTrip.dest}</div>
+                  <div className="text-base font-black text-white truncate">{confirmedTrip.origin} → {confirmedTrip.dest}</div>
+                  <div className="text-[10px] text-slate-500 mb-3">วันที่เดินทาง: {confirmedTrip.date}</div>
                   {condition && (<div className="bg-black/30 p-2.5 rounded-lg border border-white/5 space-y-2">
                     <div className="flex flex-wrap gap-1">{condition.isHoliday && <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/30">Holiday</span>}{condition.isRaining && <span className="text-[9px] bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/30">Rain</span>}</div>
                     <div className="text-[10px] text-slate-300 leading-tight italic">{condition.advice}</div>
@@ -445,7 +720,7 @@ export function TravelGuidePage() {
             <DashCard title="Supply / Facilities" icon={<Landmark size={14} />} accent={accent}>
               <div className="space-y-2 relative">
                 {['bank', 'gas', 'other'].map(sType => {
-                  const items = (portal.supply || []).filter((s: any) => sType === 'other' ? (s.type !== 'bank' && s.type !== 'gas') : s.type === sType);
+                  const items = supplyItems.filter((s: any) => sType === 'other' ? (s.type !== 'bank' && s.type !== 'gas') : s.type === sType);
                   if (items.length === 0) return null;
                   
                   const sIcon = sType === 'bank' ? <BanknoteIcon size={14} /> : sType === 'gas' ? <Fuel size={14} /> : <Bath size={14} />;
@@ -479,12 +754,48 @@ export function TravelGuidePage() {
       </div>
 
       {showSearchPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowSearchPopup(false)}><div className="w-full max-w-[400px] bg-[#0e1116] border border-white/10 rounded-2xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}><h3 className="text-lg font-black text-white mb-4">จัดแผนเดินทาง</h3><div className="space-y-3">
-          <input value={destText} onChange={e => setDestText(e.target.value)} placeholder="ไปที่ไหนดี?" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none" />
-          <input type="date" value={tripDate} onChange={e => setTripDate(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white" style={{ colorScheme: 'dark' }} />
-          <div className="flex gap-2">{(['budget','mid', 'luxury'] as BudgetTier[]).map(t => (<button key={t} onClick={() => setTripBudgetLevel(t)} className={`flex-1 py-2 rounded-xl text-xs font-bold ${tripBudgetLevel === t ? 'text-black' : 'bg-white/5 text-slate-400'}`} style={tripBudgetLevel === t ? { background: accent } : {}}>{budgetLabels[t]}</button>))}</div>
-          <button onClick={handleConfirmSearch} className="w-full py-3 rounded-xl font-black text-white mt-2" style={{ background: accent }}>ยืนยันแผน</button>
-        </div></div></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowSearchPopup(false)}>
+          <div className="w-full max-w-[420px] bg-[#0e1116] border border-white/10 rounded-2xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-black text-white mb-4">จัดแผนเดินทาง</h3>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <div className="text-[11px] text-slate-400 font-semibold">ต้นทาง</div>
+                <input
+                  list="trip-origin-options"
+                  value={originText}
+                  onChange={e => setOriginText(e.target.value)}
+                  placeholder="ต้นทาง เช่น กรุงเทพฯ"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none"
+                />
+                <datalist id="trip-origin-options">
+                  {plannerEndpointOptions.map((option) => (
+                    <option key={`origin-${option}`} value={option} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-[11px] text-slate-400 font-semibold">ปลายทาง</div>
+                <input
+                  list="trip-destination-options"
+                  value={destText}
+                  onChange={e => setDestText(e.target.value)}
+                  placeholder="ไปที่ไหนดี?"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none"
+                />
+                <datalist id="trip-destination-options">
+                  {plannerEndpointOptions.map((option) => (
+                    <option key={`destination-${option}`} value={option} />
+                  ))}
+                </datalist>
+              </div>
+
+              <input title="เลือกวันที่เดินทาง" type="date" value={tripDate} onChange={e => setTripDate(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white" style={{ colorScheme: 'dark' }} />
+              <div className="flex gap-2">{(['budget','mid', 'luxury'] as BudgetTier[]).map(t => (<button key={t} onClick={() => setTripBudgetLevel(t)} className={`flex-1 py-2 rounded-xl text-xs font-bold ${tripBudgetLevel === t ? 'text-black' : 'bg-white/5 text-slate-400'}`} style={tripBudgetLevel === t ? { background: accent } : {}}>{budgetLabels[t]}</button>))}</div>
+              <button onClick={handleConfirmSearch} disabled={!originText.trim() || !destText.trim()} className="w-full py-3 rounded-xl font-black text-white mt-2 disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: accent }}>ยืนยันแผน</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {previewEco && (
