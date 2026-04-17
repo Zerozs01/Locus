@@ -1,10 +1,10 @@
 // Region card images
-import RegionNorth from '../../../Image/RegionCard_North.webp';
-import RegionNortheast from '../../../Image/RegionCard_Northeast.webp';
-import RegionCentral from '../../../Image/RegionCard_Central.webp';
-import RegionSouth from '../../../Image/RegionCard_South.webp';
-import RegionWest from '../../../Image/RegionCard_West.webp';
-import RegionEast from '../../../Image/RegionCard_East.webp';
+import RegionNorth from '../../../Image/nouse/RegionCard_North.webp';
+import RegionNortheast from '../../../Image/nouse/RegionCard_Northeast.webp';
+import RegionCentral from '../../../Image/nouse/RegionCard_Central.webp';
+import RegionSouth from '../../../Image/nouse/RegionCard_South.webp';
+import RegionWest from '../../../Image/nouse/RegionCard_West.webp';
+import RegionEast from '../../../Image/nouse/RegionCard_East.webp';
 import { regionTheme } from './regionTheme';
 
 export interface Province {

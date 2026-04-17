@@ -110,6 +110,7 @@ export const ProvinceTacticalPage = () => {
         title?: string;
         boundingbox?: string[];
         geojson?: unknown;
+        autoFocus?: boolean;
       };
     } | null;
     if (!state?.focusPlace || loading) return;
@@ -137,7 +138,8 @@ export const ProvinceTacticalPage = () => {
             lat: state.focusPlace!.lat,
             lng: state.focusPlace!.lng,
             radiusMeters: 700,
-          }
+          },
+          { autoFocus: state.focusPlace!.autoFocus !== false }
         );
       }
       console.log(`Flying to: ${state.focusPlace!.title || 'location'} (${state.focusPlace!.lat}, ${state.focusPlace!.lng})`);

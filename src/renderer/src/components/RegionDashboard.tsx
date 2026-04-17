@@ -171,8 +171,8 @@ const getModeButtonTextStyle = (theme: RegionThemeTokens): CSSProperties => ({
 
 const getProvinceCardStyle = (theme: RegionThemeTokens, isSelected: boolean): CSSProperties => ({
   background: 'linear-gradient(180deg, rgba(12, 15, 19, 0.96) 0%, rgba(6, 8, 12, 0.92) 100%)',
-  borderColor: isSelected ? toRgba(getRegionAccent(theme), 0.22) : 'rgba(255,255,255,0.08)',
-  boxShadow: isSelected ? `0 14px 28px rgba(0,0,0,0.22)` : 'none'
+  borderColor: isSelected ? getRegionAccent(theme) : 'rgba(255,255,255,0.08)',
+  boxShadow: isSelected ? `0 0 0 1px ${getRegionAccent(theme)}, 0 0 20px ${toRgba(getRegionAccent(theme), 0.5)}, 0 14px 28px rgba(0,0,0,0.4)` : 'none'
 });
 
 const getProvinceActionStyle = (theme: RegionThemeTokens): CSSProperties => ({
@@ -748,7 +748,7 @@ export const RegionDashboard = memo(({
                                     className="group flex w-full items-center justify-center gap-1 rounded-lg border py-1.5 text-xs font-bold text-white transition-all"
                                     style={getProvinceActionStyle(theme)}
                                   >
-                                    Tactical Map
+                                    View province detail
                                     <ExternalLink size={12} className="transition-transform group-hover:translate-x-0.5" />
                                   </button>
                                 </div>

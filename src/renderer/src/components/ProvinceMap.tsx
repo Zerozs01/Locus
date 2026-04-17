@@ -21,7 +21,7 @@ export interface ProvinceMapHandle {
   flyTo: (lat: number, lng: number, zoom?: number) => void;
   panTo: (lat: number, lng: number) => void;
   highlightMarker: (lat: number, lng: number) => void;
-  searchAndFocus: (query: string, fallback?: { lat: number; lng: number; radiusMeters?: number }) => void;
+  searchAndFocus: (query: string, fallback?: { lat: number; lng: number; radiusMeters?: number }, options?: { autoFocus?: boolean }) => void;
   focusSearchResult: (payload: {
     lat: number;
     lng: number;
@@ -127,7 +127,7 @@ const centerMarkerIcon = L.divIcon({
   iconAnchor: [22, 44],
 });
 
-const provinceCoordinates: Record<string, { lat: number; lng: number }> = {
+export const provinceCoordinates: Record<string, { lat: number; lng: number }> = {
   'Chiang Mai': { lat: 18.7883, lng: 98.9853 },
   'Chiang Rai': { lat: 19.9105, lng: 99.8406 },
   'Nan': { lat: 18.7756, lng: 100.7730 },
@@ -301,6 +301,59 @@ const compileSearchRegex = (query: string): RegExp => {
     const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return new RegExp(escaped, 'i');
   }
+};
+
+const buildRemoteQueryCandidates = (query: string, provinceName: string): string[] => {
+  const q = query.trim().replace(/\s+/g, ' ');
+  if (!q) return [];
+
+  const normalizedProvinceName = provinceName === 'Bangkok Metropolis' ? 'Bangkok' : provinceName;
+  const candidates: string[] = [];
+  const pushUnique = (value: string) => {
+    const cleaned = value.trim().replace(/\s+/g, ' ');
+    if (cleaned.length < 2) return;
+    if (!candidates.some((existing) => existing.toLowerCase() === cleaned.toLowerCase())) {
+      candidates.push(cleaned);
+    }
+  };
+
+  pushUnique(q);
+
+  const withoutThaiProvinceSuffix = q
+    .replace(/\s*จังหวัด\s*กรุงเทพมหานคร$/i, '')
+    .replace(/\s*กรุงเทพมหานคร$/i, '')
+    .replace(/\s*กรุงเทพฯ?$/i, '')
+    .replace(/\s*จังหวัด\s*[ก-๙A-Za-z\-.\s]+$/i, '')
+    .trim();
+  pushUnique(withoutThaiProvinceSuffix);
+
+  const withoutEnglishProvince = withoutThaiProvinceSuffix
+    .replace(new RegExp(`\\b${normalizedProvinceName.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b`, 'ig'), '')
+    .replace(/\bBangkok\b/ig, '')
+    .replace(/\bThailand\b/ig, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  pushUnique(withoutEnglishProvince);
+
+  if (/โรงพยาบาล/i.test(q)) {
+    const hospitalOnly = q
+      .replace(/กรุงเทพมหานคร|กรุงเทพฯ?/gi, '')
+      .replace(new RegExp(`\\b${normalizedProvinceName.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b`, 'ig'), '')
+      .replace(/\bBangkok\b/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    pushUnique(hospitalOnly);
+
+    const nameOnly = hospitalOnly.replace(/^โรงพยาบาล\s*/i, '').trim();
+    pushUnique(nameOnly);
+  }
+
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (tokens.length >= 2) {
+    pushUnique(tokens.slice(0, 2).join(' '));
+  }
+
+  return candidates.slice(0, 5);
 };
 
 export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({ 
@@ -664,6 +717,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         ? `${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}`
         : `${coords.lng - 0.5},${coords.lat + 0.4},${coords.lng + 0.5},${coords.lat - 0.4}`;
 
+      const queryCandidates = buildRemoteQueryCandidates(query, provinceName);
+
       setIsRemoteSearching(true);
       const controller = new AbortController();
       const fetchTimeoutHandle = window.setTimeout(() => controller.abort(), 5000);
@@ -676,31 +731,17 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         const LONGDO_API_KEY = import.meta.env.VITE_LONGDO_MAP_API_KEY || '3f3419bb3bbb76773847e8dfeb9c7c39';
 
         // --- [1] Longdo Map API (JSONP) ---
-        const fetchLongdo = async (): Promise<SearchPlace[]> => {
+        const fetchLongdo = async (targetQuery: string): Promise<SearchPlace[]> => {
           if (!LONGDO_API_KEY) return [];
           try {
-            const targetUrl = `https://search.longdo.com/mapsearch/json/search?keyword=${encodeURIComponent(query)}&limit=10&key=${LONGDO_API_KEY}`;
+            const targetUrl = `https://search.longdo.com/mapsearch/json/search?keyword=${encodeURIComponent(targetQuery)}&limit=10&key=${LONGDO_API_KEY}`;
 
-            const fetchJSONP = (url: string): Promise<any> => {
-              return new Promise((resolve, reject) => {
-                const callbackName = 'longdo_cb_' + Math.round(1000000 * Math.random());
-                const script = document.createElement('script');
-                script.src = `${url}&cb=${callbackName}`;
-                controller.signal.addEventListener('abort', () => {
-                  script.remove();
-                  reject(new DOMException('Aborted', 'AbortError'));
-                });
-                script.onerror = () => { script.remove(); reject(new Error('JSONP failed')); };
-                (window as any)[callbackName] = (data: any) => {
-                  resolve(data);
-                  script.remove();
-                  delete (window as any)[callbackName];
-                };
-                document.body.appendChild(script);
-              });
-            };
-
-            const result = await fetchJSONP(targetUrl);
+            const response = await fetch(targetUrl, {
+              signal: controller.signal,
+              headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const result = await response.json();
             const items = Array.isArray(result) ? result : result?.data;
             if (items && Array.isArray(items)) {
               return items.map((item: any) => ({
@@ -723,9 +764,9 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         };
 
         // --- [2] OSM Nominatim (polygon_geojson=1) ---
-        const fetchNominatim = async (): Promise<SearchPlace[]> => {
+        const fetchNominatim = async (targetQuery: string): Promise<SearchPlace[]> => {
           try {
-            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=th,en&countrycodes=th&addressdetails=1&namedetails=1&polygon_geojson=1&viewbox=${encodeURIComponent(viewBox)}&q=${encodeURIComponent(query)}&email=locus.app.contact@gmail.com`;
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=th,en&countrycodes=th&addressdetails=1&namedetails=1&polygon_geojson=1&viewbox=${encodeURIComponent(viewBox)}&q=${encodeURIComponent(targetQuery)}&email=locus.app.contact@gmail.com`;
             const response = await fetch(url, {
               signal: controller.signal,
               headers: { 'Accept-Language': 'th,en', 'Accept': 'application/json' }
@@ -761,18 +802,11 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           return [];
         };
 
-        // Fire both in parallel, merge results
-        const [longdoResults, nominatimResults] = await Promise.all([
-          fetchLongdo(),
-          fetchNominatim(),
-        ]);
-
-        window.clearTimeout(fetchTimeoutHandle);
-
-        // Merge: Nominatim results first (they carry polygon data), then Longdo
-        // Dedup by proximity: if two results are within ~100m and have similar names, keep the one with more geo data
+        // Try specific query first, then simpler variants when needed.
         const merged: SearchPlace[] = [];
         const usedCoords = new Set<string>();
+        let longdoCount = 0;
+        let nominatimCount = 0;
 
         const addIfNotDuplicate = (place: SearchPlace) => {
           const coordKey = `${place.lat.toFixed(4)}_${place.lng.toFixed(4)}`;
@@ -784,12 +818,33 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           }
         };
 
-        // Nominatim first (has polygon data)
-        nominatimResults.forEach(addIfNotDuplicate);
-        // Then Longdo (supplements with accurate Thai POI names)
-        longdoResults.forEach(addIfNotDuplicate);
+        for (const candidate of queryCandidates) {
+          const [longdoResults, nominatimResults] = await Promise.all([
+            fetchLongdo(candidate),
+            fetchNominatim(candidate),
+          ]);
 
-        console.log(`[Search] Longdo: ${longdoResults.length}, Nominatim: ${nominatimResults.length}, Merged: ${merged.length}`);
+          longdoCount += longdoResults.length;
+          nominatimCount += nominatimResults.length;
+
+          // Nominatim first (has polygon data), then Longdo (Thai POI names)
+          nominatimResults.forEach(addIfNotDuplicate);
+          longdoResults.forEach(addIfNotDuplicate);
+
+          // Enough results to display, stop querying more variants.
+          if (merged.length >= 8) break;
+        }
+
+        window.clearTimeout(fetchTimeoutHandle);
+
+        // Sort by distance to the active province coordinates so local results bubble to the top
+        merged.sort((a, b) => {
+          const distA = distanceMeters(a.lat, a.lng, coords.lat, coords.lng);
+          const distB = distanceMeters(b.lat, b.lng, coords.lat, coords.lng);
+          return distA - distB;
+        });
+
+        console.log(`[Search] Queries: ${queryCandidates.join(' | ')}, Longdo: ${longdoCount}, Nominatim: ${nominatimCount}, Merged: ${merged.length}`);
         setRemoteSuggestions(merged);
       } catch (error) {
         window.clearTimeout(fetchTimeoutHandle);
@@ -950,7 +1005,9 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     highlightMarker: (targetLat: number, targetLng: number) => {
       highlightLocation(targetLat, targetLng);
     },
-    searchAndFocus: (query: string, fallback) => {
+    searchAndFocus: (query: string, fallback, options) => {
+      const doAutoFocus = options?.autoFocus !== false;
+
       if (pendingSearchFallbackTimerRef.current) {
         window.clearTimeout(pendingSearchFallbackTimerRef.current);
         pendingSearchFallbackTimerRef.current = null;
@@ -959,7 +1016,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       const normalizedTargetQuery = query.trim();
 
       const cached = getCachedSearchArea(normalizedTargetQuery, fallback);
-      if (cached) {
+      if (cached && doAutoFocus) {
         flyToSearchPlace(
           {
             lat: cached.lat,
@@ -983,21 +1040,23 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       setIsRemoteSearching(true);
       setSearchQuery(query);
       setShowSuggestions(true);
-      setPendingAutoFocusQuery(normalizedTargetQuery);
-      setPendingAutoFocusSearch(true);
-      pendingAutoFocusStartedAtRef.current = Date.now();
+      
+      if (doAutoFocus) {
+        setPendingAutoFocusQuery(normalizedTargetQuery);
+        setPendingAutoFocusSearch(true);
+        pendingAutoFocusStartedAtRef.current = Date.now();
+      } else {
+        setPendingAutoFocusSearch(false);
+      }
 
-      // Start flying to the coordinate IMMEDIATELY (Zero Perceptual Delay).
-      // We already know the coordinate, so we don't need to wait for the API to give us the polygon before we start the camera animation.
-      // When the API finishes (e.g. 500ms later), it will draw the polygon and adjust bounds if needed.
       if (fallback && mapInstanceRef.current) {
-        mapInstanceRef.current.flyTo([fallback.lat, fallback.lng], 16, {
+        mapInstanceRef.current.flyTo([fallback.lat, fallback.lng], 12, {
           duration: 1.5,
           easeLinearity: 0.25,
         });
       }
 
-      if (fallback) {
+      if (fallback && doAutoFocus) {
         pendingSearchFallbackTimerRef.current = window.setTimeout(() => {
           const map = mapInstanceRef.current;
           if (!map) return;
