@@ -4,13 +4,12 @@ import {
   ArrowLeft, Navigation2, Search, ExternalLink, MapPin,
   CloudRain, Thermometer,
   Lightbulb, AlertTriangle, Landmark, Fuel, BanknoteIcon,
-  Bath, PawPrint, Leaf, Mountain, LocateFixed
+  Bath, PawPrint, Leaf, Mountain, LocateFixed, Info, RefreshCw
 } from 'lucide-react';
 import { regionTheme, type RegionId } from '../../data/regionTheme';
 import { toRgba } from '../../utils/color';
 import { getProvincePortal, getCurrentSeason } from './data/portalData';
 import { regionBriefs } from './data/regionBriefs';
-import { calculateTripCost, budgetLabels, type BudgetTier } from './data/regionExpenses';
 import { getTravelConditionForDate } from './data/calendarHelpers';
 import { ThailandMap } from '../../components/ThailandMap';
 import { getRecords } from '../../utils/csvDb';
@@ -21,14 +20,70 @@ import { WeatherHistoryModal } from '../../components/WeatherHistoryModal';
 
 const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
 
-type TripPlan = {
-  origin: string;
-  dest: string;
-  budgetLevel: BudgetTier;
-  date: string;
+type SupplyType = 'bank' | 'gas' | 'other';
+
+type TravelGuideNewsItem = {
+  id: string;
+  title: string;
+  source: string;
+  url: string;
+  publishedAt: string;
+  tag: string;
+  impact: 'low' | 'medium' | 'high';
+  summary: string;
 };
 
-type SupplyType = 'bank' | 'gas' | 'other';
+const parseDurationToMinutes = (duration: unknown): number | null => {
+  const text = String(duration || '').trim().toLowerCase();
+  if (!text) return null;
+
+  const hourMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours|ช\.?ม\.?|ชม|ชั่วโมง)/i);
+  const minuteMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:m|min|mins|minute|minutes|นาที|น\.)/i);
+
+  if (hourMatch || minuteMatch) {
+    const hours = hourMatch ? Number(hourMatch[1]) : 0;
+    const minutes = minuteMatch ? Number(minuteMatch[1]) : 0;
+    const total = Math.round(hours * 60 + minutes);
+    return Number.isFinite(total) && total > 0 ? total : null;
+  }
+
+  const bareNumber = text.match(/(\d+(?:\.\d+)?)/);
+  if (!bareNumber) return null;
+  const fallbackMinutes = Math.round(Number(bareNumber[1]));
+  return Number.isFinite(fallbackMinutes) && fallbackMinutes > 0 ? fallbackMinutes : null;
+};
+
+const formatRouteDeparture = (route: any) => {
+  const times = Array.isArray(route?.departureTimes)
+    ? route.departureTimes
+    : Array.isArray(route?.departureTime)
+      ? route.departureTime
+      : [];
+
+  const normalized = times
+    .map((value: unknown) => String(value || '').trim())
+    .filter((value: string) => value.length > 0);
+
+  if (normalized.length === 0) {
+    const frequency = String(route?.frequency || '').trim();
+    return frequency ? `ทุก ${frequency}` : 'ไม่ระบุเวลาออก';
+  }
+
+  if (normalized.length <= 2) return normalized.join(', ');
+  return `${normalized[0]}, ${normalized[1]} +${normalized.length - 2}`;
+};
+
+const resolveNewsEndpoint = async (): Promise<string> => {
+  if (window.api?.config?.get) {
+    try {
+      const config = await window.api.config.get();
+      if (config.news_api_url) return String(config.news_api_url);
+    } catch {
+      return '';
+    }
+  }
+  return import.meta.env.VITE_NEWS_API_URL || '';
+};
 
 const transportTypeOrder = ['rail', 'bus', 'van', 'plane', 'boat', 'songthaew', 'tuk_tuk', 'bike', 'other'];
 const transportTypeLabels: Record<string, string> = {
@@ -77,6 +132,15 @@ const regionGradientPairs: Record<string, string> = {
   west: '#84cc16', east: '#a16207', south: '#3b82f6',
 };
 
+const regionOppositeColors: Record<string, string> = {
+  central: '#2563eb',
+  north: '#16a34a',
+  northeast: '#0891b2',
+  west: '#dc2626',
+  east: '#0ea5e9',
+  south: '#f59e0b',
+};
+
 const transportContrastPalettesByRegion: Record<string, string[]> = {
   north: ['#14532d', '#15803d', '#65a30d', '#facc15'],
   northeast: ['#1e3a8a', '#1d4ed8', '#0ea5e9', '#67e8f9'],
@@ -89,13 +153,13 @@ const transportContrastPalettesByRegion: Record<string, string[]> = {
 const transportIntensityCycle = [0.62, 0.5, 0.4, 0.3];
 const getTransportIntensity = (index: number) => transportIntensityCycle[index % transportIntensityCycle.length];
 
-const knowledgeToneScaleByRegion: Record<RegionId, [string, string, string, string]> = {
-  north: ['text-violet-200', 'text-violet-300', 'text-violet-400', 'text-violet-500'],
-  northeast: ['text-red-200', 'text-red-300', 'text-red-400', 'text-red-500'],
-  central: ['text-orange-200', 'text-orange-300', 'text-orange-400', 'text-orange-500'],
-  west: ['text-emerald-200', 'text-emerald-300', 'text-emerald-400', 'text-emerald-500'],
-  east: ['text-yellow-200', 'text-yellow-300', 'text-yellow-400', 'text-yellow-500'],
-  south: ['text-blue-200', 'text-blue-300', 'text-blue-400', 'text-blue-500'],
+const knowledgeToneScaleByRegion: Record<RegionId, [string, string, string, string, string]> = {
+  north: ['text-violet-200', 'text-violet-300', 'text-violet-400', 'text-violet-500', 'text-violet-600'],
+  northeast: ['text-red-200', 'text-red-300', 'text-red-400', 'text-red-500', 'text-red-600'],
+  central: ['text-orange-200', 'text-orange-300', 'text-orange-400', 'text-orange-500', 'text-orange-600'],
+  west: ['text-emerald-200', 'text-emerald-300', 'text-emerald-400', 'text-emerald-500', 'text-emerald-600'],
+  east: ['text-yellow-200', 'text-yellow-300', 'text-yellow-400', 'text-yellow-500', 'text-yellow-600'],
+  south: ['text-blue-200', 'text-blue-300', 'text-blue-400', 'text-blue-500', 'text-blue-600'],
 };
 
 const provincesByRegion: Record<string, string[]> = {
@@ -137,18 +201,31 @@ export function TravelGuidePage() {
   const displayName = provinceThaiNames[selectedProvinceName] || selectedProvinceName;
 
   const [activeTransportTab, setActiveTransportTab] = useState('');
-  const [showSearchPopup, setShowSearchPopup] = useState(false);
   const [originText, setOriginText] = useState('');
   const [destText, setDestText] = useState('');
   const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
-  const [tripBudgetLevel, setTripBudgetLevel] = useState<BudgetTier>('mid');
-  const [confirmedTrip, setConfirmedTrip] = useState<TripPlan | null>(null);
   const [activeSupplyType, setActiveSupplyType] = useState<SupplyType>('bank');
   const [originSearchOptions, setOriginSearchOptions] = useState<string[]>([]);
   const [destSearchOptions, setDestSearchOptions] = useState<string[]>([]);
   const [isLocatingOrigin, setIsLocatingOrigin] = useState(false);
+  const [isLocatingDestination, setIsLocatingDestination] = useState(false);
   const [originLocationError, setOriginLocationError] = useState('');
   const [originLocationHint, setOriginLocationHint] = useState('');
+  const [destinationLocationError, setDestinationLocationError] = useState('');
+  const [destinationLocationHint, setDestinationLocationHint] = useState('');
+  const [speedSortDirection, setSpeedSortDirection] = useState<'fast' | 'slow'>('fast');
+  const [priceSortDirection, setPriceSortDirection] = useState<'low' | 'high'>('low');
+  const [activePlannerFilter, setActivePlannerFilter] = useState<'speed' | 'price'>('speed');
+  const [showPlannerInfoPopup, setShowPlannerInfoPopup] = useState(false);
+  const [dangerInfoState, setDangerInfoState] = useState<{ danger: any; index: number } | null>(null);
+  const [isNewsPanelOpen, setIsNewsPanelOpen] = useState(false);
+  const [isLoadingNewsBriefings, setIsLoadingNewsBriefings] = useState(false);
+  const [newsBriefingError, setNewsBriefingError] = useState('');
+  const [newsBriefings, setNewsBriefings] = useState<TravelGuideNewsItem[]>([]);
+  const [hasLoadedNewsBriefings, setHasLoadedNewsBriefings] = useState(false);
+  const [newsLastSyncedAt, setNewsLastSyncedAt] = useState('');
+  const [showNewsSyncPopup, setShowNewsSyncPopup] = useState(false);
+  const [newsDetailItem, setNewsDetailItem] = useState<TravelGuideNewsItem | null>(null);
 
   const [syncedAqiMap, setSyncedAqiMap] = useState<Record<string, number>>({});
   const [syncedTempMap, setSyncedTempMap] = useState<Record<string, number>>({});
@@ -498,11 +575,6 @@ export function TravelGuidePage() {
   }, []);
 
   useEffect(() => {
-    if (!showSearchPopup) {
-      setOriginSearchOptions([]);
-      return;
-    }
-
     const q = originText.trim();
     if (q.length < 2) {
       setOriginSearchOptions([]);
@@ -520,14 +592,9 @@ export function TravelGuidePage() {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [fetchPlannerSearchOptions, originText, showSearchPopup]);
+  }, [fetchPlannerSearchOptions, originText]);
 
   useEffect(() => {
-    if (!showSearchPopup) {
-      setDestSearchOptions([]);
-      return;
-    }
-
     const q = destText.trim();
     if (q.length < 2) {
       setDestSearchOptions([]);
@@ -545,7 +612,7 @@ export function TravelGuidePage() {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [destText, fetchPlannerSearchOptions, showSearchPopup]);
+  }, [destText, fetchPlannerSearchOptions]);
 
   const plannerOriginOptions = useMemo(() => {
     const set = new Set<string>(plannerEndpointOptions);
@@ -583,51 +650,54 @@ export function TravelGuidePage() {
 
   const fetchApproxLocationFromIp = useCallback(async () => {
     try {
-      const response = await fetch('https://ipapi.co/json/');
+      const response = await fetch('https://get.geojs.io/v1/ip/geo.json');
       if (response.ok) {
-        const data: { latitude?: number; longitude?: number; city?: string; region?: string } = await response.json();
-        if (Number.isFinite(data.latitude) && Number.isFinite(data.longitude)) {
-          return { lat: Number(data.latitude), lng: Number(data.longitude), city: data.city || '', region: data.region || '' };
+        const data: {
+          latitude?: number | string;
+          longitude?: number | string;
+          city?: string;
+          region?: string;
+          region_name?: string;
+        } = await response.json();
+        const lat = typeof data.latitude === 'string' ? Number(data.latitude) : data.latitude;
+        const lng = typeof data.longitude === 'string' ? Number(data.longitude) : data.longitude;
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          return { lat: Number(lat), lng: Number(lng), city: data.city || '', region: data.region_name || data.region || '' };
         }
       }
     } catch {
-      // Try secondary provider below.
-    }
-
-    try {
-      const response = await fetch('https://ipwho.is/');
-      if (!response.ok) return null;
-      const data: { success?: boolean; latitude?: number; longitude?: number; city?: string; region?: string } = await response.json();
-      if (data.success !== false && Number.isFinite(data.latitude) && Number.isFinite(data.longitude)) {
-        return { lat: Number(data.latitude), lng: Number(data.longitude), city: data.city || '', region: data.region || '' };
-      }
-    } catch {
+      // Ignore and return null below.
       return null;
     }
 
     return null;
   }, []);
 
-  const handleUseCurrentLocation = useCallback(async () => {
-    setOriginLocationError('');
-    setOriginLocationHint('');
+  const applyCurrentLocationToField = useCallback(async (target: 'origin' | 'destination') => {
+    const setFieldText = target === 'origin' ? setOriginText : setDestText;
+    const setFieldError = target === 'origin' ? setOriginLocationError : setDestinationLocationError;
+    const setFieldHint = target === 'origin' ? setOriginLocationHint : setDestinationLocationHint;
+    const setFieldLocating = target === 'origin' ? setIsLocatingOrigin : setIsLocatingDestination;
+
+    setFieldError('');
+    setFieldHint('');
 
     const applyApproxLocationFallback = async () => {
       const approx = await fetchApproxLocationFromIp();
       if (!approx) return false;
       const label = await reverseGeocodeCurrentLocation(approx.lat, approx.lng);
-      setOriginText(label);
-      setOriginLocationHint('ใช้ตำแหน่งโดยประมาณจากเครือข่าย (IP Location)');
+      setFieldText(label);
+      setFieldHint('ใช้ตำแหน่งโดยประมาณจากเครือข่าย (IP Location)');
       return true;
     };
 
     if (!navigator.geolocation) {
       const applied = await applyApproxLocationFallback();
-      if (!applied) setOriginLocationError('อุปกรณ์นี้ไม่รองรับตำแหน่งปัจจุบัน');
+      if (!applied) setFieldError('อุปกรณ์นี้ไม่รองรับตำแหน่งปัจจุบัน');
       return;
     }
 
-    setIsLocatingOrigin(true);
+    setFieldLocating(true);
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -638,8 +708,8 @@ export function TravelGuidePage() {
       });
 
       const label = await reverseGeocodeCurrentLocation(position.coords.latitude, position.coords.longitude);
-      setOriginText(label);
-      setOriginLocationHint('');
+      setFieldText(label);
+      setFieldHint('');
     } catch (error: any) {
       const rawMessage = String(error?.message || '').toLowerCase();
       const shouldTryApproxFallback = error?.code !== 1 || rawMessage.includes('googleapis') || rawMessage.includes('403');
@@ -650,24 +720,48 @@ export function TravelGuidePage() {
       }
 
       if (error?.code === 1) {
-        setOriginLocationError('ยังไม่ได้อนุญาตให้เข้าถึงตำแหน่งปัจจุบัน');
+        setFieldError('ยังไม่ได้อนุญาตให้เข้าถึงตำแหน่งปัจจุบัน');
       } else if (error?.code === 2) {
-        setOriginLocationError('ไม่สามารถอ่านตำแหน่งปัจจุบันได้');
+        setFieldError('ไม่สามารถอ่านตำแหน่งปัจจุบันได้');
       } else if (error?.code === 3) {
-        setOriginLocationError('หมดเวลาในการค้นหาตำแหน่งปัจจุบัน');
+        setFieldError('หมดเวลาในการค้นหาตำแหน่งปัจจุบัน');
       } else {
-        setOriginLocationError('เกิดข้อผิดพลาดในการค้นหาตำแหน่งปัจจุบัน');
+        setFieldError('เกิดข้อผิดพลาดในการค้นหาตำแหน่งปัจจุบัน');
       }
     } finally {
-      setIsLocatingOrigin(false);
+      setFieldLocating(false);
     }
   }, [fetchApproxLocationFromIp, reverseGeocodeCurrentLocation]);
+
+  const handleUseCurrentOriginLocation = useCallback(async () => {
+    await applyCurrentLocationToField('origin');
+  }, [applyCurrentLocationToField]);
+
+  const handleUseCurrentDestinationLocation = useCallback(async () => {
+    await applyCurrentLocationToField('destination');
+  }, [applyCurrentLocationToField]);
+
+  const handleOriginInputChange = useCallback((value: string) => {
+    setOriginText(value);
+    if (originLocationHint) setOriginLocationHint('');
+    if (originLocationError) setOriginLocationError('');
+  }, [originLocationError, originLocationHint]);
+
+  const handleDestinationInputChange = useCallback((value: string) => {
+    setDestText(value);
+    if (destinationLocationHint) setDestinationLocationHint('');
+    if (destinationLocationError) setDestinationLocationError('');
+  }, [destinationLocationError, destinationLocationHint]);
 
   const switchToRegion = useCallback((regionId: string, province?: string) => {
     setActiveRegion(regionId);
     setSelectedProvinceName(province || defaultProvincePerRegion[regionId] || '');
     setActiveTransportTab('');
-    setConfirmedTrip(null);
+    setOriginLocationHint('');
+    setDestinationLocationHint('');
+    setOriginLocationError('');
+    setDestinationLocationError('');
+    setIsNewsPanelOpen(false);
     navigate(`/travel-guide/${regionId}`, { replace: true });
   }, [navigate]);
 
@@ -679,25 +773,378 @@ export function TravelGuidePage() {
     } else {
       setSelectedProvinceName(name);
       setActiveTransportTab('');
-      setConfirmedTrip(null);
+      setOriginLocationHint('');
+      setDestinationLocationHint('');
+      setOriginLocationError('');
+      setDestinationLocationError('');
+      setIsNewsPanelOpen(false);
     }
   }, [activeRegion, switchToRegion]);
 
-  const handleConfirmSearch = () => {
-    const origin = originText.trim();
-    const dest = destText.trim();
-    if (!origin || !dest) return;
-    setConfirmedTrip({ origin, dest, budgetLevel: tripBudgetLevel, date: tripDate });
-    setShowSearchPopup(false);
-  };
+  useEffect(() => {
+    setHasLoadedNewsBriefings(false);
+    setNewsBriefings([]);
+    setNewsBriefingError('');
+    setNewsLastSyncedAt('');
+  }, [selectedProvinceId]);
 
   const openProvinceDetail = useCallback(() => {
     if (!selectedProvinceId) return;
     navigate(`/province/${activeRegion}/${selectedProvinceId}`);
   }, [activeRegion, navigate, selectedProvinceId]);
 
-  const condition = confirmedTrip ? getTravelConditionForDate(confirmedTrip.date, activeRegion) : null;
-  const costResult = confirmedTrip ? calculateTripCost(activeRegion as RegionId, confirmedTrip.budgetLevel, 1, 1, 0) : null;
+  const plannerOrigin = originText.trim();
+  const plannerDestination = destText.trim();
+  const hasPlannerEndpoints = plannerOrigin.length > 0 && plannerDestination.length > 0;
+
+  const condition = useMemo(() => {
+    return getTravelConditionForDate(tripDate, activeRegion);
+  }, [activeRegion, tripDate]);
+
+  const routeRecommendations = useMemo(() => {
+    const rawRoutes = Array.isArray((portal as any)?.transportRoutes) ? (portal as any).transportRoutes : [];
+    if (rawRoutes.length === 0) return [] as any[];
+
+    const normalize = (value: unknown) => String(value || '').trim().toLowerCase();
+    const normalizedOrigin = normalize(plannerOrigin);
+    const normalizedDestination = normalize(plannerDestination);
+
+    const endpointMatchedRoutes = rawRoutes.filter((route: any) => {
+      const from = normalize(route?.from);
+      const to = normalize(route?.to);
+      const via = Array.isArray(route?.via) ? route.via.map((v: unknown) => normalize(v)) : [];
+
+      if (!normalizedOrigin || !normalizedDestination) return true;
+
+      const directHit = (from.includes(normalizedOrigin) && to.includes(normalizedDestination))
+        || (from.includes(normalizedDestination) && to.includes(normalizedOrigin));
+      if (directHit) return true;
+
+      const viaHit = via.some((node: string) => node.includes(normalizedOrigin) || node.includes(normalizedDestination));
+      return viaHit;
+    });
+
+    const candidateRoutes = endpointMatchedRoutes.length > 0 ? endpointMatchedRoutes : rawRoutes;
+
+    const trafficPenaltyByType: Record<string, number> = {
+      rail: 0,
+      plane: 0,
+      boat: condition.trafficRisk === 'high' ? 1 : 0,
+      bus: condition.trafficRisk === 'high' ? 3 : 1,
+      van: condition.trafficRisk === 'high' ? 2 : 1,
+      bike: condition.isRaining ? 3 : 1,
+      other: 2,
+    };
+
+    const normalizedRoutes = candidateRoutes.map((route: any) => {
+      const fare = Number(route?.baseFare);
+      const normalizedType = normalizeTransportType(String(route?.type || 'other'));
+      const durationMin = parseDurationToMinutes(route?.duration);
+      const trafficPenalty = trafficPenaltyByType[normalizedType] ?? 2;
+      const effectiveDuration = durationMin === null ? Number.POSITIVE_INFINITY : durationMin + (trafficPenalty * 8);
+      return {
+        ...route,
+        __type: normalizedType,
+        __fare: Number.isFinite(fare) ? fare : null,
+        __durationMin: durationMin,
+        __effectiveDuration: effectiveDuration,
+      };
+    });
+
+    return [...normalizedRoutes]
+      .sort((a: any, b: any) => {
+        const speedSort = speedSortDirection === 'fast'
+          ? a.__effectiveDuration - b.__effectiveDuration
+          : b.__effectiveDuration - a.__effectiveDuration;
+
+        const priceSort = priceSortDirection === 'low'
+          ? (a.__fare ?? Number.POSITIVE_INFINITY) - (b.__fare ?? Number.POSITIVE_INFINITY)
+          : (b.__fare ?? Number.NEGATIVE_INFINITY) - (a.__fare ?? Number.NEGATIVE_INFINITY);
+
+        if (activePlannerFilter === 'speed') {
+          if (speedSort !== 0) return speedSort;
+          if (priceSort !== 0) return priceSort;
+        } else {
+          if (priceSort !== 0) return priceSort;
+          if (speedSort !== 0) return speedSort;
+        }
+
+        const rawDurationSort = speedSortDirection === 'fast'
+          ? (a.__durationMin ?? Number.POSITIVE_INFINITY) - (b.__durationMin ?? Number.POSITIVE_INFINITY)
+          : (b.__durationMin ?? Number.NEGATIVE_INFINITY) - (a.__durationMin ?? Number.NEGATIVE_INFINITY);
+        if (rawDurationSort !== 0) return rawDurationSort;
+
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      })
+      .slice(0, 6);
+  }, [activePlannerFilter, condition.isRaining, condition.trafficRisk, plannerDestination, plannerOrigin, portal, priceSortDirection, speedSortDirection]);
+
+  const plannerOppositeColor = regionOppositeColors[activeRegion] || '#38bdf8';
+  const trafficToneByRisk = condition.trafficRisk === 'high' ? 0.36 : condition.trafficRisk === 'medium' ? 0.28 : 0.22;
+
+  const speedFilterActiveStyle: React.CSSProperties = {
+    background: `linear-gradient(90deg, ${toRgba(accent, 0.72)} 0%, ${toRgba(accent, 0.5)} 100%)`,
+    border: `1px solid ${toRgba(accent, 0.82)}`,
+    color: '#ffffff',
+  };
+
+  const priceFilterActiveStyle: React.CSSProperties = {
+    background: `linear-gradient(90deg, ${toRgba(accentSecondary, 0.56)} 0%, ${toRgba(accent, 0.42)} 100%)`,
+    border: `1px solid ${toRgba(accentSecondary, 0.72)}`,
+    color: '#ffffff',
+  };
+
+  const plannerFilterInactiveStyle: React.CSSProperties = {
+    background: toRgba('#9ca3af', 0.14),
+    border: `1px solid ${toRgba('#9ca3af', 0.36)}`,
+    color: '#94a3b8',
+  };
+
+  const trafficBadgeStyle: React.CSSProperties = {
+    background: toRgba(plannerOppositeColor, trafficToneByRisk),
+    border: `1px solid ${toRgba(plannerOppositeColor, 0.75)}`,
+    color: '#f8fafc',
+  };
+
+  const plannerInfoButtonStyle: React.CSSProperties = {
+    background: toRgba(plannerOppositeColor, 0.14),
+    border: `1px solid ${toRgba(plannerOppositeColor, 0.42)}`,
+    color: '#e2e8f0',
+  };
+
+  const dangerNewsHeaderActiveStyle: React.CSSProperties = {
+    border: `1px solid ${toRgba('#9ca3af', 0.52)}`,
+    background: `linear-gradient(90deg, ${toRgba('#6b7280', 0.3)} 0%, ${toRgba('#4b5563', 0.4)} 100%)`,
+    color: '#f8fafc',
+  };
+
+  const dangerNewsHeaderInactiveStyle: React.CSSProperties = {
+    border: `1px solid ${toRgba('#1f2937', 0.9)}`,
+    background: 'rgba(4, 8, 14, 0.98)',
+    color: '#64748b',
+  };
+
+  const provinceDetailButtonStyle: React.CSSProperties = {
+    background: 'rgba(0, 0, 0, 0.82)',
+    borderColor: toRgba(accent, 0.58),
+    color: accent,
+  };
+
+  const openPlannerWarpLocation = useCallback(() => {
+    navigate(`/province/${activeRegion}/${selectedProvinceId}`, {
+      state: {
+        focusPlace: {
+          title: plannerDestination || displayName,
+          autoFocus: false,
+          lat: provinceCoordinates[selectedProvinceName]?.lat || provinceCoordinates[displayName]?.lat || 13.7563,
+          lng: provinceCoordinates[selectedProvinceName]?.lng || provinceCoordinates[displayName]?.lng || 100.5018,
+        }
+      }
+    });
+    setShowPlannerInfoPopup(false);
+  }, [activeRegion, displayName, navigate, plannerDestination, selectedProvinceId, selectedProvinceName]);
+
+  const plannerLocationStatus = useMemo(() => {
+    if (originLocationHint) return originLocationHint;
+    if (destinationLocationHint) return destinationLocationHint;
+    return '';
+  }, [destinationLocationHint, originLocationHint]);
+
+  const provinceBaseCoordinate = useMemo(() => {
+    return provinceCoordinates[selectedProvinceName] || provinceCoordinates[displayName] || { lat: 13.7563, lng: 100.5018 };
+  }, [displayName, selectedProvinceName]);
+
+  const getDangerHotspot = useCallback((index: number) => {
+    const offsetLat = [0.08, -0.05, 0.03, -0.07][index % 4];
+    const offsetLng = [0.07, -0.04, -0.06, 0.05][index % 4];
+    return {
+      lat: provinceBaseCoordinate.lat + offsetLat,
+      lng: provinceBaseCoordinate.lng + offsetLng,
+      radiusKm: 4 + (index % 3) * 2,
+    };
+  }, [provinceBaseCoordinate.lat, provinceBaseCoordinate.lng]);
+
+  const buildLongdoMapUrl = useCallback((lat: number, lng: number, keyword: string) => {
+    return `https://map.longdo.com/?lat=${lat}&lon=${lng}&zoom=12&keyword=${encodeURIComponent(keyword)}`;
+  }, []);
+
+  const normalizeProvinceNewsId = useCallback((value: string) => {
+    return normalizeWeatherProvinceId(value || '');
+  }, [normalizeWeatherProvinceId]);
+
+  const buildMockProvinceNews = useCallback((): TravelGuideNewsItem[] => {
+    const baseTitle = plannerDestination || displayName;
+    const now = new Date();
+    const mkDate = (daysAgo: number) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() - daysAgo);
+      return d.toISOString();
+    };
+
+    return [
+      {
+        id: `${selectedProvinceId}-news-1`,
+        title: `อัปเดตจราจรช่วงเร่งด่วนรอบ ${baseTitle}`,
+        source: 'Province News',
+        url: '',
+        publishedAt: mkDate(2),
+        tag: 'การจราจร',
+        impact: 'medium',
+        summary: `มีการจราจรหนาแน่นบางช่วงเวลาในพื้นที่ใกล้ ${baseTitle} ควรหลีกเลี่ยงจุดคอขวดช่วง 07:00-09:00 และ 17:00-19:00`,
+      },
+      {
+        id: `${selectedProvinceId}-news-2`,
+        title: `เตือนฝนสะสมในบางจุดของจังหวัด${displayName}`,
+        source: 'Province News',
+        url: '',
+        publishedAt: mkDate(5),
+        tag: 'สภาพอากาศ',
+        impact: 'high',
+        summary: 'ควรตรวจสอบสภาพอากาศก่อนเดินทางและเตรียมเวลาเผื่ออย่างน้อย 20-30 นาทีในเส้นทางหลัก',
+      },
+      {
+        id: `${selectedProvinceId}-news-3`,
+        title: `สรุปความปลอดภัยเส้นทางหลักของจังหวัด${displayName}`,
+        source: 'Province News',
+        url: '',
+        publishedAt: mkDate(18),
+        tag: 'ความปลอดภัย',
+        impact: 'medium',
+        summary: 'มีการเพิ่มจุดตรวจและกำชับการใช้ความเร็วในเส้นทางที่เกิดอุบัติเหตุซ้ำซ้อนบ่อย',
+      },
+      {
+        id: `${selectedProvinceId}-news-4`,
+        title: `หน่วยงานท้องถิ่นปรับแผนรับนักท่องเที่ยวช่วงเทศกาล`,
+        source: 'Province News',
+        url: '',
+        publishedAt: mkDate(47),
+        tag: 'การท่องเที่ยว',
+        impact: 'low',
+        summary: 'เน้นการกระจายคนออกจากแหล่งท่องเที่ยวหลักไปจุดรอง เพื่อลดความแออัด',
+      },
+      {
+        id: `${selectedProvinceId}-news-5`,
+        title: `รายงานสถิติพื้นที่เสี่ยงในช่วง 3 เดือนที่ผ่านมา`,
+        source: 'Province News',
+        url: '',
+        publishedAt: mkDate(91),
+        tag: 'สถิติ',
+        impact: 'medium',
+        summary: 'จุดเสี่ยงหลักยังอยู่ในพื้นที่ทางร่วมทางแยกและเส้นทางขนส่งหลักของจังหวัด',
+      },
+    ];
+  }, [displayName, plannerDestination, selectedProvinceId]);
+
+  const loadProvinceNewsBriefings = useCallback(async (forceSync = false) => {
+    setIsLoadingNewsBriefings(true);
+    setNewsBriefingError('');
+
+    try {
+      let stories: TravelGuideNewsItem[] = [];
+      const endpoint = await resolveNewsEndpoint();
+
+      if (endpoint) {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          cache: forceSync ? 'no-store' : 'default',
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`โหลดข่าวไม่สำเร็จ (${response.status})`);
+        }
+
+        const payload = await response.json();
+        const summaries = Array.isArray(payload) ? payload : [];
+
+        const provinceCandidates = new Set([
+          normalizeProvinceNewsId(selectedProvinceId),
+          normalizeProvinceNewsId(selectedProvinceName),
+          normalizeProvinceNewsId(displayName),
+        ]);
+
+        const matched = summaries.find((summary: any) => {
+          const id = normalizeProvinceNewsId(String(summary?.id || summary?.name || ''));
+          return provinceCandidates.has(id);
+        });
+
+        const sourceStories = Array.isArray(matched?.topStories)
+          ? matched.topStories
+          : [];
+
+        stories = sourceStories.map((story: any, index: number) => ({
+          id: String(story?.id || `${selectedProvinceId}-api-${index}`),
+          title: String(story?.title || 'ไม่มีหัวข้อข่าว'),
+          source: String(story?.source || 'News API'),
+          url: String(story?.url || ''),
+          publishedAt: String(story?.publishedAt || new Date().toISOString()),
+          tag: String(story?.tag || 'ทั่วไป'),
+          impact: (story?.impact === 'low' || story?.impact === 'medium' || story?.impact === 'high') ? story.impact : 'medium',
+          summary: String(story?.summary || story?.title || 'ไม่มีสรุปข่าว'),
+        }));
+      }
+
+      const fallbackStories = buildMockProvinceNews();
+      const allStories = stories.length > 0 ? stories : fallbackStories;
+
+      const now = Date.now();
+      const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
+      const oneYearAgo = now - (365 * 24 * 60 * 60 * 1000);
+
+      const normalized = allStories
+        .map((item) => {
+          const time = new Date(item.publishedAt).getTime();
+          return { item, time: Number.isFinite(time) ? time : 0 };
+        })
+        .filter((entry) => entry.time >= oneYearAgo)
+        .sort((a, b) => b.time - a.time);
+
+      const weekSet = normalized.filter((entry) => entry.time >= sevenDaysAgo).map((entry) => entry.item);
+      const yearSet = normalized.map((entry) => entry.item);
+      const prioritized = (weekSet.length >= 2 ? weekSet : yearSet).slice(0, 5);
+
+      setNewsBriefings(prioritized.length > 0 ? prioritized : fallbackStories);
+      setHasLoadedNewsBriefings(true);
+      setNewsLastSyncedAt(new Date().toISOString());
+    } catch (error: any) {
+      setNewsBriefings(buildMockProvinceNews());
+      setHasLoadedNewsBriefings(true);
+      setNewsLastSyncedAt(new Date().toISOString());
+      setNewsBriefingError(String(error?.message || 'ไม่สามารถโหลดข่าวได้'));
+    } finally {
+      setIsLoadingNewsBriefings(false);
+    }
+  }, [buildMockProvinceNews, displayName, normalizeProvinceNewsId, selectedProvinceId, selectedProvinceName]);
+
+  useEffect(() => {
+    if (!isNewsPanelOpen || hasLoadedNewsBriefings || isLoadingNewsBriefings) return;
+    void loadProvinceNewsBriefings(false);
+  }, [hasLoadedNewsBriefings, isLoadingNewsBriefings, isNewsPanelOpen, loadProvinceNewsBriefings]);
+
+  const handleSyncProvinceNews = useCallback(async () => {
+    await loadProvinceNewsBriefings(true);
+    setIsNewsPanelOpen(true);
+    setShowNewsSyncPopup(false);
+  }, [loadProvinceNewsBriefings]);
+
+  const handleShowDangerPanel = useCallback(() => {
+    setIsNewsPanelOpen(false);
+  }, []);
+
+  const handleShowNewsPanel = useCallback(() => {
+    setDangerInfoState(null);
+    setIsNewsPanelOpen(true);
+  }, []);
+
+  const dangerInfoHotspot = useMemo(() => {
+    if (!dangerInfoState) return null;
+    return getDangerHotspot(dangerInfoState.index);
+  }, [dangerInfoState, getDangerHotspot]);
+
+  const dangerInfoLongdoUrl = useMemo(() => {
+    if (!dangerInfoState || !dangerInfoHotspot) return '';
+    return buildLongdoMapUrl(dangerInfoHotspot.lat, dangerInfoHotspot.lng, `${displayName} ${dangerInfoState.danger?.label || ''}`);
+  }, [buildLongdoMapUrl, dangerInfoHotspot, dangerInfoState, displayName]);
 
   if (!region) return null;
   
@@ -941,7 +1388,7 @@ export function TravelGuidePage() {
 
   return (
     <div className="h-full w-full flex-1 min-w-0 flex flex-col bg-[#020305] overflow-hidden relative">
-      <div className="shrink-0 flex items-center pr-[120px] pl-4 py-3 gap-3"
+      <div className="shrink-0 flex items-center pr-[120px] pl-4 py-3 gap-3 relative"
         style={{ background: `linear-gradient(90deg, ${accent}, ${accentSecondary} 80%, #000 100%)` }}>
         <button title="ย้อนกลับ" onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-black/30 backdrop-blur flex items-center justify-center text-white/80 hover:bg-black/50 hover:text-white transition-all shrink-0"><ArrowLeft size={18} /></button>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-white/15 backdrop-blur shadow-inner"><Navigation2 size={20} className="text-white drop-shadow-md" /></div>
@@ -952,11 +1399,15 @@ export function TravelGuidePage() {
         <select title="เลือกจังหวัด" value={selectedProvinceName} onChange={(e) => setSelectedProvinceName(e.target.value)} className="bg-black/40 backdrop-blur border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-w-[150px] cursor-pointer">
           {currentProvinces.map(p => (<option key={p} value={p} className="bg-[#0f1115] text-white">{provinceThaiNames[p] || p}</option>))}
         </select>
-        <button onClick={() => setShowSearchPopup(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/20 text-sm text-white hover:bg-white/20 transition-all flex-1 max-w-[320px] justify-start shadow-sm"><Search size={16} /><span className="truncate">{confirmedTrip ? `${confirmedTrip.origin} → ${confirmedTrip.dest}` : 'ค้นหาสถานที่...'}</span></button>
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/20 text-sm text-white/90 flex-1 max-w-[340px] justify-start shadow-sm">
+          <Search size={16} />
+          <span className="truncate">{hasPlannerEndpoints ? `${plannerOrigin} → ${plannerDestination}` : 'กำหนดต้นทาง/ปลายทางที่การ์ดแผนเที่ยวด้านล่าง'}</span>
+        </div>
         <button
           onClick={openProvinceDetail}
           title={`เปิด Province Detail ของ ${displayName}`}
-          className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-500/20 border border-cyan-400/35 text-cyan-100 hover:bg-cyan-500/30 hover:text-white transition-all shadow-sm"
+          className="absolute right-[132px] top-1/2 -translate-y-1/2 z-10 flex items-center gap-2 px-3 py-2 rounded-lg border hover:bg-black/95 transition-all shadow-sm"
+          style={provinceDetailButtonStyle}
         >
           <MapPin size={14} />
           <span className="text-xs font-bold">Open Province Detail</span>
@@ -983,7 +1434,7 @@ export function TravelGuidePage() {
                 <button onClick={() => setShowWeatherModal(true)} className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-500/28 hover:bg-slate-400/32 border border-slate-200/38 shadow-[0_0_0_1px_rgba(248,250,252,0.12)] shrink-0 transition-all hover:scale-105 active:scale-100 backdrop-blur-sm">
                   <Thermometer size={13} className="text-amber-400 group-hover:scale-110 transition-transform" />
                   <div className="text-xs text-left">
-                    <div className="font-bold text-white leading-tight">{currentTemp !== null ? `${Math.round(currentTemp)}°C` : brief.climate.split(',')[0].replace('อุณหภูมิ ', '')}</div>
+                    <div className="font-bold text-white leading-tight">{currentTemp !== null ? `${currentTemp.toFixed(1)}°C` : brief.climate.split(',')[0].replace('อุณหภูมิ ', '')}</div>
                     <div className={`text-[9px] font-bold ${tempInfo ? tempInfo.color : 'text-white/50'}`}>{tempInfo ? tempInfo.label : 'Weather Forecast'}</div>
                   </div>
                 </button>
@@ -1036,7 +1487,7 @@ export function TravelGuidePage() {
 
           <div className="shrink-0 grid grid-cols-1 xl:grid-cols-3 gap-3 items-stretch">
             {/* Environment / Ecology with toggle categories */}
-            <DashCard title="Environment / Ecology" icon={<CloudRain size={14} />} accent={accent} className="h-[228px]" contentClassName="overflow-y-auto custom-scrollbar pr-1" headerStyle={sectionHeaderStyle} fullBleedHeader>
+            <DashCard title="Environment / Ecology" icon={<CloudRain size={14} />} accent={accent} className="h-[232px]" contentClassName="overflow-y-auto custom-scrollbar pr-1" headerStyle={sectionHeaderStyle} fullBleedHeader>
                <div className="space-y-2 relative">
                  {ecoCategoryConfigs.map(cat => {
                    const items = ecoEntities.filter(e => e.category === cat.id);
@@ -1084,7 +1535,7 @@ export function TravelGuidePage() {
             </DashCard>
 
             {/* Knowledge / Tips */}
-             <DashCard title="Knowledge / Tips" icon={<Lightbulb size={14} />} accent={accent} className="h-[228px]" contentClassName="overflow-y-auto custom-scrollbar pr-1" headerStyle={sectionHeaderStyle} fullBleedHeader>
+             <DashCard title="Knowledge / Tips" icon={<Lightbulb size={14} />} accent={accent} className="h-[232px]" contentClassName="overflow-y-auto custom-scrollbar pr-1" headerStyle={sectionHeaderStyle} fullBleedHeader>
               <ul className="space-y-1.5 text-xs text-slate-300">
                 {knowledgeTips.length > 0 ? knowledgeTips.map((k: any, i: number) => (
                     <li key={i}><div className={`font-bold text-[11px] ${knowledgeToneScale[i % knowledgeToneScale.length]}`}>{k.title}</div><div className="text-[10px] text-slate-300">{k.content}</div></li>
@@ -1092,7 +1543,7 @@ export function TravelGuidePage() {
               </ul>
             </DashCard>
 
-            <DashCard title="Supply / Facilities" icon={<Landmark size={14} />} accent={accent} className="h-[228px]" contentClassName="overflow-hidden" headerStyle={sectionHeaderStyle} fullBleedHeader>
+            <DashCard title="Supply / Facilities" icon={<Landmark size={14} />} accent={accent} className="h-[232px]" contentClassName="overflow-hidden" headerStyle={sectionHeaderStyle} fullBleedHeader>
               <div className="h-full min-h-0 flex flex-col gap-2.5">
                 <div className="grid grid-cols-3 gap-2">
                   {supplyTypes.map((type) => {
@@ -1128,7 +1579,7 @@ export function TravelGuidePage() {
                       <div key={i} className="w-full flex items-center justify-between p-2 rounded-md hover:bg-white/10 text-left transition-colors group/item relative overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover/item:bg-white/20 transition-colors" />
                         <div className="flex-1 min-w-0 flex items-center justify-between pl-1 pr-2">
-                          <div className="text-[11px] text-slate-200 font-bold truncate flex-1">{s.label}</div>
+                          <div className={`text-[11px] font-bold truncate flex-1 ${knowledgeToneScale[i % knowledgeToneScale.length]}`}>{s.label}</div>
                           <div className="text-[9px] text-slate-500 shrink-0 ml-2 max-w-[180px] truncate">{s.note}</div>
                         </div>
                         <button
@@ -1167,109 +1618,465 @@ export function TravelGuidePage() {
 
           {/* ROW 4: Danger Zones + Planner */}
            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 pb-1 items-stretch flex-1 min-h-0">
-            <DashCard title="จุดเสี่ยง/อันตราย" icon={<AlertTriangle size={14} />} accent="#ef4444" className="h-full min-h-0" contentClassName="overflow-y-auto custom-scrollbar pr-1" headerStyle={sectionHeaderStyle} fullBleedHeader>
-              {portal.dangerZones?.length > 0 ? (
-                 <ul className="space-y-1.5 text-xs">
-                   {portal.dangerZones.map((d: any, i: number) => (
-                     <li key={i} className="flex items-start gap-1.5">
-                       <span className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${d.severity === 'high' ? 'bg-red-500' : d.severity === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                       <div><span className="text-white font-bold">{d.label}</span><span className="text-slate-400"> — {d.note}</span></div>
-                     </li>
-                   ))}
-                 </ul>
-               ) : <p className="text-xs text-slate-500">ไม่มีข้อมูล</p>}
-            </DashCard>
-            
-            <div className="rounded-xl border p-4 flex flex-col items-center justify-center bg-white/5 h-full min-h-0" style={{ borderColor: toRgba(accent, 0.12) }}>
-              {!confirmedTrip ? (
-                <>
-                  <MapPin size={24} style={{ color: accent }} className="mb-2 opacity-50" />
-                  <button onClick={() => setShowSearchPopup(true)} className="px-4 py-2 rounded-lg text-xs font-bold text-white shadow-md" style={{ background: accent }}>กำหนดแผนเที่ยว</button>
-                </>
-              ) : (
-                <div className="w-full text-left overflow-y-auto custom-scrollbar pr-1">
-                  <div className="text-[10px] font-bold text-slate-500 mb-1">{budgetLabels[confirmedTrip.budgetLevel]} BUDGET</div>
-                  <div className="text-base font-black text-white truncate">{confirmedTrip.origin} → {confirmedTrip.dest}</div>
-                  <div className="text-[10px] text-slate-500 mb-3">วันที่เดินทาง: {confirmedTrip.date}</div>
-                  {condition && (
-                    <div className="bg-black/30 p-2.5 rounded-lg border border-white/5 space-y-2">
-                      <div className="flex flex-wrap gap-1">
-                        {condition.isHoliday && <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/30">Holiday</span>}
-                        {condition.isRaining && <span className="text-[9px] bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/30">Rain</span>}
-                      </div>
-                      <div className="text-[10px] text-slate-300 leading-tight italic">{condition.advice}</div>
-                    </div>
-                  )}
-                  {costResult && (
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="text-lg font-black" style={{ color: accent }}>฿{costResult.perDay.toLocaleString()}</div>
-                      <button onClick={() => navigate('/intelligence')} className="px-2 py-1 bg-white/10 rounded text-[9px] text-white">Ask AI</button>
-                    </div>
-                  )}
+            <DashCard
+              title=""
+              icon={<AlertTriangle size={14} />}
+              accent="#ef4444"
+              className="h-full min-h-0"
+              contentClassName="overflow-hidden"
+              headerStyle={sectionHeaderStyle}
+              fullBleedHeader
+              headerLeft={(
+                <div className="-my-2 min-w-0 w-[calc(100%+24px)] -mx-3">
+                  <div className="flex min-w-0 w-full h-9">
+                    <button
+                      type="button"
+                      onClick={handleShowDangerPanel}
+                      className="flex-1 h-full px-2 rounded-none text-[10px] font-bold flex items-center justify-center gap-1.5 truncate"
+                      style={isNewsPanelOpen ? dangerNewsHeaderInactiveStyle : dangerNewsHeaderActiveStyle}
+                    >
+                      <AlertTriangle size={12} className="text-white shrink-0" />
+                      จุดเสี่ยง/อันตราย
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleShowNewsPanel}
+                      className="flex-1 h-full px-2 rounded-none text-[10px] font-bold truncate"
+                      style={isNewsPanelOpen ? dangerNewsHeaderActiveStyle : dangerNewsHeaderInactiveStyle}
+                    >
+                      Province News
+                    </button>
+                  </div>
                 </div>
               )}
+            >
+              <div className="h-full min-h-0 flex flex-col gap-0">
+                {!isNewsPanelOpen ? (
+                  <>
+                    <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1">
+                      {portal.dangerZones?.length > 0 ? (
+                        <ul className="space-y-1.5 text-xs">
+                          {portal.dangerZones.map((d: any, i: number) => (
+                            <li key={i} className="flex items-start justify-between gap-2 rounded-md px-1 py-1 hover:bg-white/[0.03]">
+                              <div className="flex items-start gap-1.5 min-w-0">
+                                <span className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${d.severity === 'high' ? 'bg-red-500' : d.severity === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                                <div className="min-w-0">
+                                  <span className="text-white font-bold">{d.label}</span>
+                                  <span className="text-slate-400"> — {d.note}</span>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                title={`ดูจุดเสี่ยงของ ${d.label}`}
+                                onClick={() => setDangerInfoState({ danger: d, index: i })}
+                                className="w-5 h-5 rounded border border-slate-500/35 bg-slate-500/12 text-slate-400 hover:bg-slate-500/20 hover:text-slate-300 flex items-center justify-center shrink-0"
+                              >
+                                <Info size={10} />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <p className="text-xs text-slate-500">ไม่มีข้อมูล</p>}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="min-h-0 flex-1 flex flex-col">
+                      <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-1.5">
+                        {isLoadingNewsBriefings ? (
+                          <div className="text-[10px] text-slate-400">กำลังดึงข่าวล่าสุด...</div>
+                        ) : newsBriefings.length > 0 ? (
+                          newsBriefings.map((item, i) => (
+                            <div key={item.id} className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className={`text-[10px] font-bold leading-tight ${knowledgeToneScale[i % knowledgeToneScale.length]}`}>{item.title}</div>
+                                <button
+                                  type="button"
+                                  title="เปิดสรุปข่าว"
+                                  onClick={() => setNewsDetailItem(item)}
+                                  className="w-5 h-5 rounded border border-sky-400/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 flex items-center justify-center shrink-0"
+                                >
+                                  <Info size={10} />
+                                </button>
+                              </div>
+                              <div className="text-[9px] text-slate-500 mt-0.5">
+                                {item.source} • {new Date(item.publishedAt).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-[10px] text-slate-500">ไม่พบข่าวล่าสุดสำหรับจังหวัดนี้</div>
+                        )}
+
+                        {newsBriefingError && (
+                          <div className="text-[10px] text-amber-300">{newsBriefingError}</div>
+                        )}
+                        {newsLastSyncedAt && (
+                          <div className="text-[9px] text-slate-500">อัปเดตล่าสุด: {new Date(newsLastSyncedAt).toLocaleString('th-TH')}</div>
+                        )}
+                      </div>
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          type="button"
+                          title="Sync ข่าวล่าสุดแบบเรียลไทม์"
+                          onClick={() => setShowNewsSyncPopup(true)}
+                          className="w-6 h-6 rounded border border-sky-400/35 bg-sky-500/12 text-sky-300 hover:bg-sky-500/20 flex items-center justify-center"
+                        >
+                          <RefreshCw size={11} className={isLoadingNewsBriefings ? 'animate-spin' : ''} />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </DashCard>
+            
+            <div className="rounded-xl border p-3 flex flex-col bg-white/5 h-full min-h-0" style={{ borderColor: toRgba(accent, 0.12) }}>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="grid grid-cols-2 gap-2.5 flex-1 text-[10px] text-slate-400 font-semibold">
+                  <div>ต้นทาง</div>
+                  <div>ปลายทาง</div>
+                </div>
+                {plannerLocationStatus && (
+                  <div className="text-[9px] text-slate-400/90 truncate max-w-[48%]">{plannerLocationStatus}</div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      list="trip-origin-options"
+                      value={originText}
+                      onChange={e => handleOriginInputChange(e.target.value)}
+                      placeholder="ต้นทาง เช่น บางนา, เชียงใหม่"
+                      className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none"
+                    />
+                    <button
+                      type="button"
+                      title="ใช้ตำแหน่งปัจจุบันเป็นต้นทาง"
+                      onClick={handleUseCurrentOriginLocation}
+                      disabled={isLocatingOrigin}
+                      className="w-9 h-9 rounded-lg border border-slate-400/30 bg-slate-500/10 text-slate-300 hover:bg-slate-500/20 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <LocateFixed size={14} className={isLocatingOrigin ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      list="trip-destination-options"
+                      value={destText}
+                      onChange={e => handleDestinationInputChange(e.target.value)}
+                      placeholder="ปลายทาง เช่น วัดอรุณ, BTS สยาม"
+                      className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none"
+                    />
+                    <button
+                      type="button"
+                      title="ใช้ตำแหน่งปัจจุบันเป็นปลายทาง"
+                      onClick={handleUseCurrentDestinationLocation}
+                      disabled={isLocatingDestination}
+                      className="w-9 h-9 rounded-lg border border-slate-400/30 bg-slate-500/10 text-slate-300 hover:bg-slate-500/20 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <LocateFixed size={14} className={isLocatingDestination ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <datalist id="trip-origin-options">
+                {plannerOriginOptions.map((option) => (
+                  <option key={`origin-${option}`} value={option} />
+                ))}
+              </datalist>
+              <datalist id="trip-destination-options">
+                {plannerDestinationOptions.map((option) => (
+                  <option key={`destination-${option}`} value={option} />
+                ))}
+              </datalist>
+
+              {originLocationError && (
+                <div className="mt-1 text-[10px] text-rose-400">{originLocationError}</div>
+              )}
+              {destinationLocationError && (
+                <div className="mt-1 text-[10px] text-rose-400">{destinationLocationError}</div>
+              )}
+
+              <div className="mt-2 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2 items-center">
+                <input
+                  title="เลือกวันที่เดินทาง"
+                  type="date"
+                  value={tripDate}
+                  onChange={e => setTripDate(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white"
+                  style={{ colorScheme: 'dark' }}
+                />
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSpeedSortDirection((prev) => prev === 'fast' ? 'slow' : 'fast');
+                      setActivePlannerFilter('speed');
+                    }}
+                    className="px-2.5 py-2 rounded-lg text-[10px] font-bold transition-all"
+                    style={activePlannerFilter === 'speed' ? speedFilterActiveStyle : plannerFilterInactiveStyle}
+                  >
+                    {speedSortDirection === 'fast' ? 'เร็วสุด' : 'ช้าสุด'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPriceSortDirection((prev) => prev === 'low' ? 'high' : 'low');
+                      setActivePlannerFilter('price');
+                    }}
+                    className="px-2.5 py-2 rounded-lg text-[10px] font-bold transition-all"
+                    style={activePlannerFilter === 'price' ? priceFilterActiveStyle : plannerFilterInactiveStyle}
+                  >
+                    {priceSortDirection === 'low' ? 'ถูกสุด' : 'แพงสุด'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-2.5 flex-1 min-h-0 rounded-lg border border-white/10 bg-black/30 p-2.5 overflow-y-auto custom-scrollbar pr-1">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="text-[10px] text-slate-400">วันที่เดินทาง: {tripDate}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border font-bold" style={trafficBadgeStyle}>
+                      Traffic: {condition.trafficRisk.toUpperCase()}
+                    </span>
+                    <button
+                      type="button"
+                      title="ดูคำแนะนำการเดินทาง"
+                      onClick={() => setShowPlannerInfoPopup(true)}
+                      className="w-6 h-6 rounded-md hover:bg-white/10 flex items-center justify-center"
+                      style={plannerInfoButtonStyle}
+                    >
+                      <Info size={12} />
+                    </button>
+                  </div>
+                </div>
+
+                {routeRecommendations.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {routeRecommendations.map((route: any, index: number) => {
+                      const routeKey = route.id || `${route.from}-${route.to}-${route.name}`;
+                      const departureText = formatRouteDeparture(route);
+                      const shade = [0.16, 0.24, 0.32, 0.4][index % 4];
+                      const durationText = route.__durationMin === null
+                        ? (route.duration || 'ไม่ระบุเวลาเดินทาง')
+                        : `${route.__durationMin} นาที`;
+
+                      return (
+                        <div
+                          key={routeKey}
+                          className="rounded-md border overflow-hidden"
+                          style={{
+                            borderColor: toRgba(plannerOppositeColor, Math.min(0.72, shade + 0.24)),
+                            background: toRgba('#05080d', 0.94),
+                          }}
+                        >
+                          <div
+                            className="flex items-center justify-between gap-2 px-2 py-1.5 border-b"
+                            style={{
+                              background: `linear-gradient(90deg, ${toRgba(plannerOppositeColor, Math.min(0.62, shade + 0.18))} 0%, ${toRgba(plannerOppositeColor, Math.max(0.18, shade - 0.02))} 100%)`,
+                              borderColor: toRgba(plannerOppositeColor, 0.42),
+                            }}
+                          >
+                            <div className="text-[10px] font-bold text-white truncate">{route.name || `${route.from} → ${route.to}`}</div>
+                            <div className="flex items-center gap-1">
+                              {index === 0 && (
+                                <span
+                                  className="text-[8px] px-1 py-0.5 rounded border font-bold"
+                                  style={{
+                                    borderColor: toRgba('#ffffff', 0.45),
+                                    background: toRgba('#ffffff', 0.16),
+                                    color: '#f8fafc',
+                                  }}
+                                >
+                                  แนะนำ
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div
+                            className="text-[9px] text-slate-300 truncate px-2 py-1"
+                            style={{ background: toRgba(plannerOppositeColor, Math.max(0.08, shade - 0.1)) }}
+                          >
+                            {departureText} • {durationText} • {route.__fare === null ? 'ไม่ระบุราคา' : `฿${Number(route.__fare).toLocaleString()}`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-500">ยังไม่มีเส้นทางจากฐานข้อมูลสำหรับจังหวัดนี้</div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {showSearchPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setShowSearchPopup(false)}>
-          <div className="w-full max-w-[420px] bg-[#0e1116] border border-white/10 rounded-2xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-black text-white mb-4">จัดแผนเดินทาง</h3>
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[11px] text-slate-400 font-semibold">ต้นทาง</div>
-                  <button
-                    type="button"
-                    onClick={handleUseCurrentLocation}
-                    disabled={isLocatingOrigin}
-                    className="inline-flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-lg border border-cyan-400/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <LocateFixed size={12} className={isLocatingOrigin ? 'animate-spin' : ''} />
-                    {isLocatingOrigin ? 'กำลังหา...' : 'Current Location'}
-                  </button>
-                </div>
-                <input
-                  list="trip-origin-options"
-                  value={originText}
-                  onChange={e => setOriginText(e.target.value)}
-                  placeholder="ต้นทาง เช่น บางนา, เชียงใหม่ หรือใช้ตำแหน่งปัจจุบัน"
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none"
-                />
-                {originLocationError && (
-                  <div className="text-[10px] text-rose-400">{originLocationError}</div>
-                )}
-                {originLocationHint && !originLocationError && (
-                  <div className="text-[10px] text-cyan-300">{originLocationHint}</div>
-                )}
-                <datalist id="trip-origin-options">
-                  {plannerOriginOptions.map((option) => (
-                    <option key={`origin-${option}`} value={option} />
-                  ))}
-                </datalist>
-              </div>
+      {showPlannerInfoPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowPlannerInfoPopup(false)}>
+          <div className="w-full max-w-[420px] bg-[#0e1116] border border-white/10 rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <h3 className="text-base font-black text-white">คำแนะนำการเดินทาง</h3>
+              <span className="text-[10px] px-2 py-1 rounded border font-bold" style={trafficBadgeStyle}>
+                Traffic: {condition.trafficRisk.toUpperCase()}
+              </span>
+            </div>
 
-              <div className="space-y-1">
-                <div className="text-[11px] text-slate-400 font-semibold">ปลายทาง</div>
-                <input
-                  list="trip-destination-options"
-                  value={destText}
-                  onChange={e => setDestText(e.target.value)}
-                  placeholder="ไปที่ไหนดี?"
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none"
-                />
-                <datalist id="trip-destination-options">
-                  {plannerDestinationOptions.map((option) => (
-                    <option key={`destination-${option}`} value={option} />
-                  ))}
-                </datalist>
-              </div>
+            <div className="text-xs text-slate-300 leading-relaxed bg-white/5 border border-white/10 rounded-xl p-3">
+              {condition.advice}
+            </div>
 
-              <input title="เลือกวันที่เดินทาง" type="date" value={tripDate} onChange={e => setTripDate(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white" style={{ colorScheme: 'dark' }} />
-              <div className="flex gap-2">{(['budget','mid', 'luxury'] as BudgetTier[]).map(t => (<button key={t} onClick={() => setTripBudgetLevel(t)} className={`flex-1 py-2 rounded-xl text-xs font-bold ${tripBudgetLevel === t ? 'text-black' : 'bg-white/5 text-slate-400'}`} style={tripBudgetLevel === t ? { background: accent } : {}}>{budgetLabels[t]}</button>))}</div>
-              <button onClick={handleConfirmSearch} disabled={!originText.trim() || !destText.trim()} className="w-full py-3 rounded-xl font-black text-white mt-2 disabled:opacity-60 disabled:cursor-not-allowed" style={{ background: accent }}>ยืนยันแผน</button>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {condition.isHoliday && (
+                <span className="text-[10px] bg-red-500/20 text-red-300 px-2 py-0.5 rounded border border-red-500/30">
+                  วันหยุด/เทศกาล: รถอาจติดมากกว่าปกติ
+                </span>
+              )}
+              {condition.isRaining && (
+                <span className="text-[10px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded border border-sky-500/30">
+                  มีโอกาสฝนตก: ควรเผื่อเวลาเดินทางเพิ่ม
+                </span>
+              )}
+              {!condition.isHoliday && !condition.isRaining && (
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                  สภาพการเดินทางปกติ: เลือกเส้นทางตาม filter ได้เลย
+                </span>
+              )}
+            </div>
+
+            <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
+              <div className="text-[10px] text-slate-400 mb-1">ปลายทางที่ต้องการโฟกัสบนแผนที่จังหวัด</div>
+              <div className="text-sm font-bold text-white truncate">{plannerDestination || displayName}</div>
+              <button
+                type="button"
+                onClick={openPlannerWarpLocation}
+                className="mt-3 w-full py-2 rounded-lg text-xs font-bold text-white"
+                style={{
+                  background: toRgba(plannerOppositeColor, 0.32),
+                  border: `1px solid ${toRgba(plannerOppositeColor, 0.55)}`,
+                }}
+              >
+                Warp to that location
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowPlannerInfoPopup(false)}
+              className="mt-4 w-full py-2.5 rounded-xl bg-white/5 text-xs text-white font-bold hover:bg-white/10"
+            >
+              ปิด
+            </button>
+          </div>
+        </div>
+      )}
+
+      {dangerInfoState && dangerInfoHotspot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm" onClick={() => setDangerInfoState(null)}>
+          <div className="w-full max-w-[520px] bg-[#0e1116] border border-white/10 rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-base font-black text-white">จุดเสี่ยง: {dangerInfoState.danger?.label || 'ไม่ระบุ'}</h3>
+              <button
+                type="button"
+                onClick={() => setDangerInfoState(null)}
+                className="text-[10px] px-2 py-1 rounded border border-white/15 bg-white/5 text-slate-300 hover:bg-white/10"
+              >
+                ปิด
+              </button>
+            </div>
+
+            <div className="text-[11px] text-slate-300 mb-3">{dangerInfoState.danger?.note || 'ไม่มีรายละเอียดเพิ่มเติม'}</div>
+
+            <div className="rounded-xl border border-white/10 bg-[#070a11] p-3">
+              <div className="text-[10px] text-slate-400 mb-2">Longdo Map Mockup + พื้นที่เสี่ยงแบบสถิติ</div>
+              <div className="relative h-44 rounded-lg border border-white/10 overflow-hidden bg-[radial-gradient(circle_at_30%_30%,rgba(56,189,248,0.18),transparent_55%),radial-gradient(circle_at_70%_65%,rgba(248,113,113,0.14),transparent_55%),#05070d]">
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:24px_24px]" />
+                <div className="absolute left-[26%] top-[30%] w-28 h-28 rounded-full border-2 border-dashed border-rose-300/80 bg-rose-500/12" />
+                <div className="absolute left-[35%] top-[39%] w-2 h-2 rounded-full bg-rose-300 shadow-[0_0_0_8px_rgba(244,63,94,0.24)]" />
+                <div className="absolute bottom-2 right-2 text-[9px] text-slate-300 bg-black/45 px-2 py-1 rounded">Lat {dangerInfoHotspot.lat.toFixed(4)}, Lng {dangerInfoHotspot.lng.toFixed(4)}</div>
+              </div>
+              <div className="mt-2 text-[10px] text-slate-500">รัศมีจุดเสี่ยงโดยประมาณ: {dangerInfoHotspot.radiusKm} กม.</div>
+            </div>
+
+            <a
+              href={dangerInfoLongdoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-cyan-400/40 bg-cyan-500/15 py-2 text-xs font-bold text-cyan-100 hover:bg-cyan-500/25"
+            >
+              เปิด Longdo Map
+              <ExternalLink size={12} />
+            </a>
+          </div>
+        </div>
+      )}
+
+      {newsDetailItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setNewsDetailItem(null)}>
+          <div className="w-full max-w-[520px] bg-[#0e1116] border border-white/10 rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <h3 className="text-base font-black text-white">สรุปข่าวจังหวัด</h3>
+              <button
+                type="button"
+                onClick={() => setNewsDetailItem(null)}
+                className="text-[10px] px-2 py-1 rounded border border-white/15 bg-white/5 text-slate-300 hover:bg-white/10"
+              >
+                ปิด
+              </button>
+            </div>
+
+            <div className="text-sm font-bold text-white leading-snug">{newsDetailItem.title}</div>
+            <div className="mt-1 text-[10px] text-slate-500">
+              {newsDetailItem.source} • {new Date(newsDetailItem.publishedAt).toLocaleString('th-TH')}
+            </div>
+            <div className="mt-3 text-xs text-slate-300 leading-relaxed rounded-xl border border-white/10 bg-white/5 p-3">
+              {newsDetailItem.summary}
+            </div>
+
+            {newsDetailItem.url && (
+              <a
+                href={newsDetailItem.url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-cyan-300 hover:text-cyan-200"
+              >
+                เปิดข่าวต้นฉบับ
+                <ExternalLink size={12} />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showNewsSyncPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowNewsSyncPopup(false)}>
+          <div className="w-full max-w-[420px] bg-[#0e1116] border border-white/10 rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-black text-white mb-2">Sync Province News</h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              ระบบจะเรียก API ข่าวแบบเรียลไทม์เมื่อคุณกดยืนยัน เพื่อหลีกเลี่ยงการโหลดค้างไว้ตลอดเวลาและลดภาระทรัพยากรเครื่อง.
+            </p>
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNewsSyncPopup(false)}
+                className="flex-1 py-2 rounded-lg border border-white/15 bg-white/5 text-xs text-slate-200 hover:bg-white/10"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleSyncProvinceNews}
+                className="flex-1 py-2 rounded-lg border border-sky-400/40 bg-sky-500/20 text-xs font-bold text-sky-100 hover:bg-sky-500/30"
+              >
+                Sync Now
+              </button>
             </div>
           </div>
         </div>
@@ -1294,10 +2101,22 @@ export function TravelGuidePage() {
   );
 }
 
-function DashCard({ title, icon, accent, children, className = '', contentClassName = 'overflow-y-auto custom-scrollbar pr-1', headerStyle, fullBleedHeader = false }: { title: string; icon: React.ReactNode; accent: string; children: React.ReactNode; className?: string; contentClassName?: string; headerStyle?: React.CSSProperties; fullBleedHeader?: boolean }) {
+function DashCard({ title, icon, accent, children, className = '', contentClassName = 'overflow-y-auto custom-scrollbar pr-1', headerStyle, fullBleedHeader = false, headerLeft, headerRight }: { title: string; icon: React.ReactNode; accent: string; children: React.ReactNode; className?: string; contentClassName?: string; headerStyle?: React.CSSProperties; fullBleedHeader?: boolean; headerLeft?: React.ReactNode; headerRight?: React.ReactNode }) {
+  const hasHeaderRight = Boolean(headerRight);
+
   return (
     <div className={`rounded-xl border p-3 flex flex-col transition-all hover:bg-white/[0.02] ${fullBleedHeader ? 'overflow-hidden' : ''} ${className}`} style={{ borderColor: toRgba(accent, 0.12), background: 'rgba(15,17,21,0.8)' }}>
-      <div className={`${fullBleedHeader ? '-mx-3 -mt-3 px-3 py-2 mb-3' : 'mb-3 pb-2 border-b border-white/5'} flex items-center gap-2`} style={headerStyle}><span style={{ color: accent }}>{icon}</span><span className="text-[10px] font-bold text-white uppercase tracking-wider">{title}</span></div>
+      <div className={`${fullBleedHeader ? '-mx-3 -mt-3 px-3 py-2 mb-3' : 'mb-3 pb-2 border-b border-white/5'} flex items-center ${hasHeaderRight ? 'justify-between gap-2' : 'justify-start'}`} style={headerStyle}>
+        {headerLeft ? (
+          <div className={hasHeaderRight ? 'min-w-0 flex-1' : 'w-full'}>{headerLeft}</div>
+        ) : (
+          <div className="flex items-center gap-2 min-w-0">
+            <span style={{ color: accent }}>{icon}</span>
+            <span className="text-[10px] font-bold text-white uppercase tracking-wider">{title}</span>
+          </div>
+        )}
+        {headerRight && <div className="shrink-0">{headerRight}</div>}
+      </div>
       <div className={`flex-1 min-h-0 ${contentClassName}`}>{children}</div>
     </div>
   );
