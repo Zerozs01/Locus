@@ -30,6 +30,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
   const [apiKey, setApiKey] = useState<string>('');
   const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
   const hasAutoSynced = useRef(false);
+  const provinceRowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const provinceIdByName = useMemo(() => {
     const map = new Map<string, string>();
@@ -58,6 +59,12 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
 
     return Array.from(deduped.values());
   }, [activeProvinces, provinces, provinceIdByName]);
+
+  const targetProvinceId = useMemo(() => {
+    return provinceIdByName.get(provinceName.toLowerCase())
+      || provinceIdByName.get(normalizeProvinceNameKey(provinceName))
+      || normalizeProvinceId(provinceName);
+  }, [provinceIdByName, provinceName]);
 
   useEffect(() => {
     if (isOpen) {
@@ -324,6 +331,20 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
     return records.sort((a, b) => sortOrder === 'desc' ? b.temp - a.temp : a.temp - b.temp);
   }, [isOpen, resolvedActiveProvinces, sortOrder, isSyncing, todayStr]);
 
+  useEffect(() => {
+    if (!isOpen || provinceList.length === 0 || resolvedActiveProvinces.length <= 1) return;
+
+    const target = provinceList.find((item) => item.id === targetProvinceId || item.name === provinceName);
+    if (!target) return;
+
+    const rowEl = provinceRowRefs.current.get(target.id);
+    if (!rowEl) return;
+
+    requestAnimationFrame(() => {
+      rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [isOpen, provinceList, provinceName, resolvedActiveProvinces.length, sortOrder, targetProvinceId, viewMode]);
+
   if (!isOpen) return null;
 
   const maxTemp = Math.max(...chartData.map(d => d.temp)) + 4;
@@ -344,7 +365,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
               <p className="text-sm text-slate-400 mt-0.5">{provinceName} • 7-Day Average</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors">
+          <button title="ปิดหน้าต่าง" onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -453,9 +474,19 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
                     </div>
                     <div className="p-3 overflow-y-auto custom-scrollbar flex-1 space-y-1">
                         {provinceList.map((p, idx) => {
-                            const isSelected = p.name === provinceName || p.id === provinceName;
+                            const isSelected = p.name === provinceName || p.id === provinceName || (targetProvinceId ? p.id === targetProvinceId : false);
                             return (
-                            <div key={p.id} className={`flex justify-between items-center p-2 rounded-lg transition-colors group cursor-default ${isSelected ? 'bg-amber-500/10 border-l-4 border-amber-500 shadow-inner' : 'hover:bg-white/5'}`}>
+                            <div
+                                key={p.id}
+                                ref={(el) => {
+                                  if (el) {
+                                    provinceRowRefs.current.set(p.id, el);
+                                  } else {
+                                    provinceRowRefs.current.delete(p.id);
+                                  }
+                                }}
+                                className={`flex justify-between items-center p-2 rounded-lg transition-colors group cursor-default ${isSelected ? 'bg-amber-500/10 border-l-4 border-amber-500 shadow-inner' : 'hover:bg-white/5'}`}
+                            >
                                 <span className={`text-sm transition-colors truncate pr-2 ${isSelected ? 'text-amber-400 font-bold' : 'text-slate-300 group-hover:text-amber-400'}`}>
                                     {isSelected && <span className="opacity-50 text-xs mr-1">{idx+1}.</span>}
                                     {!isSelected && <span className="opacity-40 text-xs mr-2">{idx+1}.</span>}

@@ -117,6 +117,25 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     return Array.from(deduped.values());
   }, [provinceIdByName, provinces]);
 
+  const latestTempByProvince = useMemo(() => {
+    const grouped = new Map<string, Array<{ date: string; temperature: number }>>();
+
+    weatherRows.forEach((row) => {
+      if (!Number.isFinite(row.temperature)) return;
+      const records = grouped.get(row.provinceId) || [];
+      records.push({ date: row.date, temperature: row.temperature });
+      grouped.set(row.provinceId, records);
+    });
+
+    const map = new Map<string, number>();
+    grouped.forEach((records, provinceId) => {
+      const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+      if (sorted[0]) map.set(provinceId, sorted[0].temperature);
+    });
+
+    return map;
+  }, [weatherRows]);
+
   useEffect(() => {
     if (isOpen) {
       if (window.api?.config?.get) {
@@ -184,12 +203,23 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
             
             let aqiVal = 50;
             let success = false;
+            let resolvedTemp = latestTempByProvince.get(prov.id);
+            const existingTodayTemp = weatherRows.find(
+              (row) => row.provinceId === prov.id && row.date === todayStr && Number.isFinite(row.temperature)
+            )?.temperature;
+            if (Number.isFinite(existingTodayTemp)) {
+              resolvedTemp = existingTodayTemp;
+            }
             
             if (aqiProvider === 'aqicn') {
               const res = await fetch(`https://api.waqi.info/feed/${encodeURIComponent(cleanName)}/?token=${apiKey}`);
               const data = await res.json();
               if (data.status === 'ok' && data.data?.aqi && !isNaN(Number(data.data.aqi))) {
                 aqiVal = Number(data.data.aqi);
+                const aqicnTemp = Number(data?.data?.iaqi?.t?.v);
+                if (!Number.isFinite(resolvedTemp) && Number.isFinite(aqicnTemp)) {
+                  resolvedTemp = aqicnTemp;
+                }
                 success = true;
                 console.log(`[AQI Modal] AQICN ${prov.id} => AQI=${aqiVal}`);
               } else {
@@ -217,24 +247,31 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
                 success = true;
                 console.log(`[AQI Modal] OpenWeather ${prov.id} => PM2.5=${pm25}, AQI=${aqiVal}`);
               }
+
+              if (!Number.isFinite(resolvedTemp)) {
+                const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`);
+                const weatherData = await weatherRes.json();
+                const fetchedTemp = Number(weatherData?.main?.temp);
+                if (Number.isFinite(fetchedTemp)) {
+                  resolvedTemp = fetchedTemp;
+                }
+              }
             }
 
             if (success) {
-              const existingRec = weatherRows.find(
-                (row) => row.provinceId === prov.id && row.date === todayStr
-              );
+              const temperatureToStore = Number.isFinite(resolvedTemp) ? Number(resolvedTemp) : 30;
 
               saveRecord({
                 id: prov.id,
                 date: todayStr,
-                temperature: existingRec ? existingRec.temperature : 30,
+                temperature: temperatureToStore,
                 aqi: aqiVal,
               });
 
               syncedRows.push({
                 provinceId: prov.id,
                 date: todayStr,
-                temperature: existingRec ? existingRec.temperature : 30,
+                temperature: temperatureToStore,
                 aqi: aqiVal
               });
             }
@@ -400,7 +437,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
               <p className="text-sm text-slate-400">AQI Overview — {regionName} Region</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors">
+          <button title="ปิดหน้าต่าง" onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors">
             <X size={20} />
           </button>
         </div>

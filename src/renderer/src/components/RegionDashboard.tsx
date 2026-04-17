@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ExternalLink,
@@ -19,7 +19,7 @@ import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatPro
 import { mixHex, toRgba } from '../utils/color';
 import { AQIModal } from './AQIModal';
 import { WeatherHistoryModal } from './WeatherHistoryModal';
-import { getRecords } from '../utils/csvDb';
+import { getRecords, saveRecord } from '../utils/csvDb';
 
 interface ProvinceIndexItem {
   id: string;
@@ -44,6 +44,9 @@ interface AQIProvinceItem {
 }
 
 const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
+const AQI_LAST_SYNC_TIMESTAMP_KEY = 'locus_aqi_last_sync_timestamp';
+const AQI_LAST_SYNC_LABEL_KEY = 'locus_aqi_last_sync';
+const AQI_AUTO_SYNC_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 const normalizeProvinceNameKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -215,7 +218,7 @@ const getAQILevelSub = (aqi: number) => {
 };
 
 const normalizeWeatherProvinceId = (id: string) => {
-  let normalized = id.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  let normalized = id.toLowerCase().replace(/[^a-z0-9]/g, '');
   if (normalized === 'bangkokmetropolis') normalized = 'bangkok';
   if (normalized === 'phranakhonsiayutthaya') normalized = 'ayutthaya';
   return normalized;
@@ -294,6 +297,8 @@ export const RegionDashboard = memo(({
   const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
   const [selectedRegionForWeather, setSelectedRegionForWeather] = useState<Region | null>(null);
   const [weatherRows, setWeatherRows] = useState<WeatherAqiRow[]>([]);
+  const hasBootAutoSyncChecked = useRef(false);
+  const isBootAutoSyncRunning = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -349,6 +354,7 @@ export const RegionDashboard = memo(({
   }, [isAQIModalOpen, isWeatherModalOpen]);
 
   const latestAqiByProvince = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
     const grouped = new Map<string, Array<{ date: string; aqi: number }>>();
 
     weatherRows.forEach((row) => {
@@ -364,7 +370,7 @@ export const RegionDashboard = memo(({
     const result: Record<string, number> = {};
     grouped.forEach((records, provinceId) => {
       const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
-      const preferred = sorted.find((item) => item.aqi !== 50) || sorted[0];
+      const preferred = sorted.find((item) => item.date === todayStr) || sorted[0];
       if (preferred) {
         result[provinceId] = preferred.aqi;
       }
@@ -486,6 +492,264 @@ export const RegionDashboard = memo(({
     return map;
   }, [latestAqiByProvince, orderedRegions, provinceIdsByRegion]);
 
+  const latestTemperatureByProvince = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const grouped = new Map<string, Array<{ date: string; temperature: number }>>();
+
+    weatherRows.forEach((row) => {
+      if (!row || typeof row.provinceId !== 'string') return;
+      if (typeof row.temperature !== 'number' || !Number.isFinite(row.temperature)) return;
+
+      const id = normalizeWeatherProvinceId(row.provinceId);
+      const records = grouped.get(id) || [];
+      records.push({ date: row.date, temperature: row.temperature });
+      grouped.set(id, records);
+    });
+
+    const result = new Map<string, { latest: number; previous: number | null }>();
+    grouped.forEach((records, provinceId) => {
+      const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+      const latest = sorted.find((item) => item.date === todayStr)
+        || sorted.find((item) => item.date <= todayStr)
+        || sorted[0];
+      if (!latest) return;
+      const previous = sorted.find((item) => item.date < latest.date);
+      result.set(provinceId, { latest: latest.temperature, previous: previous ? previous.temperature : null });
+    });
+
+    return result;
+  }, [weatherRows]);
+
+  const climateByRegionDynamic = useMemo(() => {
+    const map = new Map<string, ClimateStatProps>();
+
+    for (const reg of orderedRegions) {
+      let provinceIds = provinceIdsByRegion.get(reg.id);
+      if (!provinceIds || provinceIds.length === 0) {
+        let provinces = reg.subProvinces;
+        if (!provinces || provinces.length === 0) {
+          provinces = regionsData.find((r) => r.id === reg.id)?.subProvinces || [];
+        }
+        provinceIds = provinces.map((p) => normalizeWeatherProvinceId(p.id));
+      }
+
+      const latestValues: number[] = [];
+      const previousValues: number[] = [];
+
+      provinceIds.forEach((provinceId) => {
+        const state = latestTemperatureByProvince.get(normalizeWeatherProvinceId(provinceId));
+        if (!state) return;
+        latestValues.push(state.latest);
+        if (typeof state.previous === 'number' && Number.isFinite(state.previous)) {
+          previousValues.push(state.previous);
+        }
+      });
+
+      if (latestValues.length === 0) {
+        map.set(reg.id, climateByRegion[reg.id] || climateByRegion.central);
+        continue;
+      }
+
+      const avgLatest = latestValues.reduce((sum, value) => sum + value, 0) / latestValues.length;
+      const avgPrevious = previousValues.length > 0
+        ? previousValues.reduce((sum, value) => sum + value, 0) / previousValues.length
+        : avgLatest;
+      const delta = avgLatest - avgPrevious;
+
+      const tone: ClimateStatProps['tone'] = avgLatest <= 26 ? 'cool' : avgLatest >= 33 ? 'hot' : 'warm';
+      const trendSign = delta > 0 ? '+' : delta < 0 ? '-' : '±';
+      const absDelta = Math.abs(delta).toFixed(1);
+
+      map.set(reg.id, {
+        value: `${avgLatest.toFixed(1)}°C`,
+        trend: `${trendSign}${absDelta}°C (1d)`,
+        tone
+      });
+    }
+
+    return map;
+  }, [latestTemperatureByProvince, orderedRegions, provinceIdsByRegion]);
+
+  const runStartupAqiAutoSync = useCallback(async () => {
+    if (isBootAutoSyncRunning.current) return;
+
+    const nowTs = Date.now();
+    const lastSyncTs = Number(localStorage.getItem(AQI_LAST_SYNC_TIMESTAMP_KEY) || 0);
+    if (lastSyncTs > 0 && nowTs - lastSyncTs < AQI_AUTO_SYNC_COOLDOWN_MS) {
+      return;
+    }
+
+    const api = (window as any).api;
+    if (!api?.config?.get) return;
+
+    const conf = await api.config.get().catch(() => null);
+    const provider = (conf?.aqi_provider || 'openweather') as 'openweather' | 'aqicn';
+    const apiKey = provider === 'aqicn' ? conf?.aqicn : conf?.openweather;
+    if (!apiKey) return;
+
+    const provinceMap = new Map<string, AQIProvinceItem>();
+    if (provinceIndex.length > 0) {
+      provinceIndex.forEach((item) => {
+        const id = normalizeWeatherProvinceId(item.id);
+        if (!provinceMap.has(id)) {
+          provinceMap.set(id, { id, name: item.name });
+        }
+      });
+    }
+
+    if (provinceMap.size === 0) {
+      regions.forEach((region) => {
+        (region.subProvinces || []).forEach((province) => {
+          const id = normalizeWeatherProvinceId(province.id);
+          if (!provinceMap.has(id)) {
+            provinceMap.set(id, { id, name: province.name });
+          }
+        });
+      });
+    }
+
+    const allProvinces = Array.from(provinceMap.values());
+    if (allProvinces.length === 0) return;
+
+    let snapshotRows: WeatherAqiRow[] = [];
+    try {
+      if (api?.db?.getWeatherAqi) {
+        const dbRows = await api.db.getWeatherAqi();
+        if (Array.isArray(dbRows)) {
+          snapshotRows = dbRows
+            .filter((r: any) => r && typeof r.provinceId === 'string')
+            .map((r: any) => ({
+              provinceId: normalizeWeatherProvinceId(r.provinceId),
+              date: typeof r.date === 'string' ? r.date : '',
+              temperature: Number(r.temperature),
+              aqi: Number(r.aqi)
+            }));
+        }
+      }
+    } catch {
+      // Fallback below.
+    }
+
+    if (snapshotRows.length === 0) {
+      snapshotRows = getRecords().map((r) => ({
+        provinceId: normalizeWeatherProvinceId(r.id),
+        date: r.date,
+        temperature: r.temperature,
+        aqi: r.aqi
+      }));
+    }
+
+    const latestTempSnapshot = new Map<string, number>();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const grouped = new Map<string, Array<{ date: string; temperature: number }>>();
+    snapshotRows.forEach((row) => {
+      if (!Number.isFinite(row.temperature)) return;
+      const records = grouped.get(row.provinceId) || [];
+      records.push({ date: row.date, temperature: row.temperature });
+      grouped.set(row.provinceId, records);
+    });
+    grouped.forEach((records, provinceId) => {
+      const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+      const latest = sorted.find((item) => item.date === todayStr)
+        || sorted.find((item) => item.date <= todayStr)
+        || sorted[0];
+      if (latest) {
+        latestTempSnapshot.set(provinceId, latest.temperature);
+      }
+    });
+
+    const syncedRows: WeatherAqiRow[] = [];
+
+    isBootAutoSyncRunning.current = true;
+    try {
+      for (const province of allProvinces) {
+        const cleanName = province.name.replace(' Metropolis', '').replace(' (Pattaya)', '').trim();
+        let aqiVal = 50;
+        let success = false;
+        let resolvedTemp = latestTempSnapshot.get(province.id);
+
+        try {
+          if (provider === 'aqicn') {
+            const aqiRes = await fetch(`https://api.waqi.info/feed/${encodeURIComponent(cleanName)}/?token=${apiKey}`);
+            const aqiData = await aqiRes.json();
+            if (aqiData.status === 'ok' && Number.isFinite(Number(aqiData?.data?.aqi))) {
+              aqiVal = Number(aqiData.data.aqi);
+              const aqicnTemp = Number(aqiData?.data?.iaqi?.t?.v);
+              if (!Number.isFinite(resolvedTemp) && Number.isFinite(aqicnTemp)) {
+                resolvedTemp = aqicnTemp;
+              }
+              success = true;
+            }
+          } else {
+            const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cleanName)},th&limit=1&appid=${apiKey}`);
+            const geoData = await geoRes.json();
+            let lat = 13.75;
+            let lon = 100.5;
+            if (Array.isArray(geoData) && geoData[0]) {
+              lat = Number(geoData[0].lat) || lat;
+              lon = Number(geoData[0].lon) || lon;
+            }
+
+            const aqiRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`);
+            const aqiData = await aqiRes.json();
+            if (aqiData && aqiData.list && aqiData.list[0]) {
+              const pm25 = aqiData.list[0].components.pm2_5;
+              if (pm25 != null) {
+                if (pm25 <= 12.0) aqiVal = Math.round((50 / 12) * pm25);
+                else if (pm25 <= 35.4) aqiVal = Math.round(((49) / 23.4) * (pm25 - 12) + 51);
+                else if (pm25 <= 55.4) aqiVal = Math.round(((49) / 20) * (pm25 - 35.5) + 101);
+                else if (pm25 <= 150.4) aqiVal = Math.round(((49) / 95) * (pm25 - 55.5) + 151);
+                else if (pm25 <= 250.4) aqiVal = Math.round(((99) / 100) * (pm25 - 150.5) + 201);
+                else aqiVal = Math.round(((199) / 249.5) * (pm25 - 250.5) + 301);
+              }
+              success = true;
+            }
+
+            if (!Number.isFinite(resolvedTemp)) {
+              const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`);
+              const weatherData = await weatherRes.json();
+              const fetchedTemp = Number(weatherData?.main?.temp);
+              if (Number.isFinite(fetchedTemp)) {
+                resolvedTemp = fetchedTemp;
+              }
+            }
+          }
+        } catch {
+          success = false;
+        }
+
+        if (success) {
+          const temperature = Number.isFinite(resolvedTemp) ? Number(resolvedTemp) : 30;
+          const row = { provinceId: province.id, date: todayStr, temperature, aqi: aqiVal };
+          syncedRows.push(row);
+          saveRecord({ id: row.provinceId, date: row.date, temperature: row.temperature, aqi: row.aqi });
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, provider === 'aqicn' ? 1000 : 250));
+      }
+
+      if (syncedRows.length > 0) {
+        if (api?.db?.saveWeatherAqi) {
+          await api.db.saveWeatherAqi(syncedRows);
+        }
+
+        const syncedAt = Date.now();
+        localStorage.setItem(AQI_LAST_SYNC_LABEL_KEY, new Date(syncedAt).toLocaleString('th-TH'));
+        localStorage.setItem(AQI_LAST_SYNC_TIMESTAMP_KEY, String(syncedAt));
+        window.dispatchEvent(new CustomEvent(WEATHER_AQI_UPDATED_EVENT, { detail: { source: 'region-dashboard-auto-sync' } }));
+      }
+    } finally {
+      isBootAutoSyncRunning.current = false;
+    }
+  }, [provinceIndex, regions]);
+
+  useEffect(() => {
+    if (hasBootAutoSyncChecked.current) return;
+    if (regions.length === 0) return;
+    hasBootAutoSyncChecked.current = true;
+    void runStartupAqiAutoSync();
+  }, [regions.length, runStartupAqiAutoSync]);
+
   useEffect(() => {
     if (mapMode !== 'province' || !selectedProvince) return;
     const target = provinceCardRefs.current.get(selectedProvince.id);
@@ -499,7 +763,7 @@ export const RegionDashboard = memo(({
     <section className="relative flex flex-[3] flex-col overflow-hidden bg-[#0c1014]">
       {orderedRegions.map((reg) => {
         const isActive = selectedRegionId === reg.id;
-        const climate = climateByRegion[reg.id] || climateByRegion.central;
+        const climate = climateByRegionDynamic.get(reg.id) || climateByRegion[reg.id] || climateByRegion.central;
         const mobility = mobilityByRegion[reg.id] || mobilityByRegion.central;
         const stability = getStabilityProps(reg.safety);
         const theme = getRegionTheme(reg.id);
