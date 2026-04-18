@@ -49,6 +49,10 @@ declare global {
           apiKey?: string
         }) => Promise<{ ok: boolean; status: number; data?: unknown; text?: string; error?: string }>
       }
+      map: {
+        getRainRadarTileTemplate: () => Promise<string | null>
+        searchEvChargers: (params: { lat: number; lng: number; distanceKm?: number; maxResults?: number; apiKey?: string }) => Promise<Array<{ lat: number; lng: number; title: string; subtitle: string }>>
+      }
     }
   }
 }

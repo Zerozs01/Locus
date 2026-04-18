@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Loader2, WifiOff, RefreshCw, Search, Navigation, LocateFixed, Route, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin, Compass } from 'lucide-react';
+import { Loader2, WifiOff, RefreshCw, Search, LocateFixed, Route, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin } from 'lucide-react';
 import thailandGeo from '../data/thailand-geo.json';
 
 // Fix Leaflet default marker icon issue
@@ -35,6 +35,10 @@ export interface ProvinceMapHandle {
   flyToWithFallback: (lat: number, lng: number, zoom: number, title?: string, fallbackRadius?: number) => void;
 }
 
+type ProvinceMapTheme = 'voyager' | 'positron' | 'dark' | 'osm' | 'satellite' | 'terrain' | 'admin';
+type ProvinceMarkerFilter = 'attraction' | 'restaurant' | 'hotel' | 'hospital' | 'transport';
+type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'landParcel' | 'evCharger' | 'slope';
+
 interface ProvinceMapProps {
   provinceName: string;
   lat?: number;
@@ -44,15 +48,16 @@ interface ProvinceMapProps {
     lat: number;
     lng: number;
     title: string;
-    type: 'attraction' | 'restaurant' | 'hotel' | 'hospital' | 'transport';
+    type: ProvinceMarkerFilter;
   }>;
   className?: string;
-  theme?: 'voyager' | 'positron' | 'dark' | 'osm';
+  theme?: ProvinceMapTheme;
+  externalDataLayers?: ProvinceDataLayer[];
   onMarkerClick?: (marker: { lat: number; lng: number; title: string; type: string }) => void;
   regionColor?: string;
 }
 
-const tileProviders = {
+const tileProviders: Record<ProvinceMapTheme, { url: string; attribution: string }> = {
   voyager: {
     url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -69,6 +74,43 @@ const tileProviders = {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   },
+  satellite: {
+    url: import.meta.env.VITE_MAP_THEME_SATELLITE_URL || 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics',
+  },
+  terrain: {
+    url: import.meta.env.VITE_MAP_THEME_TERRAIN_URL || 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors',
+  },
+  admin: {
+    url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  },
+};
+
+const AQICN_TILE_TOKEN = import.meta.env.VITE_AQICN_TILE_TOKEN || 'demo';
+const LONGDO_MAP_API_KEY = import.meta.env.VITE_LONGDO_MAP_API_KEY || '70bda0c806084cbc6829a9c7dbe2a404';
+const GISTDA_DEFAULT_WMS_URL = 'https://service-proxy-765rkyfg3q-as.a.run.app/api_geoserver/geoserver/pm25_hourly_raster_24hr/wms';
+const GISTDA_DEFAULT_WMS_LAYER = 'pm25_hourly_raster_24hr';
+const LONGDO_TRAFFIC_TILE_URL = `https://mstraffic1.longdo.com/mmmap/tile.php?proj=epsg3857&mode=trafficoverlay&zoom={z}&x={x}&y={y}&key=${encodeURIComponent(LONGDO_MAP_API_KEY)}`;
+
+const mapLayerUrls = {
+  traffic: import.meta.env.VITE_MAP_LAYER_TRAFFIC_URL || LONGDO_TRAFFIC_TILE_URL,
+  gistdaAqi: import.meta.env.VITE_MAP_LAYER_GISTDA_URL || GISTDA_DEFAULT_WMS_URL,
+  aqicnAqi: import.meta.env.VITE_MAP_LAYER_AQICN_URL || `https://tiles.waqi.info/tiles/usepa-aqi/{z}/{x}/{y}.png?token=${AQICN_TILE_TOKEN}`,
+  rainRadar: import.meta.env.VITE_MAP_LAYER_RAIN_URL || '',
+  landParcel: import.meta.env.VITE_MAP_LAYER_LANDPARCEL_URL || 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
+  slope: import.meta.env.VITE_MAP_LAYER_SLOPE_URL || 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+};
+
+const dataLayerLabels: Record<ProvinceDataLayer, string> = {
+  traffic: 'จราจร',
+  gistdaAqi: 'คุณภาพอากาศ (GISTDA)',
+  aqicnAqi: 'ดัชนีคุณภาพอากาศ (AQICN)',
+  rainRadar: 'เรดาร์ตรวจฝน',
+  landParcel: 'แปลงที่ดิน',
+  evCharger: 'จุดชาร์จรถไฟฟ้า',
+  slope: 'พื้นที่ลาดชัน',
 };
 
 const markerIcons: Record<string, L.DivIcon> = {
@@ -364,6 +406,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   markers = [],
   className = '',
   theme = 'voyager', // ใช้ Voyager เป็น default - สีสันดีกว่า
+  externalDataLayers = [],
   onMarkerClick,
   regionColor
 }, ref) => {
@@ -377,9 +420,13 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const [visibleFilters, setVisibleFilters] = useState<Set<string>>(
-    new Set<string>()
+  const [visibleFilters, setVisibleFilters] = useState<Set<ProvinceMarkerFilter>>(
+    new Set<ProvinceMarkerFilter>()
   );
+  const [rainRadarTileUrl, setRainRadarTileUrl] = useState<string>('');
+  const [evChargerPoints, setEvChargerPoints] = useState<Array<{ lat: number; lng: number; title: string; subtitle: string }>>([]);
+  const [activeDataLayerWarnings, setActiveDataLayerWarnings] = useState<string[]>([]);
+  const externalDataLayerRefs = useRef<L.Layer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
@@ -390,6 +437,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const pendingFallbackRef = useRef<{ lat: number; lng: number; radiusMeters?: number } | null>(null);
   const pendingSearchFallbackTimerRef = useRef<number | null>(null);
   const pendingAutoFocusStartedAtRef = useRef<number>(0);
+  const wasRainRadarEnabledRef = useRef<boolean>(false);
   const cachedSearchAreasRef = useRef<Map<string, CachedSearchArea>>(new Map());
   const searchBoxRef = useRef<HTMLDivElement>(null);
   
@@ -598,7 +646,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     }
   }, [travelMode]);
 
-  const toggleFilter = (type: string) => {
+  const toggleFilter = (type: ProvinceMarkerFilter) => {
     setVisibleFilters(prev => {
       const next = new Set(prev);
       if (next.has(type)) next.delete(type);
@@ -611,6 +659,232 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const coords = lat && lng 
     ? { lat, lng } 
     : provinceCoordinates[provinceName] || defaultCoords;
+
+  const enabledDataLayers = useMemo(() => new Set<ProvinceDataLayer>(externalDataLayers), [externalDataLayers]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const isRainRadarEnabled = enabledDataLayers.has('rainRadar');
+    const wasRainRadarEnabled = wasRainRadarEnabledRef.current;
+
+    if (map && isRainRadarEnabled && !wasRainRadarEnabled && map.getZoom() > 7) {
+      map.flyTo(map.getCenter(), 7, {
+        duration: 0.7,
+        easeLinearity: 0.25,
+      });
+    }
+
+    wasRainRadarEnabledRef.current = isRainRadarEnabled;
+  }, [enabledDataLayers]);
+
+  useEffect(() => {
+    if (!enabledDataLayers.has('rainRadar')) {
+      setRainRadarTileUrl('');
+      return;
+    }
+
+    const customRainUrl = mapLayerUrls.rainRadar;
+    if (customRainUrl) {
+      setRainRadarTileUrl(customRainUrl);
+      return;
+    }
+
+    let cancelled = false;
+    const resolveRainRadar = async () => {
+      try {
+        const resolvedTileTemplate = await window.api.map.getRainRadarTileTemplate();
+        if (!cancelled) {
+          setRainRadarTileUrl(resolvedTileTemplate || '');
+        }
+      } catch {
+        if (!cancelled) {
+          setRainRadarTileUrl('');
+        }
+      }
+    };
+
+    void resolveRainRadar();
+    return () => {
+      cancelled = true;
+    };
+  }, [enabledDataLayers]);
+
+  useEffect(() => {
+    if (!enabledDataLayers.has('evCharger')) {
+      setEvChargerPoints([]);
+      return;
+    }
+
+    let cancelled = false;
+    const fetchEvChargingStations = async () => {
+      try {
+        const points = await window.api.map.searchEvChargers({
+          lat: coords.lat,
+          lng: coords.lng,
+          distanceKm: 80,
+          maxResults: 120,
+          apiKey: import.meta.env.VITE_OPENCHARGEMAP_API_KEY,
+        });
+
+        if (!cancelled) {
+          setEvChargerPoints(Array.isArray(points) ? points : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setEvChargerPoints([]);
+        }
+      }
+    };
+
+    void fetchEvChargingStations();
+    return () => {
+      cancelled = true;
+    };
+  }, [enabledDataLayers, coords.lat, coords.lng]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    externalDataLayerRefs.current.forEach((layer) => {
+      map.removeLayer(layer);
+    });
+    externalDataLayerRefs.current = [];
+
+    if (enabledDataLayers.size === 0) {
+      setActiveDataLayerWarnings([]);
+      return;
+    }
+
+    const unresolved: string[] = [];
+    const addTileLayer = (url: string, opacity: number, attribution?: string, options?: Partial<L.TileLayerOptions>) => {
+      const tileLayer = L.tileLayer(url, {
+        opacity,
+        zIndex: 620,
+        attribution: attribution || '',
+        ...(options || {}),
+      });
+      tileLayer.addTo(map);
+      externalDataLayerRefs.current.push(tileLayer);
+    };
+
+    const addWmsLayer = (
+      url: string,
+      opacity: number,
+      wmsOptions: L.WMSOptions,
+      options?: Partial<L.TileLayerOptions>
+    ) => {
+      const wmsLayer = L.tileLayer.wms(url, {
+        opacity,
+        zIndex: 620,
+        ...wmsOptions,
+        ...(options || {}),
+      });
+      wmsLayer.addTo(map);
+      externalDataLayerRefs.current.push(wmsLayer);
+    };
+
+    const isXyzTemplateUrl = (url: string) => url.includes('{z}') && url.includes('{x}') && url.includes('{y}');
+
+    const resolveWmsLayerName = (url: string, fallbackLayer: string) => {
+      try {
+        const parsed = new URL(url);
+        return parsed.searchParams.get('layers') || fallbackLayer;
+      } catch {
+        return fallbackLayer;
+      }
+    };
+
+    enabledDataLayers.forEach((layerId) => {
+      if (layerId === 'evCharger') {
+        const layerGroup = L.layerGroup();
+        evChargerPoints.forEach((point) => {
+          const marker = L.circleMarker([point.lat, point.lng], {
+            radius: 5,
+            color: '#22c55e',
+            weight: 2,
+            fillColor: '#22c55e',
+            fillOpacity: 0.35,
+          });
+          marker.bindPopup(`<div style="font-family: system-ui; min-width: 140px;"><strong>${point.title}</strong><div style="font-size: 12px; color: #475569; margin-top: 2px;">${point.subtitle || 'Thailand'}</div></div>`);
+          marker.addTo(layerGroup);
+        });
+        layerGroup.addTo(map);
+        externalDataLayerRefs.current.push(layerGroup);
+        return;
+      }
+
+      if (layerId === 'rainRadar') {
+        if (!rainRadarTileUrl) {
+          unresolved.push(dataLayerLabels[layerId]);
+          return;
+        }
+        addTileLayer(rainRadarTileUrl, 0.45, '&copy; RainViewer', {
+          maxNativeZoom: 7,
+          minNativeZoom: 0,
+        });
+        return;
+      }
+
+      if (layerId === 'gistdaAqi') {
+        const layerUrl = mapLayerUrls.gistdaAqi;
+        if (!layerUrl) {
+          unresolved.push(dataLayerLabels[layerId]);
+          return;
+        }
+
+        if (isXyzTemplateUrl(layerUrl)) {
+          addTileLayer(layerUrl, 0.62, '&copy; GISTDA');
+        } else {
+          addWmsLayer(
+            layerUrl,
+            0.62,
+            {
+              layers: resolveWmsLayerName(layerUrl, GISTDA_DEFAULT_WMS_LAYER),
+              format: 'image/png',
+              transparent: true,
+              version: '1.1.1',
+            },
+            {
+              attribution: '&copy; GISTDA',
+            }
+          );
+        }
+        return;
+      }
+
+      if (layerId === 'traffic') {
+        const layerUrl = mapLayerUrls.traffic;
+        if (!layerUrl) {
+          unresolved.push(dataLayerLabels[layerId]);
+          return;
+        }
+        addTileLayer(layerUrl, 0.6, '&copy; Longdo Traffic', {
+          minNativeZoom: 7,
+          maxNativeZoom: 16,
+        });
+        return;
+      }
+
+      const layerUrl = mapLayerUrls[layerId as keyof typeof mapLayerUrls];
+      if (!layerUrl) {
+        unresolved.push(dataLayerLabels[layerId]);
+        return;
+      }
+
+      const layerOpacity = layerId === 'aqicnAqi' ? 0.65 : layerId === 'slope' ? 0.45 : 0.55;
+      addTileLayer(layerUrl, layerOpacity);
+    });
+
+    setActiveDataLayerWarnings(unresolved);
+
+    return () => {
+      externalDataLayerRefs.current.forEach((layer) => {
+        map.removeLayer(layer);
+      });
+      externalDataLayerRefs.current = [];
+    };
+  }, [enabledDataLayers, rainRadarTileUrl, evChargerPoints]);
 
   const searchablePlaces = useMemo<SearchPlace[]>(() => {
     const normalizedProvinceName = provinceName === 'Bangkok Metropolis' ? 'Bangkok' : provinceName;
@@ -1136,6 +1410,33 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     if (!map) return;
     const highlightColor = regionColor || '#0ea5e9';
 
+    const isProvinceEquivalentBounds = (candidateBounds: L.LatLngBounds) => {
+      const provinceBounds = boundaryLayerRef.current?.getBounds();
+      if (!provinceBounds || !provinceBounds.isValid() || !candidateBounds.isValid()) return false;
+
+      const provinceCenter = provinceBounds.getCenter();
+      const candidateCenter = candidateBounds.getCenter();
+      const centerDistanceMeters = map.distance(provinceCenter, candidateCenter);
+
+      const provinceLatSpan = Math.abs(provinceBounds.getNorth() - provinceBounds.getSouth());
+      const provinceLngSpan = Math.abs(provinceBounds.getEast() - provinceBounds.getWest());
+      const candidateLatSpan = Math.abs(candidateBounds.getNorth() - candidateBounds.getSouth());
+      const candidateLngSpan = Math.abs(candidateBounds.getEast() - candidateBounds.getWest());
+
+      if (provinceLatSpan <= 0 || provinceLngSpan <= 0) return false;
+
+      const latSpanRatio = candidateLatSpan / provinceLatSpan;
+      const lngSpanRatio = candidateLngSpan / provinceLngSpan;
+
+      return (
+        centerDistanceMeters <= 4500 &&
+        latSpanRatio >= 0.8 &&
+        latSpanRatio <= 1.2 &&
+        lngSpanRatio >= 0.8 &&
+        lngSpanRatio <= 1.2
+      );
+    };
+
     // Clear previous highlight
     if (highlightLayerRef.current) {
       highlightLayerRef.current.clearLayers();
@@ -1162,24 +1463,35 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           dashArray: '5, 5'
         }
       });
-      highlightLayerRef.current.addLayer(polygon);
+      // Avoid drawing a second dashed border when the focused geometry is the same province boundary.
+      if (!isProvinceEquivalentBounds(polygon.getBounds())) {
+        highlightLayerRef.current.addLayer(polygon);
+      }
     } else if (hasBbox) {
       const [lat1, lat2, lon1, lon2] = (boundingbox as string[]).map(Number);
-      const bboxRect = L.rectangle(
-        [
-          [Math.min(lat1, lat2), Math.min(lon1, lon2)],
-          [Math.max(lat1, lat2), Math.max(lon1, lon2)],
-        ],
-        {
-          color: highlightColor,
-          weight: 2,
-          opacity: 0.75,
-          fillColor: highlightColor,
-          fillOpacity: 0.12,
-          dashArray: '6, 6',
-        }
+      const bounds = L.latLngBounds(
+        [Math.min(lat1, lat2), Math.min(lon1, lon2)],
+        [Math.max(lat1, lat2), Math.max(lon1, lon2)]
       );
-      highlightLayerRef.current.addLayer(bboxRect);
+      if (isProvinceEquivalentBounds(bounds)) {
+        // Skip province-sized bbox overlay to prevent duplicate border effect.
+      } else {
+        const bboxRect = L.rectangle(
+          [
+            [Math.min(lat1, lat2), Math.min(lon1, lon2)],
+            [Math.max(lat1, lat2), Math.max(lon1, lon2)],
+          ],
+          {
+            color: highlightColor,
+            weight: 2,
+            opacity: 0.75,
+            fillColor: highlightColor,
+            fillOpacity: 0.12,
+            dashArray: '6, 6',
+          }
+        );
+        highlightLayerRef.current.addLayer(bboxRect);
+      }
     } else if (radiusMeters && radiusMeters > 0) {
       if (fallbackShape === 'rectangle') {
         const latDelta = radiusMeters / 111320;
@@ -1449,6 +1761,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
 
   // Province Boundary Layer Effect
   const boundaryLayerRef = useRef<L.GeoJSON | null>(null);
+  const adminBoundaryLayerRef = useRef<L.GeoJSON | null>(null);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -1493,6 +1806,35 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     }
   }, [provinceName, isLoading, regionColor]);
 
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || isLoading) return;
+
+    if (adminBoundaryLayerRef.current) {
+      map.removeLayer(adminBoundaryLayerRef.current);
+      adminBoundaryLayerRef.current = null;
+    }
+
+    if (theme !== 'admin') return;
+
+    adminBoundaryLayerRef.current = L.geoJSON(thailandGeo as any, {
+      style: {
+        color: '#334155',
+        weight: 1,
+        opacity: 0.75,
+        fillColor: '#94a3b8',
+        fillOpacity: 0.02,
+      },
+    }).addTo(map);
+
+    return () => {
+      if (adminBoundaryLayerRef.current) {
+        map.removeLayer(adminBoundaryLayerRef.current);
+        adminBoundaryLayerRef.current = null;
+      }
+    };
+  }, [theme, isLoading]);
+
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
   };
@@ -1529,6 +1871,12 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
               Retry
             </button>
           </div>
+        </div>
+      )}
+
+      {activeDataLayerWarnings.length > 0 && !isLoading && (
+        <div className="absolute top-16 right-4 z-[1000] rounded-lg border border-amber-400/40 bg-black/80 px-3 py-2 text-[11px] text-amber-200 max-w-[280px]">
+          ชั้นข้อมูลต่อไปนี้ยังไม่พร้อมใช้งาน (ต้องตั้งค่า URL เพิ่ม): {activeDataLayerWarnings.join(', ')}
         </div>
       )}
 
@@ -1627,6 +1975,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
                           if (routeLayerRef.current) routeLayerRef.current.clearLayers();
                           if (userLocationLayerRef.current) userLocationLayerRef.current.clearLayers();
                        }} 
+                          title="Close routing"
+                          aria-label="Close routing"
                        className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
                     >
                        <ChevronLeft size={20} />

@@ -44,6 +44,11 @@ const api = {
       apiKey?: string
     }) =>
       ipcRenderer.invoke('n8n:chat', payload)
+  },
+  map: {
+    getRainRadarTileTemplate: () => ipcRenderer.invoke('map:getRainRadarTileTemplate'),
+    searchEvChargers: (params: { lat: number; lng: number; distanceKm?: number; maxResults?: number; apiKey?: string }) =>
+      ipcRenderer.invoke('map:searchEvChargers', params)
   }
 }
 

@@ -21,6 +21,19 @@ import { EatTab } from './tabs/EatTab';
 import { TravelTab } from './tabs/TravelTab';
 import { EssentialsTab } from './tabs/EssentialsTab';
 
+type ProvinceMapTheme = 'voyager' | 'positron' | 'dark' | 'osm' | 'satellite' | 'terrain' | 'admin';
+type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'landParcel' | 'evCharger' | 'slope';
+
+const defaultMapDataLayers: Record<ProvinceDataLayer, boolean> = {
+  traffic: false,
+  gistdaAqi: false,
+  aqicnAqi: false,
+  rainRadar: false,
+  landParcel: false,
+  evCharger: false,
+  slope: false,
+};
+
 /**
  * Province Tactical Detail Page - REDESIGNED
  * เน้นสิ่งที่ผู้ใช้ต้องการจริงๆ พร้อมแผนที่ Interactive
@@ -34,6 +47,8 @@ export const ProvinceTacticalPage = () => {
   const [province, setProvince] = useState<Province | null>(null);
   const [liveWeather, setLiveWeather] = useState<{temp: number, aqi: number} | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mapTheme, setMapTheme] = useState<ProvinceMapTheme>('voyager');
+  const [mapDataLayers, setMapDataLayers] = useState<Record<ProvinceDataLayer, boolean>>(defaultMapDataLayers);
   
   // Ref for ProvinceMap to trigger fly animations
   const mapRef = useRef<ProvinceMapHandle>(null);
@@ -102,6 +117,17 @@ export const ProvinceTacticalPage = () => {
     return baseData;
   }, [province, region, liveWeather]);
 
+  const activeDataLayers = useMemo(
+    () => (Object.entries(mapDataLayers)
+      .filter(([, isEnabled]) => isEnabled)
+      .map(([layer]) => layer as ProvinceDataLayer)),
+    [mapDataLayers]
+  );
+
+  const handleToggleDataLayer = (layer: ProvinceDataLayer) => {
+    setMapDataLayers((prev) => ({ ...prev, [layer]: !prev[layer] }));
+  };
+
   useEffect(() => {
     const state = location.state as {
       focusPlace?: {
@@ -116,19 +142,36 @@ export const ProvinceTacticalPage = () => {
     if (!state?.focusPlace || loading) return;
 
     const timerId = window.setTimeout(() => {
+      const normalizeFocusName = (value?: string) =>
+        (value || '')
+          .toLowerCase()
+          .replace(/metropolis/g, '')
+          .replace(/province/g, '')
+          .replace(/จังหวัด/g, '')
+          .replace(/[^a-z0-9ก-๙]+/gi, ' ')
+          .trim();
+
+      const focusTitleNorm = normalizeFocusName(state.focusPlace!.title);
+      const provinceNameNorm = normalizeFocusName(province?.name);
+      const provinceAliasNorm = normalizeFocusName(province?.name === 'Bangkok Metropolis' ? 'Bangkok' : province?.name);
+      const isProvinceLevelFocus = !!focusTitleNorm && [provinceNameNorm, provinceAliasNorm].some(
+        (name) => !!name && (focusTitleNorm === name || focusTitleNorm.includes(name) || name.includes(focusTitleNorm))
+      );
+
       const geometryType = state.focusPlace!.geojson && typeof state.focusPlace!.geojson === 'object'
         ? (state.focusPlace!.geojson as { type?: string }).type
         : undefined;
       const hasPolygon = geometryType === 'Polygon' || geometryType === 'MultiPolygon';
 
       if (hasPolygon) {
+        const suppressProvincePolygonHighlight = isProvinceLevelFocus;
         mapRef.current?.focusSearchResult({
           lat: state.focusPlace!.lat,
           lng: state.focusPlace!.lng,
           title: state.focusPlace!.title,
           zoom: 16,
-          boundingbox: state.focusPlace!.boundingbox,
-          geojson: state.focusPlace!.geojson,
+          boundingbox: suppressProvincePolygonHighlight ? undefined : state.focusPlace!.boundingbox,
+          geojson: suppressProvincePolygonHighlight ? undefined : state.focusPlace!.geojson,
         });
       } else {
         // Fallback: run search flow first, then guaranteed area highlight around original target.
@@ -147,7 +190,7 @@ export const ProvinceTacticalPage = () => {
 
     window.history.replaceState({}, document.title);
     return () => window.clearTimeout(timerId);
-  }, [location.state, loading]);
+  }, [location.state, loading, province?.name]);
 
   if (loading) {
     return (
@@ -207,6 +250,8 @@ export const ProvinceTacticalPage = () => {
           provinceName={province.name}
           markers={provinceData.mapMarkers}
           zoom={12}
+          theme={mapTheme}
+          externalDataLayers={activeDataLayers}
           regionColor={regionTheme[region.id as RegionId]?.accentHex}
         />
       </div>
@@ -235,7 +280,25 @@ export const ProvinceTacticalPage = () => {
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {activeTab === 'explore' && <ExploreTab data={provinceData} onFlyTo={handleFlyToLocation} provinceInfo={{ displayName: displayProvinceName, thaiName: provinceData.thaiName, regionId: region.id, regionCode: region.code, regionEngName: region.engName, slogan: provinceData.slogan, regionColor: regionTheme[region.id as RegionId]?.accentHex || '#06b6d4' }} />}
+          {activeTab === 'explore' && (
+            <ExploreTab
+              data={provinceData}
+              onFlyTo={handleFlyToLocation}
+              provinceInfo={{
+                displayName: displayProvinceName,
+                thaiName: provinceData.thaiName,
+                regionId: region.id,
+                regionCode: region.code,
+                regionEngName: region.engName,
+                slogan: provinceData.slogan,
+                regionColor: regionTheme[region.id as RegionId]?.accentHex || '#06b6d4',
+              }}
+              mapTheme={mapTheme}
+              mapDataLayers={mapDataLayers}
+              onChangeMapTheme={setMapTheme}
+              onToggleDataLayer={handleToggleDataLayer}
+            />
+          )}
           {activeTab === 'stay' && <StayTab data={provinceData} onFlyTo={handleFlyToLocation} />}
           {activeTab === 'eat' && <EatTab data={provinceData} onFlyTo={handleFlyToLocation} />}
           {activeTab === 'travel' && <TravelTab data={provinceData} onFlyTo={handleFlyToLocation} />}

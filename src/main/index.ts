@@ -176,6 +176,14 @@ type N8nChatPayload = {
   lng?: number
 } & N8nOverrides
 
+type MapEvSearchParams = {
+  lat: number
+  lng: number
+  distanceKm?: number
+  maxResults?: number
+  apiKey?: string
+}
+
 const resolveN8nConfig = async (overrides?: N8nOverrides) => {
   const config = await readRuntimeConfig()
   const webhookUrl = (overrides?.webhookUrl || config.ngrok || process.env.VITE_NGROK_URL || DEFAULT_N8N_WEBHOOK_URL).replace(/\/+$/, '')
@@ -298,6 +306,75 @@ const postN8nChat = async (payload: N8nChatPayload) => {
       error: 'n8n chat endpoint not found'
     }
   )
+}
+
+const getRainRadarTileTemplate = async (): Promise<string | null> => {
+  try {
+    const response = await net.fetch('https://api.rainviewer.com/public/weather-maps.json', {
+      method: 'GET'
+    })
+    if (!response.ok) return null
+
+    const payload = (await response.json()) as {
+      radar?: {
+        past?: Array<{ path?: string }>
+        nowcast?: Array<{ path?: string }>
+      }
+    }
+
+    const pastFrames = Array.isArray(payload?.radar?.past) ? payload.radar.past : []
+    const latestFramePath =
+      (pastFrames.length > 0 ? pastFrames[pastFrames.length - 1]?.path : null) ||
+      payload?.radar?.nowcast?.[0]?.path
+
+    if (!latestFramePath) return null
+    return `https://tilecache.rainviewer.com${latestFramePath}/256/{z}/{x}/{y}/2/1_1.png`
+  } catch {
+    return null
+  }
+}
+
+const searchEvChargers = async (params: MapEvSearchParams) => {
+  try {
+    const query = new URLSearchParams({
+      output: 'json',
+      countrycode: 'TH',
+      latitude: String(params.lat),
+      longitude: String(params.lng),
+      distance: String(params.distanceKm ?? 80),
+      distanceunit: 'KM',
+      maxresults: String(params.maxResults ?? 120),
+      compact: 'true',
+      verbose: 'false'
+    })
+
+    if (params.apiKey) {
+      query.set('key', params.apiKey)
+    }
+
+    const response = await net.fetch(`https://api.openchargemap.io/v3/poi/?${query.toString()}`, {
+      method: 'GET'
+    })
+    if (!response.ok) return []
+
+    const rows = (await response.json()) as any[]
+    if (!Array.isArray(rows)) return []
+
+    return rows
+      .map((row) => {
+        const lat = Number(row?.AddressInfo?.Latitude)
+        const lng = Number(row?.AddressInfo?.Longitude)
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+
+        const title = row?.AddressInfo?.Title || 'EV Charger'
+        const subtitle = [row?.AddressInfo?.Town, row?.AddressInfo?.StateOrProvince].filter(Boolean).join(', ')
+        return { lat, lng, title, subtitle }
+      })
+      .filter((item): item is { lat: number; lng: number; title: string; subtitle: string } => item !== null)
+      .slice(0, Math.max(1, Math.min(params.maxResults ?? 120, 200)))
+  } catch {
+    return []
+  }
 }
 
 const registerImageProtocol = async () => {
@@ -562,6 +639,14 @@ app.whenReady().then(async () => {
       }
     }
   )
+
+  ipcMain.handle('map:getRainRadarTileTemplate', async () => {
+    return getRainRadarTileTemplate()
+  })
+
+  ipcMain.handle('map:searchEvChargers', async (_, params: MapEvSearchParams) => {
+    return searchEvChargers(params)
+  })
 
   createWindow()
 

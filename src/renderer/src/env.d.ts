@@ -30,6 +30,17 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_STORAGE_BUCKET: string
   readonly VITE_FIREBASE_MESSAGING_SENDER_ID: string
   readonly VITE_FIREBASE_APP_ID: string
+  readonly VITE_LONGDO_MAP_API_KEY?: string
+  readonly VITE_AQICN_TILE_TOKEN?: string
+  readonly VITE_OPENCHARGEMAP_API_KEY?: string
+  readonly VITE_MAP_THEME_SATELLITE_URL?: string
+  readonly VITE_MAP_THEME_TERRAIN_URL?: string
+  readonly VITE_MAP_LAYER_TRAFFIC_URL?: string
+  readonly VITE_MAP_LAYER_GISTDA_URL?: string
+  readonly VITE_MAP_LAYER_AQICN_URL?: string
+  readonly VITE_MAP_LAYER_RAIN_URL?: string
+  readonly VITE_MAP_LAYER_LANDPARCEL_URL?: string
+  readonly VITE_MAP_LAYER_SLOPE_URL?: string
 }
 
 interface ImportMeta {
