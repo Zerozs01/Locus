@@ -359,8 +359,10 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     const data = resolvedProvinces.map((province) => {
       const records = groupedByProvince.get(province.id) || [];
       const todayRecord = records.find((record) => record.date === todayStr);
-      const latestRecord = [...records].sort((a, b) => b.date.localeCompare(a.date))[0];
-      const resolved = todayRecord || latestRecord;
+      const sortedRecords = [...records].sort((a, b) => b.date.localeCompare(a.date));
+      const latestPastRecord = sortedRecords.find((record) => record.date <= todayStr);
+      const latestRecord = sortedRecords[0];
+      const resolved = todayRecord || latestPastRecord || latestRecord;
       const aqi = resolved && Number.isFinite(resolved.aqi) ? Math.round(resolved.aqi) : 50;
 
       return {

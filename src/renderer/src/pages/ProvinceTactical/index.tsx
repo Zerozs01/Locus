@@ -235,7 +235,7 @@ export const ProvinceTacticalPage = () => {
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {activeTab === 'explore' && <ExploreTab data={provinceData} onFlyTo={handleFlyToLocation} provinceInfo={{ displayName: displayProvinceName, thaiName: provinceData.thaiName, regionCode: region.code, regionEngName: region.engName, slogan: provinceData.slogan, regionColor: regionTheme[region.id as RegionId]?.accentHex || '#06b6d4' }} />}
+          {activeTab === 'explore' && <ExploreTab data={provinceData} onFlyTo={handleFlyToLocation} provinceInfo={{ displayName: displayProvinceName, thaiName: provinceData.thaiName, regionId: region.id, regionCode: region.code, regionEngName: region.engName, slogan: provinceData.slogan, regionColor: regionTheme[region.id as RegionId]?.accentHex || '#06b6d4' }} />}
           {activeTab === 'stay' && <StayTab data={provinceData} onFlyTo={handleFlyToLocation} />}
           {activeTab === 'eat' && <EatTab data={provinceData} onFlyTo={handleFlyToLocation} />}
           {activeTab === 'travel' && <TravelTab data={provinceData} onFlyTo={handleFlyToLocation} />}

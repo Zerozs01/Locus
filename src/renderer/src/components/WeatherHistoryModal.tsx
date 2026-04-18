@@ -130,6 +130,9 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
             console.log(`[Weather Modal] Fetching current weather for ${cleanName}...`);
             const qStr = encodeURIComponent(`${cleanName},th`);
             const allRecordsSnapshot = getRecords();
+            const latestKnownAqi = allRecordsSnapshot
+              .filter(r => r.id === prov.id && Number.isFinite(r.aqi))
+              .sort((a, b) => b.date.localeCompare(a.date))[0]?.aqi;
             // Fetch current weather
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${qStr}&units=metric&appid=${apiKey}`);
             const data = await res.json();
@@ -140,7 +143,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
                const dateStr = today.toISOString().split('T')[0];
                todayDateStr = dateStr;
                
-               let currentAqi = 50;
+               let currentAqi = Number.isFinite(latestKnownAqi) ? Number(latestKnownAqi) : 50;
                // Fetch AQI using coord
                try {
                  if (data.coord && data.coord.lat && data.coord.lon) {
@@ -189,7 +192,9 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
                    const existingRec = allRecordsSnapshot.find(r => r.id === prov.id && r.date === dStr);
                    const preservedAqi = dStr === todayDateStr && todayAqi !== null
                      ? todayAqi
-                     : (existingRec && !isNaN(existingRec.aqi) ? existingRec.aqi : 50);
+                     : (existingRec && Number.isFinite(existingRec.aqi)
+                       ? existingRec.aqi
+                       : (Number.isFinite(latestKnownAqi) ? Number(latestKnownAqi) : 50));
                    saveRecord({
                      id: prov.id,
                      date: dStr,

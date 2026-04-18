@@ -8,12 +8,13 @@ import {
 } from 'lucide-react';
 import { FlyToHandler, ProvinceData } from '../types';
 import * as Helpers from '../components/HelperComponents';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { WeatherHistoryModal } from '../../../components/WeatherHistoryModal';
 
 interface ProvinceOverviewInfo {
   displayName: string;
   thaiName: string;
+  regionId: string;
   regionCode: string;
   regionEngName: string;
   slogan: string;
@@ -23,6 +24,29 @@ interface ProvinceOverviewInfo {
 export const ExploreTab = ({ data, onFlyTo, provinceInfo }: { data: ProvinceData; onFlyTo?: FlyToHandler; provinceInfo?: ProvinceOverviewInfo }) => {
   const [currentSeason, setCurrentSeason] = useState<{name: string; months: string; description: string}>({ name: 'Season', months: '', description: '' });
   const [showWeatherHistory, setShowWeatherHistory] = useState(false);
+
+  const aqiLevelLabel = useMemo(() => {
+    const aqi = Number(data.weather.aqi);
+    if (!Number.isFinite(aqi)) return 'ไม่ทราบระดับ';
+    if (aqi <= 50) return 'คุณภาพดี (Good)';
+    if (aqi <= 100) return 'ปานกลาง (Moderate)';
+    if (aqi <= 150) return 'มีผลต่อกลุ่มเสี่ยง';
+    if (aqi <= 200) return 'ไม่ดีต่อสุขภาพ';
+    return 'อันตราย (Hazardous)';
+  }, [data.weather.aqi]);
+
+  const dailyCostClassByRegion: Record<string, string> = {
+    north: 'bg-violet-500/12 border-violet-400/35 text-violet-300',
+    northeast: 'bg-rose-500/12 border-rose-400/35 text-rose-300',
+    central: 'bg-amber-500/12 border-amber-400/35 text-amber-300',
+    west: 'bg-emerald-500/12 border-emerald-400/35 text-emerald-300',
+    east: 'bg-yellow-500/12 border-yellow-400/35 text-yellow-300',
+    south: 'bg-sky-500/12 border-sky-400/35 text-sky-300',
+  };
+
+  const dailyCostColorClass = provinceInfo
+    ? (dailyCostClassByRegion[provinceInfo.regionId] || 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400')
+    : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400';
 
   useEffect(() => {
     // Thailand seasonal cycle: Nov-Feb cool, Mar-May hot, Jun-Oct rainy
@@ -65,29 +89,27 @@ export const ExploreTab = ({ data, onFlyTo, provinceInfo }: { data: ProvinceData
             <div className="flex items-center gap-2 shrink-0">
               {/* AQI Badge */}
               {data.weather.aqi !== undefined && (
-                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-bold leading-none shrink-0 ${
-                   data.weather.aqi <= 50 ? 'bg-green-500/10 border-green-500/20 text-green-400' :
-                   data.weather.aqi <= 100 ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
-                   data.weather.aqi <= 150 ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' :
-                   'bg-red-500/10 border-red-500/20 text-red-400'
-                }`}>
-                  <Wind size={14} />
-                  <span>AQI {data.weather.aqi}</span>
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border shrink-0 bg-black/70 border-amber-400/35 text-amber-300">
+                  <Wind size={14} className="text-amber-300" />
+                  <div className="text-left leading-tight">
+                    <div className="text-xs font-bold">AQI {data.weather.aqi}</div>
+                    <div className="text-[10px] text-amber-200/85">{aqiLevelLabel}</div>
+                  </div>
                 </div>
               )}
               
               {/* Temperature + Season Combined */}
               <button 
                 onClick={() => setShowWeatherHistory(true)} 
-                className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-colors shrink-0"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/70 border border-white/35 text-white hover:bg-black/85 transition-colors shrink-0"
               >
-                <Thermometer size={14} className="text-amber-400" />
-                <span className="text-xs font-bold text-amber-400 leading-none">{data.weather.temp}</span>
-                <span className="text-[10px] font-medium text-amber-400/80 leading-none tracking-wide uppercase px-1 border-l border-amber-400/20 ml-0.5">{currentSeason.name}</span>
+                <Thermometer size={14} className="text-amber-300" />
+                <span className="text-xs font-bold text-white leading-none">{data.weather.temp}</span>
+                <span className="text-[10px] font-medium text-white/75 leading-none tracking-wide uppercase px-1 border-l border-white/25 ml-0.5">{currentSeason.name}</span>
               </button>
               
               {/* Daily Cost */}
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shrink-0">
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border shrink-0 ${dailyCostColorClass}`}>
                 <Wallet size={14} />
                 <span className="text-xs font-bold leading-none">{data.dailyCost}</span>
               </div>

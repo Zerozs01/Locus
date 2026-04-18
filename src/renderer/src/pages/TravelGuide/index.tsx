@@ -314,13 +314,14 @@ export function TravelGuidePage() {
         groupedByProvince.forEach((list, id) => {
           const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date));
           const todayAqi = sorted.find((v) => v.date === todayStr && typeof v.aqi === 'number' && Number.isFinite(v.aqi));
+          const latestPastAqi = sorted.find((v) => v.date <= todayStr && typeof v.aqi === 'number' && Number.isFinite(v.aqi));
           const latestAqi = sorted.find((v) => typeof v.aqi === 'number' && Number.isFinite(v.aqi));
 
           const todayTemp = sorted.find((v) => v.date === todayStr && typeof v.temperature === 'number' && Number.isFinite(v.temperature));
           const latestPastTemp = sorted.find((v) => v.date <= todayStr && typeof v.temperature === 'number' && Number.isFinite(v.temperature));
           const latestTemp = sorted.find((v) => typeof v.temperature === 'number' && Number.isFinite(v.temperature));
 
-          const resolvedAqi = todayAqi || latestAqi;
+          const resolvedAqi = todayAqi || latestPastAqi || latestAqi;
           const resolvedTemp = todayTemp || latestPastTemp || latestTemp;
 
           if (resolvedAqi) aqiMap[id] = resolvedAqi.aqi;

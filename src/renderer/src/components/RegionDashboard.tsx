@@ -370,7 +370,9 @@ export const RegionDashboard = memo(({
     const result: Record<string, number> = {};
     grouped.forEach((records, provinceId) => {
       const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
-      const preferred = sorted.find((item) => item.date === todayStr) || sorted[0];
+      const preferred = sorted.find((item) => item.date === todayStr)
+        || sorted.find((item) => item.date <= todayStr)
+        || sorted[0];
       if (preferred) {
         result[provinceId] = preferred.aqi;
       }
