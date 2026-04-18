@@ -37,7 +37,7 @@ export interface ProvinceMapHandle {
 
 type ProvinceMapTheme = 'voyager' | 'positron' | 'dark' | 'osm' | 'satellite' | 'terrain' | 'admin';
 type ProvinceMarkerFilter = 'attraction' | 'restaurant' | 'hotel' | 'hospital' | 'transport';
-type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'landParcel' | 'evCharger' | 'slope';
+type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'floodRecurrent' | 'evCharger' | 'slope';
 
 interface ProvinceMapProps {
   provinceName: string;
@@ -92,14 +92,16 @@ const AQICN_TILE_TOKEN = import.meta.env.VITE_AQICN_TILE_TOKEN || 'demo';
 const LONGDO_MAP_API_KEY = import.meta.env.VITE_LONGDO_MAP_API_KEY || '70bda0c806084cbc6829a9c7dbe2a404';
 const GISTDA_DEFAULT_WMS_URL = 'https://service-proxy-765rkyfg3q-as.a.run.app/api_geoserver/geoserver/pm25_hourly_raster_24hr/wms';
 const GISTDA_DEFAULT_WMS_LAYER = 'pm25_hourly_raster_24hr';
+const GISTDA_FLOOD_RECURRENT_WMS_LAYER = import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_LAYER || 'flood_recurrent';
 const LONGDO_TRAFFIC_TILE_URL = `https://mstraffic1.longdo.com/mmmap/tile.php?proj=epsg3857&mode=trafficoverlay&zoom={z}&x={x}&y={y}&key=${encodeURIComponent(LONGDO_MAP_API_KEY)}`;
+const THAILAND_AQI_BOUNDS = L.latLngBounds([5.2, 97.0], [20.7, 106.1]);
 
 const mapLayerUrls = {
   traffic: import.meta.env.VITE_MAP_LAYER_TRAFFIC_URL || LONGDO_TRAFFIC_TILE_URL,
   gistdaAqi: import.meta.env.VITE_MAP_LAYER_GISTDA_URL || GISTDA_DEFAULT_WMS_URL,
   aqicnAqi: import.meta.env.VITE_MAP_LAYER_AQICN_URL || `https://tiles.waqi.info/tiles/usepa-aqi/{z}/{x}/{y}.png?token=${AQICN_TILE_TOKEN}`,
   rainRadar: import.meta.env.VITE_MAP_LAYER_RAIN_URL || '',
-  landParcel: import.meta.env.VITE_MAP_LAYER_LANDPARCEL_URL || 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
+  floodRecurrent: import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_URL || '',
   slope: import.meta.env.VITE_MAP_LAYER_SLOPE_URL || 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
 };
 
@@ -108,7 +110,7 @@ const dataLayerLabels: Record<ProvinceDataLayer, string> = {
   gistdaAqi: 'คุณภาพอากาศ (GISTDA)',
   aqicnAqi: 'ดัชนีคุณภาพอากาศ (AQICN)',
   rainRadar: 'เรดาร์ตรวจฝน',
-  landParcel: 'แปลงที่ดิน',
+  floodRecurrent: 'พื้นที่น้ำท่วมซ้ำซาก (GISTDA)',
   evCharger: 'จุดชาร์จรถไฟฟ้า',
   slope: 'พื้นที่ลาดชัน',
 };
@@ -695,11 +697,15 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         const resolvedTileTemplate = await window.api.map.getRainRadarTileTemplate();
         if (!cancelled) {
           setRainRadarTileUrl(resolvedTileTemplate || '');
+          if (!resolvedTileTemplate) {
+            console.warn('[ProvinceMap] Rain radar template is empty from main process.');
+          }
         }
-      } catch {
+      } catch (error) {
         if (!cancelled) {
           setRainRadarTileUrl('');
         }
+        console.warn('[ProvinceMap] Failed to resolve rain radar tile template:', error);
       }
     };
 
@@ -757,12 +763,36 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     }
 
     const unresolved: string[] = [];
-    const addTileLayer = (url: string, opacity: number, attribution?: string, options?: Partial<L.TileLayerOptions>) => {
+    const thailandAqiTileOptions: Partial<L.TileLayerOptions> = {
+      bounds: THAILAND_AQI_BOUNDS,
+      noWrap: true,
+      updateWhenIdle: true,
+      keepBuffer: 1,
+    };
+
+    const addTileLayer = (
+      layerName: string,
+      url: string,
+      opacity: number,
+      attribution?: string,
+      options?: Partial<L.TileLayerOptions>
+    ) => {
       const tileLayer = L.tileLayer(url, {
         opacity,
         zIndex: 620,
         attribution: attribution || '',
         ...(options || {}),
+      });
+      let layerTileErrorCount = 0;
+      tileLayer.on('tileerror', (event: L.TileErrorEvent) => {
+        layerTileErrorCount += 1;
+        if (layerTileErrorCount === 1 || layerTileErrorCount === 4) {
+          console.warn(`[ProvinceMap] ${layerName} tile error`, {
+            url,
+            coords: event.coords,
+            error: event.error,
+          });
+        }
       });
       tileLayer.addTo(map);
       externalDataLayerRefs.current.push(tileLayer);
@@ -819,7 +849,10 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           unresolved.push(dataLayerLabels[layerId]);
           return;
         }
-        addTileLayer(rainRadarTileUrl, 0.45, '&copy; RainViewer', {
+        const rainAttribution = rainRadarTileUrl.includes('openweathermap.org')
+          ? '&copy; OpenWeather (precipitation overlay)'
+          : '&copy; RainViewer';
+        addTileLayer(dataLayerLabels[layerId], rainRadarTileUrl, 0.45, rainAttribution, {
           maxNativeZoom: 7,
           minNativeZoom: 0,
         });
@@ -834,7 +867,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         }
 
         if (isXyzTemplateUrl(layerUrl)) {
-          addTileLayer(layerUrl, 0.62, '&copy; GISTDA');
+          addTileLayer(dataLayerLabels[layerId], layerUrl, 0.62, '&copy; GISTDA', thailandAqiTileOptions);
         } else {
           addWmsLayer(
             layerUrl,
@@ -847,9 +880,20 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
             },
             {
               attribution: '&copy; GISTDA',
+              ...thailandAqiTileOptions,
             }
           );
         }
+        return;
+      }
+
+      if (layerId === 'aqicnAqi') {
+        const layerUrl = mapLayerUrls.aqicnAqi;
+        if (!layerUrl) {
+          unresolved.push(dataLayerLabels[layerId]);
+          return;
+        }
+        addTileLayer(dataLayerLabels[layerId], layerUrl, 0.65, '&copy; AQICN', thailandAqiTileOptions);
         return;
       }
 
@@ -859,10 +903,38 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           unresolved.push(dataLayerLabels[layerId]);
           return;
         }
-        addTileLayer(layerUrl, 0.6, '&copy; Longdo Traffic', {
+        addTileLayer(dataLayerLabels[layerId], layerUrl, 0.6, '&copy; Longdo Traffic', {
           minNativeZoom: 7,
           maxNativeZoom: 16,
         });
+        return;
+      }
+
+      if (layerId === 'floodRecurrent') {
+        const layerUrl = mapLayerUrls.floodRecurrent;
+        if (!layerUrl) {
+          unresolved.push(dataLayerLabels[layerId]);
+          return;
+        }
+
+        if (isXyzTemplateUrl(layerUrl)) {
+          addTileLayer(dataLayerLabels[layerId], layerUrl, 0.52, '&copy; GISTDA', thailandAqiTileOptions);
+        } else {
+          addWmsLayer(
+            layerUrl,
+            0.52,
+            {
+              layers: resolveWmsLayerName(layerUrl, GISTDA_FLOOD_RECURRENT_WMS_LAYER),
+              format: 'image/png',
+              transparent: true,
+              version: '1.1.1',
+            },
+            {
+              attribution: '&copy; GISTDA',
+              ...thailandAqiTileOptions,
+            }
+          );
+        }
         return;
       }
 
@@ -872,8 +944,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         return;
       }
 
-      const layerOpacity = layerId === 'aqicnAqi' ? 0.65 : layerId === 'slope' ? 0.45 : 0.55;
-      addTileLayer(layerUrl, layerOpacity);
+      const layerOpacity = layerId === 'slope' ? 0.45 : 0.55;
+      addTileLayer(dataLayerLabels[layerId], layerUrl, layerOpacity);
     });
 
     setActiveDataLayerWarnings(unresolved);
@@ -1877,6 +1949,11 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       {activeDataLayerWarnings.length > 0 && !isLoading && (
         <div className="absolute top-16 right-4 z-[1000] rounded-lg border border-amber-400/40 bg-black/80 px-3 py-2 text-[11px] text-amber-200 max-w-[280px]">
           ชั้นข้อมูลต่อไปนี้ยังไม่พร้อมใช้งาน (ต้องตั้งค่า URL เพิ่ม): {activeDataLayerWarnings.join(', ')}
+          {activeDataLayerWarnings.some((name) => name.includes('น้ำท่วมซ้ำซาก')) && (
+            <div className="mt-1 text-[10px] text-amber-100/80">
+              Hint: ตั้งค่า VITE_MAP_LAYER_FLOOD_RECURRENT_URL และ VITE_MAP_LAYER_FLOOD_RECURRENT_LAYER
+            </div>
+          )}
         </div>
       )}
 

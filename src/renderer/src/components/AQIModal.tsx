@@ -25,9 +25,15 @@ const normalizeProvinceId = (id: string) => {
 
 const normalizeProvinceNameKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+const getLocalDateKey = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
 const AQI_LAST_SYNC_TIMESTAMP_KEY = 'locus_aqi_last_sync_timestamp';
-const AQI_AUTO_SYNC_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 const toWeatherRows = (rows: any[]): WeatherAqiRow[] => {
   if (!Array.isArray(rows)) return [];
@@ -60,7 +66,6 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
   const [syncCount, setSyncCount] = useState(0);
   const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
   const [weatherRows, setWeatherRows] = useState<WeatherAqiRow[]>([]);
-  const hasAutoSynced = useRef(false);
 
   const loadWeatherRows = useCallback(async () => {
     const api = (window as any).api;
@@ -192,7 +197,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     setIsSyncing(true);
     if (apiKey) {
       try {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateKey();
         const syncedRows: WeatherAqiRow[] = [];
 
         console.log(`[AQI Modal] Syncing ${resolvedProvinces.length} provinces using ${aqiProvider}...`);
@@ -311,37 +316,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     setIsSyncing(false);
   };
 
-  useEffect(() => {
-    if (isOpen && apiKey && !hasAutoSynced.current && resolvedProvinces.length > 0) {
-      hasAutoSynced.current = true;
-
-      const lastSyncTs = Number(localStorage.getItem(AQI_LAST_SYNC_TIMESTAMP_KEY) || 0);
-      const nowTs = Date.now();
-      if (lastSyncTs > 0 && nowTs - lastSyncTs < AQI_AUTO_SYNC_COOLDOWN_MS) {
-        const remainingHours = ((AQI_AUTO_SYNC_COOLDOWN_MS - (nowTs - lastSyncTs)) / 3600000).toFixed(1);
-        console.log(`[AQI Modal] Auto-sync skipped: cooldown active (${remainingHours}h remaining).`);
-        return;
-      }
-      
-      const todayStr = new Date().toISOString().split('T')[0];
-      // Check if we already have records for all provinces in this region for today
-      const alreadySyncedToday = resolvedProvinces.every((province) =>
-        weatherRows.some(
-          (row) => row.provinceId === province.id && row.date === todayStr && Number.isFinite(row.aqi)
-        )
-      );
-      
-      if (!alreadySyncedToday) {
-        handleSync();
-      } else {
-        console.log('[AQI Modal] Data already synced today, skipping auto-sync.');
-      }
-    }
-  }, [apiKey, isOpen, resolvedProvinces, weatherRows]);
-
-  useEffect(() => {
-    if (!isOpen) hasAutoSynced.current = false;
-  }, [isOpen]);
+  // Sync policy: manual only (no automatic sync on modal open).
 
   // === Today's per-province AQI ===
   const aqiDataList = useMemo(() => {
@@ -355,7 +330,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
       groupedByProvince.set(row.provinceId, records);
     });
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalDateKey();
     const data = resolvedProvinces.map((province) => {
       const records = groupedByProvince.get(province.id) || [];
       const todayRecord = records.find((record) => record.date === todayStr);
@@ -392,7 +367,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     for (let i = -6; i <= 0; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = getLocalDateKey(d);
       const dayRecs = weatherRows.filter(
         (row) => provIds.has(row.provinceId) && row.date === dateStr && Number.isFinite(row.aqi)
       );

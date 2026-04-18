@@ -39,7 +39,8 @@ interface ImportMetaEnv {
   readonly VITE_MAP_LAYER_GISTDA_URL?: string
   readonly VITE_MAP_LAYER_AQICN_URL?: string
   readonly VITE_MAP_LAYER_RAIN_URL?: string
-  readonly VITE_MAP_LAYER_LANDPARCEL_URL?: string
+  readonly VITE_MAP_LAYER_FLOOD_RECURRENT_URL?: string
+  readonly VITE_MAP_LAYER_FLOOD_RECURRENT_LAYER?: string
   readonly VITE_MAP_LAYER_SLOPE_URL?: string
 }
 

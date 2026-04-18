@@ -401,6 +401,14 @@ export const RegionDashboard = memo(({
     return map;
   }, [provinceIndex]);
 
+  const provinceCountByRegion = useMemo(() => {
+    const map = new Map<string, number>();
+    provinceIndex.forEach((item) => {
+      map.set(item.regionId, (map.get(item.regionId) || 0) + 1);
+    });
+    return map;
+  }, [provinceIndex]);
+
   const aqiModalProvincesByRegion = useMemo(() => {
     const map = new Map<string, AQIProvinceItem[]>();
 
@@ -447,14 +455,22 @@ export const RegionDashboard = memo(({
   const sortedProvincesByRegion = useMemo(() => {
     const map = new Map<string, Province[]>();
     for (const reg of regions) {
-      let provs = reg.subProvinces;
-      if (!provs || provs.length === 0) {
-        provs = regionsData.find(r => r.id === reg.id)?.subProvinces || [];
+      const summaryCount = Number(reg.summary?.provinces);
+      const expectedCount = provinceCountByRegion.get(reg.id)
+        || (Number.isFinite(summaryCount) && summaryCount > 0 ? summaryCount : 0);
+
+      let provs = reg.subProvinces || [];
+      const staticProvs = regionsData.find((r) => r.id === reg.id)?.subProvinces || [];
+
+      const isLikelyTruncated = expectedCount > 0 && provs.length > 0 && provs.length < expectedCount;
+      if (provs.length === 0 || isLikelyTruncated) {
+        provs = staticProvs.length > 0 ? staticProvs : provs;
       }
+
       map.set(reg.id, [...provs].sort((a, b) => a.name.localeCompare(b.name)));
     }
     return map;
-  }, [regions]);
+  }, [provinceCountByRegion, regions]);
 
   const orderedRegions = useMemo(() => {
     const preferredOrder = ['north', 'northeast', 'central', 'east', 'west', 'south'];
@@ -573,6 +589,9 @@ export const RegionDashboard = memo(({
   }, [latestTemperatureByProvince, orderedRegions, provinceIdsByRegion]);
 
   const runStartupAqiAutoSync = useCallback(async () => {
+    // Sync policy: manual only. Startup auto-sync is intentionally disabled.
+    return;
+
     if (isBootAutoSyncRunning.current) return;
 
     const nowTs = Date.now();

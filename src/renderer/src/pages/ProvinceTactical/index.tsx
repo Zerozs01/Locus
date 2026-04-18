@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Province, Region } from '../../data/regions';
 import { regionTheme, RegionId } from '../../data/regionTheme';
+import { getThaiProvinceName } from '../../data/thaiProvinceNames';
 import ProvinceMap, { ProvinceMapHandle } from '../../components/ProvinceMap';
 import { measureAsync } from '../../utils/perf';
 import { generateProvinceData } from './data';
@@ -22,16 +23,25 @@ import { TravelTab } from './tabs/TravelTab';
 import { EssentialsTab } from './tabs/EssentialsTab';
 
 type ProvinceMapTheme = 'voyager' | 'positron' | 'dark' | 'osm' | 'satellite' | 'terrain' | 'admin';
-type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'landParcel' | 'evCharger' | 'slope';
+type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'floodRecurrent' | 'evCharger' | 'slope';
 
 const defaultMapDataLayers: Record<ProvinceDataLayer, boolean> = {
   traffic: false,
   gistdaAqi: false,
   aqicnAqi: false,
   rainRadar: false,
-  landParcel: false,
+  floodRecurrent: false,
   evCharger: false,
   slope: false,
+};
+
+const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
+
+const getLocalDateKey = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 /**
@@ -46,9 +56,45 @@ export const ProvinceTacticalPage = () => {
   const [region, setRegion] = useState<Region | null>(null);
   const [province, setProvince] = useState<Province | null>(null);
   const [liveWeather, setLiveWeather] = useState<{temp: number, aqi: number} | null>(null);
+  const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [mapTheme, setMapTheme] = useState<ProvinceMapTheme>('voyager');
   const [mapDataLayers, setMapDataLayers] = useState<Record<ProvinceDataLayer, boolean>>(defaultMapDataLayers);
+
+  const normalizeKey = useCallback((value: string) => value.toLowerCase().replace(/[^a-z0-9_-]/g, ''), []);
+  const normalizeWeatherProvinceId = useCallback((value: string) => {
+    let normalized = String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (normalized === 'bangkokmetropolis') normalized = 'bangkok';
+    if (normalized === 'phranakhonsiayutthaya') normalized = 'ayutthaya';
+    return normalized;
+  }, []);
+
+  const provinceNameToId = useMemo(() => {
+    const map = new Map<string, string>();
+    provinceIndex.forEach((p) => {
+      map.set(p.name, p.id);
+      map.set(normalizeKey(p.name), p.id);
+    });
+    return map;
+  }, [provinceIndex, normalizeKey]);
+
+  const selectedWeatherKeyCandidates = useMemo(() => {
+    const provinceName = province?.name || '';
+    const candidates = [
+      provinceId || '',
+      province?.id || '',
+      provinceName,
+      provinceNameToId.get(provinceName) || '',
+      provinceNameToId.get(normalizeKey(provinceName)) || '',
+      provinceName === 'Bangkok Metropolis' ? 'Bangkok' : '',
+    ];
+
+    const normalized = candidates
+      .map((value) => normalizeWeatherProvinceId(value))
+      .filter((value) => value.length > 0);
+
+    return Array.from(new Set(normalized));
+  }, [normalizeKey, normalizeWeatherProvinceId, province?.id, province?.name, provinceId, provinceNameToId]);
   
   // Ref for ProvinceMap to trigger fly animations
   const mapRef = useRef<ProvinceMapHandle>(null);
@@ -73,19 +119,15 @@ export const ProvinceTacticalPage = () => {
       try {
         if (window.api && window.api.db) {
           if (regionId && provinceId && window.api.db.getRegion) {
-            const [regionData, provinceData, weatherData] = await measureAsync(
+            const [regionData, provinceData] = await measureAsync(
               'db:getRegion+Province@ProvinceTacticalPage',
               () => Promise.all([
                 window.api.db.getRegion(regionId),
-                window.api.db.getProvince(provinceId),
-                window.api.db.getWeatherAqi ? window.api.db.getWeatherAqi(provinceId) : Promise.resolve([])
+                window.api.db.getProvince(provinceId)
               ])
             );
             if (regionData) setRegion(regionData);
             if (provinceData) setProvince(provinceData);
-            if (weatherData && weatherData.length > 0) {
-              setLiveWeather({ temp: weatherData[0].temperature, aqi: weatherData[0].aqi });
-            }
           } else {
             const regions = await measureAsync('db:getRegions@ProvinceTacticalPage', () => window.api.db.getRegions());
             const foundRegion = regions.find((r: Region) => r.id === regionId);
@@ -107,12 +149,82 @@ export const ProvinceTacticalPage = () => {
     fetchData();
   }, [regionId, provinceId]);
 
+  useEffect(() => {
+    if (!window.api?.db?.getProvinceIndex) return;
+    window.api.db.getProvinceIndex()
+      .then((rows) => {
+        const safeRows = Array.isArray(rows) ? rows : [];
+        setProvinceIndex(safeRows.map((row) => ({ id: row.id, name: row.name })));
+      })
+      .catch((error) => {
+        console.warn('[ProvinceTactical] getProvinceIndex failed', error);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!window.api?.db?.getWeatherAqi || selectedWeatherKeyCandidates.length === 0) return;
+
+    let mounted = true;
+
+    const resolveLatestWeather = async () => {
+      try {
+        const dbRows = await window.api.db.getWeatherAqi();
+        if (!mounted || !Array.isArray(dbRows) || dbRows.length === 0) return;
+
+        const todayStr = getLocalDateKey();
+        const groupedByProvince = new Map<string, { date: string; aqi: number; temperature: number }[]>();
+
+        dbRows.forEach((row) => {
+          const nid = normalizeWeatherProvinceId(row.provinceId);
+          const list = groupedByProvince.get(nid) || [];
+          list.push({ date: row.date, aqi: row.aqi, temperature: row.temperature });
+          groupedByProvince.set(nid, list);
+        });
+
+        for (const key of selectedWeatherKeyCandidates) {
+          const list = groupedByProvince.get(key);
+          if (!Array.isArray(list) || list.length === 0) continue;
+
+          const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date));
+          const today = sorted.find((v) => v.date === todayStr);
+          const latestPast = sorted.find((v) => v.date <= todayStr);
+          const latest = sorted[0];
+          const resolved = today || latestPast || latest;
+
+          if (!resolved) continue;
+          if (!Number.isFinite(resolved.temperature) || !Number.isFinite(resolved.aqi)) continue;
+
+          setLiveWeather({ temp: resolved.temperature, aqi: resolved.aqi });
+          return;
+        }
+      } catch (error) {
+        console.warn('[ProvinceTactical] Weather sync failed', error);
+      }
+    };
+
+    void resolveLatestWeather();
+    const interval = window.setInterval(resolveLatestWeather, 10000);
+    const onWeatherUpdated = () => {
+      void resolveLatestWeather();
+    };
+
+    window.addEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+      window.removeEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+    };
+  }, [normalizeWeatherProvinceId, selectedWeatherKeyCandidates]);
+
   const provinceData = useMemo(() => {
     if (!region || !province) return null;
     const baseData = generateProvinceData(province, region);
     if (liveWeather) {
        baseData.weather.temp = `${liveWeather.temp.toFixed(1)}°`;
-       baseData.weather.aqi = liveWeather.aqi;
+       baseData.weather.aqi = Math.round(liveWeather.aqi);
+     } else {
+       baseData.weather.temp = '--';
+       baseData.weather.aqi = undefined;
     }
     return baseData;
   }, [province, region, liveWeather]);
@@ -154,9 +266,12 @@ export const ProvinceTacticalPage = () => {
       const focusTitleNorm = normalizeFocusName(state.focusPlace!.title);
       const provinceNameNorm = normalizeFocusName(province?.name);
       const provinceAliasNorm = normalizeFocusName(province?.name === 'Bangkok Metropolis' ? 'Bangkok' : province?.name);
+      const provinceThaiNorm = normalizeFocusName(province?.name ? getThaiProvinceName(province.name) : '');
       const isProvinceLevelFocus = !!focusTitleNorm && [provinceNameNorm, provinceAliasNorm].some(
         (name) => !!name && (focusTitleNorm === name || focusTitleNorm.includes(name) || name.includes(focusTitleNorm))
       );
+      const isProvinceLevelFocusByThai = !!focusTitleNorm && !!provinceThaiNorm
+        && (focusTitleNorm === provinceThaiNorm || focusTitleNorm.includes(provinceThaiNorm) || provinceThaiNorm.includes(focusTitleNorm));
 
       const geometryType = state.focusPlace!.geojson && typeof state.focusPlace!.geojson === 'object'
         ? (state.focusPlace!.geojson as { type?: string }).type
@@ -164,7 +279,7 @@ export const ProvinceTacticalPage = () => {
       const hasPolygon = geometryType === 'Polygon' || geometryType === 'MultiPolygon';
 
       if (hasPolygon) {
-        const suppressProvincePolygonHighlight = isProvinceLevelFocus;
+        const suppressProvincePolygonHighlight = isProvinceLevelFocus || isProvinceLevelFocusByThai;
         mapRef.current?.focusSearchResult({
           lat: state.focusPlace!.lat,
           lng: state.focusPlace!.lng,

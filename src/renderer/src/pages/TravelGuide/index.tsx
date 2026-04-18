@@ -33,6 +33,13 @@ type TravelGuideNewsItem = {
   summary: string;
 };
 
+const getLocalDateKey = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const parseDurationToMinutes = (duration: unknown): number | null => {
   const text = String(duration || '').trim().toLowerCase();
   if (!text) return null;
@@ -203,7 +210,7 @@ export function TravelGuidePage() {
   const [activeTransportTab, setActiveTransportTab] = useState('');
   const [originText, setOriginText] = useState('');
   const [destText, setDestText] = useState('');
-  const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
+  const [tripDate, setTripDate] = useState(getLocalDateKey());
   const [activeSupplyType, setActiveSupplyType] = useState<SupplyType>('bank');
   const [originSearchOptions, setOriginSearchOptions] = useState<string[]>([]);
   const [destSearchOptions, setDestSearchOptions] = useState<string[]>([]);
@@ -300,7 +307,7 @@ export function TravelGuidePage() {
         if (!Array.isArray(dbRows) || dbRows.length === 0) return;
 
         // Group by provinceId and resolve current metrics (prefer today, then latest available)
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateKey();
         const groupedByProvince = new Map<string, { date: string; aqi: number; temperature: number }[]>();
         dbRows.forEach((r) => {
           const nid = normalizeWeatherProvinceId(r.provinceId);
@@ -1435,8 +1442,8 @@ export function TravelGuidePage() {
                 <button onClick={() => setShowWeatherModal(true)} className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-500/28 hover:bg-slate-400/32 border border-slate-200/38 shadow-[0_0_0_1px_rgba(248,250,252,0.12)] shrink-0 transition-all hover:scale-105 active:scale-100 backdrop-blur-sm">
                   <Thermometer size={13} className="text-amber-400 group-hover:scale-110 transition-transform" />
                   <div className="text-xs text-left">
-                    <div className="font-bold text-white leading-tight">{currentTemp !== null ? `${currentTemp.toFixed(1)}°C` : brief.climate.split(',')[0].replace('อุณหภูมิ ', '')}</div>
-                    <div className={`text-[9px] font-bold ${tempInfo ? tempInfo.color : 'text-white/50'}`}>{tempInfo ? tempInfo.label : 'Weather Forecast'}</div>
+                    <div className="font-bold text-white leading-tight">{currentTemp !== null ? `${currentTemp.toFixed(1)}°C` : '--'}</div>
+                    <div className={`text-[9px] font-bold ${tempInfo ? tempInfo.color : 'text-white/50'}`}>{tempInfo ? tempInfo.label : 'No Synced Data'}</div>
                   </div>
                 </button>
                 <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-500/28 shadow-[0_0_0_1px_rgba(248,250,252,0.12)] shrink-0 backdrop-blur-sm ${currentAqi <= 50 ? 'border border-emerald-300/45' : currentAqi <= 100 ? 'border border-amber-300/45' : currentAqi <= 150 ? 'border border-orange-300/50' : 'border border-red-400/50'}`}>
@@ -2097,6 +2104,8 @@ export function TravelGuidePage() {
         provinceName={provinceThaiNames[selectedProvinceName] || selectedProvinceName}
         provinces={weatherModalProvinces}
         regionId={activeRegion}
+        targetProvinceId={selectedProvinceId}
+        chartScope="province"
       />
     </div>
   );

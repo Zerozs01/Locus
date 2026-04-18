@@ -11,7 +11,16 @@ const normalizeProvinceId = (id: string) => {
   return normalized;
 };
 
-const normalizeProvinceNameKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+const toProvinceCompareKey = (id: string) => normalizeProvinceId(id).replace(/[^a-z0-9]/g, '');
+
+const normalizeProvinceNameKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9ก-๙]/g, '');
+
+const getLocalDateKey = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 interface WeatherHistoryModalProps {
   isOpen: boolean;
@@ -19,9 +28,19 @@ interface WeatherHistoryModalProps {
   provinceName: string; // Main title
   provinces: {id: string, name: string}[];
   regionId?: string;
+  targetProvinceId?: string;
+  chartScope?: 'region-average' | 'province';
 }
 
-export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, regionId }: WeatherHistoryModalProps) => {
+export const WeatherHistoryModal = ({
+  isOpen,
+  onClose,
+  provinceName,
+  provinces,
+  regionId,
+  targetProvinceId,
+  chartScope = 'region-average',
+}: WeatherHistoryModalProps) => {
   const [activeProvinces, setActiveProvinces] = useState<{id: string, name: string}[]>([]);
   const [viewMode, setViewMode] = useState<'past' | 'future'>('future');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -29,7 +48,6 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [apiKey, setApiKey] = useState<string>('');
   const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
-  const hasAutoSynced = useRef(false);
   const provinceRowRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const provinceIdByName = useMemo(() => {
@@ -60,13 +78,25 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
     return Array.from(deduped.values());
   }, [activeProvinces, provinces, provinceIdByName]);
 
-  const targetProvinceId = useMemo(() => {
-    return provinceIdByName.get(provinceName.toLowerCase())
-      || provinceIdByName.get(normalizeProvinceNameKey(provinceName))
-      || normalizeProvinceId(provinceName);
-  }, [provinceIdByName, provinceName]);
+  const resolvedTargetProvinceId = useMemo(() => {
+    const explicitId = normalizeProvinceId(targetProvinceId || '');
+    if (explicitId) return explicitId;
+
+    const byName = provinceIdByName.get(provinceName.toLowerCase())
+      || provinceIdByName.get(normalizeProvinceNameKey(provinceName));
+    if (byName) return byName;
+
+    const fromIncomingList = provinces.find(
+      (province) => normalizeProvinceNameKey(province.name) === normalizeProvinceNameKey(provinceName)
+    );
+    if (fromIncomingList) return normalizeProvinceId(fromIncomingList.id);
+
+    return normalizeProvinceId(provinceName);
+  }, [provinceIdByName, provinceName, provinces, targetProvinceId]);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (isOpen) {
       // Check config for OpenWeather API Key
       if ((window as any).api && (window as any).api.config) {
@@ -96,20 +126,39 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
         const defaultTime = new Date().toLocaleString() + ' (Never)';
         setLastSync(defaultTime);
       }
-      
-      // Resolve provinces
-      if (provinces.length === 0 && regionId) {
-         if ((window as any).api && (window as any).api.db) {
-            (window as any).api.db.getProvincesByRegion(regionId).then((provs: any[]) => {
-               if (provs && provs.length > 0) {
-                  setActiveProvinces(provs.map(p => ({ id: p.id, name: p.name })));
-               }
-            }).catch(console.error);
-         }
-      } else {
-         setActiveProvinces(provinces);
+
+      const incomingProvinces = provinces;
+      setActiveProvinces(incomingProvinces);
+
+      // Always try to hydrate full province list by region when regionId exists,
+      // because some callers may provide a summarized (truncated) province array.
+      if (regionId && (window as any).api?.db?.getProvincesByRegion) {
+        (window as any).api.db.getProvincesByRegion(regionId).then((provs: any[]) => {
+          if (cancelled || !Array.isArray(provs) || provs.length === 0) return;
+          const incomingDisplayNameById = new Map<string, string>();
+          incomingProvinces.forEach((province) => {
+            incomingDisplayNameById.set(normalizeProvinceId(province.id), province.name);
+          });
+
+          const fetched = provs.map((p) => {
+            const normalizedId = normalizeProvinceId(String(p.id));
+            return {
+              id: normalizedId,
+              name: incomingDisplayNameById.get(normalizedId) || String(p.name),
+            };
+          });
+          if (fetched.length >= incomingProvinces.length) {
+            setActiveProvinces(fetched);
+          }
+        }).catch((err: any) => {
+          console.warn('[Weather Modal] getProvincesByRegion failed:', err);
+        });
       }
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, provinces, regionId]);
 
   const handleSync = async () => {
@@ -137,10 +186,10 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${qStr}&units=metric&appid=${apiKey}`);
             const data = await res.json();
             let todayAqi: number | null = null;
-            let todayDateStr = today.toISOString().split('T')[0];
+            let todayDateStr = getLocalDateKey(today);
             if (data && data.main) {
                // Update today's record
-               const dateStr = today.toISOString().split('T')[0];
+              const dateStr = getLocalDateKey(today);
                todayDateStr = dateStr;
                
                let currentAqi = Number.isFinite(latestKnownAqi) ? Number(latestKnownAqi) : 50;
@@ -249,30 +298,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
     setIsSyncing(false);
   };
   
-  // Auto-sync if we have the key, and we enter the modal (12-hour cache)
-  useEffect(() => {
-    if (isOpen && apiKey && !hasAutoSynced.current && resolvedActiveProvinces.length > 0) {
-       const lastTs = Number(localStorage.getItem('locus_weather_last_sync_timestamp') || 0);
-       const now = Date.now();
-       const twelveHours = 12 * 60 * 60 * 1000; // 43,200,000 ms
-       const isExpired = (now - lastTs) > twelveHours;
-
-       if (isExpired) {
-          hasAutoSynced.current = true;
-          console.log('[Weather Modal] Auto-sync triggered: Cache expired (>12h).');
-          handleSync();
-       } else {
-          console.log(`[Weather Modal] Skipping auto-sync: Last sync was ${((now - lastTs) / 3600000).toFixed(1)} hours ago.`);
-       }
-    }
-  }, [isOpen, apiKey, resolvedActiveProvinces]);
-  
-  // reset autosync when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-       hasAutoSynced.current = false;
-    }
-  }, [isOpen]);
+    // Sync policy: manual only (no automatic sync on modal open).
 
   // Generate mocks to ensure data exists
   const mockDeps = useMemo(() => resolvedActiveProvinces.map(p => ({ id: p.id, name: p.name })), [resolvedActiveProvinces]);
@@ -281,8 +307,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
   // Today string for highlighting
   const todayStr = useMemo(() => {
     const d = new Date();
-    d.setHours(0,0,0,0);
-    return d.toISOString().split('T')[0];
+    return getLocalDateKey(d);
   }, [isOpen]);
 
   const chartData = useMemo(() => {
@@ -302,11 +327,20 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
       } else {
         d.setDate(today.getDate() + i); // 0 corresponds to today in future mode
       }
-      return d.toISOString().split('T')[0];
+      return getLocalDateKey(d);
     });
 
+    const activeProvinceKeySet = (() => {
+      if (chartScope === 'province' && resolvedTargetProvinceId) {
+        return new Set([toProvinceCompareKey(resolvedTargetProvinceId)]);
+      }
+      return new Set(resolvedActiveProvinces.map((province) => toProvinceCompareKey(province.id)));
+    })();
+
     return targetDates.map(dateStr => {
-      const dateRecords = allRecords.filter(r => r.date === dateStr && resolvedActiveProvinces.some(p => p.id === r.id));
+      const dateRecords = allRecords.filter(
+        (record) => record.date === dateStr && activeProvinceKeySet.has(toProvinceCompareKey(record.id))
+      );
       const avgTemp = dateRecords.length > 0 
           ? dateRecords.reduce((acc, r) => acc + r.temperature, 0) / dateRecords.length 
           : 0;
@@ -314,32 +348,48 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
       return {
         date: dateStr,
         displayDate: dateStr.substring(5), // MM-DD
-        temp: avgTemp > 0 ? Math.round(avgTemp * 10) / 10 : 30 + Math.floor(Math.random() * 5),
+        temp: avgTemp > 0 ? Math.round(avgTemp * 10) / 10 : Number.NaN,
         isToday: dateStr === todayStr
       };
     });
-  }, [isOpen, resolvedActiveProvinces, viewMode, isSyncing, todayStr]);
+  }, [chartScope, isOpen, resolvedActiveProvinces, resolvedTargetProvinceId, viewMode, isSyncing, todayStr]);
 
   // Province list data for current day
   const provinceList = useMemo(() => {
     if (!isOpen) return [];
     const allRecords = getRecords();
     const records = resolvedActiveProvinces.map(prov => {
-      let rec = allRecords.find(r => r.id === prov.id && r.date === todayStr);
+      const provinceCompareKey = toProvinceCompareKey(prov.id);
+      const rec = allRecords.find(
+        (record) => toProvinceCompareKey(record.id) === provinceCompareKey && record.date === todayStr
+      );
       return {
         id: prov.id,
         name: prov.name,
-        temp: rec ? rec.temperature : 30 + Math.random() * 5
+        temp: rec ? rec.temperature : Number.NaN
       };
     });
 
-    return records.sort((a, b) => sortOrder === 'desc' ? b.temp - a.temp : a.temp - b.temp);
+    return records.sort((a, b) => {
+      const aHasTemp = Number.isFinite(a.temp);
+      const bHasTemp = Number.isFinite(b.temp);
+      if (aHasTemp && !bHasTemp) return -1;
+      if (!aHasTemp && bHasTemp) return 1;
+      if (!aHasTemp && !bHasTemp) return 0;
+      return sortOrder === 'desc' ? b.temp - a.temp : a.temp - b.temp;
+    });
   }, [isOpen, resolvedActiveProvinces, sortOrder, isSyncing, todayStr]);
 
   useEffect(() => {
     if (!isOpen || provinceList.length === 0 || resolvedActiveProvinces.length <= 1) return;
 
-    const target = provinceList.find((item) => item.id === targetProvinceId || item.name === provinceName);
+    const selectedNameKey = normalizeProvinceNameKey(provinceName);
+    const target = provinceList.find((item) => {
+      if (resolvedTargetProvinceId && toProvinceCompareKey(item.id) === toProvinceCompareKey(resolvedTargetProvinceId)) {
+        return true;
+      }
+      return selectedNameKey.length > 0 && normalizeProvinceNameKey(item.name) === selectedNameKey;
+    });
     if (!target) return;
 
     const rowEl = provinceRowRefs.current.get(target.id);
@@ -348,12 +398,14 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
     requestAnimationFrame(() => {
       rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
-  }, [isOpen, provinceList, provinceName, resolvedActiveProvinces.length, sortOrder, targetProvinceId, viewMode]);
+  }, [isOpen, provinceList, provinceName, resolvedActiveProvinces.length, resolvedTargetProvinceId, sortOrder, viewMode]);
 
   if (!isOpen) return null;
 
-  const maxTemp = Math.max(...chartData.map(d => d.temp)) + 4;
-  const minTemp = Math.min(...chartData.map(d => d.temp)) - 4;
+  const finiteTemps = chartData.map((d) => d.temp).filter((temp) => Number.isFinite(temp));
+  const maxTemp = finiteTemps.length > 0 ? Math.max(...finiteTemps) + 4 : 40;
+  const minTemp = finiteTemps.length > 0 ? Math.min(...finiteTemps) - 4 : 20;
+  const tempRange = Math.max(maxTemp - minTemp, 1);
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
@@ -367,7 +419,9 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
             </div>
             <div>
               <h2 className="text-xl font-black text-white tracking-tight">Weather Forecast & History</h2>
-              <p className="text-sm text-slate-400 mt-0.5">{provinceName} • 7-Day Average</p>
+              <p className="text-sm text-slate-400 mt-0.5">
+                {provinceName} • {chartScope === 'province' ? '7-Day Province Trend' : '7-Day Average'}
+              </p>
             </div>
           </div>
           <button title="ปิดหน้าต่าง" onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors">
@@ -433,18 +487,19 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
 
                 {/* Bars */}
                 {chartData.map((d, i) => {
-                  const heightPercent = ((d.temp - minTemp) / (maxTemp - minTemp)) * 100;
+                  const hasTemp = Number.isFinite(d.temp);
+                  const heightPercent = hasTemp ? ((d.temp - minTemp) / tempRange) * 100 : 8;
                   
                   return (
                     <div key={i} className="flex flex-col items-center flex-1 relative h-full justify-end z-10 group px-1 sm:px-2">
                         {/* Bar */}
                         <div 
-                            className={`w-full max-w-[40px] rounded-t-md relative transition-all duration-700 ease-out border-t-2 ${d.isToday ? 'bg-gradient-to-t from-amber-500/20 to-amber-500/80 border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-gradient-to-t from-white/5 to-white/20 border-white/30 group-hover:from-white/10 group-hover:to-white/30'}`}
+                            className={`w-full max-w-[40px] rounded-t-md relative transition-all duration-700 ease-out border-t-2 ${d.isToday ? 'bg-gradient-to-t from-amber-500/20 to-amber-500/80 border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-gradient-to-t from-white/5 to-white/20 border-white/30 group-hover:from-white/10 group-hover:to-white/30'} ${hasTemp ? '' : 'opacity-35'}`}
                             style={{ height: `${heightPercent}%` }}
                         >
                             {/* Value inside/above bar */}
                             <div className={`absolute -top-6 left-1/2 -translate-x-1/2 font-bold text-xs tracking-tighter ${d.isToday ? 'text-amber-400' : 'text-slate-300'}`}>
-                              {d.temp.toFixed(1)}°
+                              {hasTemp ? `${d.temp.toFixed(1)}°` : '--'}
                             </div>
                         </div>
                         
@@ -466,7 +521,9 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
                 <div className="flex-[2] bg-white/[0.01] flex flex-col border-l border-white/5 min-h-[200px]">
                     <div className="flex items-center justify-between p-4 border-b border-white/5">
                         <div>
-                            <h3 className="text-sm font-bold text-white">Current Average Breakdown</h3>
+                            <h3 className="text-sm font-bold text-white">
+                              {chartScope === 'province' ? 'Province Breakdown' : 'Current Average Breakdown'}
+                            </h3>
                             <p className="text-[10px] text-slate-400 mt-0.5">Today ({chartData.find(d => d.isToday)?.displayDate || '...'})</p>
                         </div>
                         <button 
@@ -479,7 +536,12 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
                     </div>
                     <div className="p-3 overflow-y-auto custom-scrollbar flex-1 space-y-1">
                         {provinceList.map((p, idx) => {
-                            const isSelected = p.name === provinceName || p.id === provinceName || (targetProvinceId ? p.id === targetProvinceId : false);
+                            const selectedNameKey = normalizeProvinceNameKey(provinceName);
+                            const isSelected =
+                              (resolvedTargetProvinceId
+                                ? toProvinceCompareKey(p.id) === toProvinceCompareKey(resolvedTargetProvinceId)
+                                : false)
+                              || (selectedNameKey.length > 0 && normalizeProvinceNameKey(p.name) === selectedNameKey);
                             return (
                             <div
                                 key={p.id}
@@ -497,7 +559,7 @@ export const WeatherHistoryModal = ({ isOpen, onClose, provinceName, provinces, 
                                     {!isSelected && <span className="opacity-40 text-xs mr-2">{idx+1}.</span>}
                                     {p.name} {isSelected && <span className="text-[10px] ml-1 bg-amber-500/20 px-1 py-0.5 rounded text-amber-300 font-bold border border-amber-500/30">Target</span>}
                                 </span>
-                                <span className={`text-sm font-bold font-mono text-right shrink-0 ${isSelected ? 'text-amber-300' : 'text-white'}`}>{p.temp.toFixed(1)}°C</span>
+                                <span className={`text-sm font-bold font-mono text-right shrink-0 ${isSelected ? 'text-amber-300' : 'text-white'}`}>{Number.isFinite(p.temp) ? `${p.temp.toFixed(1)}°C` : '--'}</span>
                             </div>
                             );
                         })}

@@ -308,12 +308,36 @@ const postN8nChat = async (payload: N8nChatPayload) => {
   )
 }
 
+const getOpenWeatherRainTileTemplate = async (): Promise<string | null> => {
+  try {
+    const runtimeConfig = await readRuntimeConfig()
+    const apiKey = String(runtimeConfig.openweather || process.env.VITE_OPENWEATHER_API_KEY || '').trim()
+    if (!apiKey) {
+      console.warn('[main] OpenWeather API key is missing; cannot use precipitation fallback layer')
+      return null
+    }
+
+    // OpenWeather does not provide true radar in this endpoint, but precipitation tiles are usable fallback.
+    return `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${encodeURIComponent(apiKey)}`
+  } catch (error) {
+    console.warn('[main] Failed to resolve OpenWeather precipitation fallback:', error)
+    return null
+  }
+}
+
 const getRainRadarTileTemplate = async (): Promise<string | null> => {
   try {
     const response = await net.fetch('https://api.rainviewer.com/public/weather-maps.json', {
       method: 'GET'
     })
-    if (!response.ok) return null
+    if (!response.ok) {
+      console.warn(`[main] RainViewer weather-maps request failed with status ${response.status}`)
+      const fallbackTemplate = await getOpenWeatherRainTileTemplate()
+      if (fallbackTemplate) {
+        console.warn('[main] Using OpenWeather precipitation layer as fallback for rain radar')
+      }
+      return fallbackTemplate
+    }
 
     const payload = (await response.json()) as {
       radar?: {
@@ -327,10 +351,22 @@ const getRainRadarTileTemplate = async (): Promise<string | null> => {
       (pastFrames.length > 0 ? pastFrames[pastFrames.length - 1]?.path : null) ||
       payload?.radar?.nowcast?.[0]?.path
 
-    if (!latestFramePath) return null
+    if (!latestFramePath) {
+      console.warn('[main] RainViewer payload did not include a radar frame path')
+      const fallbackTemplate = await getOpenWeatherRainTileTemplate()
+      if (fallbackTemplate) {
+        console.warn('[main] Using OpenWeather precipitation layer as fallback for rain radar')
+      }
+      return fallbackTemplate
+    }
     return `https://tilecache.rainviewer.com${latestFramePath}/256/{z}/{x}/{y}/2/1_1.png`
-  } catch {
-    return null
+  } catch (error) {
+    console.warn('[main] Failed to resolve RainViewer tile template:', error)
+    const fallbackTemplate = await getOpenWeatherRainTileTemplate()
+    if (fallbackTemplate) {
+      console.warn('[main] Using OpenWeather precipitation layer as fallback for rain radar')
+    }
+    return fallbackTemplate
   }
 }
 
