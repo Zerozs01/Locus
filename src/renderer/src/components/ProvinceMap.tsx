@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Loader2, WifiOff, RefreshCw, Search, LocateFixed, Route, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin } from 'lucide-react';
+import { Loader2, WifiOff, RefreshCw, Search, LocateFixed, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin } from 'lucide-react';
 import thailandGeo from '../data/thailand-geo.json';
 
 // Fix Leaflet default marker icon issue
@@ -90,9 +90,13 @@ const tileProviders: Record<ProvinceMapTheme, { url: string; attribution: string
 
 const AQICN_TILE_TOKEN = import.meta.env.VITE_AQICN_TILE_TOKEN || 'demo';
 const LONGDO_MAP_API_KEY = import.meta.env.VITE_LONGDO_MAP_API_KEY || '70bda0c806084cbc6829a9c7dbe2a404';
+const LONGDO_FLOOD_RECURRENT_TILE_URL = `https://ms.longdo.com/map/msn-server/tile.php?proj=epsg3857&mode=floodrecurrent&zoom={z}&x={x}&y={y}&HD=1&key=${encodeURIComponent(LONGDO_MAP_API_KEY)}`;
 const GISTDA_DEFAULT_WMS_URL = 'https://service-proxy-765rkyfg3q-as.a.run.app/api_geoserver/geoserver/pm25_hourly_raster_24hr/wms';
 const GISTDA_DEFAULT_WMS_LAYER = 'pm25_hourly_raster_24hr';
-const GISTDA_FLOOD_RECURRENT_WMS_LAYER = import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_LAYER || 'flood_recurrent';
+const GISTDA_FLOOD_RECURRENT_WMS_LAYER = import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_LAYER || 'dri:c_dri_w1';
+const GISTDA_FLOOD_RECURRENT_WMS_STYLE = import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_STYLE || 'dri:dri_sld2023';
+const FLOOD_RECURRENT_TILE_FILTER = import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_FILTER || 'none';
+const RAIN_RADAR_TILE_FILTER = import.meta.env.VITE_MAP_LAYER_RAIN_FILTER || 'saturate(1.2) contrast(1.12) brightness(1.02)';
 const LONGDO_TRAFFIC_TILE_URL = `https://mstraffic1.longdo.com/mmmap/tile.php?proj=epsg3857&mode=trafficoverlay&zoom={z}&x={x}&y={y}&key=${encodeURIComponent(LONGDO_MAP_API_KEY)}`;
 const THAILAND_AQI_BOUNDS = L.latLngBounds([5.2, 97.0], [20.7, 106.1]);
 
@@ -101,7 +105,7 @@ const mapLayerUrls = {
   gistdaAqi: import.meta.env.VITE_MAP_LAYER_GISTDA_URL || GISTDA_DEFAULT_WMS_URL,
   aqicnAqi: import.meta.env.VITE_MAP_LAYER_AQICN_URL || `https://tiles.waqi.info/tiles/usepa-aqi/{z}/{x}/{y}.png?token=${AQICN_TILE_TOKEN}`,
   rainRadar: import.meta.env.VITE_MAP_LAYER_RAIN_URL || '',
-  floodRecurrent: import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_URL || '',
+  floodRecurrent: import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_URL || LONGDO_FLOOD_RECURRENT_TILE_URL,
   slope: import.meta.env.VITE_MAP_LAYER_SLOPE_URL || 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
 };
 
@@ -110,7 +114,7 @@ const dataLayerLabels: Record<ProvinceDataLayer, string> = {
   gistdaAqi: 'คุณภาพอากาศ (GISTDA)',
   aqicnAqi: 'ดัชนีคุณภาพอากาศ (AQICN)',
   rainRadar: 'เรดาร์ตรวจฝน',
-  floodRecurrent: 'พื้นที่น้ำท่วมซ้ำซาก (GISTDA)',
+  floodRecurrent: 'พื้นที่น้ำท่วมซ้ำซาก',
   evCharger: 'จุดชาร์จรถไฟฟ้า',
   slope: 'พื้นที่ลาดชัน',
 };
@@ -194,6 +198,11 @@ export const provinceCoordinates: Record<string, { lat: number; lng: number }> =
   'Loei': { lat: 17.4860, lng: 101.7223 },
   'Maha Sarakham': { lat: 16.1847, lng: 103.3009 },
   'Mukdahan': { lat: 16.5425, lng: 104.7235 },
+  'Pathum Thani': { lat: 14.0208, lng: 100.5250 },
+  'Nonthaburi': { lat: 13.8591, lng: 100.5217 },
+  'Samut Prakan': { lat: 13.5991, lng: 100.5968 },
+  'Phra Nakhon Si Ayutthaya': { lat: 14.3516, lng: 100.5640 },
+  'Ayutthaya': { lat: 14.3516, lng: 100.5640 },
   'Nakhon Phanom': { lat: 17.3920, lng: 104.7695 },
   'Nong Bua Lam Phu': { lat: 17.2218, lng: 102.4260 },
   'Nong Khai': { lat: 17.8783, lng: 102.7420 },
@@ -426,9 +435,12 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     new Set<ProvinceMarkerFilter>()
   );
   const [rainRadarTileUrl, setRainRadarTileUrl] = useState<string>('');
+  const [isRainRadarResolving, setIsRainRadarResolving] = useState(false);
   const [evChargerPoints, setEvChargerPoints] = useState<Array<{ lat: number; lng: number; title: string; subtitle: string }>>([]);
   const [activeDataLayerWarnings, setActiveDataLayerWarnings] = useState<string[]>([]);
   const externalDataLayerRefs = useRef<L.Layer[]>([]);
+  const [mapContextMenu, setMapContextMenu] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
+  const lastContextMenuAtRef = useRef(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
@@ -498,7 +510,13 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           const lat = parseFloat(data.latitude);
           const lng = parseFloat(data.longitude);
           if (!isNaN(lat) && !isNaN(lng)) {
-            resolveAndDraw(lat, lng, 1200); // ~1km accuracy for IP based
+            const accept = window.confirm('ระบบตรวจพบตำแหน่งโดยประมาณจากเครือข่ายอินเทอร์เน็ต (IP) ซึ่งอาจคลาดเคลื่อน (เช่น แสดงเป็นเขตกรุงเทพฯ/ภาษีเจริญ) \n\nต้องการใช้ตำแหน่งนี้ชั่วคราวหรือไม่? \n(หากไม่ต้องการ สามารถกดยกเลิกและพิมพ์ค้นหาจังหวัด/สถานที่เองได้)');
+            if (accept) {
+              resolveAndDraw(lat, lng, 5000); // ~5km accuracy for IP based
+            } else {
+              setIsLocating(false);
+              resolve(null);
+            }
             return;
           }
           throw new Error('Invalid IP coordinates');
@@ -574,6 +592,25 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     }
   };
 
+  const applyCustomRoutePoint = (target: 'start' | 'end', latitude: number, longitude: number) => {
+    const pointTitle = `Pin (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
+    const point = { lat: latitude, lng: longitude, title: pointTitle };
+
+    if (target === 'start') {
+      setRouteStart(point);
+      if (routeEnd) {
+        calculateRoute(latitude, longitude, routeEnd.lat, routeEnd.lng, travelMode);
+      }
+    } else {
+      setRouteEnd(point);
+      if (routeStart) {
+        calculateRoute(routeStart.lat, routeStart.lng, latitude, longitude, travelMode);
+      }
+    }
+
+    setActiveRouteField(null);
+  };
+
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -583,30 +620,33 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
        routeLayerRef.current.clearLayers();
     }
     
-    if (!routeData || !routeData.geojson) return;
-    
-    const polyline = L.geoJSON(routeData.geojson, {
-        style: {
-            color: '#06b6d4',
-            weight: 6,
-            opacity: 0.9,
-            lineCap: 'round',
-            lineJoin: 'round'
-        }
-    });
+    let polylineBounds: L.LatLngBounds | null = null;
 
-    const polylineBg = L.geoJSON(routeData.geojson, {
-      style: {
-          color: '#0891b2',
-          weight: 12,
-          opacity: 0.35,
+    if (routeData && routeData.geojson) {
+      const polyline = L.geoJSON(routeData.geojson, {
+        style: {
+          color: '#06b6d4',
+          weight: 6,
+          opacity: 0.9,
           lineCap: 'round',
           lineJoin: 'round'
+        }
+      });
+
+      const polylineBg = L.geoJSON(routeData.geojson, {
+      style: {
+        color: '#0891b2',
+        weight: 12,
+        opacity: 0.35,
+        lineCap: 'round',
+        lineJoin: 'round'
       }
-    });
-    
-    routeLayerRef.current.addLayer(polylineBg);
-    routeLayerRef.current.addLayer(polyline);
+      });
+
+      routeLayerRef.current.addLayer(polylineBg);
+      routeLayerRef.current.addLayer(polyline);
+      polylineBounds = polyline.getBounds();
+    }
 
     if (routeStart) {
       routeLayerRef.current.addLayer(
@@ -636,8 +676,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     if (routeStart && routeEnd) {
       const bounds = L.latLngBounds([routeStart.lat, routeStart.lng], [routeEnd.lat, routeEnd.lng]);
       map.fitBounds(bounds, { padding: [60, 60], animate: true, duration: 1.5 });
-    } else {
-      map.fitBounds(polyline.getBounds(), { padding: [60, 60], animate: true, duration: 1.5 });
+    } else if (polylineBounds) {
+      map.fitBounds(polylineBounds, { padding: [60, 60], animate: true, duration: 1.5 });
     }
   }, [routeData, routeStart, routeEnd]);
 
@@ -682,21 +722,25 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   useEffect(() => {
     if (!enabledDataLayers.has('rainRadar')) {
       setRainRadarTileUrl('');
+      setIsRainRadarResolving(false);
       return;
     }
 
     const customRainUrl = mapLayerUrls.rainRadar;
     if (customRainUrl) {
       setRainRadarTileUrl(customRainUrl);
+      setIsRainRadarResolving(false);
       return;
     }
 
     let cancelled = false;
     const resolveRainRadar = async () => {
+      setIsRainRadarResolving(true);
       try {
         const resolvedTileTemplate = await window.api.map.getRainRadarTileTemplate();
         if (!cancelled) {
           setRainRadarTileUrl(resolvedTileTemplate || '');
+          setIsRainRadarResolving(false);
           if (!resolvedTileTemplate) {
             console.warn('[ProvinceMap] Rain radar template is empty from main process.');
           }
@@ -704,6 +748,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       } catch (error) {
         if (!cancelled) {
           setRainRadarTileUrl('');
+          setIsRainRadarResolving(false);
         }
         console.warn('[ProvinceMap] Failed to resolve rain radar tile template:', error);
       }
@@ -825,6 +870,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       }
     };
 
+    const isSatelliteTheme = theme === 'satellite';
+
     enabledDataLayers.forEach((layerId) => {
       if (layerId === 'evCharger') {
         const layerGroup = L.layerGroup();
@@ -846,13 +893,16 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
 
       if (layerId === 'rainRadar') {
         if (!rainRadarTileUrl) {
-          unresolved.push(dataLayerLabels[layerId]);
+          if (!isRainRadarResolving) {
+            unresolved.push(dataLayerLabels[layerId]);
+          }
           return;
         }
         const rainAttribution = rainRadarTileUrl.includes('openweathermap.org')
           ? '&copy; OpenWeather (precipitation overlay)'
           : '&copy; RainViewer';
-        addTileLayer(dataLayerLabels[layerId], rainRadarTileUrl, 0.45, rainAttribution, {
+        addTileLayer(dataLayerLabels[layerId], rainRadarTileUrl, 0.5, rainAttribution, {
+          className: 'rain-radar-tile',
           maxNativeZoom: 7,
           minNativeZoom: 0,
         });
@@ -903,7 +953,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           unresolved.push(dataLayerLabels[layerId]);
           return;
         }
-        addTileLayer(dataLayerLabels[layerId], layerUrl, 0.6, '&copy; Longdo Traffic', {
+        addTileLayer(dataLayerLabels[layerId], layerUrl, isSatelliteTheme ? 0.82 : 0.6, '&copy; Longdo Traffic', {
           minNativeZoom: 7,
           maxNativeZoom: 16,
         });
@@ -917,14 +967,43 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           return;
         }
 
+        const isLongdoFloodSource = layerUrl.includes('ms.longdo.com/')
+          && layerUrl.includes('/tile.php')
+          && (layerUrl.includes('mode=floodrecurrent') || layerUrl.includes('mode=flood'));
+        const floodOpacity = isLongdoFloodSource ? 1 : (map.getZoom() <= 8 ? 0.12 : map.getZoom() <= 10 ? 0.2 : 0.3);
+
         if (isXyzTemplateUrl(layerUrl)) {
-          addTileLayer(dataLayerLabels[layerId], layerUrl, 0.52, '&copy; GISTDA', thailandAqiTileOptions);
+          const longdoFloodOptions: Partial<L.TileLayerOptions> = {
+            noWrap: true,
+            keepBuffer: 2,
+            updateWhenIdle: true,
+            maxNativeZoom: 18,
+            maxZoom: 22,
+          };
+
+          const xyzOptions: Partial<L.TileLayerOptions> = {
+            ...(isLongdoFloodSource
+              ? longdoFloodOptions
+              : {
+                  ...thailandAqiTileOptions,
+                  keepBuffer: 2,
+                  updateWhenIdle: true,
+                  maxNativeZoom: 18,
+                  maxZoom: 22,
+                  className: 'flood-recurrent-tile',
+                }),
+          };
+
+          addTileLayer(dataLayerLabels[layerId], layerUrl, floodOpacity, isLongdoFloodSource ? '&copy; Longdo Map' : '&copy; GISTDA', {
+            ...xyzOptions,
+          });
         } else {
           addWmsLayer(
             layerUrl,
-            0.52,
+            floodOpacity,
             {
               layers: resolveWmsLayerName(layerUrl, GISTDA_FLOOD_RECURRENT_WMS_LAYER),
+              styles: GISTDA_FLOOD_RECURRENT_WMS_STYLE,
               format: 'image/png',
               transparent: true,
               version: '1.1.1',
@@ -932,6 +1011,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
             {
               attribution: '&copy; GISTDA',
               ...thailandAqiTileOptions,
+              className: 'flood-recurrent-tile',
             }
           );
         }
@@ -956,7 +1036,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       });
       externalDataLayerRefs.current = [];
     };
-  }, [enabledDataLayers, rainRadarTileUrl, evChargerPoints]);
+  }, [enabledDataLayers, rainRadarTileUrl, isRainRadarResolving, evChargerPoints, theme, retryCount, isLoading]);
 
   const searchablePlaces = useMemo<SearchPlace[]>(() => {
     const normalizedProvinceName = provinceName === 'Bangkok Metropolis' ? 'Bangkok' : provinceName;
@@ -1791,6 +1871,50 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     const map = mapInstanceRef.current;
     if (!map) return;
 
+    const handleMapContextMenu = (event: L.LeafletMouseEvent) => {
+      if (event.originalEvent) {
+        event.originalEvent.preventDefault();
+      }
+      lastContextMenuAtRef.current = Date.now();
+      setMapContextMenu({
+        x: event.containerPoint.x,
+        y: event.containerPoint.y,
+        lat: event.latlng.lat,
+        lng: event.latlng.lng,
+      });
+    };
+
+    const handleMapClick = (event: L.LeafletMouseEvent) => {
+      if (Date.now() - lastContextMenuAtRef.current < 320) {
+        return;
+      }
+
+      setMapContextMenu(null);
+
+      if (!isRoutingMode) {
+        // One click should immediately set a target point instead of only dragging the map.
+        setIsRoutingMode(true);
+        applyCustomRoutePoint('end', event.latlng.lat, event.latlng.lng);
+        return;
+      }
+
+      const targetField = activeRouteField === 'start' ? 'start' : 'end';
+      applyCustomRoutePoint(targetField, event.latlng.lat, event.latlng.lng);
+    };
+
+    map.on('contextmenu', handleMapContextMenu);
+    map.on('click', handleMapClick);
+
+    return () => {
+      map.off('contextmenu', handleMapContextMenu);
+      map.off('click', handleMapClick);
+    };
+  }, [isRoutingMode, activeRouteField, routeStart, routeEnd, travelMode, theme, retryCount]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
     let layer = markersLayerRef.current;
     if (!layer) {
       layer = L.layerGroup().addTo(map);
@@ -1911,6 +2035,14 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     setRetryCount(prev => prev + 1);
   };
 
+  const locateButtonClass = theme === 'dark'
+    ? 'w-[46px] h-[46px] bg-[#0b1018]/95 border border-white/10 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all flex items-center justify-center group'
+    : 'w-[46px] h-[46px] bg-white/95 border border-slate-300/80 text-slate-500 hover:text-slate-700 hover:border-slate-400 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-md transition-all flex items-center justify-center group';
+
+  const locateIconClass = theme === 'dark'
+    ? 'group-hover:scale-110 transition-transform text-slate-300'
+    : 'group-hover:scale-110 transition-transform text-slate-500';
+
   return (
     <div className={`relative w-full h-full ${className}`} style={{ minHeight: '300px' }}>
       {/* Leaflet map mount point */}
@@ -1951,9 +2083,72 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           ชั้นข้อมูลต่อไปนี้ยังไม่พร้อมใช้งาน (ต้องตั้งค่า URL เพิ่ม): {activeDataLayerWarnings.join(', ')}
           {activeDataLayerWarnings.some((name) => name.includes('น้ำท่วมซ้ำซาก')) && (
             <div className="mt-1 text-[10px] text-amber-100/80">
-              Hint: ตั้งค่า VITE_MAP_LAYER_FLOOD_RECURRENT_URL และ VITE_MAP_LAYER_FLOOD_RECURRENT_LAYER
+              Hint: ตั้งค่า VITE_MAP_LAYER_FLOOD_RECURRENT_URL (และตั้งค่า LAYER/STYLE เพิ่มเฉพาะกรณีใช้ WMS)
             </div>
           )}
+          {activeDataLayerWarnings.some((name) => name.includes('เรดาร์ตรวจฝน')) && (
+            <div className="mt-1 text-[10px] text-amber-100/80">
+              Hint: ตั้งค่า VITE_MAP_LAYER_RAIN_URL หรือกำหนด OpenWeather API key ในระบบ
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isLoading && mapContextMenu && (
+        <div
+          className="absolute top-4 left-4 z-[1100] w-[290px] rounded-xl border border-cyan-400/40 bg-[#07121a]/95 p-3 text-slate-100 shadow-2xl"
+        >
+          <div className="mb-2 text-[11px] text-cyan-200/90">
+            {mapContextMenu.lat.toFixed(6)}, {mapContextMenu.lng.toFixed(6)}
+          </div>
+
+          <div className="space-y-1.5 text-[12px]">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRoutingMode(true);
+                applyCustomRoutePoint('end', mapContextMenu.lat, mapContextMenu.lng);
+                setMapContextMenu(null);
+              }}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-left hover:bg-cyan-500/20"
+            >
+              1 ตั้งเป็นปลายทาง
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsRoutingMode(true);
+                applyCustomRoutePoint('start', mapContextMenu.lat, mapContextMenu.lng);
+                setMapContextMenu(null);
+              }}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-left hover:bg-cyan-500/20"
+            >
+              2 ตั้งเป็นจุดเริ่มต้น
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                window.open(`https://www.google.com/maps?q=${mapContextMenu.lat.toFixed(6)},${mapContextMenu.lng.toFixed(6)}`, '_blank');
+                setMapContextMenu(null);
+              }}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-left hover:bg-cyan-500/20"
+            >
+              3 Open with Google Map
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                window.open(`https://earth.google.com/web/@${mapContextMenu.lat.toFixed(6)},${mapContextMenu.lng.toFixed(6)},1000a,35d,0h,0t,0r`, '_blank');
+                setMapContextMenu(null);
+              }}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-left hover:bg-cyan-500/20"
+            >
+              4 Open with Google Earth
+            </button>
+          </div>
         </div>
       )}
 
@@ -2216,7 +2411,10 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
                        }
                     }}
                   >
-                    <Route size={18} />
+                    <span className="relative inline-flex h-5 w-5 items-center justify-center">
+                      <span className="absolute inset-0 rounded-full border border-cyan-300/55 bg-cyan-500/15" />
+                      <span className="relative -translate-x-[0.5px] text-[11px] font-black leading-none text-cyan-100">➤</span>
+                    </span>
                   </button>
                 </div>
               </div>
@@ -2228,7 +2426,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
             {!isRoutingMode && (
               <div className="flex flex-col gap-2 shrink-0 shadow-2xl h-[46px]">
                 <button 
-                  className="w-[46px] h-[46px] bg-[#0b1018]/95 border border-white/10 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all flex items-center justify-center group"
+                  className={locateButtonClass}
                   title="My Current Location"
                   onClick={handleLocateMe}
                   disabled={isLocating}
@@ -2236,7 +2434,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
                   {isLocating ? (
                     <Loader2 size={18} className="animate-spin text-cyan-400" />
                   ) : (
-                    <LocateFixed size={18} className="group-hover:scale-110 transition-transform" />
+                    <LocateFixed size={18} className={locateIconClass} />
                   )}
                 </button>
               </div>
@@ -2287,6 +2485,16 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           border: 2px solid white;
           box-shadow: 0 2px 10px rgba(6, 182, 212, 0.5);
           animation: highlight-core-pulse 1s ease-in-out infinite;
+        }
+        .leaflet-layer.flood-recurrent-tile .leaflet-tile,
+        .leaflet-tile.flood-recurrent-tile {
+          filter: ${FLOOD_RECURRENT_TILE_FILTER};
+          mix-blend-mode: multiply;
+        }
+        .leaflet-layer.rain-radar-tile .leaflet-tile,
+        .leaflet-tile.rain-radar-tile {
+          filter: ${RAIN_RADAR_TILE_FILTER};
+          mix-blend-mode: screen;
         }
         .leaflet-popup-content-wrapper {
           border-radius: 12px;

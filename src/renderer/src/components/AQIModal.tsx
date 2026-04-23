@@ -62,7 +62,12 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
   const [apiKey, setApiKey] = useState<string>('');
   const [aqiProvider, setAqiProvider] = useState<'openweather' | 'aqicn'>('openweather');
   const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState<string>(() => localStorage.getItem('locus_aqi_last_sync') || 'Never');
+  const [lastSync, setLastSync] = useState<string>(() => {
+    const globalTs = Number(localStorage.getItem(AQI_LAST_SYNC_TIMESTAMP_KEY) || 0);
+    const regionTs = Number(localStorage.getItem(`${AQI_LAST_SYNC_TIMESTAMP_KEY}_${regionName}`) || 0);
+    if (regionTs > globalTs) return localStorage.getItem(`locus_aqi_last_sync_${regionName}`) || 'Never';
+    return localStorage.getItem('locus_aqi_last_sync') || 'Never';
+  });
   const [syncCount, setSyncCount] = useState(0);
   const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
   const [weatherRows, setWeatherRows] = useState<WeatherAqiRow[]>([]);
@@ -309,14 +314,14 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     }
     const nowTs = Date.now();
     const newSync = new Date(nowTs).toLocaleString('th-TH');
-    localStorage.setItem('locus_aqi_last_sync', newSync);
-    localStorage.setItem(AQI_LAST_SYNC_TIMESTAMP_KEY, String(nowTs));
+    localStorage.setItem(`locus_aqi_last_sync_${regionName}`, newSync);
+    localStorage.setItem(`${AQI_LAST_SYNC_TIMESTAMP_KEY}_${regionName}`, String(nowTs));
     setLastSync(newSync);
     setSyncCount(c => c + 1);
     setIsSyncing(false);
   };
 
-  // Sync policy: manual only (no automatic sync on modal open).
+  // Sync policy: auto-sync if data is stale (>24 hours since last sync).
 
   // === Today's per-province AQI ===
   const aqiDataList = useMemo(() => {
@@ -393,6 +398,33 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
       return true;
     });
   }, [aqiDataList, activeFilter]);
+
+    const autoSyncIfStale = useCallback(async (): Promise<void> => {
+    const now = Date.now();
+    const lastTs = Number(localStorage.getItem(`${AQI_LAST_SYNC_TIMESTAMP_KEY}_${regionName}`) || 0);
+    const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (lastTs === 0 || now - lastTs > STALE_THRESHOLD_MS) {
+      console.log(`[AQI Modal] Data is stale (last sync: ${lastTs ? new Date(lastTs).toLocaleString('th-TH') : 'Never'}). Triggering auto-sync...`);
+      if (apiKey) {
+        await handleSync();
+      } else {
+        console.log('[AQI Modal] No API key configured, skipping auto-sync.');
+      }
+    } else {
+      console.log(`[AQI Modal] Data is fresh (last sync: ${new Date(lastTs).toLocaleString('th-TH')}). No auto-sync needed.`);
+    }
+  }, [apiKey, regionName, handleSync]);
+
+  // Trigger auto-sync after initial data load if stale (>24hr)
+  useEffect(() => {
+    if (syncCount === 0 && !isSyncing) {
+      const timer = setTimeout(() => {
+        void autoSyncIfStale();
+      }, 3000); // Delay 3s to let modal render first
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, syncCount, isSyncing, autoSyncIfStale]);
 
   console.log('[AQI Modal Render] isOpen:', isOpen, 'provinces:', provinces, 'aqiDataList:', aqiDataList);
 

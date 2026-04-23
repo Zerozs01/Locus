@@ -2,6 +2,7 @@ import {
   Map,
   Layers,
   Camera,
+  Power,
   Thermometer,
   Wallet,
   Wind
@@ -55,6 +56,7 @@ export const ExploreTab = ({
   const [showWeatherHistory, setShowWeatherHistory] = useState(false);
   const [showSloganPopup, setShowSloganPopup] = useState(false);
   const [mapControlMode, setMapControlMode] = useState<'map' | 'layers'>('map');
+  const [isSectionEnabled, setIsSectionEnabled] = useState(true);
 
   const mapThemeLabels: Record<ProvinceMapTheme, string> = {
     voyager: 'ถนน',
@@ -93,6 +95,7 @@ export const ExploreTab = ({
 
   const airQualityLayerEnabled = activeLayerIds.some((id) => id === 'gistdaAqi' || id === 'aqicnAqi');
   const trafficLayerEnabled = activeLayerIds.includes('traffic');
+  const rainRadarLayerEnabled = activeLayerIds.includes('rainRadar');
   const slopeLayerEnabled = activeLayerIds.includes('slope');
 
   const currentAqiValue = useMemo(() => {
@@ -151,7 +154,7 @@ export const ExploreTab = ({
     { id: 'gistdaAqi', label: 'คุณภาพอากาศ (GISTDA)', previewImage: 'https://a.basemaps.cartocdn.com/light_all/5/26/13.png' },
     { id: 'aqicnAqi', label: 'ดัชนีคุณภาพอากาศ (AQICN)', previewImage: 'https://tiles.waqi.info/tiles/usepa-aqi/5/26/13.png?token=demo', fallbackImage: previewLightMap },
     { id: 'rainRadar', label: 'เรดาร์ตรวจฝน', previewImage: previewRainRadar },
-    { id: 'floodRecurrent', label: 'พื้นที่น้ำท่วมซ้ำซาก (GISTDA)', previewImage: previewFloodRecurrent },
+    { id: 'floodRecurrent', label: 'พื้นที่น้ำท่วมซ้ำซาก', previewImage: previewFloodRecurrent },
     { id: 'slope', label: 'พื้นที่ลาดชัน', previewImage: 'https://a.tile.opentopomap.org/14/13090/7025.png', fallbackImage: previewClassicMap },
   ];
 
@@ -249,7 +252,7 @@ export const ExploreTab = ({
                   : 'text-slate-300 hover:text-white'
               }`}
             >
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-3">
                 <Map size={14} />
                 แผนที่
               </span>
@@ -270,7 +273,7 @@ export const ExploreTab = ({
           </div>
 
           <div className="hidden lg:flex flex-1 justify-center px-2">
-            {mapControlMode === 'layers' ? (
+            {isSectionEnabled && mapControlMode === 'layers' ? (
               <div className="w-full max-w-[620px]">
                 {trafficLayerEnabled && (
                   <div className="mb-1 rounded-lg border border-cyan-400/35 bg-black/45 p-1.5">
@@ -281,6 +284,20 @@ export const ExploreTab = ({
                       <div className="rounded px-1 py-1 text-center text-[10px] font-bold bg-red-500 text-red-50">ติดขัด</div>
                       <div className="rounded px-1 py-1 text-center text-[10px] font-bold bg-red-700 text-red-50">ติดขัดมาก</div>
                       <div className="rounded px-1 py-1 text-center text-[10px] font-bold bg-black text-white border border-white/20">ปิดถนน</div>
+                    </div>
+                  </div>
+                )}
+
+                {rainRadarLayerEnabled && (
+                  <div className="mb-1 rounded-lg border border-cyan-400/35 bg-black/45 p-1.5">
+                    <div className="text-center text-[10px] font-bold text-slate-200 mb-1">หน่วยโดยประมาณ mm/hr • แหล่งข้อมูล: RainViewer / OpenWeather fallback</div>
+                    <div className="grid grid-cols-3 gap-1 text-[10px]">
+                      <div className="rounded border border-cyan-300/35 bg-cyan-300/15 px-1 py-1 text-center text-cyan-100">ละออง &lt;0.5</div>
+                      <div className="rounded border border-sky-400/35 bg-sky-400/15 px-1 py-1 text-center text-sky-100">เบา 0.5-2</div>
+                      <div className="rounded border border-emerald-400/35 bg-emerald-400/15 px-1 py-1 text-center text-emerald-100">ปานกลาง 2-6</div>
+                      <div className="rounded border border-yellow-400/35 bg-yellow-400/15 px-1 py-1 text-center text-yellow-100">หนัก 6-15</div>
+                      <div className="rounded border border-orange-400/35 bg-orange-400/15 px-1 py-1 text-center text-orange-100">หนักมาก 15-30</div>
+                      <div className="rounded border border-fuchsia-400/35 bg-fuchsia-500/15 px-1 py-1 text-center text-fuchsia-100">รุนแรง &gt;30</div>
                     </div>
                   </div>
                 )}
@@ -325,14 +342,31 @@ export const ExploreTab = ({
             ) : null}
           </div>
 
-          {mapControlMode === 'map' && (
-            <span className="hidden sm:block text-[11px] text-slate-300 ml-auto">
-              โหมดปัจจุบัน: <span className="font-semibold text-cyan-200">{mapThemeLabels[mapTheme]}</span>
-            </span>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {mapControlMode === 'map' && (
+              <span className="hidden sm:block text-[11px] text-slate-300">
+                โหมดปัจจุบัน: <span className="font-semibold text-cyan-200">{mapThemeLabels[mapTheme]}</span>
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setIsSectionEnabled((prev) => !prev)}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                isSectionEnabled
+                  ? 'border-emerald-400/45 bg-emerald-500/15 text-emerald-200'
+                  : 'border-slate-500/45 bg-slate-700/20 text-slate-300'
+              }`}
+              title="เปิด/ปิดการแสดง section"
+            >
+              <Power size={13} />
+              <span>{isSectionEnabled ? 'ON' : 'OFF'}</span>
+            </button>
+          </div>
         </div>
 
-        <div className="p-4 space-y-3">
+        {isSectionEnabled ? (
+          <div className="p-4 space-y-3">
 
           {mapControlMode === 'map' ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -384,7 +418,11 @@ export const ExploreTab = ({
               })}
             </div>
           )}
-        </div>
+          </div>
+        ) : (
+          <div className="px-4 py-3">
+          </div>
+        )}
       </div>
 
       <Helpers.ContentCard 

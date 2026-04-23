@@ -267,6 +267,28 @@ export function initDatabase() {
   ensureColumn('provinces', 'best_season', 'TEXT');
 
   backfillNumericColumns();
+  
+  // Cleanup legacy mock province IDs that were replaced
+    const legacyIds = "('pte', 'bkk', 'ay', 'kan', 'sp', 'nbi', 'chon', 'ray', 'chan', 'trat')";
+  
+    // Disable FK enforcement for cleanup
+    db.exec("PRAGMA foreign_keys = OFF");
+  
+    // Clean up ALL dependent tables in correct order (handle CASCADE manually)
+    db.exec(`DELETE FROM weather_aqi WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_new_eco_entities WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_planner_hints WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_emergency_contacts WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_supply_points WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_knowledge_tips WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_dangers WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_accommodation WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_foods WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_routes WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_transport WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM provinces WHERE id IN ${legacyIds}`);
+  
+    db.exec("PRAGMA foreign_keys = ON");
 
   // Create indexes for faster queries
   db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region ON provinces(region_id);`);
@@ -1042,7 +1064,7 @@ export function seedDatabase(initialRegions: Region[]) {
     
     // Quick check to skip if everything looks populated (simple heuristic)
     if (regionCount.count >= expectedRegions && provinceCount.count >= expectedProvinces) {
-        console.log(`✓ Database checks out (${regionCount.count} regions, ${provinceCount.count} provinces). Skipping seed.`);
+        console.log(`✓ Database checks out (${regionCount.count} regions, ${provinceCount.count} provinces). Validating theme...`);
         // Keep static theme columns in sync for existing DBs.
         const updateTheme = db.prepare(`UPDATE regions SET color = ?, gradient = ? WHERE id = ?`);
         db.transaction(() => {
@@ -1050,7 +1072,8 @@ export function seedDatabase(initialRegions: Region[]) {
             updateTheme.run(reg.color, reg.gradient || null, reg.id);
           }
         })();
-        return;
+        // REMOVED EARLY RETURN to ensure any new provinces are inserted via INSERT OR IGNORE
+        // return;
     }
 
     console.log('⏳ Verifying and Seeding Database...');

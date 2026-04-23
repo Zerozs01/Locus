@@ -258,7 +258,7 @@ export const regionsData: Region[] = [
     subProvinces: [
       {
         name: "Bangkok",
-        id: "bkk",
+        id: "bangkok",
         dist: 50,
         tam: 180,
         serenity: 3,
@@ -269,7 +269,7 @@ export const regionsData: Region[] = [
       },
       {
         name: "Ayutthaya",
-        id: "ay",
+        id: "ayutthaya",
         dist: 16,
         tam: 209,
         serenity: 8,
@@ -280,7 +280,7 @@ export const regionsData: Region[] = [
       },
       {
         name: "Kanchanaburi",
-        id: "kan",
+        id: "kanchanaburi",
         dist: 13,
         tam: 98,
         serenity: 9,
@@ -291,7 +291,7 @@ export const regionsData: Region[] = [
       },
       {
         name: "Samut Prakan",
-        id: "sp",
+        id: "samutprakan",
         dist: 6,
         tam: 50,
         serenity: 4,
@@ -302,7 +302,7 @@ export const regionsData: Region[] = [
       },
       {
         name: "Nonthaburi",
-        id: "nbi",
+        id: "nonthaburi",
         dist: 6,
         tam: 52,
         serenity: 5,
@@ -313,7 +313,7 @@ export const regionsData: Region[] = [
       },
       {
         name: "Pathum Thani",
-        id: "pte",
+        id: "pathumthani",
         dist: 7,
         tam: 60,
         serenity: 6,
@@ -511,7 +511,7 @@ export const regionsData: Region[] = [
     subProvinces: [
       {
         name: "Chonburi",
-        id: "chon",
+        id: "chonburi",
         dist: 11,
         tam: 92,
         serenity: 4,
@@ -522,7 +522,7 @@ export const regionsData: Region[] = [
       },
       {
         name: "Rayong",
-        id: "ray",
+        id: "rayong",
         dist: 8,
         tam: 58,
         serenity: 6,
@@ -533,7 +533,7 @@ export const regionsData: Region[] = [
       },
       {
         name: "Chanthaburi",
-        id: "chan",
+        id: "chanthaburi",
         dist: 10,
         tam: 76,
         serenity: 8,

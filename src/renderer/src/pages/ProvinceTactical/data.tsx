@@ -866,6 +866,11 @@ function getProvinceCoords(name: string): { lat: number; lng: number } {
     'Bangkok': { lat: 13.7563, lng: 100.5018 },
     'Bangkok Metropolis': { lat: 13.7563, lng: 100.5018 },
     'Phuket': { lat: 7.8804, lng: 98.3923 },
+    'Pathum Thani': { lat: 14.0208, lng: 100.5250 },
+    'Nonthaburi': { lat: 13.8591, lng: 100.5217 },
+    'Samut Prakan': { lat: 13.5991, lng: 100.5968 },
+    'Phra Nakhon Si Ayutthaya': { lat: 14.3516, lng: 100.5640 },
+    'Ayutthaya': { lat: 14.3516, lng: 100.5640 },
   };
   if (coords[name]) return coords[name];
 

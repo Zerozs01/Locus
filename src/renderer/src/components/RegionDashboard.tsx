@@ -589,9 +589,6 @@ export const RegionDashboard = memo(({
   }, [latestTemperatureByProvince, orderedRegions, provinceIdsByRegion]);
 
   const runStartupAqiAutoSync = useCallback(async () => {
-    // Sync policy: manual only. Startup auto-sync is intentionally disabled.
-    return;
-
     if (isBootAutoSyncRunning.current) return;
 
     const nowTs = Date.now();
