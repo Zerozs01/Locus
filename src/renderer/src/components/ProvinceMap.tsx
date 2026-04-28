@@ -106,6 +106,8 @@ const themeThaiNames: Record<ProvinceMapTheme, string> = {
 };
 const LONGDO_TRAFFIC_TILE_URL = `https://mstraffic1.longdo.com/mmmap/tile.php?proj=epsg3857&mode=trafficoverlay&zoom={z}&x={x}&y={y}&key=${encodeURIComponent(LONGDO_MAP_API_KEY)}`;
 const THAILAND_AQI_BOUNDS = L.latLngBounds([5.2, 97.0], [20.7, 106.1]);
+const GISTDA_DEFAULT_WMS_URL = 'https://service-proxy-765rkyfg3q-as.a.run.app/api_geoserver/geoserver/pm25_hourly_raster_24hr/wms';
+const GISTDA_DEFAULT_WMS_LAYER = 'pm25_hourly_raster_24hr';
 
 const mapLayerUrls = {
   traffic: import.meta.env.VITE_MAP_LAYER_TRAFFIC_URL || LONGDO_TRAFFIC_TILE_URL,
@@ -2000,19 +2002,21 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       adminBoundaryLayerRef.current = null;
     }
 
-    // Always show a prominent Thailand boundary to help distinguish territory,
-    // especially useful when global data layers (like Slope) are active.
-    adminBoundaryLayerRef.current = L.geoJSON(thailandGeo as any, {
-      style: {
-        color: '#ef4444', // Red-500 (Tactical red)
-        weight: 3,
-        opacity: 0.85,
-        dashArray: '10, 10', // Prominent dashed line
-        fillColor: '#ef4444',
-        fillOpacity: 0.03, // Extremely subtle fill to define area
-      },
-      interactive: false // Don't block clicks
-    }).addTo(map);
+    // Only show prominent Thailand boundary when Slope layer is active
+    // This helps distinguish territory since Slope covers global areas.
+    if (enabledDataLayers.has('slope')) {
+      adminBoundaryLayerRef.current = L.geoJSON(thailandGeo as any, {
+        style: {
+          color: '#ef4444', // Red-500
+          weight: 3,
+          opacity: 0.85,
+          dashArray: '10, 10', // Prominent dashed line
+          fillColor: '#ef4444',
+          fillOpacity: 0.03, // Extremely subtle fill to define area
+        },
+        interactive: false // Don't block clicks
+      }).addTo(map);
+    }
 
     return () => {
       if (adminBoundaryLayerRef.current) {
@@ -2020,7 +2024,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         adminBoundaryLayerRef.current = null;
       }
     };
-  }, [theme, isLoading]);
+  }, [theme, isLoading, enabledDataLayers]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
