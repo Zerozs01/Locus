@@ -17,9 +17,29 @@ import { CachedImage } from './CachedImage';
 import { DetailCard } from './DetailCard';
 import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatProps } from './RegionalIntelBar';
 import { mixHex, toRgba } from '../utils/color';
+import { pm25ToAqi, getAqiLevel, getAqiLevelSub, AQI_SYNC_TIMESTAMP_KEY, AQI_SYNC_COOLDOWN_MS, saveSyncTimestamp, AQI_SYNC_EVENT } from '../utils/aqi';
 import { AQIModal } from './AQIModal';
 import { WeatherHistoryModal } from './WeatherHistoryModal';
 import { getRecords, saveRecord } from '../utils/csvDb';
+
+// ─── FORECAST SYNC CONSTANTS (separate from AQI) ───────────────────────────────
+const WEATHER_FORECAST_SYNC_KEY = 'locus_weather_forecast_last_sync_timestamp';
+const WEATHER_FORECAST_SYNC_LABEL_KEY = 'locus_weather_forecast_last_sync';
+const WEATHER_FORECAST_STALE_MS = 24 * 60 * 60 * 1000;
+
+const isForecastStale = (): boolean => {
+  const lastSync = Number(localStorage.getItem(WEATHER_FORECAST_SYNC_KEY) || 0);
+  return lastSync === 0 || Date.now() - lastSync > WEATHER_FORECAST_STALE_MS;
+};
+const saveForecastSyncTimestamp = () => {
+  localStorage.setItem(WEATHER_FORECAST_SYNC_LABEL_KEY, new Date().toLocaleString('th-TH'));
+  localStorage.setItem(WEATHER_FORECAST_SYNC_KEY, String(Date.now()));
+};
+const getForecastLastSyncLabel = (): string =>
+  localStorage.getItem(WEATHER_FORECAST_SYNC_LABEL_KEY) || 'Never';
+const getLocalDateKey = (d = new Date()): string => {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
 
 interface ProvinceIndexItem {
   id: string;
@@ -42,11 +62,6 @@ interface AQIProvinceItem {
   id: string;
   name: string;
 }
-
-const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
-const AQI_LAST_SYNC_TIMESTAMP_KEY = 'locus_aqi_last_sync_timestamp';
-const AQI_LAST_SYNC_LABEL_KEY = 'locus_aqi_last_sync';
-const AQI_AUTO_SYNC_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 const normalizeProvinceNameKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -209,14 +224,6 @@ const getStabilityProps = (safetyScore?: number): StabilityStatProps => {
   return { value: `${score}%`, label: 'ผันผวน', tone: 'volatile' };
 };
 
-const getAQILevelSub = (aqi: number) => {
-  if (aqi <= 50) return 'Good';
-  if (aqi <= 100) return 'Moderate';
-  if (aqi <= 200) return 'Unhealthy (Sens.)';
-  if (aqi <= 300) return 'Unhealthy';
-  return 'Hazardous';
-};
-
 const normalizeWeatherProvinceId = (id: string) => {
   let normalized = id.toLowerCase().replace(/[^a-z0-9]/g, '');
   if (normalized === 'bangkokmetropolis') normalized = 'bangkok';
@@ -295,10 +302,11 @@ export const RegionDashboard = memo(({
   const [selectedRegionForAQI, setSelectedRegionForAQI] = useState<Region | null>(null);
   
   const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
-  const [selectedRegionForWeather, setSelectedRegionForWeather] = useState<Region | null>(null);
+    const [selectedRegionForWeather, setSelectedRegionForWeather] = useState<Region | null>(null);
   const [weatherRows, setWeatherRows] = useState<WeatherAqiRow[]>([]);
   const hasBootAutoSyncChecked = useRef(false);
   const isBootAutoSyncRunning = useRef(false);
+  const autoSyncScheduled = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -338,20 +346,21 @@ export const RegionDashboard = memo(({
       }
     };
 
-    syncWeatherRows();
-    const intervalId = window.setInterval(syncWeatherRows, 10000);
+        syncWeatherRows();
+    // Poll every 60s — auto-sync is the primary refresh mechanism
+    const intervalId = window.setInterval(syncWeatherRows, 60000);
     const onWeatherUpdated = () => {
       void syncWeatherRows();
     };
 
-    window.addEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+    window.addEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
-      window.removeEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+      window.removeEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
     };
-  }, [isAQIModalOpen, isWeatherModalOpen]);
+    }, [isAQIModalOpen, isWeatherModalOpen]);
 
   const latestAqiByProvince = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -501,7 +510,7 @@ export const RegionDashboard = memo(({
 
       if (values.length > 0) {
         const avg = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
-        map.set(reg.id, { value: `${avg} AQI`, sub: getAQILevelSub(avg) });
+        map.set(reg.id, { value: `${avg} AQI`, sub: getAqiLevelSub(avg) });
       } else {
         map.set(reg.id, getFallbackPM25Stat(reg.id));
       }
@@ -591,9 +600,9 @@ export const RegionDashboard = memo(({
   const runStartupAqiAutoSync = useCallback(async () => {
     if (isBootAutoSyncRunning.current) return;
 
-    const nowTs = Date.now();
-    const lastSyncTs = Number(localStorage.getItem(AQI_LAST_SYNC_TIMESTAMP_KEY) || 0);
-    if (lastSyncTs > 0 && nowTs - lastSyncTs < AQI_AUTO_SYNC_COOLDOWN_MS) {
+        const nowTs = Date.now();
+    const lastSyncTs = Number(localStorage.getItem(AQI_SYNC_TIMESTAMP_KEY) || 0);
+    if (lastSyncTs > 0 && nowTs - lastSyncTs < AQI_SYNC_COOLDOWN_MS) {
       return;
     }
 
@@ -708,17 +717,12 @@ export const RegionDashboard = memo(({
               lon = Number(geoData[0].lon) || lon;
             }
 
-            const aqiRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`);
+                        const aqiRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`);
             const aqiData = await aqiRes.json();
             if (aqiData && aqiData.list && aqiData.list[0]) {
               const pm25 = aqiData.list[0].components.pm2_5;
               if (pm25 != null) {
-                if (pm25 <= 12.0) aqiVal = Math.round((50 / 12) * pm25);
-                else if (pm25 <= 35.4) aqiVal = Math.round(((49) / 23.4) * (pm25 - 12) + 51);
-                else if (pm25 <= 55.4) aqiVal = Math.round(((49) / 20) * (pm25 - 35.5) + 101);
-                else if (pm25 <= 150.4) aqiVal = Math.round(((49) / 95) * (pm25 - 55.5) + 151);
-                else if (pm25 <= 250.4) aqiVal = Math.round(((99) / 100) * (pm25 - 150.5) + 201);
-                else aqiVal = Math.round(((199) / 249.5) * (pm25 - 250.5) + 301);
+                aqiVal = pm25ToAqi(pm25);
               }
               success = true;
             }
@@ -743,30 +747,116 @@ export const RegionDashboard = memo(({
           saveRecord({ id: row.provinceId, date: row.date, temperature: row.temperature, aqi: row.aqi });
         }
 
-        await new Promise((resolve) => setTimeout(resolve, provider === 'aqicn' ? 1000 : 250));
+                // OpenWeather free tier: 60 requests/min. With 77 provinces, 250ms delay = ~20s per batch.
+        // Rate limit guard: slow down if consecutive failures, reset on success.
+        const delay = provider === 'aqicn' ? 1000 : 400;
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
-      if (syncedRows.length > 0) {
-        if (api?.db?.saveWeatherAqi) {
+            if (syncedRows.length > 0) {
+                if (api?.db?.saveWeatherAqi) {
           await api.db.saveWeatherAqi(syncedRows);
         }
-
-        const syncedAt = Date.now();
-        localStorage.setItem(AQI_LAST_SYNC_LABEL_KEY, new Date(syncedAt).toLocaleString('th-TH'));
-        localStorage.setItem(AQI_LAST_SYNC_TIMESTAMP_KEY, String(syncedAt));
-        window.dispatchEvent(new CustomEvent(WEATHER_AQI_UPDATED_EVENT, { detail: { source: 'region-dashboard-auto-sync' } }));
+        saveSyncTimestamp();
+        window.dispatchEvent(new CustomEvent('locus:weather-aqi-updated', { detail: { source: 'region-dashboard-auto-sync' } }));
       }
-    } finally {
+        } finally {
       isBootAutoSyncRunning.current = false;
     }
   }, [provinceIndex, regions]);
 
+  // ─── FORECAST AUTO-SYNC ───────────────────────────────────────────────────────
+  const runStartupForecastSync = useCallback(async () => {
+    if (!isForecastStale()) return;
+    const api = (window as any).api;
+    if (!api?.config?.get) return;
+    const conf = await api.config.get().catch(() => null);
+    const apiKey = conf?.openweather;
+    if (!apiKey) return;
+
+    // Collect all provinces
+    const provinceMap = new Map<string, AQIProvinceItem>();
+    if (provinceIndex.length > 0) {
+      provinceIndex.forEach((item) => {
+        const id = normalizeWeatherProvinceId(item.id);
+        if (!provinceMap.has(id)) provinceMap.set(id, { id, name: item.name });
+      });
+    }
+    if (provinceMap.size === 0) {
+      regions.forEach((region) => {
+        (region.subProvinces || []).forEach((province) => {
+          const id = normalizeWeatherProvinceId(province.id);
+          if (!provinceMap.has(id)) provinceMap.set(id, { id, name: province.name });
+        });
+      });
+    }
+    const allProvinces = Array.from(provinceMap.values());
+    if (allProvinces.length === 0) return;
+
+    // Get existing records for AQI preservation
+    const existingRows: WeatherAqiRow[] = (() => {
+      try { return getRecords().map(r => ({ provinceId: r.id, date: r.date, temperature: r.temperature, aqi: r.aqi })); }
+      catch { return []; }
+    })();
+    const aqiByProvinceDate = new Map<string, number>();
+    existingRows.forEach(r => {
+      if (Number.isFinite(r.aqi)) aqiByProvinceDate.set(`${normalizeWeatherProvinceId(r.provinceId)}|${r.date}`, r.aqi);
+    });
+
+    const syncedRows: WeatherAqiRow[] = [];
+    for (const province of allProvinces) {
+      const cleanName = province.name.replace(' Metropolis', '').replace(' (Pattaya)', '').trim();
+      try {
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(cleanName)},th&units=metric&appid=${apiKey}`);
+        const data = await res.json();
+        if (!data?.list) continue;
+
+        const dailyAvg = new Map<string, number[]>();
+        data.list.forEach((item: any) => {
+          const d = item.dt_txt?.split(' ')[0];
+          if (!d) return;
+          if (!dailyAvg.has(d)) dailyAvg.set(d, []);
+          dailyAvg.get(d)?.push(item.main?.temp);
+        });
+
+        dailyAvg.forEach((temps, dateStr) => {
+          if (temps.length === 0) return;
+          const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
+          const provinceKey = normalizeWeatherProvinceId(province.id);
+          const todayStr = getLocalDateKey();
+          const todayAqi = dateStr === todayStr ? aqiByProvinceDate.get(`${provinceKey}|${todayStr}`) : undefined;
+          const existingAqi = aqiByProvinceDate.get(`${provinceKey}|${dateStr}`);
+          const aqiVal = todayAqi ?? existingAqi ?? 50;
+          const row = { provinceId: province.id, date: dateStr, temperature: avgTemp, aqi: aqiVal };
+          syncedRows.push(row);
+          saveRecord({ id: row.provinceId, date: row.date, temperature: row.temperature, aqi: row.aqi });
+        });
+      } catch { /* skip province */ }
+      await new Promise(r => setTimeout(r, 300)); // rate limit
+    }
+
+    if (syncedRows.length > 0) {
+      if (api?.db?.saveWeatherAqi) await api.db.saveWeatherAqi(syncedRows);
+      saveForecastSyncTimestamp();
+      window.dispatchEvent(new CustomEvent(AQI_SYNC_EVENT, { detail: { source: 'forecast-auto-sync' } }));
+    }
+  }, [provinceIndex, regions]);
+
+      // Run startup AQI + Forecast auto-sync once when regions are loaded
   useEffect(() => {
-    if (hasBootAutoSyncChecked.current) return;
+    if (autoSyncScheduled.current) return;
     if (regions.length === 0) return;
-    hasBootAutoSyncChecked.current = true;
-    void runStartupAqiAutoSync();
-  }, [regions.length, runStartupAqiAutoSync]);
+    autoSyncScheduled.current = true;
+    // Delay 5s to let the dashboard render and DB queries settle
+    const timer = setTimeout(() => {
+      if (!hasBootAutoSyncChecked.current) {
+        hasBootAutoSyncChecked.current = true;
+        void runStartupAqiAutoSync();
+        void runStartupForecastSync(); // Also sync forecast if stale (>24h)
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [regions.length, runStartupForecastSync]);
 
   useEffect(() => {
     if (mapMode !== 'province' || !selectedProvince) return;

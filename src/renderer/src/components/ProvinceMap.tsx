@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Loader2, WifiOff, RefreshCw, Search, LocateFixed, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin } from 'lucide-react';
+import { Loader2, WifiOff, RefreshCw, Search, LocateFixed, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin, Info, ChevronDown, Map as MapIcon, Layers as LayersIcon } from 'lucide-react';
 import thailandGeo from '../data/thailand-geo.json';
 
 // Fix Leaflet default marker icon issue
@@ -37,7 +37,7 @@ export interface ProvinceMapHandle {
 
 type ProvinceMapTheme = 'voyager' | 'positron' | 'dark' | 'osm' | 'satellite' | 'terrain' | 'admin';
 type ProvinceMarkerFilter = 'attraction' | 'restaurant' | 'hotel' | 'hospital' | 'transport';
-type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'floodRecurrent' | 'evCharger' | 'slope';
+type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'evCharger' | 'slope';
 
 interface ProvinceMapProps {
   provinceName: string;
@@ -55,6 +55,9 @@ interface ProvinceMapProps {
   externalDataLayers?: ProvinceDataLayer[];
   onMarkerClick?: (marker: { lat: number; lng: number; title: string; type: string }) => void;
   regionColor?: string;
+  onChangeTheme?: (theme: ProvinceMapTheme) => void;
+  onToggleLayer?: (layer: ProvinceDataLayer) => void;
+  mapDataLayers?: Record<ProvinceDataLayer, boolean>;
 }
 
 const tileProviders: Record<ProvinceMapTheme, { url: string; attribution: string }> = {
@@ -90,13 +93,17 @@ const tileProviders: Record<ProvinceMapTheme, { url: string; attribution: string
 
 const AQICN_TILE_TOKEN = import.meta.env.VITE_AQICN_TILE_TOKEN || 'demo';
 const LONGDO_MAP_API_KEY = import.meta.env.VITE_LONGDO_MAP_API_KEY || '70bda0c806084cbc6829a9c7dbe2a404';
-const LONGDO_FLOOD_RECURRENT_TILE_URL = `https://ms.longdo.com/map/msn-server/tile.php?proj=epsg3857&mode=floodrecurrent&zoom={z}&x={x}&y={y}&HD=1&key=${encodeURIComponent(LONGDO_MAP_API_KEY)}`;
-const GISTDA_DEFAULT_WMS_URL = 'https://service-proxy-765rkyfg3q-as.a.run.app/api_geoserver/geoserver/pm25_hourly_raster_24hr/wms';
-const GISTDA_DEFAULT_WMS_LAYER = 'pm25_hourly_raster_24hr';
-const GISTDA_FLOOD_RECURRENT_WMS_LAYER = import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_LAYER || 'dri:c_dri_w1';
-const GISTDA_FLOOD_RECURRENT_WMS_STYLE = import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_STYLE || 'dri:dri_sld2023';
-const FLOOD_RECURRENT_TILE_FILTER = import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_FILTER || 'none';
 const RAIN_RADAR_TILE_FILTER = import.meta.env.VITE_MAP_LAYER_RAIN_FILTER || 'saturate(1.2) contrast(1.12) brightness(1.02)';
+
+const themeThaiNames: Record<ProvinceMapTheme, string> = {
+  voyager: 'สีสันพรีเมียม',
+  positron: 'สว่างสะอาด',
+  dark: 'โทนมืด',
+  osm: 'มาตรฐาน OSM',
+  satellite: 'ภาพดาวเทียม',
+  terrain: 'ภูมิประเทศ',
+  admin: 'ลายเส้นขาวดำ',
+};
 const LONGDO_TRAFFIC_TILE_URL = `https://mstraffic1.longdo.com/mmmap/tile.php?proj=epsg3857&mode=trafficoverlay&zoom={z}&x={x}&y={y}&key=${encodeURIComponent(LONGDO_MAP_API_KEY)}`;
 const THAILAND_AQI_BOUNDS = L.latLngBounds([5.2, 97.0], [20.7, 106.1]);
 
@@ -105,7 +112,6 @@ const mapLayerUrls = {
   gistdaAqi: import.meta.env.VITE_MAP_LAYER_GISTDA_URL || GISTDA_DEFAULT_WMS_URL,
   aqicnAqi: import.meta.env.VITE_MAP_LAYER_AQICN_URL || `https://tiles.waqi.info/tiles/usepa-aqi/{z}/{x}/{y}.png?token=${AQICN_TILE_TOKEN}`,
   rainRadar: import.meta.env.VITE_MAP_LAYER_RAIN_URL || '',
-  floodRecurrent: import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_URL || LONGDO_FLOOD_RECURRENT_TILE_URL,
   slope: import.meta.env.VITE_MAP_LAYER_SLOPE_URL || 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
 };
 
@@ -114,7 +120,6 @@ const dataLayerLabels: Record<ProvinceDataLayer, string> = {
   gistdaAqi: 'คุณภาพอากาศ (GISTDA)',
   aqicnAqi: 'ดัชนีคุณภาพอากาศ (AQICN)',
   rainRadar: 'เรดาร์ตรวจฝน',
-  floodRecurrent: 'พื้นที่น้ำท่วมซ้ำซาก',
   evCharger: 'จุดชาร์จรถไฟฟ้า',
   slope: 'พื้นที่ลาดชัน',
 };
@@ -418,8 +423,11 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   className = '',
   theme = 'voyager', // ใช้ Voyager เป็น default - สีสันดีกว่า
   externalDataLayers = [],
-  onMarkerClick,
-  regionColor
+    onMarkerClick,
+  regionColor,
+  onChangeTheme,
+  onToggleLayer,
+  mapDataLayers,
 }, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -438,6 +446,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const [isRainRadarResolving, setIsRainRadarResolving] = useState(false);
   const [evChargerPoints, setEvChargerPoints] = useState<Array<{ lat: number; lng: number; title: string; subtitle: string }>>([]);
   const [activeDataLayerWarnings, setActiveDataLayerWarnings] = useState<string[]>([]);
+  const [activeOverlay, setActiveOverlay] = useState<'map' | 'layers' | null>(null);
   const externalDataLayerRefs = useRef<L.Layer[]>([]);
   const [mapContextMenu, setMapContextMenu] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
   const lastContextMenuAtRef = useRef(0);
@@ -649,35 +658,54 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     }
 
     if (routeStart) {
-      routeLayerRef.current.addLayer(
-        L.marker([routeStart.lat, routeStart.lng], {
-          icon: L.divIcon({
-            className: 'route-pin-start',
-            html: `<div style="width:16px;height:16px;background:#3b82f6;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>`,
-            iconSize: [16, 16],
-            iconAnchor: [8, 8]
-          })
+      const startMarker = L.marker([routeStart.lat, routeStart.lng], {
+        icon: L.divIcon({
+          className: 'route-pin-container',
+          html: `
+            <div class="relative flex items-center justify-center">
+              <div class="w-6 h-6 bg-blue-500 rounded-full border-[3px] border-white shadow-[0_4px_12px_rgba(59,130,246,0.6)] flex items-center justify-center animate-pulse">
+                <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+              </div>
+              <div class="absolute -bottom-1 w-1 h-1 bg-black/40 rounded-full blur-[1px]"></div>
+            </div>
+          `,
+          iconSize: [24, 24],
+          iconAnchor: [12, 24]
         })
-      );
+      }).addTo(routeLayerRef.current);
+      
+      startMarker.bindPopup('<div class="font-bold text-blue-600 px-1">📍 จุดเริ่มต้น</div>', { closeButton: false });
     }
+
     if (routeEnd) {
-      routeLayerRef.current.addLayer(
-        L.marker([routeEnd.lat, routeEnd.lng], {
-          icon: L.divIcon({
-            className: 'route-pin-end',
-            html: `<div style="width:16px;height:16px;background:#ef4444;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>`,
-            iconSize: [16, 16],
-            iconAnchor: [8, 8]
-          })
+      const endMarker = L.marker([routeEnd.lat, routeEnd.lng], {
+        icon: L.divIcon({
+          className: 'route-pin-container',
+          html: `
+            <div class="relative flex items-center justify-center">
+              <div class="w-6 h-6 bg-rose-500 rounded-full border-[3px] border-white shadow-[0_4px_12px_rgba(244,63,94,0.6)] flex items-center justify-center">
+                <div class="w-2 h-2 bg-white rounded-full"></div>
+              </div>
+              <div class="absolute -bottom-1 w-1.5 h-1.5 bg-black/40 rounded-full blur-[1px] animate-ping"></div>
+            </div>
+          `,
+          iconSize: [24, 24],
+          iconAnchor: [12, 24]
         })
-      );
+      }).addTo(routeLayerRef.current);
+
+      endMarker.bindPopup('<div class="font-bold text-rose-600 px-1">🚩 จุดหมายปลายทาง</div>', { closeButton: false });
     }
 
     if (routeStart && routeEnd) {
       const bounds = L.latLngBounds([routeStart.lat, routeStart.lng], [routeEnd.lat, routeEnd.lng]);
-      map.fitBounds(bounds, { padding: [60, 60], animate: true, duration: 1.5 });
+      map.fitBounds(bounds, { padding: [80, 80], animate: true, duration: 1.5 });
+    } else if (routeStart && !routeEnd) {
+      map.flyTo([routeStart.lat, routeStart.lng], 15, { duration: 1.2 });
+    } else if (routeEnd && !routeStart) {
+      map.flyTo([routeEnd.lat, routeEnd.lng], 15, { duration: 1.2 });
     } else if (polylineBounds) {
-      map.fitBounds(polylineBounds, { padding: [60, 60], animate: true, duration: 1.5 });
+      map.fitBounds(polylineBounds, { padding: [80, 80], animate: true, duration: 1.5 });
     }
   }, [routeData, routeStart, routeEnd]);
 
@@ -720,12 +748,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   }, [enabledDataLayers]);
 
   useEffect(() => {
-    if (!enabledDataLayers.has('rainRadar')) {
-      setRainRadarTileUrl('');
-      setIsRainRadarResolving(false);
-      return;
-    }
-
+    // Resolve rain radar template regardless of it being enabled
+    // so that the status menu shows "Available" correctly.
     const customRainUrl = mapLayerUrls.rainRadar;
     if (customRainUrl) {
       setRainRadarTileUrl(customRainUrl);
@@ -960,61 +984,20 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         return;
       }
 
-      if (layerId === 'floodRecurrent') {
-        const layerUrl = mapLayerUrls.floodRecurrent;
+      if (layerId === 'slope') {
+        const layerUrl = mapLayerUrls.slope;
         if (!layerUrl) {
           unresolved.push(dataLayerLabels[layerId]);
           return;
         }
-
-        const isLongdoFloodSource = layerUrl.includes('ms.longdo.com/')
-          && layerUrl.includes('/tile.php')
-          && (layerUrl.includes('mode=floodrecurrent') || layerUrl.includes('mode=flood'));
-        const floodOpacity = isLongdoFloodSource ? 1 : (map.getZoom() <= 8 ? 0.12 : map.getZoom() <= 10 ? 0.2 : 0.3);
-
-        if (isXyzTemplateUrl(layerUrl)) {
-          const longdoFloodOptions: Partial<L.TileLayerOptions> = {
-            noWrap: true,
-            keepBuffer: 2,
-            updateWhenIdle: true,
-            maxNativeZoom: 18,
-            maxZoom: 22,
-          };
-
-          const xyzOptions: Partial<L.TileLayerOptions> = {
-            ...(isLongdoFloodSource
-              ? longdoFloodOptions
-              : {
-                  ...thailandAqiTileOptions,
-                  keepBuffer: 2,
-                  updateWhenIdle: true,
-                  maxNativeZoom: 18,
-                  maxZoom: 22,
-                  className: 'flood-recurrent-tile',
-                }),
-          };
-
-          addTileLayer(dataLayerLabels[layerId], layerUrl, floodOpacity, isLongdoFloodSource ? '&copy; Longdo Map' : '&copy; GISTDA', {
-            ...xyzOptions,
-          });
-        } else {
-          addWmsLayer(
-            layerUrl,
-            floodOpacity,
-            {
-              layers: resolveWmsLayerName(layerUrl, GISTDA_FLOOD_RECURRENT_WMS_LAYER),
-              styles: GISTDA_FLOOD_RECURRENT_WMS_STYLE,
-              format: 'image/png',
-              transparent: true,
-              version: '1.1.1',
-            },
-            {
-              attribution: '&copy; GISTDA',
-              ...thailandAqiTileOptions,
-              className: 'flood-recurrent-tile',
-            }
-          );
-        }
+        // Force the color pattern to stay consistent by locking native zoom
+        // This ensures the green/yellow/red patterns don't disappear when zooming in deep.
+        addTileLayer(dataLayerLabels[layerId], layerUrl, 0.45, '&copy; OpenTopoMap', {
+          maxNativeZoom: 13,
+          maxZoom: 22,
+          updateWhenIdle: true,
+          keepBuffer: 2
+        });
         return;
       }
 
@@ -1024,8 +1007,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         return;
       }
 
-      const layerOpacity = layerId === 'slope' ? 0.45 : 0.55;
-      addTileLayer(dataLayerLabels[layerId], layerUrl, layerOpacity);
+      addTileLayer(dataLayerLabels[layerId], layerUrl, 0.55);
     });
 
     setActiveDataLayerWarnings(unresolved);
@@ -1853,6 +1835,9 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         map.remove();
         mapInstanceRef.current = null;
         markersLayerRef.current = null;
+        routeLayerRef.current = null;
+        highlightLayerRef.current = null;
+        adminBoundaryLayerRef.current = null;
       };
     } catch (error) {
       console.error('Map initialization error:', error);
@@ -1889,6 +1874,10 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         return;
       }
 
+      if (activeOverlay) {
+        return;
+      }
+
       setMapContextMenu(null);
 
       if (!isRoutingMode) {
@@ -1909,7 +1898,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       map.off('contextmenu', handleMapContextMenu);
       map.off('click', handleMapClick);
     };
-  }, [isRoutingMode, activeRouteField, routeStart, routeEnd, travelMode, theme, retryCount]);
+  }, [isRoutingMode, activeRouteField, routeStart, routeEnd, travelMode, theme, retryCount, activeOverlay]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -2011,16 +2000,18 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       adminBoundaryLayerRef.current = null;
     }
 
-    if (theme !== 'admin') return;
-
+    // Always show a prominent Thailand boundary to help distinguish territory,
+    // especially useful when global data layers (like Slope) are active.
     adminBoundaryLayerRef.current = L.geoJSON(thailandGeo as any, {
       style: {
-        color: '#334155',
-        weight: 1,
-        opacity: 0.75,
-        fillColor: '#94a3b8',
-        fillOpacity: 0.02,
+        color: '#ef4444', // Red-500 (Tactical red)
+        weight: 3,
+        opacity: 0.85,
+        dashArray: '10, 10', // Prominent dashed line
+        fillColor: '#ef4444',
+        fillOpacity: 0.03, // Extremely subtle fill to define area
       },
+      interactive: false // Don't block clicks
     }).addTo(map);
 
     return () => {
@@ -2039,9 +2030,142 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     ? 'w-[46px] h-[46px] bg-[#0b1018]/95 border border-white/10 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/50 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md transition-all flex items-center justify-center group'
     : 'w-[46px] h-[46px] bg-white/95 border border-slate-300/80 text-slate-500 hover:text-slate-700 hover:border-slate-400 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-md transition-all flex items-center justify-center group';
 
-  const locateIconClass = theme === 'dark'
+    const locateIconClass = theme === 'dark'
     ? 'group-hover:scale-110 transition-transform text-slate-300'
     : 'group-hover:scale-110 transition-transform text-slate-500';
+
+  const mapLayerOptions: Array<{ id: ProvinceDataLayer; label: string; icon: string; description?: string }> = [
+    { id: 'traffic', label: 'จราจร (Real-time)', icon: '🚗', description: 'แสดงความหนาแน่นของการจราจรแบบเรียลไทม์ โดย Longdo Map' },
+    { id: 'gistdaAqi', label: 'คุณภาพอากาศ (GISTDA)', icon: '💨', description: 'ค่าฝุ่น PM 2.5 รายชั่วโมง วิเคราะห์จากดาวเทียมตระกูล VIIRS โดย GISTDA' },
+    { id: 'aqicnAqi', label: 'ดัชนีคุณภาพอากาศ (AQICN)', icon: '🌍', description: 'ดัชนีคุณภาพอากาศมาตรฐาน US-EPA ครอบคลุมพื้นที่ทั่วโลก' },
+    { id: 'rainRadar', label: 'เรดาร์ตรวจฝน', icon: '🌧️', description: 'ตรวจจับกลุ่มฝนและความแรงของหยาดน้ำฟ้า อัปเดตทุก 10 นาที' },
+    { id: 'slope', label: 'พื้นที่ลาดชัน', icon: '⛰️', description: 'แสดงระดับความชันของพื้นที่เพื่อเฝ้าระวังดินโคลนถล่มในพื้นที่ภูเขา' },
+  ];
+
+  const getLayerStatus = (id: ProvinceDataLayer) => {
+    if (id === 'rainRadar') {
+      if (isRainRadarResolving) return { label: 'กำลังตรวจสอบ...', color: 'text-amber-400', available: true };
+      // Show available if we have a URL OR if the layer is currently off (since we resolve URL independently now)
+      if (rainRadarTileUrl || !enabledDataLayers.has('rainRadar')) return { label: 'พร้อมใช้งาน', color: 'text-emerald-400', available: true };
+      return { label: 'ไม่พร้อมใช้งาน (Error)', color: 'text-red-400', available: false };
+    }
+    return { label: 'พร้อมใช้งาน', color: 'text-emerald-400', available: true };
+  };
+
+  // Layer Item helper
+  const LayerItem = ({ opt, isEnabled, onToggle }: { opt: any; isEnabled: boolean; onToggle: () => void }) => {
+    const [showInfo, setShowInfo] = useState(false);
+    const status = getLayerStatus(opt.id);
+    return (
+      <div className={`flex flex-col rounded-xl border transition-all ${isEnabled ? 'bg-amber-500/10 border-amber-400/30' : 'bg-white/5 border-white/10'}`}>
+        <div className="flex items-center justify-between p-2.5">
+          <button
+            onClick={onToggle}
+            className={`flex items-center gap-2 flex-1 text-left transition-colors ${isEnabled ? 'text-amber-200' : 'text-slate-400 hover:text-white'}`}
+          >
+            <span className="text-lg leading-none">{opt.icon}</span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[11px] font-bold truncate">{opt.label}</span>
+              <span className={`text-[9px] font-medium ${status.color}`}>{status.label}</span>
+            </div>
+          </button>
+          {isEnabled && (
+            <button onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }} className="p-1.5 text-slate-500 hover:text-amber-400">
+              {showInfo ? <ChevronDown size={14} /> : <Info size={14} />}
+            </button>
+          )}
+        </div>
+        {isEnabled && showInfo && (
+          <div className="px-3 pb-3 border-t border-amber-400/10 pt-2 space-y-3">
+            <p className="text-[10px] text-slate-300 leading-relaxed font-medium">{opt.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
+            
+            {/* Professional Legend Components */}
+            {opt.id === 'rainRadar' && (
+              <div className="relative flex gap-3 p-3 rounded-xl bg-black/40 border border-white/5">
+                {/* Vertical Gradient Bar - Matches reference */}
+                <div className="w-2.5 h-[160px] rounded-full bg-gradient-to-t from-[#e0f2fe] via-[#3b82f6] via-[#1e40af] via-[#ef4444] via-[#facc15] to-[#fbbf24] border border-white/10 shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]" />
+                
+                {/* Legend Items */}
+                <div className="flex flex-col justify-between text-[11px] py-1 font-medium">
+                   <div className="flex items-center gap-2.5 group/item">
+                     <div className="w-3 h-3 rounded-full bg-[#e0f2fe] border border-white/20 shadow-sm" />
+                     <span className="text-slate-300 group-hover/item:text-white transition-colors">มืดครึ้ม</span>
+                   </div>
+                   <div className="flex items-center gap-2.5 group/item">
+                     <div className="w-3 h-3 rounded-full bg-[#3b82f6] border border-white/20 shadow-sm" />
+                     <span className="text-slate-300 group-hover/item:text-white transition-colors">ฝนตกปรอยๆ</span>
+                   </div>
+                   <div className="flex items-center gap-2.5 group/item">
+                     <div className="w-3 h-3 rounded-full bg-[#1e40af] border border-white/20 shadow-sm" />
+                     <span className="text-slate-300 group-hover/item:text-white transition-colors">ฝนตกเล็กน้อย</span>
+                   </div>
+                   <div className="flex items-center gap-2.5 group/item">
+                     <div className="w-3 h-3 rounded-full bg-[#ef4444] border border-white/20 shadow-sm" />
+                     <span className="text-slate-300 group-hover/item:text-white transition-colors">ฝนตกปานกลาง</span>
+                   </div>
+                   <div className="flex items-center gap-2.5 group/item">
+                     <div className="w-3 h-3 rounded-full bg-[#facc15] border border-white/20 shadow-sm" />
+                     <span className="text-slate-300 group-hover/item:text-white transition-colors">ฝนตกหนัก</span>
+                   </div>
+                   <div className="flex items-center gap-2.5 group/item">
+                     <div className="w-3 h-3 rounded-full bg-[#fbbf24] border border-white/10 shadow-[0_0_10px_rgba(251,191,36,0.4)]" />
+                     <span className="text-amber-300 font-black tracking-tight">ลูกเห็บ / พายุ</span>
+                   </div>
+                </div>
+              </div>
+            )}
+
+            {opt.id === 'gistdaAqi' && (
+              <div className="mt-1">
+                <div className="flex h-2 w-full rounded-full overflow-hidden mb-1.5 border border-white/10 shadow-inner">
+                  <div className="flex-1 bg-[#38bdf8]" />
+                  <div className="flex-1 bg-[#4ade80]" />
+                  <div className="flex-1 bg-[#facc15]" />
+                  <div className="flex-1 bg-[#fb923c]" />
+                  <div className="flex-1 bg-[#ef4444]" />
+                </div>
+                <div className="grid grid-cols-5 gap-0.5 text-[8px] text-slate-400 text-center uppercase font-black">
+                  <span>ดีมาก</span>
+                  <span>ดี</span>
+                  <span>ปานกลาง</span>
+                  <span>เริ่มมีผล</span>
+                  <span>อันตราย</span>
+                </div>
+              </div>
+            )}
+
+            {opt.id === 'slope' && (
+              <div className="mt-1">
+                <div className="flex h-2 w-full rounded-full overflow-hidden mb-1.5 border border-white/10 bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-600 shadow-inner" />
+                <div className="flex justify-between text-[8px] text-slate-400 font-black uppercase">
+                  <span>ที่ราบ (Safe)</span>
+                  <span>ลาดชันปานกลาง</span>
+                  <span>ชันสูง (Danger)</span>
+                </div>
+              </div>
+            )}
+
+            {opt.id === 'traffic' && (
+              <div className="mt-1 p-2 rounded-lg bg-black/20 border border-white/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                  <span className="text-[10px] text-slate-300">การจราจรคล่องตัว</span>
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-[#eab308]" />
+                  <span className="text-[10px] text-slate-300">ชะลอตัว / หนาแน่น</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
+                  <span className="text-[10px] text-slate-300">ติดขัด / ติดหนึบ</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className={`relative w-full h-full ${className}`} style={{ minHeight: '300px' }}>
@@ -2439,7 +2563,91 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
                 </button>
               </div>
             )}
+                </div>
+
+      {/* Vertical Map Settings Menu */}
+      <div className="absolute bottom-[180px] right-4 z-[1000] flex flex-col gap-2">
+        {activeOverlay && (
+          <div className="absolute right-full mr-3 bottom-0 bg-[#0b1018]/95 border border-white/10 backdrop-blur-md rounded-2xl p-4 shadow-2xl w-[300px] max-h-[420px] overflow-y-auto">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-sm font-bold text-white uppercase tracking-wider">
+                {activeOverlay === 'layers' ? 'ชั้นข้อมูล (Data Layers)' : 'สไตล์แผนที่'}
+              </span>
+              <button onClick={() => setActiveOverlay(null)} className="text-slate-400 hover:text-white">
+                <ChevronLeft size={18} className="rotate-0" />
+              </button>
+            </div>
+            {activeOverlay === 'layers' && (
+              <div className="flex flex-col gap-2">
+                {mapLayerOptions.map((opt) => (
+                  <LayerItem
+                    key={opt.id}
+                    opt={opt}
+                    isEnabled={mapDataLayers?.[opt.id] ?? false}
+                    onToggle={() => onToggleLayer?.(opt.id)}
+                    status={getLayerStatus(opt.id)}
+                  />
+                ))}
+              </div>
+            )}
+            {activeOverlay === 'map' && (
+              <div className="grid grid-cols-2 gap-3">
+                {(Object.entries(tileProviders) as [ProvinceMapTheme, any][]).map(([key, provider]) => {
+                  const previewUrl = provider.url.replace('{s}', 'a').replace('{z}', '12').replace('{x}', '3233').replace('{y}', '1844').replace('{r}', '');
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        onChangeTheme?.(key);
+                        setActiveOverlay(null);
+                      }}
+                      className={`group relative flex flex-col items-center gap-2 p-1.5 rounded-2xl border transition-all duration-300 ${theme === key ? 'bg-cyan-500/20 border-cyan-400/60 ring-2 ring-cyan-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'}`}
+                    >
+                      <div className="w-full aspect-[4/3] rounded-xl overflow-hidden relative shadow-lg">
+                        <img 
+                          src={previewUrl} 
+                          alt={key}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://via.placeholder.com/150/0f172a/ffffff?text=${key}`;
+                          }}
+                        />
+                        <div className={`absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60`} />
+                        {theme === key && (
+                          <div className="absolute top-2 right-2 w-5 h-5 bg-cyan-500 rounded-full flex items-center justify-center shadow-lg border border-white/20">
+                            <span className="text-[10px] text-white font-bold">✓</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className={`text-[11px] font-black uppercase tracking-tight ${theme === key ? 'text-cyan-300' : 'text-slate-400 group-hover:text-white'}`}>
+                        {themeThaiNames[key]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="flex flex-col bg-[#0b1018]/90 border border-white/10 backdrop-blur-md rounded-2xl p-1 shadow-2xl">
+          <button
+            onClick={() => setActiveOverlay(activeOverlay === 'map' ? null : 'map')}
+            className={`w-12 h-14 flex flex-col items-center justify-center gap-1 rounded-xl transition-all ${activeOverlay === 'map' ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+          >
+            <MapIcon size={22} />
+            <span className="text-[9px] font-bold">แผนที่</span>
+          </button>
+          <div className="h-px bg-white/5 mx-2" />
+          <button
+            onClick={() => setActiveOverlay(activeOverlay === 'layers' ? null : 'layers')}
+            className={`w-12 h-14 flex flex-col items-center justify-center gap-1 rounded-xl transition-all ${activeOverlay === 'layers' ? 'bg-amber-500/20 text-amber-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+          >
+            <LayersIcon size={22} />
+            <span className="text-[9px] font-bold">ชั้น</span>
+          </button>
         </div>
+      </div>
+
       </div>
 
       {/* CSS for pulse animation */}
@@ -2486,15 +2694,10 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           box-shadow: 0 2px 10px rgba(6, 182, 212, 0.5);
           animation: highlight-core-pulse 1s ease-in-out infinite;
         }
-        .leaflet-layer.flood-recurrent-tile .leaflet-tile,
-        .leaflet-tile.flood-recurrent-tile {
-          filter: ${FLOOD_RECURRENT_TILE_FILTER};
-          mix-blend-mode: multiply;
-        }
         .leaflet-layer.rain-radar-tile .leaflet-tile,
         .leaflet-tile.rain-radar-tile {
           filter: ${RAIN_RADAR_TILE_FILTER};
-          mix-blend-mode: screen;
+          mix-blend-mode: normal;
         }
         .leaflet-popup-content-wrapper {
           border-radius: 12px;
@@ -2523,5 +2726,119 @@ const FilterPill = ({ color, label, icon, isActive, onToggle }: { color: string;
     <span>{label}</span>
   </button>
 );
+
+// Layer Item helper - Moved outside to preserve state
+const LayerItem = ({ opt, isEnabled, onToggle, status }: { opt: any; isEnabled: boolean; onToggle: () => void, status: any }) => {
+  const [showInfo, setShowInfo] = useState(false);
+  return (
+    <div className={`flex flex-col rounded-xl border transition-all ${isEnabled ? 'bg-amber-500/10 border-amber-400/30' : 'bg-white/5 border-white/10'}`}>
+      <div className="flex items-center justify-between p-2.5">
+        <button
+          onClick={onToggle}
+          className={`flex items-center gap-2 flex-1 text-left transition-colors ${isEnabled ? 'text-amber-200' : 'text-slate-400 hover:text-white'}`}
+        >
+          <span className="text-lg leading-none">{opt.icon}</span>
+          <div className="flex flex-col min-w-0">
+            <span className="text-[11px] font-bold truncate">{opt.label}</span>
+            <span className={`text-[9px] font-medium ${status.color}`}>{status.label}</span>
+          </div>
+        </button>
+        {isEnabled && (
+          <button onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }} className="p-1.5 text-slate-500 hover:text-amber-400">
+            {showInfo ? <ChevronDown size={14} /> : <Info size={14} />}
+          </button>
+        )}
+      </div>
+      {isEnabled && showInfo && (
+        <div className="px-3 pb-3 border-t border-amber-400/10 pt-2 space-y-3">
+          <p className="text-[10px] text-slate-300 leading-relaxed font-medium">{opt.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
+          
+          {/* Professional Legend Components */}
+          {opt.id === 'rainRadar' && (
+            <div className="relative flex gap-3 p-3 rounded-xl bg-black/40 border border-white/5">
+              {/* Vertical Gradient Bar - Matches reference */}
+              <div className="w-2.5 h-[160px] rounded-full bg-gradient-to-t from-[#e0f2fe] via-[#3b82f6] via-[#1e40af] via-[#ef4444] via-[#facc15] to-[#fbbf24] border border-white/10 shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]" />
+              
+              {/* Legend Items */}
+              <div className="flex flex-col justify-between text-[11px] py-1 font-medium">
+                 <div className="flex items-center gap-2.5 group/item">
+                   <div className="w-3 h-3 rounded-full bg-[#e0f2fe] border border-white/20 shadow-sm" />
+                   <span className="text-slate-300 group-hover/item:text-white transition-colors">มืดครึ้ม</span>
+                 </div>
+                 <div className="flex items-center gap-2.5 group/item">
+                   <div className="w-3 h-3 rounded-full bg-[#3b82f6] border border-white/20 shadow-sm" />
+                   <span className="text-slate-300 group-hover/item:text-white transition-colors">ฝนตกปรอยๆ</span>
+                 </div>
+                 <div className="flex items-center gap-2.5 group/item">
+                   <div className="w-3 h-3 rounded-full bg-[#1e40af] border border-white/20 shadow-sm" />
+                   <span className="text-slate-300 group-hover/item:text-white transition-colors">ฝนตกเล็กน้อย</span>
+                 </div>
+                 <div className="flex items-center gap-2.5 group/item">
+                   <div className="w-3 h-3 rounded-full bg-[#ef4444] border border-white/20 shadow-sm" />
+                   <span className="text-slate-300 group-hover/item:text-white transition-colors">ฝนตกปานกลาง</span>
+                 </div>
+                 <div className="flex items-center gap-2.5 group/item">
+                   <div className="w-3 h-3 rounded-full bg-[#facc15] border border-white/20 shadow-sm" />
+                   <span className="text-slate-300 group-hover/item:text-white transition-colors">ฝนตกหนัก</span>
+                 </div>
+                 <div className="flex items-center gap-2.5 group/item">
+                   <div className="w-3 h-3 rounded-full bg-[#fbbf24] border border-white/10 shadow-[0_0_10px_rgba(251,191,36,0.4)]" />
+                   <span className="text-amber-300 font-black tracking-tight">ลูกเห็บ / พายุ</span>
+                 </div>
+              </div>
+            </div>
+          )}
+
+          {opt.id === 'gistdaAqi' && (
+            <div className="mt-1">
+              <div className="flex h-2 w-full rounded-full overflow-hidden mb-1.5 border border-white/10 shadow-inner">
+                <div className="flex-1 bg-[#38bdf8]" />
+                <div className="flex-1 bg-[#4ade80]" />
+                <div className="flex-1 bg-[#facc15]" />
+                <div className="flex-1 bg-[#fb923c]" />
+                <div className="flex-1 bg-[#ef4444]" />
+              </div>
+              <div className="grid grid-cols-5 gap-0.5 text-[8px] text-slate-400 text-center uppercase font-black">
+                <span>ดีมาก</span>
+                <span>ดี</span>
+                <span>ปานกลาง</span>
+                <span>เริ่มมีผล</span>
+                <span>อันตราย</span>
+              </div>
+            </div>
+          )}
+
+          {opt.id === 'slope' && (
+            <div className="mt-1">
+              <div className="flex h-2 w-full rounded-full overflow-hidden mb-1.5 border border-white/10 bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-600 shadow-inner" />
+              <div className="flex justify-between text-[8px] text-slate-400 font-black uppercase">
+                <span>ที่ราบ (Safe)</span>
+                <span>ลาดชันปานกลาง</span>
+                <span>ชันสูง (Danger)</span>
+              </div>
+            </div>
+          )}
+
+          {opt.id === 'traffic' && (
+            <div className="mt-1 p-2 rounded-lg bg-black/20 border border-white/5">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                <span className="text-[10px] text-slate-300">การจราจรคล่องตัว</span>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-[#eab308]" />
+                <span className="text-[10px] text-slate-300">ชะลอตัว / หนาแน่น</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
+                <span className="text-[10px] text-slate-300">ติดขัด / ติดหนึบ</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default ProvinceMap;

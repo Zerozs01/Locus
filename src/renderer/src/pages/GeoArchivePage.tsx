@@ -26,7 +26,9 @@ import {
   Bus,
   Train,
   CarTaxiFront,
-  Bike
+  Bike,
+  TrendingUp,
+  BarChart3
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────
@@ -40,18 +42,10 @@ interface DiscoveryChip {
 
 // ─── Data ───────────────────────────────────────────
 const DISCOVERY_CHIPS: DiscoveryChip[] = [
-  { label: 'ธรรมชาติ', icon: <TreePine size={14} />, keywords: ['nature'] },
-  { label: 'อาหาร', icon: <UtensilsCrossed size={14} />, keywords: ['food'] },
-  { label: 'พักผ่อน', icon: <Bed size={14} />, keywords: ['rest'] },
-  { label: 'คาเฟ่', icon: <Coffee size={14} />, keywords: ['cafe'] },
-  { label: 'Road Trip', icon: <Car size={14} />, keywords: ['roadtrip'] },
-  { label: 'ครอบครัว', icon: <Users size={14} />, keywords: ['family'] },
-  { label: 'ทะเล', icon: <Waves size={14} />, keywords: ['beach'] },
-  { label: 'ภูเขา', icon: <Mountain size={14} />, keywords: ['mountain'] },
-  { label: 'วัฒนธรรม', icon: <Landmark size={14} />, keywords: ['culture'] },
-  { label: 'ถ่ายรูป', icon: <Camera size={14} />, keywords: ['photo'] },
-  { label: '2D1N', icon: <CalendarDays size={14} />, keywords: ['weekend'] },
-  { label: 'Hidden Gems', icon: <Heart size={14} />, keywords: ['hidden'] },
+  { label: 'ป่าไม้', icon: <TreePine size={14} />, keywords: ['nature', 'forest'] },
+  { label: 'ทะเล', icon: <Waves size={14} />, keywords: ['beach', 'sea'] },
+  { label: 'ของกิน', icon: <UtensilsCrossed size={14} />, keywords: ['food', 'restaurant'] },
+  { label: 'สถานบันเทิง', icon: <PartyPopper size={14} />, keywords: ['nightlife', 'party'] },
 ];
 
 const REGIONS = [
@@ -363,66 +357,235 @@ export const GeoArchivePage = () => {
 
   // ─── Intent Selection (Home) ──────────────────────
   if (mode === null) {
+    // Mock data for widgets
+    const gasPrices = [
+      { type: '95', price: 42.45, color: 'bg-blue-500' },
+      { type: '91', price: 42.08, color: 'bg-teal-500' },
+      { type: 'E20', price: 35.45, color: 'bg-emerald-500' },
+      { type: 'E85', price: 31.39, color: 'bg-rose-500' },
+      { type: 'B7', price: 32.94, color: 'bg-amber-500' },
+      { type: 'B20', price: 33.20, color: 'bg-orange-500' },
+      { type: 'Diesel', price: 40.20, color: 'bg-slate-500' },
+      { type: 'Premium', price: 62.10, color: 'bg-purple-600' },
+      { type: '98+', price: 56.04, color: 'bg-red-600' },
+    ];
+    const trendingLocations = [
+      { name: 'แม่กำปอง', province: 'เชียงใหม่', temp: 18, status: 'กำลังฮิต', image: 'https://images.unsplash.com/photo-1528181304800-2f190854b798?auto=format&fit=crop&q=80&w=200' },
+      { name: 'เกาะกูด', province: 'ตราด', temp: 28, status: 'สงบ', image: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&q=80&w=200' },
+      { name: 'เขาค้อ', province: 'เพชรบูรณ์', temp: 22, status: 'มีหมอก', image: 'https://images.unsplash.com/photo-1510797215324-95aa89f43c33?auto=format&fit=crop&q=80&w=200' },
+      { name: 'บ้านนา', province: 'นครนายก', temp: 26, status: 'ใกล้กรุง', image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=200' },
+    ];
+
+
     return (
       <div className="flex-1 bg-[#050608] overflow-y-auto">
-        <div className="mx-auto flex min-h-full max-w-4xl flex-col items-center justify-center px-6 py-16">
-          {/* Title */}
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-500/20 to-blue-600/20">
-            <Compass size={32} className="text-cyan-400" />
-          </div>
-          <h1 className="mb-2 text-3xl font-bold text-white">วางแผนเที่ยวไหนดี?</h1>
-          <p className="mb-12 text-center text-sm text-slate-500">
-            เลือกจุดเริ่มต้นที่เหมาะกับคุณ แล้ว Locus จะช่วยคุณวางแผนต่อ
-          </p>
+        <div className="mx-auto max-w-6xl px-8 py-10">
+          {/* ─── Header Section ─── */}
+          <div className="mb-8 flex items-start justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-3">
+                {/* <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-blue-600/20"> */}
+                  {/* <Compass size={24} className="text-cyan-400" /> */}
+                {/* </div> */}
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Hello user</h1>
+                  <p className="text-sm text-slate-500">โปรดเลือกจุดเริ่มต้นที่เหมาะกับคุณ</p>
+                </div>
+              </div>
+            </div>
 
-          {/* 3 Intent Buttons */}
-          <div className="grid w-full max-w-2xl gap-4">
-            {/* "มีที่ในใจแล้ว" → Navigate to /map with search focus */}
-            <IntentCard
-              icon={<MapPin size={28} />}
-              title="มีที่ในใจแล้ว"
-              subtitle="รู้จังหวัดหรือสถานที่ที่อยากไป — เปิดแผนที่แล้วค้นหาเลย"
-              gradient="from-emerald-500/20 to-teal-600/10"
-              border="border-emerald-500/30"
-              iconColor="text-emerald-400"
-              onClick={() => navigate('/map', { state: { focusSearch: true } })}
-            />
-            <IntentCard
-              icon={<Sparkles size={28} />}
-              title="ช่วยเลือกให้หน่อย"
-              subtitle="ตอบคำถามสั้นๆ แล้ว AI จะแนะนำจังหวัดที่เหมาะกับคุณ"
-              gradient="from-purple-500/20 to-indigo-600/10"
-              border="border-purple-500/30"
-              iconColor="text-purple-400"
-              onClick={() => setMode('help')}
-            />
-            <IntentCard
-              icon={<Compass size={28} />}
-              title="สำรวจตามความสนใจ"
-              subtitle="เลือกหมวดที่ชอบ — ธรรมชาติ อาหาร ทะเล คาเฟ่ road trip และอื่นๆ"
-              gradient="from-amber-500/20 to-orange-600/10"
-              border="border-amber-500/30"
-              iconColor="text-amber-400"
-              onClick={() => setMode('explore')}
-            />
+            {/* Quick Status Widgets */}
+            <div className="flex items-center gap-3">
+              {/* Weather Widget */}
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#0a0c10] px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🌤️</span>
+                  <div>
+                    <div className="text-xs text-slate-500">กรุงเทพฯ</div>
+                    <div className="text-sm font-semibold text-white">32°C</div>
+                  </div>
+                </div>
+                <div className="h-8 w-[1px] bg-white/10" />
+                <div className="text-right">
+                  <div className="text-xs text-slate-500">PM 2.5</div>
+                  <div className="text-sm font-semibold text-emerald-400">42 ดี</div>
+                </div>
+              </div>
+
+            </div>
           </div>
 
-          {/* Discovery Chips Preview */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
-            <span className="mr-2 text-xs text-slate-600">สำรวจด่วน:</span>
-            {DISCOVERY_CHIPS.slice(0, 8).map((chip) => (
-              <button
-                key={chip.label}
-                onClick={() => {
-                  setMode('explore');
-                  setSelectedChips([chip.label]);
-                }}
-                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-400 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300"
-              >
-                {chip.icon}
-                {chip.label}
-              </button>
-            ))}
+          {/* ─── Main Grid Layout ─── */}
+          <div className="grid grid-cols-12 gap-6">
+            {/* Left Column - Intent Cards (7 cols) */}
+            <div className="col-span-7 space-y-4">
+              {/* 3 Intent Buttons */}
+              <div className="space-y-3">
+                <IntentCard
+                  icon={<MapPin size={32} />}
+                  title="มีที่ในใจแล้ว"
+                  subtitle="ระบุพิกัดที่คุณอยากไป แล้วให้เราจัดการเส้นทางให้"
+                  gradient="from-emerald-500/20 to-teal-600/10"
+                  border="border-emerald-500/30"
+                  iconBg="bg-emerald-500/20"
+                  iconColor="text-emerald-400"
+                  onClick={() => navigate('/map', { state: { focusSearch: true } })}
+                />
+                <IntentCard
+                  icon={<Sparkles size={32} />}
+                  title="ช่วยเลือกให้หน่อย"
+                  subtitle="ตอบคำถามสั้นๆ แล้ว Locus จะค้นหาจุดหมายที่ใช่ที่สุดสำหรับคุณ"
+                  isAi={true}
+                  gradient="from-purple-500/20 to-indigo-600/10"
+                  border="border-purple-500/30"
+                  iconBg="bg-purple-500/20"
+                  iconColor="text-purple-400"
+                  onClick={() => setMode('help')}
+                />
+                <IntentCard
+                  icon={<Compass size={32} />}
+                  title="สำรวจตามความสนใจ"
+                  subtitle="เลือกหมวดหมู่ที่ชอบ — ป่าไม้, ทะเล, ของกิน หรือ คาเฟ่"
+                  gradient="from-amber-500/20 to-orange-600/10"
+                  border="border-amber-500/30"
+                  iconBg="bg-amber-500/20"
+                  iconColor="text-amber-400"
+                  onClick={() => setMode('explore')}
+                >
+                  <div className="mt-4 flex gap-2">
+                    {DISCOVERY_CHIPS.map((chip) => (
+                      <div 
+                        key={chip.label}
+                        className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/70 transition-all hover:bg-amber-500/30 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMode('explore');
+                          setSelectedChips([chip.label]);
+                        }}
+                      >
+                        <span className="scale-75 opacity-70">{chip.icon}</span>
+                        {chip.label}
+                      </div>
+                    ))}
+                  </div>
+                </IntentCard>
+              </div>
+
+              {/* Region Selection Grid - Moved from Sidebar */}
+
+              {/* Region Selection Grid - Moved from Sidebar */}
+              <div className="rounded-2xl border border-white/10 bg-[#0a0c10] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    
+                    เลือกภูมิภาคที่สนใจ
+                  </h3>
+                  {/* <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Province Tactical Hub</span> */}
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {REGIONS.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => navigate('/map', { state: { regionId: r.id } })}
+                      className="group flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] p-3 transition-all hover:border-white/20 hover:bg-white/10 active:scale-95"
+                    >
+                      <div 
+                        className="h-2.5 w-2.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)] transition-transform group-hover:scale-125"
+                        style={{ 
+                          backgroundColor: r.color,
+                          boxShadow: `0 0 12px ${r.color}40`
+                        }}
+                      />
+                      <span className="text-xs font-medium text-slate-400 group-hover:text-white transition-colors">
+                        {r.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Trending & Insights (5 cols) */}
+            <div className="col-span-5 space-y-4">
+              {/* Trending Locations */}
+              <div className="rounded-2xl border border-white/10 bg-[#0a0c10] overflow-hidden">
+                <div className="flex items-center justify-between border-b border-white/5 px-5 py-2">
+                  <h3 className="text-sm  text-white flex items-center gap-2">
+                    <TrendingUp size={16} className="text-cyan-400" />
+                    กำลังฮิตในสัปดาห์นี้
+                  </h3>
+                  <button className="text-xs text-cyan-400 hover:underline">ดูเพิ่มเติม</button>
+                </div>
+                <div className="p-3 space-y-2">
+                  {trendingLocations.map((loc, i) => (
+                    <div
+                      key={i}
+                      className="group flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-all hover:bg-white/5"
+                      onClick={() => navigate('/map', { state: { searchQuery: loc.name } })}
+                    >
+                      <div className="relative">
+                        <img
+                          src={loc.image}
+                          alt={loc.name}
+                          className="h-14 w-14 rounded-lg object-cover"
+                        />
+                        <div className="absolute -top-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500 text-[10px] font-bold text-black">
+                          {i + 1}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-white group-hover:text-cyan-300 transition-colors">
+                          {loc.name}
+                        </div>
+                        <div className="text-xs text-slate-500">{loc.province}</div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className="text-xs text-slate-400">{loc.temp}°C</span>
+                          <span className="text-xs text-cyan-400/70">• {loc.status}</span>
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gas Price Widget (Expanded) */}
+              <div className="rounded-2xl border border-white/10 bg-[#0a0c10] p-5 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                <div className="flex items-center justify-between mb-4 relative z-10">
+                  <div className="flex flex-col">
+                    <h3 className="text-sm  text-white">ราคาน้ำมันวันนี้</h3>
+                    <a 
+                      href="https://oil-price.bangchak.co.th/BcpOilPrice2/th" 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="text-[10px] text-teal-400  uppercase tracking-tighter hover:underline"
+                    >
+                     From: Bangchak Corporation
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Bangchak S Evo</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-2 relative z-10">
+                  {gasPrices.map((gas) => (
+                    <div key={gas.type} className="bg-white/[0.03] p-2.5 rounded-xl border border-white/5 hover:bg-white/[0.06] transition-all hover:scale-[1.02]">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <div className={`w-1.5 h-1.5 rounded-full ${gas.color} shadow-[0_0_8px_rgba(255,255,255,0.2)]`}></div>
+                        <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">{gas.type}</span>
+                      </div>
+                      <div className="flex items-baseline gap-0.5">
+                        <span className="text-sm font-black text-white leading-none">{gas.price.toFixed(2)}</span>
+                        <span className="text-[8px] text-slate-600 font-bold uppercase">฿/L</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1018,24 +1181,32 @@ interface IntentCardProps {
   onClick: () => void;
 }
 
-const IntentCard = ({ icon, title, subtitle, gradient, border, iconColor, onClick }: IntentCardProps) => (
+const IntentCard = ({ icon, title, subtitle, gradient, border, iconBg, iconColor, onClick, isAi, children }: any) => (
   <button
     onClick={onClick}
-    className={`group relative flex items-center gap-5 overflow-hidden rounded-2xl border bg-gradient-to-r ${gradient} ${border} p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}
+    className={`group relative w-full overflow-hidden rounded-[2rem] border ${border} bg-[#0a0c10] p-6 text-left transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] active:scale-[0.99]`}
   >
-    <div
-      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border bg-black/20 ${border} ${iconColor} transition-transform group-hover:scale-110`}
-    >
-      {icon}
+    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-40 transition-opacity group-hover:opacity-60`} />
+    <div className="relative z-10 flex items-center gap-6">
+      <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${iconBg} ${iconColor} shadow-inner transition-transform group-hover:scale-110`}>
+        {icon}
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <h3 className="text-xl font-black tracking-tight text-white">{title}</h3>
+          {isAi && (
+            <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter text-white shadow-lg shadow-indigo-500/40">
+              AI Powered
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-sm font-medium text-slate-400">{subtitle}</p>
+        {children}
+      </div>
+      <div className="translate-x-2 text-slate-600 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100">
+        <ChevronRight size={24} />
+      </div>
     </div>
-    <div>
-      <div className="mb-1 text-lg font-bold text-white">{title}</div>
-      <div className="text-sm text-slate-400 leading-relaxed">{subtitle}</div>
-    </div>
-    <ChevronRight
-      size={20}
-      className="absolute right-5 text-slate-600 transition-all group-hover:right-4 group-hover:text-white"
-    />
   </button>
 );
 

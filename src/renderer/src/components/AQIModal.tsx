@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { X, Filter, Wind, RefreshCw, AlertCircle, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
-import { getRecords, saveRecord, useMockCSVGenerator } from '../utils/csvDb';
+import { getRecords, saveRecord } from '../utils/csvDb';
+import { pm25ToAqi, getAqiLevel, AQI_SYNC_EVENT, getLastSyncLabel, saveSyncTimestamp } from '../utils/aqi';
 
 interface AQIModalProps {
   isOpen: boolean;
@@ -32,9 +33,6 @@ const getLocalDateKey = (date = new Date()) => {
   return `${year}-${month}-${day}`;
 };
 
-const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
-const AQI_LAST_SYNC_TIMESTAMP_KEY = 'locus_aqi_last_sync_timestamp';
-
 const toWeatherRows = (rows: any[]): WeatherAqiRow[] => {
   if (!Array.isArray(rows)) return [];
   return rows
@@ -47,27 +45,12 @@ const toWeatherRows = (rows: any[]): WeatherAqiRow[] => {
     }));
 }
 
-const getAQILevel = (aqi: number) => {
-  if (aqi <= 50) return { label: 'Good', color: '#38bdf8', bg: 'bg-sky-500/10' };
-  if (aqi <= 100) return { label: 'Moderate', color: '#4ade80', bg: 'bg-emerald-500/10' };
-  if (aqi <= 200) return { label: 'Unhealthy (Sensitive)', color: '#facc15', bg: 'bg-amber-500/10' };
-  if (aqi <= 300) return { label: 'Unhealthy', color: '#fb923c', bg: 'bg-orange-500/10' };
-  return { label: 'Hazardous', color: '#ef4444', bg: 'bg-red-500/10' };
-};
-
 export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalProps) => {
-  useMockCSVGenerator(provinces.map(p => ({ id: p.id, name: p.name })));
-
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
   const [aqiProvider, setAqiProvider] = useState<'openweather' | 'aqicn'>('openweather');
   const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState<string>(() => {
-    const globalTs = Number(localStorage.getItem(AQI_LAST_SYNC_TIMESTAMP_KEY) || 0);
-    const regionTs = Number(localStorage.getItem(`${AQI_LAST_SYNC_TIMESTAMP_KEY}_${regionName}`) || 0);
-    if (regionTs > globalTs) return localStorage.getItem(`locus_aqi_last_sync_${regionName}`) || 'Never';
-    return localStorage.getItem('locus_aqi_last_sync') || 'Never';
-  });
+    const [lastSync, setLastSync] = useState<string>(() => getLastSyncLabel(regionName));
   const [syncCount, setSyncCount] = useState(0);
   const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
   const [weatherRows, setWeatherRows] = useState<WeatherAqiRow[]>([]);
@@ -190,13 +173,13 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     };
 
     hydrate();
-    window.addEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+    window.addEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
 
     return () => {
       cancelled = true;
-      window.removeEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+      window.removeEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
     };
-  }, [isOpen, loadWeatherRows]);
+    }, [isOpen, loadWeatherRows]);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -242,17 +225,12 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
               let lat = 13.75, lon = 100.5;
               if (geoData && geoData.length > 0) { lat = geoData[0].lat; lon = geoData[0].lon; }
 
-              const aqiRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`);
+                            const aqiRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`);
               const aqiData = await aqiRes.json();
               if (aqiData && aqiData.list && aqiData.list[0]) {
                 const pm25 = aqiData.list[0].components.pm2_5;
                 if (pm25 != null) {
-                  if (pm25 <= 12.0) aqiVal = Math.round((50 / 12) * pm25);
-                  else if (pm25 <= 35.4) aqiVal = Math.round(((49) / 23.4) * (pm25 - 12) + 51);
-                  else if (pm25 <= 55.4) aqiVal = Math.round(((49) / 20) * (pm25 - 35.5) + 101);
-                  else if (pm25 <= 150.4) aqiVal = Math.round(((49) / 95) * (pm25 - 55.5) + 151);
-                  else if (pm25 <= 250.4) aqiVal = Math.round(((99) / 100) * (pm25 - 150.5) + 201);
-                  else aqiVal = Math.round(((199) / 249.5) * (pm25 - 250.5) + 301);
+                  aqiVal = pm25ToAqi(pm25);
                 }
                 success = true;
                 console.log(`[AQI Modal] OpenWeather ${prov.id} => PM2.5=${pm25}, AQI=${aqiVal}`);
@@ -303,8 +281,8 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
           console.warn('[AQI Modal] Failed to persist to DB:', dbErr);
         }
 
-        await loadWeatherRows();
-        window.dispatchEvent(new CustomEvent(WEATHER_AQI_UPDATED_EVENT, { detail: { source: 'aqi-modal' } }));
+                await loadWeatherRows();
+        window.dispatchEvent(new CustomEvent('locus:weather-aqi-updated', { detail: { source: 'aqi-modal' } }));
 
       } catch (e) {
         console.error('[AQI Modal] Batch sync failed', e);
@@ -314,14 +292,14 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     }
     const nowTs = Date.now();
     const newSync = new Date(nowTs).toLocaleString('th-TH');
-    localStorage.setItem(`locus_aqi_last_sync_${regionName}`, newSync);
-    localStorage.setItem(`${AQI_LAST_SYNC_TIMESTAMP_KEY}_${regionName}`, String(nowTs));
-    setLastSync(newSync);
+        saveSyncTimestamp(regionName);
+        setLastSync(getLastSyncLabel(regionName));
     setSyncCount(c => c + 1);
+        setLastSync(getLastSyncLabel(regionName));
     setIsSyncing(false);
   };
 
-  // Sync policy: auto-sync if data is stale (>24 hours since last sync).
+  // Sync policy: manual sync only. Auto-sync is handled by RegionDashboard at startup.
 
   // === Today's per-province AQI ===
   const aqiDataList = useMemo(() => {
@@ -342,13 +320,13 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
       const sortedRecords = [...records].sort((a, b) => b.date.localeCompare(a.date));
       const latestPastRecord = sortedRecords.find((record) => record.date <= todayStr);
       const latestRecord = sortedRecords[0];
-      const resolved = todayRecord || latestPastRecord || latestRecord;
+            const resolved = todayRecord || latestPastRecord || latestRecord;
       const aqi = resolved && Number.isFinite(resolved.aqi) ? Math.round(resolved.aqi) : 50;
 
       return {
         ...province,
         aqi,
-        level: getAQILevel(aqi)
+        level: getAqiLevel(aqi)
       };
     });
 
@@ -386,7 +364,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
         isToday: i === 0,
       });
     }
-    return { avg, worst, best, trend, avgLevel: getAQILevel(avg) };
+    return { avg, worst, best, trend, avgLevel: getAqiLevel(avg) };
   }, [isOpen, aqiDataList, resolvedProvinces, syncCount, weatherRows]);
 
   const filteredData = useMemo(() => {
@@ -397,34 +375,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
       if (activeFilter === 'unhealthy+') return d.aqi > 100;
       return true;
     });
-  }, [aqiDataList, activeFilter]);
-
-    const autoSyncIfStale = useCallback(async (): Promise<void> => {
-    const now = Date.now();
-    const lastTs = Number(localStorage.getItem(`${AQI_LAST_SYNC_TIMESTAMP_KEY}_${regionName}`) || 0);
-    const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-    if (lastTs === 0 || now - lastTs > STALE_THRESHOLD_MS) {
-      console.log(`[AQI Modal] Data is stale (last sync: ${lastTs ? new Date(lastTs).toLocaleString('th-TH') : 'Never'}). Triggering auto-sync...`);
-      if (apiKey) {
-        await handleSync();
-      } else {
-        console.log('[AQI Modal] No API key configured, skipping auto-sync.');
-      }
-    } else {
-      console.log(`[AQI Modal] Data is fresh (last sync: ${new Date(lastTs).toLocaleString('th-TH')}). No auto-sync needed.`);
-    }
-  }, [apiKey, regionName, handleSync]);
-
-  // Trigger auto-sync after initial data load if stale (>24hr)
-  useEffect(() => {
-    if (syncCount === 0 && !isSyncing) {
-      const timer = setTimeout(() => {
-        void autoSyncIfStale();
-      }, 3000); // Delay 3s to let modal render first
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, syncCount, isSyncing, autoSyncIfStale]);
+    }, [aqiDataList, activeFilter]);
 
   console.log('[AQI Modal Render] isOpen:', isOpen, 'provinces:', provinces, 'aqiDataList:', aqiDataList);
 
@@ -498,8 +449,8 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
               <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">7-Day Regional AQI Trend</div>
               <div className="flex items-end gap-1 h-[60px]">
                 {regionSummary.trend.map((t, i) => {
-                  const heightPct = trendMax > 0 ? (t.avg / trendMax) * 100 : 0;
-                  const level = getAQILevel(t.avg);
+                                    const heightPct = trendMax > 0 ? (t.avg / trendMax) * 100 : 0;
+                  const level = getAqiLevel(t.avg);
                   return (
                     <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group relative">
                       <div className="absolute -top-5 opacity-0 group-hover:opacity-100 transition-opacity text-[9px] font-bold whitespace-nowrap" style={{ color: level.color }}>

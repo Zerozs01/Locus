@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Map, Activity, Settings, Brain, Package } from 'lucide-react';
+import { Compass, Map, Activity, Settings, Brain, Package, Navigation } from 'lucide-react';
 import { ResourceInventory } from './ResourceInventory';
 
 interface SidebarBtnProps {
@@ -65,17 +65,25 @@ export const Sidebar = () => {
             active={isActive('/analytics')}
             onClick={() => navigate('/analytics')}
           />
+          {/* Directions & Resource Inventory - DISABLED for demo */}
+          {/* <SidebarBtn 
+            icon={<Navigation size={20}/>} 
+            label="Directions" 
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('locus-trigger-routing'));
+            }}
+          /> */}
 
           {/* Divider */}
           <div className="border-t border-white/5 my-2" />
 
           {/* Resource Inventory */}
-          <SidebarBtn 
+          {/* <SidebarBtn 
             icon={<Package size={20}/>} 
             label="Resource Inventory" 
             active={showInventory}
             onClick={() => setShowInventory(prev => !prev)}
-          />
+          /> */}
         </div>
 
         {/* Bottom Section */}

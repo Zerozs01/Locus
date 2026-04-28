@@ -87,6 +87,107 @@ export const ThreatRadarPage = () => {
   const regionsRef = useRef<Region[]>([]);
   const [searchHighlight, setSearchHighlight] = useState(false);
 
+  // ─── OPTIMIZED SEARCH HELPERS ───────────────────────────────────────────────
+  // Pre-compute normalized province data once
+  const normalizedProvinceCache = useMemo(() => {
+    return provinceIndex.map(p => ({
+      ...p,
+      normalizedName: normalizeSearchText(p.name),
+      normalizedThaiName: normalizeSearchText(getThaiProvinceName(p.name)),
+    }));
+  }, [provinceIndex]);
+
+  const quickSearch = useCallback((query: string) => {
+    const q = normalizeSearchText(query);
+    if (!q || q.length < 1) return [];
+    return normalizedProvinceCache
+      .filter(p => p.normalizedName.includes(q) || p.normalizedThaiName.includes(q))
+      .slice(0, 6);
+  }, [normalizedProvinceCache]);
+
+  const scoreAndSort = useCallback((
+    localPlaces: ReturnType<typeof createLocalPlace>[],
+    remotePlaces: typeof remotePlaceSuggestions,
+    provinces: ReturnType<typeof quickSearch>,
+    queryNorm: string
+  ) => {
+    const byKey = new Map<string, typeof provinces[0] | typeof localPlaces[0]>();
+
+    const processPlace = (item: typeof localPlaces[0]) => {
+      const key = `place-${normalizeSearchText(item.name)}-${item.provinceId}`;
+      const existing = byKey.get(key);
+      const score = item.importance + (item.osmType?.toLowerCase().includes('landmark') ? 2 : 0);
+      if (!existing || score > (existing as typeof item).importance) {
+        byKey.set(key, item);
+      }
+    };
+
+    localPlaces.forEach(processPlace);
+    remotePlaces.forEach(p => {
+      const key = `place-${normalizeSearchText(p.name)}-${p.provinceId}`;
+      const existing = byKey.get(key);
+      const hasPoly = hasPolygonGeo(p.geojson);
+      if (!existing || (hasPoly && !hasPolygonGeo((existing as typeof p).geojson))) {
+        byKey.set(key, p);
+      }
+    });
+
+    provinces.forEach(p => {
+      const key = `province-${p.id}`;
+      byKey.set(key, p);
+    });
+
+    return Array.from(byKey.values()).slice(0, 8);
+  }, []);
+
+  // Pre-compute local places once
+  const localPlacesData = useMemo(() => {
+    return POPULAR_PLACE_CANDIDATES.map((place, idx) => {
+      const matched = normalizedProvinceCache.find(p =>
+        p.name === place.provinceName || p.normalizedThaiName === normalizeSearchText(place.provinceName)
+      );
+      if (!matched) return null;
+      return {
+        kind: 'place' as const,
+        id: `local-place-${idx}`,
+        name: place.name,
+        displayName: `${place.name}, ${getThaiProvinceName(matched.name)}`,
+        regionId: matched.regionId,
+        provinceId: matched.id,
+        provinceName: matched.name,
+        osmClass: 'landmark-local',
+        osmType: 'landmark',
+        lat: place.lat,
+        lng: place.lng,
+        importance: 1,
+        keywordsNorm: normalizeSearchText(place.keywords),
+      };
+    }).filter(Boolean) as Array<ReturnType<typeof createLocalPlace>>;
+  }, []);
+
+  // Create helper function outside useMemo to avoid recreation
+  const createLocalPlace = (place: typeof POPULAR_PLACE_CANDIDATES[0], idx: number) => {
+    const matched = normalizedProvinceCache.find(p =>
+      p.name === place.provinceName || p.normalizedThaiName === normalizeSearchText(place.provinceName)
+    );
+    if (!matched) return null;
+    return {
+      kind: 'place' as const,
+      id: `local-place-${idx}`,
+      name: place.name,
+      displayName: `${place.name}, ${getThaiProvinceName(matched.name)}`,
+      regionId: matched.regionId,
+      provinceId: matched.id,
+      provinceName: matched.name,
+      osmClass: 'landmark-local',
+      osmType: 'landmark',
+      lat: place.lat,
+      lng: place.lng,
+      importance: 1,
+      keywordsNorm: normalizeSearchText(place.keywords),
+    };
+  };
+
   // Handle focusSearch state from Explore page navigation
   const location = useLocation();
   useEffect(() => {
@@ -179,18 +280,20 @@ export const ThreatRadarPage = () => {
     return null;
   };
 
-  // Get all provinces for search
+    // Get all provinces for search (cached reference)
   const allProvinces = useMemo(() => provinceIndex, [provinceIndex]);
 
-  // Filter provinces based on search (supports Thai and English)
+  // Filter provinces using optimized cache
   const filteredProvinces = useMemo(() => {
     if (!deferredSearchQuery.trim()) return [];
-    return allProvinces
-      .filter(p => searchProvince(deferredSearchQuery, p.name))
-      .slice(0, 6);
-  }, [deferredSearchQuery, allProvinces]);
+    return quickSearch(deferredSearchQuery);
+  }, [deferredSearchQuery, quickSearch]);
 
-  const searchSuggestions = useMemo(() => {
+    const searchSuggestions = useMemo(() => {
+    const queryNorm = normalizeSearchText(deferredSearchQuery);
+    if (!queryNorm) return [];
+
+    // Province matches
     const provinceSuggestions = filteredProvinces.map((prov) => ({
       kind: 'province' as const,
       id: prov.id,
@@ -199,35 +302,13 @@ export const ThreatRadarPage = () => {
       regionName: prov.regionName,
     }));
 
-    const localPlaceSuggestions = POPULAR_PLACE_CANDIDATES
-      .map((place, idx) => {
-        const matchedProvince = allProvinces.find((prov) => {
-          const thaiProvince = getThaiProvinceName(prov.name);
-          return prov.name === place.provinceName || thaiProvince === place.provinceName;
-        });
-        if (!matchedProvince) return null;
+    // Local place matches (pre-computed + fast filter)
+    const localMatched = localPlacesData.filter(p =>
+      isLooseMatch(deferredSearchQuery, p.name) ||
+      (p.keywordsNorm && p.keywordsNorm.includes(queryNorm))
+    );
 
-        const isMatched = isLooseMatch(deferredSearchQuery, place.name) || isLooseMatch(deferredSearchQuery, place.keywords);
-        if (!isMatched) return null;
-
-        return {
-          kind: 'place' as const,
-          id: `local-place-${idx}`,
-          name: place.name,
-          displayName: `${place.name}, ${getThaiProvinceName(matchedProvince.name)}`,
-          regionId: matchedProvince.regionId,
-          provinceId: matchedProvince.id,
-          provinceName: matchedProvince.name,
-          // Treat curated candidates as landmark-priority anchors to keep UX stable.
-          osmClass: 'landmark-local',
-          osmType: 'landmark',
-          lat: place.lat,
-          lng: place.lng,
-          importance: 1,
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => Boolean(item));
-
+    // Remote place matches (use existing state, already fetched)
     const placeSuggestions = remotePlaceSuggestions.map((place) => ({
       kind: 'place' as const,
       id: place.id,
@@ -244,84 +325,15 @@ export const ThreatRadarPage = () => {
       geojson: place.geojson,
     }));
 
-    const qNorm = normalizeSearchText(deferredSearchQuery);
-
-    const isLandmarkSuggestion = (item: (typeof placeSuggestions)[number] | (typeof localPlaceSuggestions)[number] | (typeof provinceSuggestions)[number]) => {
-      if (item.kind !== 'place') return false;
-      const sourceType = (item.osmType || '').toLowerCase();
-      const sourceClass = (item.osmClass || '').toLowerCase();
-      const landmarkLike = ['landmark', 'poi', 'tourism', 'shop'];
-      return (
-        hasPolygonGeo('geojson' in item ? item.geojson : undefined) ||
-        landmarkLike.some((t) => sourceType.includes(t)) ||
-        sourceClass.includes('boundary') ||
-        sourceClass.includes('place') ||
-        sourceClass.includes('landmark')
-      );
-    };
-
-    const scoreSuggestion = (item: (typeof placeSuggestions)[number] | (typeof localPlaceSuggestions)[number] | (typeof provinceSuggestions)[number]) => {
-      if (item.kind !== 'place') return 0;
-      const hasGeo = Boolean('geojson' in item && hasPolygonGeo(item.geojson));
-      const hasBbox = Boolean('boundingbox' in item && item.boundingbox && item.boundingbox.length === 4);
-      const sourceType = (item.osmType || '').toLowerCase();
-      const sourceClass = (item.osmClass || '').toLowerCase();
-      const mapdataLike = ['administrative', 'suburb', 'quarter', 'neighbourhood', 'district'];
-      const isMapDataType = mapdataLike.some((t) => sourceType.includes(t)) || sourceClass.includes('boundary') || sourceClass.includes('place');
-      const isPoiLike = sourceType.includes('poi') || sourceClass.includes('amenity') || sourceClass.includes('shop') || sourceClass.includes('tourism');
-      const startsWithQuery = qNorm ? normalizeSearchText(item.name).startsWith(qNorm) : false;
-      const localLandmarkBoost = item.id.startsWith('local-place-') ? 2 : 0;
-      const importance = 'importance' in item && typeof item.importance === 'number' ? item.importance : 0;
-
-      return (hasGeo ? 6 : 0) + (hasBbox ? 2 : 0) + (isMapDataType ? 3 : 0) - (isPoiLike ? 1 : 0) + (startsWithQuery ? 3 : 0) + localLandmarkBoost + importance;
-    };
-
-    const byKey = new Map<string, (typeof placeSuggestions)[number] | (typeof localPlaceSuggestions)[number] | (typeof provinceSuggestions)[number]>();
-    [...placeSuggestions, ...localPlaceSuggestions, ...provinceSuggestions].forEach((item) => {
-      const itemScope = item.kind === 'place' ? item.provinceId : item.id;
-      const key = `${item.kind}-${normalizeSearchText(item.name)}-${itemScope}`;
-      const existing = byKey.get(key);
-      if (!existing) {
-        byKey.set(key, item);
-        return;
-      }
-
-      if (item.kind === 'place' && existing.kind === 'place') {
-        const nextHasGeo = hasPolygonGeo('geojson' in item ? item.geojson : undefined);
-        const currentHasGeo = hasPolygonGeo('geojson' in existing ? existing.geojson : undefined);
-        const nextHasBbox = Boolean('boundingbox' in item && item.boundingbox && item.boundingbox.length === 4);
-        const currentHasBbox = Boolean('boundingbox' in existing && existing.boundingbox && existing.boundingbox.length === 4);
-
-        if (currentHasGeo && !nextHasGeo) {
-          return;
-        }
-        if (nextHasGeo && !currentHasGeo) {
-          byKey.set(key, item);
-          return;
-        }
-        if (currentHasBbox && !nextHasBbox) {
-          return;
-        }
-      }
-
-      const nextScore = scoreSuggestion(item);
-      const currentScore = scoreSuggestion(existing);
-      const preferByType = nextScore === currentScore && isLandmarkSuggestion(item) && !isLandmarkSuggestion(existing);
-      if (nextScore > currentScore || preferByType) {
-        byKey.set(key, item);
-      }
-    });
-
-    const deduped = Array.from(byKey.values()).sort((a, b) => scoreSuggestion(b) - scoreSuggestion(a));
-
-    return deduped.slice(0, 8);
-  }, [filteredProvinces, remotePlaceSuggestions, allProvinces, deferredSearchQuery]);
+    return scoreAndSort(localMatched, placeSuggestions, provinceSuggestions, queryNorm);
+  }, [filteredProvinces, remotePlaceSuggestions, deferredSearchQuery, localPlacesData, scoreAndSort]);
 
   // Reset selected index when filtered results change
   useEffect(() => {
     setSelectedIndex(0);
   }, [searchSuggestions.length]);
 
+    // Remote search using optimized province cache
   useEffect(() => {
     const query = deferredSearchQuery.trim();
     if (query.length < 2) {
@@ -339,64 +351,35 @@ export const ThreatRadarPage = () => {
         const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=th,en&countrycodes=th&addressdetails=1&polygon_geojson=1&q=${encodeURIComponent(query)}`;
         const response = await fetch(url, {
           signal: controller.signal,
-          headers: {
-            Accept: 'application/json',
-            'Accept-Language': 'th,en',
-          },
+          headers: { Accept: 'application/json', 'Accept-Language': 'th,en' },
         });
 
         if (!response.ok) throw new Error('search failed');
+        const data = await response.json();
 
-        const data: Array<{
-          place_id: number;
-          lat: string;
-          lon: string;
-          display_name: string;
-          name?: string;
-          class?: string;
-          type?: string;
-          importance?: number;
-          boundingbox?: string[];
-          geojson?: unknown;
-          address?: {
-            state?: string;
-            province?: string;
-            county?: string;
-            city?: string;
-          };
-        }> = await response.json();
-
-        const mapped = data
+        const mapped = (data as any[])
           .map((item) => {
-            const haystack = [
-              item.display_name,
-              item.name,
-              item.address?.state,
-              item.address?.province,
-              item.address?.county,
-              item.address?.city,
-            ]
-              .filter(Boolean)
-              .join(' ')
-              .toLowerCase();
+            const haystack = ([
+              item.display_name, item.name,
+              item.address?.state, item.address?.province,
+              item.address?.county, item.address?.city,
+            ].filter(Boolean).join(' ')).toLowerCase();
 
-            const matchedProvince = allProvinces.find((prov) => {
-              const eng = prov.name.toLowerCase();
-              const thai = getThaiProvinceName(prov.name).toLowerCase();
-              return haystack.includes(eng) || haystack.includes(thai);
-            });
-
-            if (!matchedProvince) return null;
+            // Use pre-computed cache for faster matching
+            const matched = normalizedProvinceCache.find(p =>
+              haystack.includes(p.normalizedName) || haystack.includes(p.normalizedThaiName)
+            );
+            if (!matched) return null;
 
             return {
               id: `place-${item.place_id}`,
-              name: item.name || item.display_name.split(',')[0] || matchedProvince.name,
+              name: item.name || item.display_name?.split(',')[0] || matched.name,
               displayName: item.display_name,
               lat: Number(item.lat),
               lng: Number(item.lon),
-              regionId: matchedProvince.regionId,
-              provinceId: matchedProvince.id,
-              provinceName: matchedProvince.name,
+              regionId: matched.regionId,
+              provinceId: matched.id,
+              provinceName: matched.name,
               osmClass: item.class,
               osmType: item.type,
               importance: item.importance,
@@ -404,17 +387,17 @@ export const ThreatRadarPage = () => {
               geojson: item.geojson,
             };
           })
-          .filter((item): item is NonNullable<typeof item> => Boolean(item))
-          .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng));
+          .filter((item): item is NonNullable<typeof item> =>
+            Boolean(item) && Number.isFinite(item.lat) && Number.isFinite(item.lng)
+          );
 
-        const byKey = new Map<string, (typeof mapped)[number]>();
+        const byKey = new Map<string, typeof mapped[0]>();
         mapped.forEach((item) => {
           const key = `${normalizeSearchText(item.name)}-${item.provinceId}`;
           const existing = byKey.get(key);
-          const hasPoly = item.geojson && typeof item.geojson === 'object' && (item.geojson as { type?: string }).type && ['Polygon', 'MultiPolygon'].includes((item.geojson as { type?: string }).type || '');
-          const existingHasPoly = existing?.geojson && typeof existing.geojson === 'object' && ['Polygon', 'MultiPolygon'].includes(((existing.geojson as { type?: string }).type || ''));
-
-          if (!existing || (hasPoly && !existingHasPoly) || ((item.importance || 0) > (existing.importance || 0))) {
+          const hasPoly = hasPolygonGeo(item.geojson);
+          const existingHasPoly = existing && hasPolygonGeo(existing.geojson);
+          if (!existing || (hasPoly && !existingHasPoly) || ((item.importance || 0) > (existing?.importance || 0))) {
             byKey.set(key, item);
           }
         });
@@ -429,7 +412,7 @@ export const ThreatRadarPage = () => {
     }, 420);
 
     return () => window.clearTimeout(timerId);
-  }, [deferredSearchQuery, allProvinces]);
+  }, [deferredSearchQuery, normalizedProvinceCache]);
 
   // Handle search selection
   const loadRegionProvinces = useCallback(async (regionId: string) => {
@@ -531,8 +514,11 @@ export const ThreatRadarPage = () => {
     setSelectedProvince(null);
   }, []);
 
-  const handleSelectProvinceByName = useCallback((name: string) => {
-    const provInfo = allProvinces.find(p => p.name === name || getThaiProvinceName(p.name) === name);
+    const handleSelectProvinceByName = useCallback((name: string) => {
+    const normalizedName = normalizeSearchText(name);
+    const provInfo = normalizedProvinceCache.find(p =>
+      p.normalizedName === normalizedName || p.normalizedThaiName === normalizedName
+    );
     if (provInfo) {
       handleSearchSelect({
         kind: 'province',
@@ -542,7 +528,7 @@ export const ThreatRadarPage = () => {
         regionName: provInfo.regionName,
       });
     }
-  }, [allProvinces, handleSearchSelect]);
+  }, [normalizedProvinceCache, handleSearchSelect]);
 
   useEffect(() => {
     if (mapMode === 'province' && selectedRegionId) {

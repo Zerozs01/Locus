@@ -42,6 +42,7 @@ interface ApiKey {
   placeholder: string;
   icon: React.ReactNode;
   required: boolean;
+  disabled?: boolean;
 }
 
 interface SystemStatus {
@@ -127,14 +128,15 @@ export const SettingsPage = () => {
       icon: <Cpu size={18} />,
       required: false,
     },
-    {
+        {
       id: 'supabase_url',
       name: 'Supabase Project URL',
       description: 'Your Supabase project URL',
       value: '',
       placeholder: 'https://xxxx.supabase.co',
       icon: <Database size={18} />,
-      required: true,
+      required: false,
+      disabled: true,
     },
     {
       id: 'supabase_key',
@@ -143,7 +145,8 @@ export const SettingsPage = () => {
       value: '',
       placeholder: 'eyJhbGciOiJIUzI1NiIsInR5cCI6...',
       icon: <Key size={18} />,
-      required: true,
+      required: false,
+      disabled: true,
     },
     {
       id: 'openweather',
@@ -170,6 +173,16 @@ export const SettingsPage = () => {
       value: '',
       placeholder: 'AIzaSy...',
       icon: <Globe size={18} />,
+      required: false,
+      disabled: true,
+    },
+    {
+      id: 'airtable',
+      name: 'Airtable API Key',
+      description: 'สำหรับดึงข้อมูลจาก Airtable database (ใช้แทน Supabase)',
+      value: '',
+      placeholder: 'patXXXXXXXXXXXXXX...',
+      icon: <Database size={18} />,
       required: false,
     },
     {
@@ -818,6 +831,7 @@ interface ApiKeyInputProps {
 
 const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest, testState }: ApiKeyInputProps) => {
   const hasValue = apiKey.value.length > 0;
+  const isDisabled = apiKey.disabled;
   const testLabel = testState === 'testing'
     ? 'Testing...'
     : testState === 'success'
@@ -833,7 +847,7 @@ const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest, testSt
   
   return (
     <div className={`bg-[#0a0c10] rounded-xl border p-4 transition-all ${
-      hasValue ? 'border-emerald-500/30' : apiKey.required ? 'border-red-500/20' : 'border-white/5'
+      isDisabled ? 'border-white/5 opacity-50' : hasValue ? 'border-emerald-500/30' : apiKey.required ? 'border-red-500/20' : 'border-white/5'
     }`}>
       <div className="flex items-start gap-4">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -845,7 +859,10 @@ const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest, testSt
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-white font-medium">{apiKey.name}</span>
-            {apiKey.required && (
+            {isDisabled && (
+              <span className="text-[10px] px-1.5 py-0.5 bg-slate-500/20 text-slate-400 rounded uppercase">Disabled</span>
+            )}
+            {!isDisabled && apiKey.required && (
               <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded uppercase">Required</span>
             )}
             {hasValue && (
@@ -861,19 +878,22 @@ const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest, testSt
                 value={apiKey.value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={apiKey.placeholder}
-                className="w-full bg-[#0f1115] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all font-mono"
+                disabled={isDisabled}
+                className="w-full bg-[#0f1115] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all font-mono disabled:opacity-40"
               />
-              <button
-                onClick={onToggleShow}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-              >
-                {showValue ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              {!isDisabled && (
+                <button
+                  onClick={onToggleShow}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                >
+                  {showValue ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              )}
             </div>
             
             <button
               onClick={onTest}
-              disabled={!hasValue || testState === 'testing'}
+              disabled={!hasValue || testState === 'testing' || isDisabled}
               className={`px-4 py-2.5 disabled:opacity-30 disabled:cursor-not-allowed border rounded-lg text-sm transition-colors ${testClass}`}
             >
               {testLabel}

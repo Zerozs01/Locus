@@ -326,17 +326,30 @@ const getOpenWeatherRainTileTemplate = async (): Promise<string | null> => {
 }
 
 const getRainRadarTileTemplate = async (): Promise<string | null> => {
+  const getFallback = async () => {
+    const fallbackTemplate = await getOpenWeatherRainTileTemplate()
+    if (fallbackTemplate) return fallbackTemplate
+    // Dynamic fallback: fetch latest RainViewer timestamp
+    try {
+      const rvRes = await net.fetch('https://api.rainviewer.com/public/weather-maps.json');
+      if (rvRes.ok) {
+        const rvData = await rvRes.json() as { radar?: { past?: Array<{ path?: string }> } };
+        const latestPath = rvData?.radar?.past?.[rvData.radar.past.length - 1]?.path;
+        if (latestPath) {
+          return `https://tilecache.rainviewer.com${latestPath}/256/{z}/{x}/{y}/2/1_1.png`;
+        }
+      }
+    } catch { /* ignore */ }
+    return null;
+  }
+
   try {
     const response = await net.fetch('https://api.rainviewer.com/public/weather-maps.json', {
       method: 'GET'
     })
     if (!response.ok) {
       console.warn(`[main] RainViewer weather-maps request failed with status ${response.status}`)
-      const fallbackTemplate = await getOpenWeatherRainTileTemplate()
-      if (fallbackTemplate) {
-        console.warn('[main] Using OpenWeather precipitation layer as fallback for rain radar')
-      }
-      return fallbackTemplate
+      return await getFallback()
     }
 
     const payload = (await response.json()) as {
@@ -353,20 +366,12 @@ const getRainRadarTileTemplate = async (): Promise<string | null> => {
 
     if (!latestFramePath) {
       console.warn('[main] RainViewer payload did not include a radar frame path')
-      const fallbackTemplate = await getOpenWeatherRainTileTemplate()
-      if (fallbackTemplate) {
-        console.warn('[main] Using OpenWeather precipitation layer as fallback for rain radar')
-      }
-      return fallbackTemplate
+      return await getFallback()
     }
     return `https://tilecache.rainviewer.com${latestFramePath}/256/{z}/{x}/{y}/2/1_1.png`
   } catch (error) {
     console.warn('[main] Failed to resolve RainViewer tile template:', error)
-    const fallbackTemplate = await getOpenWeatherRainTileTemplate()
-    if (fallbackTemplate) {
-      console.warn('[main] Using OpenWeather precipitation layer as fallback for rain radar')
-    }
-    return fallbackTemplate
+    return await getFallback()
   }
 }
 

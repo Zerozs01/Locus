@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { X, ThermometerSun, RefreshCw, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import { getRecords, useMockCSVGenerator, saveRecord } from '../utils/csvDb';
-
-const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
+import { AQI_SYNC_EVENT } from '../utils/aqi';
 
 const normalizeProvinceId = (id: string) => {
   let normalized = id.toLowerCase().replace(/[^a-z0-9_-]/g, '');
@@ -288,7 +287,7 @@ export const WeatherHistoryModal = ({
       console.warn('[Weather Modal] Failed to persist to DB:', dbErr);
     }
 
-    window.dispatchEvent(new CustomEvent(WEATHER_AQI_UPDATED_EVENT, { detail: { source: 'weather-modal' } }));
+    window.dispatchEvent(new CustomEvent(AQI_SYNC_EVENT, { detail: { source: 'weather-modal' } }));
 
     const now = new Date();
     const newSync = now.toLocaleString();

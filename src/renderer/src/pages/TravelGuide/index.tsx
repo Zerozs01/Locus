@@ -17,9 +17,7 @@ import { provinceCoordinates } from '../../components/ProvinceMap';
 
 import { getEcoEntities, expandEcoTags, type EcoEntity, type EcoTag } from './data/ecoDb';
 import { WeatherHistoryModal } from '../../components/WeatherHistoryModal';
-
-const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
-
+import { AQI_SYNC_EVENT } from '../../utils/aqi';
 type SupplyType = 'bank' | 'gas' | 'other';
 
 type TravelGuideNewsItem = {
@@ -146,6 +144,51 @@ const regionOppositeColors: Record<string, string> = {
   west: '#dc2626',
   east: '#0ea5e9',
   south: '#f59e0b',
+};
+
+/**
+ * DashCard Component - Helper for Travel Guide sections
+ */
+const DashCard = ({ 
+  title, 
+  icon, 
+  accent, 
+  className = '', 
+  contentClassName = '', 
+  headerStyle = {}, 
+  fullBleedHeader = false,
+  headerLeft,
+  children 
+}: { 
+  title: string | React.ReactNode; 
+  icon?: React.ReactNode; 
+  accent?: string; 
+  className?: string; 
+  contentClassName?: string; 
+  headerStyle?: React.CSSProperties;
+  fullBleedHeader?: boolean;
+  headerLeft?: React.ReactNode;
+  children: React.ReactNode;
+}) => {
+  return (
+    <div className={`rounded-xl border border-white/5 bg-white/5 flex flex-col overflow-hidden shadow-sm transition-all hover:bg-white/[0.08] ${className}`}>
+      <div className={`px-3 py-2 flex items-center justify-between border-b border-white/5 shrink-0 ${fullBleedHeader ? 'bg-transparent' : ''}`} style={headerStyle}>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {headerLeft ? headerLeft : (
+            <>
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: toRgba(accent || '#6366f1', 0.2), color: accent }}>
+                {icon}
+              </div>
+              <h3 className="text-xs font-black text-white/90 truncate uppercase tracking-wider">{title}</h3>
+            </>
+          )}
+        </div>
+      </div>
+      <div className={`flex-1 p-3 min-h-0 ${contentClassName}`}>
+        {children}
+      </div>
+    </div>
+  );
 };
 
 const transportContrastPalettesByRegion: Record<string, string[]> = {
@@ -368,11 +411,10 @@ export function TravelGuidePage() {
       void syncFromDb();
     };
 
-    window.addEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
-
+    window.addEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
     return () => {
       clearInterval(interval);
-      window.removeEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+      window.removeEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
     };
   }, [showWeatherModal, normalizeWeatherProvinceId]);
   
@@ -1919,7 +1961,10 @@ export function TravelGuidePage() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-[10px] text-slate-500">ยังไม่มีเส้นทางจากฐานข้อมูลสำหรับจังหวัดนี้</div>
+                  <div className="h-full flex flex-col items-center justify-center text-center px-4 py-8 opacity-50">
+                    <Navigation2 size={24} className="mb-2" />
+                    <div className="text-[10px]">กรุณาเลือกต้นทางและปลายทางเพื่อคำนวณเส้นทาง</div>
+                  </div>
                 )}
               </div>
             </div>
@@ -1927,207 +1972,139 @@ export function TravelGuidePage() {
         </div>
       </div>
 
-      {showPlannerInfoPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowPlannerInfoPopup(false)}>
-          <div className="w-full max-w-[420px] bg-[#0e1116] border border-white/10 rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <h3 className="text-base font-black text-white">คำแนะนำการเดินทาง</h3>
-              <span className="text-[10px] px-2 py-1 rounded border font-bold" style={trafficBadgeStyle}>
-                Traffic: {condition.trafficRisk.toUpperCase()}
-              </span>
-            </div>
-
-            <div className="text-xs text-slate-300 leading-relaxed bg-white/5 border border-white/10 rounded-xl p-3">
-              {condition.advice}
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {condition.isHoliday && (
-                <span className="text-[10px] bg-red-500/20 text-red-300 px-2 py-0.5 rounded border border-red-500/30">
-                  วันหยุด/เทศกาล: รถอาจติดมากกว่าปกติ
-                </span>
-              )}
-              {condition.isRaining && (
-                <span className="text-[10px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded border border-sky-500/30">
-                  มีโอกาสฝนตก: ควรเผื่อเวลาเดินทางเพิ่ม
-                </span>
-              )}
-              {!condition.isHoliday && !condition.isRaining && (
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
-                  สภาพการเดินทางปกติ: เลือกเส้นทางตาม filter ได้เลย
-                </span>
-              )}
-            </div>
-
-            <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
-              <div className="text-[10px] text-slate-400 mb-1">ปลายทางที่ต้องการโฟกัสบนแผนที่จังหวัด</div>
-              <div className="text-sm font-bold text-white truncate">{plannerDestination || displayName}</div>
-              <button
-                type="button"
-                onClick={openPlannerWarpLocation}
-                className="mt-3 w-full py-2 rounded-lg text-xs font-bold text-white"
-                style={{
-                  background: toRgba(plannerOppositeColor, 0.32),
-                  border: `1px solid ${toRgba(plannerOppositeColor, 0.55)}`,
-                }}
-              >
-                Warp to that location
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowPlannerInfoPopup(false)}
-              className="mt-4 w-full py-2.5 rounded-xl bg-white/5 text-xs text-white font-bold hover:bg-white/10"
-            >
-              ปิด
-            </button>
-          </div>
-        </div>
-      )}
-
-      {dangerInfoState && dangerInfoHotspot && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm" onClick={() => setDangerInfoState(null)}>
-          <div className="w-full max-w-[520px] bg-[#0e1116] border border-white/10 rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <h3 className="text-base font-black text-white">จุดเสี่ยง: {dangerInfoState.danger?.label || 'ไม่ระบุ'}</h3>
-              <button
-                type="button"
-                onClick={() => setDangerInfoState(null)}
-                className="text-[10px] px-2 py-1 rounded border border-white/15 bg-white/5 text-slate-300 hover:bg-white/10"
-              >
-                ปิด
-              </button>
-            </div>
-
-            <div className="text-[11px] text-slate-300 mb-3">{dangerInfoState.danger?.note || 'ไม่มีรายละเอียดเพิ่มเติม'}</div>
-
-            <div className="rounded-xl border border-white/10 bg-[#070a11] p-3">
-              <div className="text-[10px] text-slate-400 mb-2">Longdo Map Mockup + พื้นที่เสี่ยงแบบสถิติ</div>
-              <div className="relative h-44 rounded-lg border border-white/10 overflow-hidden bg-[radial-gradient(circle_at_30%_30%,rgba(56,189,248,0.18),transparent_55%),radial-gradient(circle_at_70%_65%,rgba(248,113,113,0.14),transparent_55%),#05070d]">
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] bg-[size:24px_24px]" />
-                <div className="absolute left-[26%] top-[30%] w-28 h-28 rounded-full border-2 border-dashed border-rose-300/80 bg-rose-500/12" />
-                <div className="absolute left-[35%] top-[39%] w-2 h-2 rounded-full bg-rose-300 shadow-[0_0_0_8px_rgba(244,63,94,0.24)]" />
-                <div className="absolute bottom-2 right-2 text-[9px] text-slate-300 bg-black/45 px-2 py-1 rounded">Lat {dangerInfoHotspot.lat.toFixed(4)}, Lng {dangerInfoHotspot.lng.toFixed(4)}</div>
-              </div>
-              <div className="mt-2 text-[10px] text-slate-500">รัศมีจุดเสี่ยงโดยประมาณ: {dangerInfoHotspot.radiusKm} กม.</div>
-            </div>
-
-            <a
-              href={dangerInfoLongdoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-cyan-400/40 bg-cyan-500/15 py-2 text-xs font-bold text-cyan-100 hover:bg-cyan-500/25"
-            >
-              เปิด Longdo Map
-              <ExternalLink size={12} />
-            </a>
-          </div>
-        </div>
+      {/* MODALS & POPUPS */}
+      {showWeatherModal && (
+        <WeatherHistoryModal
+          isOpen={showWeatherModal}
+          onClose={() => setShowWeatherModal(false)}
+          provinceName={displayName}
+          provinces={[{ id: selectedProvinceId, name: displayName }]}
+        />
       )}
 
       {newsDetailItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setNewsDetailItem(null)}>
-          <div className="w-full max-w-[520px] bg-[#0e1116] border border-white/10 rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <h3 className="text-base font-black text-white">สรุปข่าวจังหวัด</h3>
-              <button
-                type="button"
-                onClick={() => setNewsDetailItem(null)}
-                className="text-[10px] px-2 py-1 rounded border border-white/15 bg-white/5 text-slate-300 hover:bg-white/10"
-              >
-                ปิด
-              </button>
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-[#0f1115] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-white/5 flex justify-between items-center">
+              <h3 className="font-black text-white">สรุปข่าว: {newsDetailItem.title}</h3>
+              <button onClick={() => setNewsDetailItem(null)} className="text-slate-400 hover:text-white">✕</button>
             </div>
-
-            <div className="text-sm font-bold text-white leading-snug">{newsDetailItem.title}</div>
-            <div className="mt-1 text-[10px] text-slate-500">
-              {newsDetailItem.source} • {new Date(newsDetailItem.publishedAt).toLocaleString('th-TH')}
+            <div className="p-5 space-y-4">
+              <div className="text-xs text-slate-400 leading-relaxed">{newsDetailItem.summary}</div>
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-[10px] text-slate-500">{newsDetailItem.source} • {new Date(newsDetailItem.publishedAt).toLocaleDateString('th-TH')}</span>
+                <button
+                  onClick={() => window.open(newsDetailItem.url, '_blank')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-bold hover:bg-sky-500/30 transition-all"
+                >
+                  อ่านข่าวฉบับเต็ม <ExternalLink size={12} />
+                </button>
+              </div>
             </div>
-            <div className="mt-3 text-xs text-slate-300 leading-relaxed rounded-xl border border-white/10 bg-white/5 p-3">
-              {newsDetailItem.summary}
-            </div>
-
-            {newsDetailItem.url && (
-              <a
-                href={newsDetailItem.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-cyan-300 hover:text-cyan-200"
-              >
-                เปิดข่าวต้นฉบับ
-                <ExternalLink size={12} />
-              </a>
-            )}
           </div>
         </div>
       )}
 
-      {showNewsSyncPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowNewsSyncPopup(false)}>
-          <div className="w-full max-w-[420px] bg-[#0e1116] border border-white/10 rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-black text-white mb-2">Sync Province News</h3>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              ระบบจะเรียก API ข่าวแบบเรียลไทม์เมื่อคุณกดยืนยัน เพื่อหลีกเลี่ยงการโหลดค้างไว้ตลอดเวลาและลดภาระทรัพยากรเครื่อง.
-            </p>
-            <div className="mt-4 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowNewsSyncPopup(false)}
-                className="flex-1 py-2 rounded-lg border border-white/15 bg-white/5 text-xs text-slate-200 hover:bg-white/10"
-              >
-                ยกเลิก
-              </button>
-              <button
-                type="button"
-                onClick={handleSyncProvinceNews}
-                className="flex-1 py-2 rounded-lg border border-sky-400/40 bg-sky-500/20 text-xs font-bold text-sky-100 hover:bg-sky-500/30"
-              >
-                Sync Now
-              </button>
+      {dangerInfoState && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-[#0f1115] border border-red-500/20 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-red-500/10 flex justify-between items-center bg-red-500/5">
+              <h3 className="font-black text-white flex items-center gap-2">
+                <AlertTriangle size={16} className="text-red-500" />
+                จุดเสี่ยง: {dangerInfoState.danger.label}
+              </h3>
+              <button onClick={() => setDangerInfoState(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <div className="p-5 space-y-4 text-center">
+              <div className="text-sm text-white/90 font-bold">{dangerInfoState.danger.note}</div>
+              <p className="text-xs text-slate-400">ระมัดระวังในการสัญจรผ่านบริเวณนี้ โดยเฉพาะในช่วงเวลาที่มีความเสี่ยงสูง</p>
+              <div className="pt-2">
+                <button
+                   onClick={() => setDangerInfoState(null)}
+                   className="w-full py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
+                >
+                  รับทราบ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPlannerInfoPopup && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-[#0f1115] border border-cyan-500/20 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-cyan-500/10 flex justify-between items-center bg-cyan-500/5">
+              <h3 className="font-black text-white flex items-center gap-2">
+                <Navigation2 size={16} className="text-cyan-400" />
+                Travel Advice
+              </h3>
+              <button onClick={() => setShowPlannerInfoPopup(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="text-xs text-slate-200 leading-relaxed">
+                <p className="mb-2 font-bold text-cyan-200">คำแนะนำสำหรับเส้นทางนี้:</p>
+                <p>{condition.advice}</p>
+                <div className="mt-3 p-2 rounded-lg bg-white/5 border border-white/5">
+                   <div className="text-[10px] text-slate-400 uppercase font-bold mb-1">Traffic Forecast</div>
+                   <div className="text-[11px] text-white">สภาพจราจรโดยรวมมีความเสี่ยงระดับ <span className="text-amber-400 font-bold">{condition.trafficRisk.toUpperCase()}</span></div>
+                </div>
+              </div>
+              <button onClick={() => setShowPlannerInfoPopup(false)} className="w-full mt-2 py-2.5 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-700 transition-all">ปิด</button>
             </div>
           </div>
         </div>
       )}
 
       {previewEco && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setPreviewEco(null)}><div className="w-full max-w-[360px] bg-[#0e1116] border border-white/10 rounded-2xl p-5" onClick={e => e.stopPropagation()}>
-           <div className="text-[10px] text-emerald-400 font-bold mb-1 uppercase tracking-widest">{previewEco.category}</div><h3 className="text-xl font-black text-white mb-3">{previewEco.name}</h3>
-           <div className="text-sm text-slate-400 leading-relaxed bg-white/5 p-3 rounded-xl border border-white/5">{previewEco.desc}</div>
-           <button onClick={() => setPreviewEco(null)} className="w-full py-2.5 rounded-xl bg-white/5 text-xs text-white font-bold mt-4 hover:bg-white/10">ปิดหน้าต่าง</button>
-        </div></div>
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-[#0f1115] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-white/5 flex justify-between items-center">
+              <h3 className="font-black text-white flex items-center gap-2">
+                <PawPrint size={16} className="text-emerald-400" />
+                {previewEco.name}
+              </h3>
+              <button onClick={() => setPreviewEco(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="text-xs text-slate-200 leading-relaxed">{previewEco.desc}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {previewEco.tags.map(t => (
+                  <span key={t} className="text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <button onClick={() => setPreviewEco(null)} className="w-full mt-2 py-2.5 rounded-xl bg-slate-800 text-white text-xs font-bold hover:bg-slate-700 transition-all">เข้าใจแล้ว</button>
+            </div>
+          </div>
+        </div>
       )}
 
-      <WeatherHistoryModal
-        isOpen={showWeatherModal}
-        onClose={() => setShowWeatherModal(false)}
-        provinceName={provinceThaiNames[selectedProvinceName] || selectedProvinceName}
-        provinces={weatherModalProvinces}
-        regionId={activeRegion}
-        targetProvinceId={selectedProvinceId}
-        chartScope="province"
-      />
-    </div>
-  );
-}
-
-function DashCard({ title, icon, accent, children, className = '', contentClassName = 'overflow-y-auto custom-scrollbar pr-1', headerStyle, fullBleedHeader = false, headerLeft, headerRight }: { title: string; icon: React.ReactNode; accent: string; children: React.ReactNode; className?: string; contentClassName?: string; headerStyle?: React.CSSProperties; fullBleedHeader?: boolean; headerLeft?: React.ReactNode; headerRight?: React.ReactNode }) {
-  const hasHeaderRight = Boolean(headerRight);
-
-  return (
-    <div className={`rounded-xl border p-3 flex flex-col transition-all hover:bg-white/[0.02] ${fullBleedHeader ? 'overflow-hidden' : ''} ${className}`} style={{ borderColor: toRgba(accent, 0.12), background: 'rgba(15,17,21,0.8)' }}>
-      <div className={`${fullBleedHeader ? '-mx-3 -mt-3 px-3 py-2 mb-3' : 'mb-3 pb-2 border-b border-white/5'} flex items-center ${hasHeaderRight ? 'justify-between gap-2' : 'justify-start'}`} style={headerStyle}>
-        {headerLeft ? (
-          <div className={hasHeaderRight ? 'min-w-0 flex-1' : 'w-full'}>{headerLeft}</div>
-        ) : (
-          <div className="flex items-center gap-2 min-w-0">
-            <span style={{ color: accent }}>{icon}</span>
-            <span className="text-[10px] font-bold text-white uppercase tracking-wider">{title}</span>
+      {showNewsSyncPopup && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-xs bg-[#0f1115] border border-sky-500/20 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-5 text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-sky-500/20 flex items-center justify-center mx-auto">
+                <RefreshCw size={24} className="text-sky-400" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-black text-white text-sm">Sync Latest News?</h4>
+                <p className="text-[10px] text-slate-400">ระบบจะทำการดึงข้อมูลข่าวสารล่าสุดจากแหล่งข่าวออนไลน์เฉพาะจังหวัด {displayName}</p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => setShowNewsSyncPopup(false)} className="flex-1 py-2 rounded-lg bg-slate-800 text-white text-[11px] font-bold">ยกเลิก</button>
+                <button
+                  onClick={handleSyncProvinceNews}
+                  className="flex-1 py-2 rounded-lg bg-sky-500 text-white text-[11px] font-bold shadow-lg shadow-sky-500/20"
+                >
+                  ยืนยัน Sync
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-        {headerRight && <div className="shrink-0">{headerRight}</div>}
-      </div>
-      <div className={`flex-1 min-h-0 ${contentClassName}`}>{children}</div>
+        </div>
+      )}
     </div>
   );
 }

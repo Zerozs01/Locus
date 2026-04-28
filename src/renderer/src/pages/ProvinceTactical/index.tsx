@@ -21,6 +21,7 @@ import { StayTab } from './tabs/StayTab';
 import { EatTab } from './tabs/EatTab';
 import { TravelTab } from './tabs/TravelTab';
 import { EssentialsTab } from './tabs/EssentialsTab';
+import { AQI_SYNC_EVENT } from '../../utils/aqi';
 
 type ProvinceMapTheme = 'voyager' | 'positron' | 'dark' | 'osm' | 'satellite' | 'terrain' | 'admin';
 type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'floodRecurrent' | 'evCharger' | 'slope';
@@ -34,8 +35,6 @@ const defaultMapDataLayers: Record<ProvinceDataLayer, boolean> = {
   evCharger: false,
   slope: false,
 };
-
-const WEATHER_AQI_UPDATED_EVENT = 'locus:weather-aqi-updated';
 
 const getLocalDateKey = (date = new Date()) => {
   const year = date.getFullYear();
@@ -208,11 +207,11 @@ export const ProvinceTacticalPage = () => {
       void resolveLatestWeather();
     };
 
-    window.addEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+        window.addEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
     return () => {
       mounted = false;
       window.clearInterval(interval);
-      window.removeEventListener(WEATHER_AQI_UPDATED_EVENT, onWeatherUpdated as EventListener);
+      window.removeEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
     };
   }, [normalizeWeatherProvinceId, selectedWeatherKeyCandidates]);
 
@@ -349,14 +348,14 @@ export const ProvinceTacticalPage = () => {
   return (
     <div className="flex-1 flex bg-[#050608] overflow-hidden">
       {/* LEFT: MAP SECTION */}
-      <div className="w-1/2 relative">
+      <div className="w-[65%] relative">
         {/* Back Button Overlay */}
         <button 
             onClick={() => navigate('/map')}
-          className="absolute top-4 left-4 z-[1000] flex items-center gap-2 px-3 py-2 bg-black/70 hover:bg-black/90 backdrop-blur-sm rounded-lg border border-white/10 text-white transition-all group"
+          className="absolute top-4 left-4 z-[1000] flex items-center justify-center p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg border border-white/10 text-white transition-all group"
+          title="Back to Thai map"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-            <span className="text-sm font-medium">Thai map</span>
         </button>
 
         {/* Interactive Map */}
@@ -368,11 +367,14 @@ export const ProvinceTacticalPage = () => {
           theme={mapTheme}
           externalDataLayers={activeDataLayers}
           regionColor={regionTheme[region.id as RegionId]?.accentHex}
+          onChangeTheme={setMapTheme}
+          onToggleLayer={handleToggleDataLayer}
+          mapDataLayers={mapDataLayers}
         />
       </div>
 
       {/* RIGHT: CONTENT SECTION */}
-      <div className="w-1/2 flex flex-col border-l border-white/10">
+      <div className="w-[35%] flex flex-col border-l border-white/10">
         {/* Tab Navigation */}
         <div className="flex-shrink-0 border-b border-white/10 bg-[#08090c]">
           <div className="flex px-2 overflow-x-auto no-scrollbar">
