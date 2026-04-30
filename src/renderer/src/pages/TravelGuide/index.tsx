@@ -4,7 +4,7 @@ import {
   ArrowLeft, Navigation2, Search, ExternalLink, MapPin,
   CloudRain, Thermometer,
   Lightbulb, AlertTriangle, Landmark, Fuel, BanknoteIcon,
-  Bath, PawPrint, Leaf, Mountain, LocateFixed, Info, RefreshCw
+  Bath, PawPrint, Leaf, Mountain, LocateFixed, Info, RefreshCw, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { regionTheme, type RegionId } from '../../data/regionTheme';
 import { toRgba } from '../../utils/color';
@@ -13,7 +13,7 @@ import { regionBriefs } from './data/regionBriefs';
 import { getTravelConditionForDate } from './data/calendarHelpers';
 import { ThailandMap } from '../../components/ThailandMap';
 import { getRecords } from '../../utils/csvDb';
-import { provinceCoordinates } from '../../components/ProvinceMap';
+import { provinceCoordinates } from '../../data/coordinates';
 
 import { getEcoEntities, expandEcoTags, type EcoEntity, type EcoTag } from './data/ecoDb';
 import { WeatherHistoryModal } from '../../components/WeatherHistoryModal';
@@ -158,6 +158,8 @@ const DashCard = ({
   headerStyle = {}, 
   fullBleedHeader = false,
   headerLeft,
+  collapsible = false,
+  defaultCollapsed = false,
   children 
 }: { 
   title: string | React.ReactNode; 
@@ -168,11 +170,20 @@ const DashCard = ({
   headerStyle?: React.CSSProperties;
   fullBleedHeader?: boolean;
   headerLeft?: React.ReactNode;
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
   children: React.ReactNode;
 }) => {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const activeClassName = isCollapsed ? 'h-fit' : className;
+
   return (
-    <div className={`rounded-xl border border-white/5 bg-white/5 flex flex-col overflow-hidden shadow-sm transition-all hover:bg-white/[0.08] ${className}`}>
-      <div className={`px-3 py-2 flex items-center justify-between border-b border-white/5 shrink-0 ${fullBleedHeader ? 'bg-transparent' : ''}`} style={headerStyle}>
+    <div className={`rounded-xl border border-white/5 bg-white/5 flex flex-col overflow-hidden shadow-sm transition-all hover:bg-white/[0.08] ${activeClassName}`}>
+      <div 
+        className={`px-3 py-2 flex items-center justify-between border-b border-white/5 shrink-0 ${fullBleedHeader ? 'bg-transparent' : ''} ${collapsible ? 'cursor-pointer hover:bg-white/10' : ''}`} 
+        style={headerStyle}
+        onClick={() => collapsible && setIsCollapsed(!isCollapsed)}
+      >
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {headerLeft ? headerLeft : (
             <>
@@ -183,10 +194,17 @@ const DashCard = ({
             </>
           )}
         </div>
+        {collapsible && (
+          <div className="text-white/50 shrink-0 ml-2">
+            {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          </div>
+        )}
       </div>
-      <div className={`flex-1 p-3 min-h-0 ${contentClassName}`}>
-        {children}
-      </div>
+      {!isCollapsed && (
+        <div className={`flex-1 p-3 min-h-0 ${contentClassName}`}>
+          {children}
+        </div>
+      )}
     </div>
   );
 };
@@ -1520,24 +1538,24 @@ export function TravelGuidePage() {
                 return (
                   <div
                     key={i}
-                    className="rounded-lg border p-3 flex items-center gap-2.5 group transition-all"
+                    className="rounded-lg border p-2 flex items-center gap-2 group transition-all"
                     style={{
                       borderColor: toRgba(contrastColor, Math.min(0.66, cardPrimaryAlpha + 0.2)),
                       background: `linear-gradient(120deg, ${toRgba(contrastColor, cardPrimaryAlpha)} 0%, ${toRgba(contrastColor, cardSecondaryAlpha)} 100%)`
                     }}
                   >
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-black shrink-0" style={{ background: toRgba(contrastColor, 0.58), color: '#ffffff', border: `1px solid ${toRgba('#ffffff', 0.16)}` }}>{co.logoText || 'TR'}</div>
-                    <div className="min-w-0 flex-1"><div className="text-xs font-bold text-white truncate">{co.shortName || co.name}</div><div className="text-[10px] text-slate-100/80 line-clamp-2">{co.description}</div></div>
-                    {co.warpUrl && (<button title={`เปิดลิงก์ ${co.shortName || co.name || 'ผู้ให้บริการ'}`} onClick={() => window.open(co.warpUrl, '_blank')} className="w-8 h-8 rounded-md flex items-center justify-center bg-black/20 hover:bg-black/35 text-white/80 hover:text-white shrink-0 border border-white/15"><ExternalLink size={14} /></button>)}
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base font-black shrink-0" style={{ background: toRgba(contrastColor, 0.58), color: '#ffffff', border: `1px solid ${toRgba('#ffffff', 0.16)}` }}>{co.logoText || 'TR'}</div>
+                    <div className="min-w-0 flex-1"><div className="text-[11px] font-bold text-white truncate">{co.shortName || co.name}</div><div className="text-[9px] text-slate-100/80 line-clamp-1 leading-tight mt-0.5">{co.description}</div></div>
+                    {co.warpUrl && (<button title={`เปิดลิงก์ ${co.shortName || co.name || 'ผู้ให้บริการ'}`} onClick={() => window.open(co.warpUrl, '_blank')} className="w-7 h-7 rounded-md flex items-center justify-center bg-black/20 hover:bg-black/35 text-white/80 hover:text-white shrink-0 border border-white/15"><ExternalLink size={12} /></button>)}
                   </div>
                 );
               })}
             </div>
           </div>
 
-          <div className="shrink-0 grid grid-cols-1 xl:grid-cols-3 gap-3 items-stretch">
+          <div className="shrink-0 grid grid-cols-1 xl:grid-cols-3 gap-3 items-start">
             {/* Environment / Ecology with toggle categories */}
-            <DashCard title="Environment / Ecology" icon={<CloudRain size={14} />} accent={accent} className="h-[232px]" contentClassName="overflow-y-auto custom-scrollbar pr-1" headerStyle={sectionHeaderStyle} fullBleedHeader>
+            <DashCard title="Environment / Ecology" icon={<CloudRain size={14} />} accent={accent} className="h-[164px]" contentClassName="overflow-y-auto custom-scrollbar pr-1" headerStyle={sectionHeaderStyle} fullBleedHeader collapsible defaultCollapsed>
                <div className="space-y-2 relative">
                  {ecoCategoryConfigs.map(cat => {
                    const items = ecoEntities.filter(e => e.category === cat.id);
@@ -1585,7 +1603,7 @@ export function TravelGuidePage() {
             </DashCard>
 
             {/* Knowledge / Tips */}
-             <DashCard title="Knowledge / Tips" icon={<Lightbulb size={14} />} accent={accent} className="h-[232px]" contentClassName="overflow-y-auto custom-scrollbar pr-1" headerStyle={sectionHeaderStyle} fullBleedHeader>
+             <DashCard title="Knowledge / Tips" icon={<Lightbulb size={14} />} accent={accent} className="h-[164px]" contentClassName="overflow-y-auto custom-scrollbar pr-1" headerStyle={sectionHeaderStyle} fullBleedHeader collapsible defaultCollapsed>
               <ul className="space-y-1.5 text-xs text-slate-300">
                 {knowledgeTips.length > 0 ? knowledgeTips.map((k: any, i: number) => (
                     <li key={i}><div className={`font-bold text-[11px] ${knowledgeToneScale[i % knowledgeToneScale.length]}`}>{k.title}</div><div className="text-[10px] text-slate-300">{k.content}</div></li>
@@ -1593,7 +1611,7 @@ export function TravelGuidePage() {
               </ul>
             </DashCard>
 
-            <DashCard title="Supply / Facilities" icon={<Landmark size={14} />} accent={accent} className="h-[232px]" contentClassName="overflow-hidden" headerStyle={sectionHeaderStyle} fullBleedHeader>
+            <DashCard title="Supply / Facilities" icon={<Landmark size={14} />} accent={accent} className="h-[164px]" contentClassName="overflow-hidden" headerStyle={sectionHeaderStyle} fullBleedHeader collapsible defaultCollapsed>
               <div className="h-full min-h-0 flex flex-col gap-2.5">
                 <div className="grid grid-cols-3 gap-2">
                   {supplyTypes.map((type) => {
@@ -1672,7 +1690,7 @@ export function TravelGuidePage() {
               title=""
               icon={<AlertTriangle size={14} />}
               accent="#ef4444"
-              className="h-full min-h-0"
+              className="h-full min-h-0 order-2"
               contentClassName="overflow-hidden"
               headerStyle={sectionHeaderStyle}
               fullBleedHeader
@@ -1781,7 +1799,7 @@ export function TravelGuidePage() {
               </div>
             </DashCard>
             
-            <div className="rounded-xl border p-3 flex flex-col bg-white/5 h-full min-h-0" style={{ borderColor: toRgba(accent, 0.12) }}>
+            <div className="rounded-xl border p-3 flex flex-col bg-white/5 h-full min-h-0 order-1" style={{ borderColor: toRgba(accent, 0.12) }}>
               <div className="flex items-center justify-between gap-2 mb-1">
                 <div className="grid grid-cols-2 gap-2.5 flex-1 text-[10px] text-slate-400 font-semibold">
                   <div>ต้นทาง</div>
@@ -1951,10 +1969,35 @@ export function TravelGuidePage() {
                             </div>
                           </div>
                           <div
-                            className="text-[9px] text-slate-300 truncate px-2 py-1"
+                            className="text-[9px] text-slate-300 px-2 py-1.5 flex items-center justify-between"
                             style={{ background: toRgba(plannerOppositeColor, Math.max(0.08, shade - 0.1)) }}
                           >
-                            {departureText} • {durationText} • {route.__fare === null ? 'ไม่ระบุราคา' : `฿${Number(route.__fare).toLocaleString()}`}
+                            <div className="truncate flex-1">
+                              {departureText} • {durationText} 
+                              <span className="ml-1.5 px-1.5 py-0.5 rounded border border-rose-500/40 text-rose-300 bg-rose-500/10 font-bold whitespace-nowrap">
+                                {route.__fare === null ? 'ไม่ระบุราคา' : `฿${Number(route.__fare).toLocaleString()}`}
+                              </span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                navigate(`/province/${activeRegion}/${selectedProvinceId}`, {
+                                  state: {
+                                    focusRoute: {
+                                      from: route.from,
+                                      to: route.to,
+                                      lat: provinceCoordinates[selectedProvinceName]?.lat || provinceCoordinates[displayName]?.lat || 13.7563,
+                                      lng: provinceCoordinates[selectedProvinceName]?.lng || provinceCoordinates[displayName]?.lng || 100.5018
+                                    }
+                                  }
+                                });
+                              }}
+                              title="เปิดดูในแผนที่ (Warp)"
+                              className="w-5 h-5 flex items-center justify-center rounded bg-sky-500/20 hover:bg-sky-500/40 border border-sky-500/30 text-sky-400 hover:text-white transition-all shrink-0 ml-2"
+                            >
+                              <ExternalLink size={10} />
+                            </button>
                           </div>
                         </div>
                       );

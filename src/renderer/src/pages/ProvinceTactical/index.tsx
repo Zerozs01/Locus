@@ -249,10 +249,44 @@ export const ProvinceTacticalPage = () => {
         geojson?: unknown;
         autoFocus?: boolean;
       };
+      focusRoute?: {
+        from: string;
+        to: string;
+        lat: number;
+        lng: number;
+      };
     } | null;
-    if (!state?.focusPlace || loading) return;
+    if (loading || (!state?.focusPlace && !state?.focusRoute)) return;
 
     const timerId = window.setTimeout(() => {
+      if (state.focusRoute) {
+        const geocode = async (query: string) => {
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' Thailand')}&limit=1`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+              return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), title: query };
+            }
+          } catch (e) {
+            console.error(e);
+          }
+          // Fallback to rough offset near province center
+          return { lat: state.focusRoute!.lat + (Math.random() - 0.5) * 0.05, lng: state.focusRoute!.lng + (Math.random() - 0.5) * 0.05, title: query };
+        };
+
+        Promise.all([geocode(state.focusRoute.from), geocode(state.focusRoute.to)]).then(([startPos, endPos]) => {
+          if (startPos && endPos) {
+            mapRef.current?.setRouteAndCalculate(
+              startPos.lat, startPos.lng, startPos.title,
+              endPos.lat, endPos.lng, endPos.title
+            );
+          }
+        });
+        return;
+      }
+
+      if (!state.focusPlace) return;
+
       const normalizeFocusName = (value?: string) =>
         (value || '')
           .toLowerCase()

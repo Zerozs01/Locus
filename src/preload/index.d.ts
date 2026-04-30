@@ -52,6 +52,7 @@ declare global {
       map: {
         getRainRadarTileTemplate: () => Promise<string | null>
         searchEvChargers: (params: { lat: number; lng: number; distanceKm?: number; maxResults?: number; apiKey?: string }) => Promise<Array<{ lat: number; lng: number; title: string; subtitle: string }>>
+        fetchGistdaFeatures: (url: string, headers?: Record<string, string>) => Promise<{ ok: boolean; data?: any; status?: number; error?: string }>
       }
     }
   }

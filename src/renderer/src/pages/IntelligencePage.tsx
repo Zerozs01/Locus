@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Send, 
   Bot, 
   User, 
-  Sparkles,
   FileText,
   Link2,
   Network,
@@ -17,7 +16,6 @@ import {
   ChevronRight,
   MapPin,
   ExternalLink,
-  Lightbulb,
   BookOpen,
   X,
   Tag,
@@ -27,17 +25,82 @@ import {
   Edit3,
   RotateCcw,
   CornerDownLeft,
-  Settings
+  Settings,
+  Lightbulb,
+  Map,
+  Compass,
+  Bed,
+  Utensils,
+  Bus,
+  Flame,
+  Sparkles
 } from 'lucide-react';
 import { ChatContext, ChatMessage as Message, RecentChatSummary, Source, useIntelligenceChatStore } from '../services/intelligenceChatStore';
 import { MarkdownLite } from '../components/MarkdownLite';
 import { useChatTheme } from '../theme/useChatTheme';
 import { useChatThemeStore } from '../services/chatThemeStore';
+import { GradientProgressBar } from '../components/GradientProgressBar';
+import { Menu } from 'lucide-react';
+import { regionsData, type Region, type Province } from '../data/regions';
 
 interface SuggestedQuery {
   text: string;
   icon: React.ReactNode;
 }
+
+// ==================== PROVINCE ACTION DETECTION ====================
+
+interface DetectedProvince {
+  name: string;
+  id: string;
+  regionId: string;
+  regionName: string;
+}
+
+/** Build a flat lookup from all regions + provinces for fast text matching */
+const buildProvinceLookup = (): { provinces: Array<{ name: string; nameLower: string; id: string; regionId: string; regionName: string }>; regions: Array<{ id: string; name: string; engName: string }> } => {
+  const provinces: Array<{ name: string; nameLower: string; id: string; regionId: string; regionName: string }> = [];
+  const regions: Array<{ id: string; name: string; engName: string }> = [];
+
+  for (const region of regionsData) {
+    regions.push({ id: region.id, name: region.name, engName: region.engName });
+    for (const province of region.subProvinces) {
+      provinces.push({
+        name: province.name,
+        nameLower: province.name.toLowerCase(),
+        id: province.id,
+        regionId: region.id,
+        regionName: region.engName,
+      });
+    }
+  }
+  return { provinces, regions };
+};
+
+const PROVINCE_LOOKUP = buildProvinceLookup();
+
+/** Scan AI response text and extract mentioned provinces */
+const extractMentionedProvinces = (text: string): DetectedProvince[] => {
+  const lowerText = text.toLowerCase();
+  const found: DetectedProvince[] = [];
+  const seen = new Set<string>();
+
+  for (const p of PROVINCE_LOOKUP.provinces) {
+    if (lowerText.includes(p.nameLower) && !seen.has(p.id)) {
+      seen.add(p.id);
+      found.push({ name: p.name, id: p.id, regionId: p.regionId, regionName: p.regionName });
+    }
+  }
+  return found;
+};
+
+/** Detect if a region is mentioned */
+const extractMentionedRegions = (text: string): Array<{ id: string; name: string; engName: string }> => {
+  const lowerText = text.toLowerCase();
+  return PROVINCE_LOOKUP.regions.filter(
+    (r) => lowerText.includes(r.engName.toLowerCase()) || lowerText.includes(r.name)
+  );
+};
 
 // ==================== MAIN COMPONENT ====================
 
@@ -66,6 +129,7 @@ export const IntelligencePage = () => {
   const [editingText, setEditingText] = useState('');
   const [editTextareaRef, setEditTextareaRef] = useState<HTMLTextAreaElement | null>(null);
   const [showPaletteSettings, setShowPaletteSettings] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -236,57 +300,60 @@ export const IntelligencePage = () => {
 
   return (
     <div className="flex-1 flex bg-[#050608] overflow-hidden">
-      <div className="w-[280px] shrink-0 border-r border-white/5 bg-[#080a0f] flex flex-col">
-        <div className="h-16 px-4 flex items-center justify-between border-b border-white/5">
-          <div>
-            <h2 className="text-sm font-semibold text-white">Recent Chats</h2>
-            <p className="text-[11px] text-slate-500">ประวัติจะอยู่ตรงนี้จนกว่าจะลบเอง</p>
-          </div>
-          <button
-            onClick={() => {
-              const newConversationId = createConversation();
-              setActiveConversation(newConversationId);
-              setActiveContextId(null);
-            }}
-            className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:text-white hover:brightness-110"
-            style={{
-              borderColor: 'var(--chat-accent-soft-border)',
-              backgroundColor: 'var(--chat-accent-soft)',
-              color: 'var(--chat-accent-text)'
-            }}
-          >
-            <MessageSquarePlus size={14} />
-            New
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {recentChats.length === 0 ? (
-            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm text-slate-500">
-              ยังไม่มีบทสนทนา เริ่มพิมพ์คำถามแรกได้เลย
+      {/* Sidebar (Recent Chats) toggleable */}
+      {showSidebar && (
+        <div className="w-[280px] shrink-0 border-r border-white/5 bg-[#080a0f] flex flex-col">
+          <div className="h-16 px-4 flex items-center justify-between border-b border-white/5">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Recent Chats</h2>
+              <p className="text-[11px] text-slate-500">ประวัติจะอยู่ตรงนี้จนกว่าจะลบเอง</p>
             </div>
-          ) : (
-            recentChats.map((chat) => (
-              <RecentChatItem
-                key={chat.id}
-                chat={chat}
-                isActive={chat.id === activeConversationId}
-                onSelect={() => {
-                  setActiveConversation(chat.id);
-                  setActiveContextId(null);
-                }}
-                onDelete={() => {
-                  const isDeletingActive = chat.id === activeConversationId;
-                  deleteConversation(chat.id);
-                  if (isDeletingActive) {
+            <button
+              onClick={() => {
+                const newConversationId = createConversation();
+                setActiveConversation(newConversationId);
+                setActiveContextId(null);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:text-white hover:brightness-110"
+              style={{
+                borderColor: 'var(--chat-accent-soft-border)',
+                backgroundColor: 'var(--chat-accent-soft)',
+                color: 'var(--chat-accent-text)'
+              }}
+            >
+              <MessageSquarePlus size={14} />
+              New
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {recentChats.length === 0 ? (
+              <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm text-slate-500">
+                ยังไม่มีบทสนทนา เริ่มพิมพ์คำถามแรกได้เลย
+              </div>
+            ) : (
+              recentChats.map((chat) => (
+                <RecentChatItem
+                  key={chat.id}
+                  chat={chat}
+                  isActive={chat.id === activeConversationId}
+                  onSelect={() => {
+                    setActiveConversation(chat.id);
                     setActiveContextId(null);
-                  }
-                }}
-              />
-            ))
-          )}
+                  }}
+                  onDelete={() => {
+                    const isDeletingActive = chat.id === activeConversationId;
+                    deleteConversation(chat.id);
+                    if (isDeletingActive) {
+                      setActiveContextId(null);
+                    }
+                  }}
+                />
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* LEFT PANEL: CHAT */}
       <div 
@@ -296,9 +363,17 @@ export const IntelligencePage = () => {
         {/* Chat Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#0a0c10] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Sparkles size={20} className="text-white" />
-            </div>
+            {/* Sidebar Toggle Button */}
+            <button
+              onClick={() => setShowSidebar((v) => !v)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-transparent hover:bg-white/10 transition-transform"
+              title={showSidebar ? 'ซ่อน Recent Chats' : 'แสดง Recent Chats'}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="4" y="6" width="16" height="12" rx="2" stroke="#bfc9d1" strokeWidth="2"/>
+                <rect x="8.5" y="9" width="7" height="6" rx="1" stroke="#bfc9d1" strokeWidth="2"/>
+              </svg>
+            </button>
             <div>
               <h1 className="text-lg font-bold text-white">Locus Intelligence</h1>
               <p className="text-xs text-slate-500">Powered by LightRAG + Gemini</p>
@@ -751,6 +826,11 @@ const MessageBubble = ({
                 </div>
               )}
 
+              {/* Smart Action Buttons - only for bot messages that are complete */}
+              {!isUser && message.status === 'complete' && !message.isSystem && (
+                <SmartActionBar text={message.text} />
+              )}
+
               {/* Sources */}
               {false && message.status !== 'pending' && message.sources && message.sources.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-white/10">
@@ -808,6 +888,138 @@ const MessageBubble = ({
           </>
         )}
       </div>
+    </div>
+  );
+};
+
+// ==================== SMART ACTION BAR ====================
+
+interface SmartActionBarProps {
+  text: string;
+}
+
+const SmartActionBar = ({ text }: SmartActionBarProps) => {
+  const navigate = useNavigate();
+  const provinces = useMemo(() => extractMentionedProvinces(text), [text]);
+  const regions = useMemo(() => extractMentionedRegions(text), [text]);
+
+  // If no provinces or regions detected, show generic actions only
+  const hasContext = provinces.length > 0 || regions.length > 0;
+  if (!hasContext) return null;
+
+  // Pick first detected province for primary actions
+  const primaryProvince = provinces[0] || null;
+  const primaryRegion = regions[0] || null;
+
+  // Determine navigation targets
+  const regionIdForTravel = primaryProvince?.regionId || primaryRegion?.id || 'central';
+
+  const actionButtons: Array<{
+    label: string;
+    icon: React.ReactNode;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+    onClick: () => void;
+  }> = [];
+
+  // Hot Location button
+  actionButtons.push({
+    label: 'Hot Location',
+    icon: <Flame size={13} />,
+    color: 'text-orange-300',
+    bgColor: 'bg-orange-500/10',
+    borderColor: 'border-orange-500/30',
+    onClick: () => navigate('/', { state: { focusRegion: regionIdForTravel } }),
+  });
+
+  // Travel Guide button
+  actionButtons.push({
+    label: 'Travel Guide',
+    icon: <Compass size={13} />,
+    color: 'text-teal-300',
+    bgColor: 'bg-teal-500/10',
+    borderColor: 'border-teal-500/30',
+    onClick: () => navigate(`/travel-guide/${regionIdForTravel}`),
+  });
+
+  // Province-specific buttons (only if a province was detected)
+  if (primaryProvince) {
+    actionButtons.push({
+      label: 'Open Map',
+      icon: <Map size={13} />,
+      color: 'text-sky-300',
+      bgColor: 'bg-sky-500/10',
+      borderColor: 'border-sky-500/30',
+      onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`),
+    });
+  }
+
+  // Category quick-links
+  if (primaryProvince) {
+    actionButtons.push(
+      {
+        label: 'Transit',
+        icon: <Bus size={13} />,
+        color: 'text-blue-300',
+        bgColor: 'bg-blue-500/10',
+        borderColor: 'border-blue-500/30',
+        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'travel' } }),
+      },
+      {
+        label: 'Stay',
+        icon: <Bed size={13} />,
+        color: 'text-violet-300',
+        bgColor: 'bg-violet-500/10',
+        borderColor: 'border-violet-500/30',
+        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'stay' } }),
+      },
+      {
+        label: 'Food',
+        icon: <Utensils size={13} />,
+        color: 'text-amber-300',
+        bgColor: 'bg-amber-500/10',
+        borderColor: 'border-amber-500/30',
+        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'eat' } }),
+      },
+    );
+  }
+
+  // If multiple provinces found, show secondary province chips
+  const secondaryProvinces = provinces.slice(1, 4);
+
+  return (
+    <div className="mt-4 pt-3 border-t border-white/[0.06]">
+      {/* Action Buttons Row */}
+      <div className="flex flex-wrap gap-1.5">
+        {actionButtons.map((btn, idx) => (
+          <button
+            key={idx}
+            onClick={btn.onClick}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 hover:brightness-125 hover:scale-[1.03] active:scale-[0.97] ${btn.color} ${btn.bgColor} ${btn.borderColor}`}
+          >
+            {btn.icon}
+            {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Secondary Province Chips */}
+      {secondaryProvinces.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] text-slate-500 mr-1">ยังเกี่ยวข้องกับ:</span>
+          {secondaryProvinces.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => navigate(`/province/${p.regionId}/${p.id}`)}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-white/10 bg-white/[0.03] text-[10px] text-slate-400 hover:text-white hover:border-cyan-500/30 hover:bg-cyan-500/10 transition-all"
+            >
+              <MapPin size={10} />
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

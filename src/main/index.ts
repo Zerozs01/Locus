@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi } from './database/db'
@@ -685,8 +685,34 @@ app.whenReady().then(async () => {
     return getRainRadarTileTemplate()
   })
 
-  ipcMain.handle('map:searchEvChargers', async (_, params: MapEvSearchParams) => {
-    return searchEvChargers(params)
+  // Create a session that bypasses the system proxy for GISTDA requests
+  const noProxySession = session.fromPartition('persist:no-proxy')
+  noProxySession.setProxy({ proxyRules: 'direct://' }).catch(err => {
+    console.error('[Main] Failed to set proxy for no-proxy session:', err)
+  })
+
+  ipcMain.handle('map:fetchGistdaFeatures', async (_, url: string, headers?: Record<string, string>) => {
+    try {
+      // Use noProxySession.fetch directly since net.fetch ignores the session option in RequestInit
+      const response = await noProxySession.fetch(url, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        redirect: 'follow'
+      })
+      if (!response.ok) {
+        return { ok: false, status: response.status, statusText: response.statusText }
+      }
+      const data = await response.json()
+      return { ok: true, data }
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Unknown network error'
+      }
+    }
   })
 
   createWindow()

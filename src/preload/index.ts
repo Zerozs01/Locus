@@ -48,7 +48,9 @@ const api = {
   map: {
     getRainRadarTileTemplate: () => ipcRenderer.invoke('map:getRainRadarTileTemplate'),
     searchEvChargers: (params: { lat: number; lng: number; distanceKm?: number; maxResults?: number; apiKey?: string }) =>
-      ipcRenderer.invoke('map:searchEvChargers', params)
+      ipcRenderer.invoke('map:searchEvChargers', params),
+    fetchGistdaFeatures: (url: string, headers?: Record<string, string>) =>
+      ipcRenderer.invoke('map:fetchGistdaFeatures', url, headers)
   }
 }
 

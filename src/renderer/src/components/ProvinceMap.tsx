@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
+import { provinceCoordinates, bangkokFallbackPlaces } from '../data/coordinates';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Loader2, WifiOff, RefreshCw, Search, LocateFixed, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin, Info, ChevronDown, Map as MapIcon, Layers as LayersIcon } from 'lucide-react';
 import thailandGeo from '../data/thailand-geo.json';
+import thailandOutline from '../data/thailand-outline.json';
 
 // Fix Leaflet default marker icon issue
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -33,11 +35,13 @@ export interface ProvinceMapHandle {
   }) => void;
   // Direct fly-to with automatic fallback circle (no search pipeline)
   flyToWithFallback: (lat: number, lng: number, zoom: number, title?: string, fallbackRadius?: number) => void;
+  // Route setter
+  setRouteAndCalculate: (startLat: number, startLng: number, startTitle: string, endLat: number, endLng: number, endTitle: string) => void;
 }
 
 type ProvinceMapTheme = 'voyager' | 'positron' | 'dark' | 'osm' | 'satellite' | 'terrain' | 'admin';
 type ProvinceMarkerFilter = 'attraction' | 'restaurant' | 'hotel' | 'hospital' | 'transport';
-type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'evCharger' | 'slope';
+type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'floodRecurrent' | 'evCharger' | 'slope';
 
 interface ProvinceMapProps {
   provinceName: string;
@@ -105,9 +109,12 @@ const themeThaiNames: Record<ProvinceMapTheme, string> = {
   admin: 'ลายเส้นขาวดำ',
 };
 const LONGDO_TRAFFIC_TILE_URL = `https://mstraffic1.longdo.com/mmmap/tile.php?proj=epsg3857&mode=trafficoverlay&zoom={z}&x={x}&y={y}&key=${encodeURIComponent(LONGDO_MAP_API_KEY)}`;
+const LONGDO_FLOOD_RECURRENT_TILE_URL = `https://ms.longdo.com/map/msn-server/tile.php?proj=epsg3857&mode=floodrecurrent&zoom={z}&x={x}&y={y}&HD=1&key=${encodeURIComponent(LONGDO_MAP_API_KEY)}`;
 const THAILAND_AQI_BOUNDS = L.latLngBounds([5.2, 97.0], [20.7, 106.1]);
 const GISTDA_DEFAULT_WMS_URL = 'https://service-proxy-765rkyfg3q-as.a.run.app/api_geoserver/geoserver/pm25_hourly_raster_24hr/wms';
 const GISTDA_DEFAULT_WMS_LAYER = 'pm25_hourly_raster_24hr';
+const GISTDA_API_KEY = import.meta.env.VITE_GISTDA_API_KEY || '';
+const GISTDA_OPEN_API_BASE = 'https://api-gateway.gistda.or.th/api/2.0/resources';
 
 const mapLayerUrls = {
   traffic: import.meta.env.VITE_MAP_LAYER_TRAFFIC_URL || LONGDO_TRAFFIC_TILE_URL,
@@ -115,6 +122,8 @@ const mapLayerUrls = {
   aqicnAqi: import.meta.env.VITE_MAP_LAYER_AQICN_URL || `https://tiles.waqi.info/tiles/usepa-aqi/{z}/{x}/{y}.png?token=${AQICN_TILE_TOKEN}`,
   rainRadar: import.meta.env.VITE_MAP_LAYER_RAIN_URL || '',
   slope: import.meta.env.VITE_MAP_LAYER_SLOPE_URL || 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  floodRecurrent: import.meta.env.VITE_MAP_LAYER_FLOOD_RECURRENT_URL || `${GISTDA_OPEN_API_BASE}/features/flood-freq?limit=500`,
+  evCharger: import.meta.env.VITE_MAP_LAYER_EV_CHARGER_URL || '',
 };
 
 const dataLayerLabels: Record<ProvinceDataLayer, string> = {
@@ -122,8 +131,9 @@ const dataLayerLabels: Record<ProvinceDataLayer, string> = {
   gistdaAqi: 'คุณภาพอากาศ (GISTDA)',
   aqicnAqi: 'ดัชนีคุณภาพอากาศ (AQICN)',
   rainRadar: 'เรดาร์ตรวจฝน',
-  evCharger: 'จุดชาร์จรถไฟฟ้า',
   slope: 'พื้นที่ลาดชัน',
+  floodRecurrent: 'น้ำท่วมซ้ำซาก (GISTDA)',
+  evCharger: 'สถานีชาร์จรถไฟฟ้า',
 };
 
 const markerIcons: Record<string, L.DivIcon> = {
@@ -182,94 +192,8 @@ const centerMarkerIcon = L.divIcon({
   iconAnchor: [22, 44],
 });
 
-export const provinceCoordinates: Record<string, { lat: number; lng: number }> = {
-  'Chiang Mai': { lat: 18.7883, lng: 98.9853 },
-  'Chiang Rai': { lat: 19.9105, lng: 99.8406 },
-  'Nan': { lat: 18.7756, lng: 100.7730 },
-  'Phrae': { lat: 18.1445, lng: 100.1403 },
-  'Mae Hong Son': { lat: 19.3020, lng: 97.9654 },
-  'Lamphun': { lat: 18.5744, lng: 99.0087 },
-  'Lampang': { lat: 18.2888, lng: 99.4907 },
-  'Phayao': { lat: 19.1664, lng: 99.9019 },
-  'Uttaradit': { lat: 17.6200, lng: 100.0993 },
-  'Khon Kaen': { lat: 16.4322, lng: 102.8236 },
-  'Korat': { lat: 14.9799, lng: 102.0978 },
-  'Nakhon Ratchasima': { lat: 14.9799, lng: 102.0978 },
-  'Ubon': { lat: 15.2287, lng: 104.8564 },
-  'Ubon Ratchathani': { lat: 15.2287, lng: 104.8564 },
-  'Udon Thani': { lat: 17.4156, lng: 102.7872 },
-  'Amnat Charoen': { lat: 15.8656, lng: 104.6258 },
-  'Buriram': { lat: 14.9930, lng: 103.1029 },
-  'Chaiyaphum': { lat: 15.8068, lng: 102.0316 },
-  'Kalasin': { lat: 16.4314, lng: 103.5058 },
-  'Loei': { lat: 17.4860, lng: 101.7223 },
-  'Maha Sarakham': { lat: 16.1847, lng: 103.3009 },
-  'Mukdahan': { lat: 16.5425, lng: 104.7235 },
-  'Pathum Thani': { lat: 14.0208, lng: 100.5250 },
-  'Nonthaburi': { lat: 13.8591, lng: 100.5217 },
-  'Samut Prakan': { lat: 13.5991, lng: 100.5968 },
-  'Phra Nakhon Si Ayutthaya': { lat: 14.3516, lng: 100.5640 },
-  'Ayutthaya': { lat: 14.3516, lng: 100.5640 },
-  'Nakhon Phanom': { lat: 17.3920, lng: 104.7695 },
-  'Nong Bua Lam Phu': { lat: 17.2218, lng: 102.4260 },
-  'Nong Khai': { lat: 17.8783, lng: 102.7420 },
-  'Roi Et': { lat: 16.0538, lng: 103.6520 },
-  'Sakon Nakhon': { lat: 17.1545, lng: 104.1348 },
-  'Si Sa Ket': { lat: 15.1186, lng: 104.3220 },
-  'Surin': { lat: 14.8818, lng: 103.4936 },
-  'Yasothon': { lat: 15.7944, lng: 104.1459 },
-  'Bueng Kan': { lat: 18.3609, lng: 103.6466 },
-  'Bangkok': { lat: 13.7563, lng: 100.5018 },
-  'Bangkok Metropolis': { lat: 13.7563, lng: 100.5018 },
-  'Nonthaburi': { lat: 13.8621, lng: 100.5144 },
-  'Pathum Thani': { lat: 14.0208, lng: 100.5250 },
-  'Samut Prakan': { lat: 13.5990, lng: 100.5998 },
-  'Samut Sakhon': { lat: 13.5475, lng: 100.2744 },
-  'Nakhon Pathom': { lat: 13.8196, lng: 100.0445 },
-  'Ayutthaya': { lat: 14.3532, lng: 100.5683 },
-  'Phra Nakhon Si Ayutthaya': { lat: 14.3532, lng: 100.5683 },
-  'Ang Thong': { lat: 14.5896, lng: 100.4549 },
-  'Chai Nat': { lat: 15.1851, lng: 100.1251 },
-  'Lop Buri': { lat: 14.7995, lng: 100.6534 },
-  'Nakhon Nayok': { lat: 14.2069, lng: 101.2131 },
-  'Nakhon Sawan': { lat: 15.7030, lng: 100.1371 },
-  'Phetchabun': { lat: 16.4190, lng: 101.1591 },
-  'Phichit': { lat: 16.4419, lng: 100.3488 },
-  'Phitsanulok': { lat: 16.8211, lng: 100.2659 },
-  'Saraburi': { lat: 14.5289, lng: 100.9102 },
-  'Sing Buri': { lat: 14.8936, lng: 100.3967 },
-  'Sukhothai': { lat: 17.0070, lng: 99.8237 },
-  'Suphan Buri': { lat: 14.4744, lng: 100.1177 },
-  'Uthai Thani': { lat: 15.3835, lng: 100.0245 },
-  'Kamphaeng Phet': { lat: 16.4827, lng: 99.5226 },
-  'Tak': { lat: 16.8840, lng: 99.1258 },
-  'Chon Buri': { lat: 13.3611, lng: 100.9847 },
-  'Rayong': { lat: 12.6833, lng: 101.2833 },
-  'Chanthaburi': { lat: 12.6103, lng: 102.1028 },
-  'Trat': { lat: 12.2428, lng: 102.5177 },
-  'Chachoengsao': { lat: 13.6904, lng: 101.0779 },
-  'Prachin Buri': { lat: 14.0509, lng: 101.3660 },
-  'Sa Kaeo': { lat: 13.8240, lng: 102.0645 },
-  'Kanchanaburi': { lat: 14.0227, lng: 99.5328 },
-  'Ratchaburi': { lat: 13.5283, lng: 99.8134 },
-  'Phetchaburi': { lat: 13.1119, lng: 99.9397 },
-  'Prachuap Khiri Khan': { lat: 11.8126, lng: 99.7957 },
-  'Samut Songkhram': { lat: 13.4098, lng: 100.0023 },
-  'Phuket': { lat: 7.8804, lng: 98.3923 },
-  'Krabi': { lat: 8.0863, lng: 98.9063 },
-  'Surat Thani': { lat: 9.1382, lng: 99.3217 },
-  'Nakhon Si Thammarat': { lat: 8.4324, lng: 99.9631 },
-  'Songkhla': { lat: 7.1756, lng: 100.6143 },
-  'Pattani': { lat: 6.8691, lng: 101.2508 },
-  'Yala': { lat: 6.5400, lng: 101.2803 },
-  'Narathiwat': { lat: 6.4318, lng: 101.8232 },
-  'Chumphon': { lat: 10.4930, lng: 99.1800 },
-  'Ranong': { lat: 9.9528, lng: 98.6085 },
-  'Phang Nga': { lat: 8.4510, lng: 98.5256 },
-  'Trang': { lat: 7.5563, lng: 99.6114 },
-  'Satun': { lat: 6.6238, lng: 100.0673 },
-  'Phatthalung': { lat: 7.6167, lng: 100.0743 },
-};
+
+// Data moved to coordinates.ts
 
 // Default Thailand center
 const defaultCoords = { lat: 13.7563, lng: 100.5018 };
@@ -342,17 +266,8 @@ const getCanonicalPlaceType = (place: SearchPlace): string => {
 };
 
 
-const bangkokFallbackPlaces: SearchPlace[] = [
-  { title: 'สยามพารากอน', subtitle: 'Siam Paragon', lat: 13.7466, lng: 100.5347, type: 'landmark', keywords: 'siam paragon สยามพารากอน สยามพารากอ สยามพา', source: 'local' },
-  { title: 'สยามสแควร์', subtitle: 'Siam Square', lat: 13.7449, lng: 100.5335, type: 'district', keywords: 'siam square สยามสแควร์ สยามสแคว', source: 'local' },
-  { title: 'เซ็นทรัลเวิลด์', subtitle: 'CentralWorld', lat: 13.7467, lng: 100.5393, type: 'landmark', keywords: 'centralworld central world เซ็นทรัลเวิลด์', source: 'local' },
-  { title: 'สยาม', subtitle: 'Siam', lat: 13.7466, lng: 100.5347, type: 'district', keywords: 'siam สยาม square สยามสแควร์', source: 'local' },
-  { title: 'จตุจักร', subtitle: 'Chatuchak', lat: 13.7998, lng: 100.5510, type: 'district', keywords: 'chatuchak จตุจักร weekend market ตลาดนัด', source: 'local' },
-  { title: 'อโศก', subtitle: 'Asok', lat: 13.7374, lng: 100.5603, type: 'district', keywords: 'asok อโศก สุขุมวิท', source: 'local' },
-  { title: 'เยาวราช', subtitle: 'Yaowarat', lat: 13.7397, lng: 100.5101, type: 'district', keywords: 'yaowarat เยาวราช ไชน่าทาวน์ chinatown', source: 'local' },
-  { title: 'สีลม', subtitle: 'Silom', lat: 13.7279, lng: 100.5311, type: 'district', keywords: 'silom สีลม sathorn สาทร', source: 'local' },
-  { title: 'สนามบินสุวรรณภูมิ', subtitle: 'Suvarnabhumi Airport', lat: 13.6900, lng: 100.7501, type: 'transport', keywords: 'bkk airport สุวรรณภูมิ สนามบิน', source: 'local' },
-];
+
+// bangkokFallbackPlaces is now imported from coordinates.ts
 
 const compileSearchRegex = (query: string): RegExp => {
   try {
@@ -573,31 +488,59 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     setIsCalculatingRoute(true);
     setRouteData(null);
     try {
-      // Use 'driving' profile universally for reliable path geometry from free public OSRM server
-      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`);
-      const data = await res.json();
-      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-        const distance = data.routes[0].distance; // meters
-        let duration = data.routes[0].duration; // seconds
+      const endpoints = [
+        `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`,
+        `https://routing.openstreetmap.de/routed-car/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`
+      ];
 
-        // Adjust duration mathematically for walking/cycling along road paths
-        if (mode === 'walking') {
-           duration = distance / 1.4; // avg 5 km/h
-        } else if (mode === 'cycling') {
-           duration = distance / 4.1; // avg 15 km/h
+      let data: any = null;
+      let lastError: any = null;
+
+      for (const url of endpoints) {
+        try {
+          let resText;
+          if (window.api && window.api.fetch) {
+            const res = await window.api.fetch(url, {
+              headers: { 'User-Agent': 'Locus-Electron-App/1.0' }
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            resText = res.data;
+          } else {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            resText = await res.text();
+          }
+          data = typeof resText === 'string' ? JSON.parse(resText) : resText;
+          if (data && data.code === 'Ok') break; // Success
+        } catch (err) {
+          lastError = err;
+          console.warn(`[ProvinceMap] OSRM fetch failed for ${url}:`, err);
         }
-
-        setRouteData({
-          distance,
-          duration,
-          geojson: data.routes[0].geometry
-        });
-      } else {
-        alert("ขออภัย ไม่พบเส้นทางเชื่อมต่อที่เหมาะสม (Route not found)");
       }
+
+      if (!data || data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+        if (data && data.code !== 'Ok') throw new Error(`API Error: ${data.code}`);
+        throw lastError || new Error("Route not found");
+      }
+
+      const distance = data.routes[0].distance; // meters
+      let duration = data.routes[0].duration; // seconds
+
+      // Adjust duration mathematically for walking/cycling along road paths
+      if (mode === 'walking') {
+         duration = distance / 1.4; // avg 5 km/h
+      } else if (mode === 'cycling') {
+         duration = distance / 4.1; // avg 15 km/h
+      }
+
+      setRouteData({
+        distance,
+        duration,
+        geojson: data.routes[0].geometry
+      });
     } catch(e) {
       console.error(e);
-      alert("ไม่สามารถคำนวณเส้นทางได้ (ติดปัญหาการเชื่อมต่อเซิร์ฟเวอร์ OSRM API)");
+      alert("ไม่สามารถคำนวณเส้นทางได้ (เซิร์ฟเวอร์แผนที่ขัดข้องชั่วคราว กรุณาลองใหม่ในภายหลัง)");
     } finally {
       setIsCalculatingRoute(false);
     }
@@ -828,8 +771,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     });
     externalDataLayerRefs.current = [];
 
+    setActiveDataLayerWarnings([]); // Clear warnings at the start of layer updates
     if (enabledDataLayers.size === 0) {
-      setActiveDataLayerWarnings([]);
       return;
     }
 
@@ -1003,16 +946,107 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         return;
       }
 
+      const gistdaGeoJsonLayers: ProvinceDataLayer[] = ['floodRecurrent'];
+      
+      if (gistdaGeoJsonLayers.includes(layerId)) {
+        let fetchUrl = mapLayerUrls[layerId as keyof typeof mapLayerUrls];
+        if (map) {
+          const bounds = map.getBounds();
+          const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+          fetchUrl += `&bbox=${bbox}`;
+        }
+        
+        if (!GISTDA_API_KEY) {
+          console.warn(`[ProvinceMap] GISTDA_API_KEY is missing. Cannot fetch ${dataLayerLabels[layerId]}. The API gateway returns 407 Authentication Required otherwise.`);
+          setActiveDataLayerWarnings(prev => {
+            const msg = `${dataLayerLabels[layerId]} (Missing API Key)`;
+            return prev.includes(msg) ? prev : [...prev, msg];
+          });
+          return;
+        }
+
+        const headers: Record<string, string> = {
+          'apikey': GISTDA_API_KEY,
+          'API-Key': GISTDA_API_KEY
+        };
+
+        const fetchMethod = window.api?.map?.fetchGistdaFeatures;
+
+        if (fetchMethod) {
+          fetchMethod(fetchUrl, headers)
+            .then(result => {
+              if (!result.ok) throw new Error(result.error || `HTTP ${result.status}`);
+              const data = result.data;
+              if (data && data.features) {
+                if (data.features.length > 0) {
+                  let layerColor = '#3b82f6'; // default blue (flood)
+
+                  const geoJsonLayer = L.geoJSON(data, {
+                    style: {
+                      color: layerColor,
+                      weight: 1.5,
+                      fillColor: layerColor,
+                      fillOpacity: 0.45
+                    }
+                  }).addTo(map);
+                  externalDataLayerRefs.current.push(geoJsonLayer);
+                } else {
+                  // Valid response, but 0 features in this viewport/timeframe
+                  setActiveDataLayerWarnings(prev => {
+                    const msg = `${dataLayerLabels[layerId]} (ไม่พบข้อมูลในพื้นที่นี้)`;
+                    return prev.includes(msg) ? prev : [...prev, msg];
+                  });
+                }
+              }
+            })
+            .catch(err => {
+              const errMsg = err.message || '';
+              if (errMsg.includes('HTTP 502')) {
+                console.warn(`[ProvinceMap] GISTDA endpoint for ${layerId} returned 502. Service backend overloaded.`);
+                setActiveDataLayerWarnings(prev => {
+                  const msg = `${dataLayerLabels[layerId]} (ระบบต้นทางมีปัญหา 502)`;
+                  return prev.includes(msg) ? prev : [...prev, msg];
+                });
+              } else if (errMsg.includes('HTTP 404')) {
+                console.warn(`[ProvinceMap] GISTDA endpoint for ${layerId} returned 404. Service might not be available.`);
+                setActiveDataLayerWarnings(prev => {
+                  const msg = `${dataLayerLabels[layerId]} (ยังไม่เปิดให้บริการ)`;
+                  return prev.includes(msg) ? prev : [...prev, msg];
+                });
+              } else {
+                console.error(`[ProvinceMap] GISTDA Fetch Error for ${layerId}:`, err);
+                setActiveDataLayerWarnings(prev => {
+                  const msg = `${dataLayerLabels[layerId]} (Data Error)`;
+                  return prev.includes(msg) ? prev : [...prev, msg];
+                });
+              }
+            });
+        } else {
+          console.warn('[ProvinceMap] window.api.map.fetchGistdaFeatures not found. Please RESTART Electron to use the main process fetcher.');
+        }
+        return;
+      }
+
       const layerUrl = mapLayerUrls[layerId as keyof typeof mapLayerUrls];
       if (!layerUrl) {
-        unresolved.push(dataLayerLabels[layerId]);
+        if (dataLayerLabels[layerId]) {
+          unresolved.push(dataLayerLabels[layerId]);
+        }
         return;
       }
 
       addTileLayer(dataLayerLabels[layerId], layerUrl, 0.55);
     });
 
-    setActiveDataLayerWarnings(unresolved);
+    if (unresolved.length > 0) {
+      setActiveDataLayerWarnings(prev => {
+        const next = [...prev];
+        unresolved.forEach(u => {
+          if (!next.includes(u)) next.push(u);
+        });
+        return next;
+      });
+    }
 
     return () => {
       externalDataLayerRefs.current.forEach((layer) => {
@@ -1531,6 +1565,19 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       highlightLocation(lat, lng, undefined, undefined, fallbackRadius, 'rectangle');
       console.log(`[ProvinceMap] flyToWithFallback: ${title} (${lat}, ${lng}) with ${fallbackRadius}m fallback`);
     },
+    setRouteAndCalculate: (startLat: number, startLng: number, startTitle: string, endLat: number, endLng: number, endTitle: string) => {
+      setRouteStart({ lat: startLat, lng: startLng, title: startTitle });
+      setRouteEnd({ lat: endLat, lng: endLng, title: endTitle });
+      calculateRoute(startLat, startLng, endLat, endLng, travelMode);
+      
+      const map = mapInstanceRef.current;
+      if (map) {
+        map.fitBounds([
+          [startLat, startLng],
+          [endLat, endLng]
+        ], { padding: [50, 50], animate: true, duration: 1 });
+      }
+    },
   }));
 
   // Create highlight effect at a location
@@ -2005,16 +2052,16 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     // Only show prominent Thailand boundary when Slope layer is active
     // This helps distinguish territory since Slope covers global areas.
     if (enabledDataLayers.has('slope')) {
-      adminBoundaryLayerRef.current = L.geoJSON(thailandGeo as any, {
+      adminBoundaryLayerRef.current = L.geoJSON(thailandOutline as any, {
         style: {
           color: '#ef4444', // Red-500
-          weight: 3,
-          opacity: 0.85,
-          dashArray: '10, 10', // Prominent dashed line
+          weight: 3, // Even thinner for better aesthetics
+          opacity: 0.6, // More subtle
+          dashArray: '8, 8', 
           fillColor: '#ef4444',
-          fillOpacity: 0.03, // Extremely subtle fill to define area
+          fillOpacity: 0.015, 
         },
-        interactive: false // Don't block clicks
+        interactive: false
       }).addTo(map);
     }
 
@@ -2043,6 +2090,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     { id: 'gistdaAqi', label: 'คุณภาพอากาศ (GISTDA)', icon: '💨', description: 'ค่าฝุ่น PM 2.5 รายชั่วโมง วิเคราะห์จากดาวเทียมตระกูล VIIRS โดย GISTDA' },
     { id: 'aqicnAqi', label: 'ดัชนีคุณภาพอากาศ (AQICN)', icon: '🌍', description: 'ดัชนีคุณภาพอากาศมาตรฐาน US-EPA ครอบคลุมพื้นที่ทั่วโลก' },
     { id: 'rainRadar', label: 'เรดาร์ตรวจฝน', icon: '🌧️', description: 'ตรวจจับกลุ่มฝนและความแรงของหยาดน้ำฟ้า อัปเดตทุก 10 นาที' },
+    { id: 'floodRecurrent', label: 'น้ำท่วมซ้ำซาก (GISTDA)', icon: '🌊', description: 'ข้อมูลพื้นที่น้ำท่วมซ้ำซาก วิเคราะห์จากข้อมูลดาวเทียมหลายปี โดย GISTDA' },
     { id: 'slope', label: 'พื้นที่ลาดชัน', icon: '⛰️', description: 'แสดงระดับความชันของพื้นที่เพื่อเฝ้าระวังดินโคลนถล่มในพื้นที่ภูเขา' },
   ];
 
@@ -2207,16 +2255,16 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       )}
 
       {activeDataLayerWarnings.length > 0 && !isLoading && (
-        <div className="absolute top-16 right-4 z-[1000] rounded-lg border border-amber-400/40 bg-black/80 px-3 py-2 text-[11px] text-amber-200 max-w-[280px]">
-          ชั้นข้อมูลต่อไปนี้ยังไม่พร้อมใช้งาน (ต้องตั้งค่า URL เพิ่ม): {activeDataLayerWarnings.join(', ')}
-          {activeDataLayerWarnings.some((name) => name.includes('น้ำท่วมซ้ำซาก')) && (
-            <div className="mt-1 text-[10px] text-amber-100/80">
-              Hint: ตั้งค่า VITE_MAP_LAYER_FLOOD_RECURRENT_URL (และตั้งค่า LAYER/STYLE เพิ่มเฉพาะกรณีใช้ WMS)
-            </div>
-          )}
+        <div className="absolute top-16 right-4 z-[1000] rounded-lg border border-amber-400/40 bg-black/80 px-3 py-2 text-[11px] text-amber-200 max-w-[280px] shadow-lg">
+          <div className="font-bold mb-1">สถานะชั้นข้อมูล:</div>
+          <ul className="list-disc list-inside space-y-0.5">
+            {Array.from(new Set(activeDataLayerWarnings)).map((warning, idx) => (
+              <li key={idx}>{warning}</li>
+            ))}
+          </ul>
           {activeDataLayerWarnings.some((name) => name.includes('เรดาร์ตรวจฝน')) && (
-            <div className="mt-1 text-[10px] text-amber-100/80">
-              Hint: ตั้งค่า VITE_MAP_LAYER_RAIN_URL หรือกำหนด OpenWeather API key ในระบบ
+            <div className="mt-1.5 text-[10px] text-amber-100/70 border-t border-amber-400/20 pt-1">
+              Hint: ตั้งค่า VITE_MAP_LAYER_RAIN_URL ใน .env.local 
             </div>
           )}
         </div>
@@ -2811,6 +2859,18 @@ const LayerItem = ({ opt, isEnabled, onToggle, status }: { opt: any; isEnabled: 
               </div>
             </div>
           )}
+
+          {opt.id === 'floodRecurrent' && (
+            <div className="mt-1">
+              <div className="flex h-2 w-full rounded-full overflow-hidden mb-1.5 border border-white/10 shadow-inner bg-gradient-to-r from-cyan-400 to-blue-600" />
+              <div className="flex justify-between text-[8px] text-slate-400 font-black uppercase">
+                <span>น้ำขัง</span>
+                <span>น้ำท่วมขังสูง</span>
+              </div>
+            </div>
+          )}
+
+
 
           {opt.id === 'slope' && (
             <div className="mt-1">
