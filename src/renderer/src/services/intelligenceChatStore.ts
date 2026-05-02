@@ -415,6 +415,90 @@ export const intelligenceChatStore = {
     if (!activeConversation) return
     intelligenceChatStore.deleteConversation(activeConversation.id)
   },
+  deleteMessage(messageId: string) {
+    const activeConversation = getActiveConversation(state);
+    if (!activeConversation) return;
+
+    updateConversation(activeConversation.id, (conversation) => ({
+      ...conversation,
+      updatedAt: new Date().toISOString(),
+      messages: conversation.messages.filter(m => m.id !== messageId)
+    }));
+  },
+  resubmitMessage(messageId: string, newText: string) {
+    const trimmed = newText.trim();
+    if (!trimmed) return;
+
+    const activeConversation = getActiveConversation(state);
+    if (!activeConversation) return;
+
+    const messageIndex = activeConversation.messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
+
+    const truncatedMessages = activeConversation.messages.slice(0, messageIndex);
+    const conversationId = activeConversation.id;
+
+    const userMessage: ChatMessage = {
+      id: createId('user'),
+      text: trimmed,
+      sender: 'user',
+      timestamp: new Date().toISOString(),
+      status: 'complete'
+    };
+
+    const pendingReply: ChatMessage = {
+      id: createId('bot'),
+      text: 'กำลังวิเคราะห์...',
+      sender: 'bot',
+      timestamp: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    const messageWithContext = buildContextPrompt(trimmed, activeConversation.chatContext);
+    const locationPayload = buildLocationPayload(activeConversation.chatContext);
+
+    // Atomic: truncate history + append new user msg + pending bot in ONE setState
+    setState((current) => ({
+      ...current,
+      conversations: sortConversations(
+        current.conversations.map((conversation) =>
+          conversation.id !== conversationId
+            ? conversation
+            : {
+                ...conversation,
+                updatedAt: new Date().toISOString(),
+                messages: [...truncatedMessages, userMessage, pendingReply].slice(-MAX_MESSAGES)
+              }
+        )
+      )
+    }));
+
+    void sendChatMessage(messageWithContext, undefined, undefined, locationPayload)
+      .then((responseText) => {
+        updateConversation(conversationId, (conversation) => ({
+          ...conversation,
+          updatedAt: new Date().toISOString(),
+          messages: conversation.messages.map((message) =>
+            message.id === pendingReply.id
+              ? { ...message, text: responseText, status: 'complete' }
+              : message
+          )
+        }));
+      })
+      .catch((error) => {
+        const errorMessage =
+          error instanceof Error ? error.message : 'ไม่สามารถเชื่อมต่อ Agent ได้';
+        updateConversation(conversationId, (conversation) => ({
+          ...conversation,
+          updatedAt: new Date().toISOString(),
+          messages: conversation.messages.map((message) =>
+            message.id === pendingReply.id
+              ? { ...message, text: `❌ ${errorMessage}`, status: 'error' }
+              : message
+          )
+        }));
+      });
+  },
   addUploadedFile(file: File) {
     let conversationId = ''
 
@@ -587,6 +671,8 @@ export const useIntelligenceChatStore = () => {
     deleteConversation: intelligenceChatStore.deleteConversation,
     clearChat: intelligenceChatStore.clear,
     sendMessage: intelligenceChatStore.sendMessage,
+    resubmitMessage: intelligenceChatStore.resubmitMessage,
+    deleteMessage: intelligenceChatStore.deleteMessage,
     addUploadedFile: intelligenceChatStore.addUploadedFile
   }
 }

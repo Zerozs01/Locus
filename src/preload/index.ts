@@ -21,6 +21,24 @@ const api = {
     getWeatherAqi: (provinceId?: string, date?: string) =>
       ipcRenderer.invoke('db:getWeatherAqi', provinceId, date)
   },
+  floodCache: {
+    save: (provinceId: string, geoJsonData: object) =>
+      ipcRenderer.invoke('db:saveFloodCache', provinceId, geoJsonData),
+    get: (provinceId: string) =>
+      ipcRenderer.invoke('db:getFloodCache', provinceId),
+    isValid: (provinceId: string, maxAgeHours?: number) =>
+      ipcRenderer.invoke('db:isFloodCacheValid', provinceId, maxAgeHours)
+  },
+  fuelPrices: {
+    save: (prices: Array<{ fuelType: string; price: number; source?: string }>) =>
+      ipcRenderer.invoke('db:saveFuelPrices', prices),
+    get: () =>
+      ipcRenderer.invoke('db:getFuelPrices'),
+    isValid: (maxAgeHours?: number) =>
+      ipcRenderer.invoke('db:isFuelPricesValid', maxAgeHours)
+  },
+  fetchBangchak: () =>
+    ipcRenderer.invoke('fuel:getBangchakPrices'),
   assets: {
     getImageCacheStats: () => ipcRenderer.invoke('assets:getImageCacheStats'),
     clearImageCache: () => ipcRenderer.invoke('assets:clearImageCache')

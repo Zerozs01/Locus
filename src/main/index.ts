@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid } from './database/db'
 import { initialRegions } from './database/initialData'
 import { isanUpper1 } from './database/portalSeed_isanUpper1'
 import { isanUpper2 } from './database/portalSeed_isanUpper2'
@@ -638,6 +638,30 @@ app.whenReady().then(async () => {
      return getWeatherAqi(provinceId, date);
   })
 
+  ipcMain.handle('db:saveFloodCache', (_, provinceId: string, geoJsonData: object) => {
+     return saveFloodCache(provinceId, geoJsonData);
+  })
+
+  ipcMain.handle('db:getFloodCache', (_, provinceId: string) => {
+     return getFloodCache(provinceId);
+  })
+
+  ipcMain.handle('db:isFloodCacheValid', (_, provinceId: string, maxAgeHours = 24) => {
+     return isFloodCacheValid(provinceId, maxAgeHours);
+  })
+
+  ipcMain.handle('db:saveFuelPrices', (_, prices: Array<{ fuelType: string; price: number; source?: string }>) => {
+     return saveFuelPrices(prices);
+  })
+
+  ipcMain.handle('db:getFuelPrices', () => {
+     return getFuelPrices();
+  })
+
+  ipcMain.handle('db:isFuelPricesValid', (_, maxAgeHours = 6) => {
+     return isFuelPricesValid(maxAgeHours);
+  })
+
   ipcMain.handle('assets:getImageCacheStats', () => {
      return getImageCacheStats();
   })
@@ -707,6 +731,30 @@ app.whenReady().then(async () => {
       }
       const data = await response.json()
       return { ok: true, data }
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Unknown network error'
+      }
+    }
+  })
+
+  ipcMain.handle('fuel:getBangchakPrices', async () => {
+    try {
+      const BANGCHAK_URL = 'https://oil-price.bangchak.co.th/apioilprice2/th'
+      const response = await noProxySession.fetch(BANGCHAK_URL, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        redirect: 'follow'
+      })
+      if (!response.ok) {
+        return { ok: false, status: response.status, statusText: response.statusText }
+      }
+      const html = await response.text()
+      return { ok: true, data: html }
     } catch (error) {
       return {
         ok: false,

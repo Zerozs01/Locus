@@ -33,7 +33,9 @@ import {
   Utensils,
   Bus,
   Flame,
-  Sparkles
+  Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { ChatContext, ChatMessage as Message, RecentChatSummary, Source, useIntelligenceChatStore } from '../services/intelligenceChatStore';
 import { MarkdownLite } from '../components/MarkdownLite';
@@ -118,6 +120,8 @@ export const IntelligencePage = () => {
     deleteConversation,
     clearChat,
     sendMessage,
+    resubmitMessage,
+    deleteMessage,
     addUploadedFile
   } = useIntelligenceChatStore();
   const { theme } = useChatThemeStore();
@@ -253,10 +257,17 @@ export const IntelligencePage = () => {
 
   const handleConfirmEdit = () => {
     if (!editingMessageId || !editingText.trim() || isLoading) return;
-    sendMessage(editingText);
+    resubmitMessage(editingMessageId, editingText);
     setEditingMessageId(null);
     setEditingText('');
     setInputText('');
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    deleteMessage(messageId);
+    if (activeContextId === messageId) {
+      setActiveContextId(null);
+    }
   };
 
 
@@ -369,10 +380,7 @@ export const IntelligencePage = () => {
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-transparent hover:bg-white/10 transition-transform"
               title={showSidebar ? 'ซ่อน Recent Chats' : 'แสดง Recent Chats'}
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="4" y="6" width="16" height="12" rx="2" stroke="#bfc9d1" strokeWidth="2"/>
-                <rect x="8.5" y="9" width="7" height="6" rx="1" stroke="#bfc9d1" strokeWidth="2"/>
-              </svg>
+              {showSidebar ? <PanelLeftClose size={20} className="text-slate-400" /> : <PanelLeftOpen size={20} className="text-slate-400" />}
             </button>
             <div>
               <h1 className="text-lg font-bold text-white">Locus Intelligence</h1>
@@ -479,6 +487,7 @@ export const IntelligencePage = () => {
               onEditingTextChange={setEditingText}
               onConfirmEdit={handleConfirmEdit}
               onCancelEdit={handleCancelEdit}
+              onDelete={() => handleDeleteMessage(msg.id)}
               setEditTextareaRef={setEditTextareaRef}
             />
           ))}
@@ -712,6 +721,7 @@ interface MessageBubbleProps {
   onEditingTextChange: (text: string) => void;
   onConfirmEdit: () => void;
   onCancelEdit: () => void;
+  onDelete: () => void;
   setEditTextareaRef: (el: HTMLTextAreaElement | null) => void;
 }
 
@@ -727,6 +737,7 @@ const MessageBubble = ({
   onEditingTextChange,
   onConfirmEdit,
   onCancelEdit,
+  onDelete,
   setEditTextareaRef
 }: MessageBubbleProps) => {
   const [copied, setCopied] = useState(false);
@@ -884,6 +895,14 @@ const MessageBubble = ({
                   {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                 </button>
               )}
+              {/* Delete button (for both) */}
+              <button
+                onClick={onDelete}
+                className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors ml-auto"
+                title="ลบข้อความนี้"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
           </>
         )}

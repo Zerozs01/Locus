@@ -45,6 +45,7 @@ type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'f
 
 interface ProvinceMapProps {
   provinceName: string;
+  provinceId?: string; // For GISTDA flood-freq filtering
   lat?: number;
   lng?: number;
   zoom?: number;
@@ -332,7 +333,8 @@ const buildRemoteQueryCandidates = (query: string, provinceName: string): string
 };
 
 export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({ 
-  provinceName, 
+  provinceName,
+  provinceId,
   lat, 
   lng, 
   zoom = 12, 
@@ -363,6 +365,24 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const [isRainRadarResolving, setIsRainRadarResolving] = useState(false);
   const [evChargerPoints, setEvChargerPoints] = useState<Array<{ lat: number; lng: number; title: string; subtitle: string }>>([]);
   const [activeDataLayerWarnings, setActiveDataLayerWarnings] = useState<string[]>([]);
+  const [isDataLayerLoading, setIsDataLayerLoading] = useState(false);
+  const [mapVersion, setMapVersion] = useState(0);
+  const lastFetchCenter = useRef<L.LatLng | null>(null);
+
+  // Re-fetch GISTDA GeoJSON data when map pans significantly (>5km)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const onMoveEnd = () => {
+      const center = map.getCenter();
+      if (!lastFetchCenter.current || center.distanceTo(lastFetchCenter.current) > 5000) {
+        setMapVersion(v => v + 1);
+      }
+    };
+    map.on('moveend', onMoveEnd);
+    return () => { map.off('moveend', onMoveEnd); };
+  }, []);
+
   const [activeOverlay, setActiveOverlay] = useState<'map' | 'layers' | null>(null);
   const externalDataLayerRefs = useRef<L.Layer[]>([]);
   const [mapContextMenu, setMapContextMenu] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
@@ -429,28 +449,35 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       };
 
       const tryIPGeolocation = async () => {
-        try {
-          const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
-          if (!res.ok) throw new Error('IP Geo API failed');
-          const data = await res.json();
-          const lat = parseFloat(data.latitude);
-          const lng = parseFloat(data.longitude);
-          if (!isNaN(lat) && !isNaN(lng)) {
-            const accept = window.confirm('ระบบตรวจพบตำแหน่งโดยประมาณจากเครือข่ายอินเทอร์เน็ต (IP) ซึ่งอาจคลาดเคลื่อน (เช่น แสดงเป็นเขตกรุงเทพฯ/ภาษีเจริญ) \n\nต้องการใช้ตำแหน่งนี้ชั่วคราวหรือไม่? \n(หากไม่ต้องการ สามารถกดยกเลิกและพิมพ์ค้นหาจังหวัด/สถานที่เองได้)');
-            if (accept) {
-              resolveAndDraw(lat, lng, 5000); // ~5km accuracy for IP based
-            } else {
-              setIsLocating(false);
-              resolve(null);
+        const fallbackProviders = [
+          { url: 'https://get.geojs.io/v1/ip/geo.json', parser: (d: any) => ({ lat: parseFloat(d.latitude), lng: parseFloat(d.longitude) }) },
+          { url: 'https://ipapi.co/json/', parser: (d: any) => ({ lat: parseFloat(d.latitude), lng: parseFloat(d.longitude) }) },
+          { url: 'http://ip-api.com/json/', parser: (d: any) => ({ lat: parseFloat(d.lat), lng: parseFloat(d.lon) }) }
+        ];
+
+        for (const provider of fallbackProviders) {
+          try {
+            const res = await fetch(provider.url);
+            if (!res.ok) continue;
+            const data = await res.json();
+            const { lat, lng } = provider.parser(data);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              const accept = window.confirm('ระบบตรวจพบตำแหน่งโดยประมาณจากเครือข่ายอินเทอร์เน็ต (IP) ซึ่งอาจคลาดเคลื่อน (เช่น แสดงเป็นเขตกรุงเทพฯ/ภาษีเจริญ) \n\nต้องการใช้ตำแหน่งนี้ชั่วคราวหรือไม่? \n(หากไม่ต้องการ สามารถกดยกเลิกและพิมพ์ค้นหาจังหวัด/สถานที่เองได้)');
+              if (accept) {
+                resolveAndDraw(lat, lng, 5000); // ~5km accuracy for IP based
+              } else {
+                setIsLocating(false);
+                resolve(null);
+              }
+              return;
             }
-            return;
+          } catch (err) {
+            console.warn(`[Geolocation] IP Fallback failed for ${provider.url}:`, err);
           }
-          throw new Error('Invalid IP coordinates');
-        } catch (err) {
-          setIsLocating(false);
-          alert('ระบบไม่สามารถหาตำแหน่งที่ตั้งของคุณได้เลย (เครือข่ายไม่อนุญาต)');
-          resolve(null);
         }
+        setIsLocating(false);
+        alert('ระบบไม่สามารถหาตำแหน่งที่ตั้งของคุณได้เลย (เครือข่ายหรือบริการขัดข้อง)');
+        resolve(null);
       };
 
       if ('geolocation' in navigator) {
@@ -946,18 +973,37 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         return;
       }
 
-      const gistdaGeoJsonLayers: ProvinceDataLayer[] = ['floodRecurrent'];
-      
-      if (gistdaGeoJsonLayers.includes(layerId)) {
-        let fetchUrl = mapLayerUrls[layerId as keyof typeof mapLayerUrls];
-        if (map) {
-          const bounds = map.getBounds();
-          const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-          fetchUrl += `&bbox=${bbox}`;
+      // Flood recurrent: fetch GeoJSON from GISTDA with bbox limited to current viewport
+      // Shows only the flood overlay polygons for the visible area — no extra labels.
+      if (layerId === 'floodRecurrent') {
+        const currentZoom = map?.getZoom() ?? 0;
+
+        // Don't fetch at low zoom levels — bbox would be enormous → guaranteed 502
+        if (currentZoom < 9) {
+          setActiveDataLayerWarnings(prev => {
+            const msg = `${dataLayerLabels[layerId]} (ซูมเข้าเพิ่มเพื่อโหลดข้อมูล)`;
+            return prev.includes(msg) ? prev : [...prev, msg];
+          });
+          return;
         }
-        
+
+        // Helper: build a bbox-limited fetch URL centered on current viewport
+        const buildFetchUrl = (maxDeg: number): string => {
+          let url = `${GISTDA_OPEN_API_BASE}/features/flood-freq?limit=100`;
+          if (map) {
+            const bounds = map.getBounds();
+            let w = bounds.getWest(), s = bounds.getSouth();
+            let e = bounds.getEast(), n = bounds.getNorth();
+            if (e - w > maxDeg) { const cLng = (w + e) / 2; w = cLng - maxDeg / 2; e = cLng + maxDeg / 2; }
+            if (n - s > maxDeg) { const cLat = (n + s) / 2; s = cLat - maxDeg / 2; n = cLat + maxDeg / 2; }
+            url += `&bbox=${w.toFixed(5)},${s.toFixed(5)},${e.toFixed(5)},${n.toFixed(5)}`;
+            lastFetchCenter.current = map.getCenter();
+          }
+          return url;
+        };
+
         if (!GISTDA_API_KEY) {
-          console.warn(`[ProvinceMap] GISTDA_API_KEY is missing. Cannot fetch ${dataLayerLabels[layerId]}. The API gateway returns 407 Authentication Required otherwise.`);
+          console.warn(`[ProvinceMap] GISTDA_API_KEY missing — cannot fetch ${dataLayerLabels[layerId]}.`);
           setActiveDataLayerWarnings(prev => {
             const msg = `${dataLayerLabels[layerId]} (Missing API Key)`;
             return prev.includes(msg) ? prev : [...prev, msg];
@@ -965,67 +1011,96 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           return;
         }
 
-        const headers: Record<string, string> = {
-          'apikey': GISTDA_API_KEY,
-          'API-Key': GISTDA_API_KEY
-        };
-
+        const headers: Record<string, string> = { 'apikey': GISTDA_API_KEY, 'API-Key': GISTDA_API_KEY };
         const fetchMethod = window.api?.map?.fetchGistdaFeatures;
 
         if (fetchMethod) {
-          fetchMethod(fetchUrl, headers)
-            .then(result => {
-              if (!result.ok) throw new Error(result.error || `HTTP ${result.status}`);
-              const data = result.data;
-              if (data && data.features) {
-                if (data.features.length > 0) {
-                  let layerColor = '#3b82f6'; // default blue (flood)
+          (async () => {
+            // 1. Check cache first
+            try {
+              const cached = await window.api?.floodCache?.get(provinceId || 'default');
+              if (cached && cached.data && typeof cached.data === 'object' && 'features' in cached.data) {
+                const isValid = await window.api?.floodCache?.isValid(provinceId || 'default');
+                if (isValid) {
+                  const cachedData = cached.data as { features: unknown[] };
+                  if (cachedData.features && cachedData.features.length > 0) {
+                    const geoJsonLayer = L.geoJSON(cached.data, {
+                      style: { color: '#3b82f6', weight: 1.5, fillColor: '#3b82f6', fillOpacity: 0.45 }
+                    }).addTo(map);
+                    externalDataLayerRefs.current.push(geoJsonLayer);
+                    console.log('[ProvinceMap] Flood data loaded from cache');
+                    return;
+                  }
+                }
+              }
+            } catch (e) {
+              console.warn('[ProvinceMap] Cache read error:', e);
+            }
 
-                  const geoJsonLayer = L.geoJSON(data, {
-                    style: {
-                      color: layerColor,
-                      weight: 1.5,
-                      fillColor: layerColor,
-                      fillOpacity: 0.45
-                    }
-                  }).addTo(map);
-                  externalDataLayerRefs.current.push(geoJsonLayer);
-                } else {
-                  // Valid response, but 0 features in this viewport/timeframe
+            // 2. Fetch from API — try normal bbox first, then retry with half-size on 502
+            const tryFetch = async (maxDeg: number, attempt: number): Promise<void> => {
+              const fetchUrl = buildFetchUrl(maxDeg);
+              setIsDataLayerLoading(true);
+              try {
+                const result = await fetchMethod(fetchUrl, headers);
+                setIsDataLayerLoading(false);
+
+                if (!result.ok) {
+                  const status = result.status ?? 0;
+                  // Auto-retry with smaller bbox on server overload errors
+                  if ((status === 502 || status === 504) && attempt === 1) {
+                    console.warn(`[ProvinceMap] GISTDA 502 on attempt ${attempt}, retrying with smaller bbox (${(maxDeg / 2).toFixed(2)}°)...`);
+                    return tryFetch(maxDeg / 2, 2);
+                  }
+                  throw new Error(result.error || `HTTP ${status}`);
+                }
+
+                const data = result.data;
+                if (data && data.features) {
+                  if (data.features.length > 0) {
+                    const geoJsonLayer = L.geoJSON(data, {
+                      style: { color: '#3b82f6', weight: 1.5, fillColor: '#3b82f6', fillOpacity: 0.45 }
+                    }).addTo(map);
+                    externalDataLayerRefs.current.push(geoJsonLayer);
+                    window.api?.floodCache?.save(provinceId || 'default', data);
+                  } else {
+                    setActiveDataLayerWarnings(prev => {
+                      const msg = `${dataLayerLabels[layerId]} (ไม่พบข้อมูลในพื้นที่นี้)`;
+                      return prev.includes(msg) ? prev : [...prev, msg];
+                    });
+                  }
+                }
+              } catch (err) {
+                setIsDataLayerLoading(false);
+                const errMsg = (err as Error).message || '';
+                if (errMsg.includes('HTTP 502') || errMsg.includes('HTTP 504') || errMsg.includes('HTTP 407')) {
+                  if (attempt === 1) {
+                    console.warn(`[ProvinceMap] GISTDA 502 on attempt ${attempt}, retrying with smaller bbox...`);
+                    return tryFetch(maxDeg / 2, 2);
+                  }
+                  console.warn(`[ProvinceMap] GISTDA ${errMsg} after retry. Service overloaded.`);
                   setActiveDataLayerWarnings(prev => {
-                    const msg = `${dataLayerLabels[layerId]} (ไม่พบข้อมูลในพื้นที่นี้)`;
+                    const msg = `${dataLayerLabels[layerId]} (ระบบต้นทางขัดข้อง — ลองซูมเข้าเพิ่ม)`;
+                    return prev.includes(msg) ? prev : [...prev, msg];
+                  });
+                } else {
+                  console.error(`[ProvinceMap] GISTDA Fetch Error for ${layerId}:`, err);
+                  setActiveDataLayerWarnings(prev => {
+                    const msg = `${dataLayerLabels[layerId]} (Data Error)`;
                     return prev.includes(msg) ? prev : [...prev, msg];
                   });
                 }
               }
-            })
-            .catch(err => {
-              const errMsg = err.message || '';
-              if (errMsg.includes('HTTP 502')) {
-                console.warn(`[ProvinceMap] GISTDA endpoint for ${layerId} returned 502. Service backend overloaded.`);
-                setActiveDataLayerWarnings(prev => {
-                  const msg = `${dataLayerLabels[layerId]} (ระบบต้นทางมีปัญหา 502)`;
-                  return prev.includes(msg) ? prev : [...prev, msg];
-                });
-              } else if (errMsg.includes('HTTP 404')) {
-                console.warn(`[ProvinceMap] GISTDA endpoint for ${layerId} returned 404. Service might not be available.`);
-                setActiveDataLayerWarnings(prev => {
-                  const msg = `${dataLayerLabels[layerId]} (ยังไม่เปิดให้บริการ)`;
-                  return prev.includes(msg) ? prev : [...prev, msg];
-                });
-              } else {
-                console.error(`[ProvinceMap] GISTDA Fetch Error for ${layerId}:`, err);
-                setActiveDataLayerWarnings(prev => {
-                  const msg = `${dataLayerLabels[layerId]} (Data Error)`;
-                  return prev.includes(msg) ? prev : [...prev, msg];
-                });
-              }
-            });
+            };
+
+            await tryFetch(0.2, 1); // Start with 0.2° (~22km) bbox
+          })();
         } else {
-          console.warn('[ProvinceMap] window.api.map.fetchGistdaFeatures not found. Please RESTART Electron to use the main process fetcher.');
+          console.warn('[ProvinceMap] window.api.map.fetchGistdaFeatures not available. Restart Electron.');
         }
         return;
       }
+
 
       const layerUrl = mapLayerUrls[layerId as keyof typeof mapLayerUrls];
       if (!layerUrl) {
@@ -1054,7 +1129,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       });
       externalDataLayerRefs.current = [];
     };
-  }, [enabledDataLayers, rainRadarTileUrl, isRainRadarResolving, evChargerPoints, theme, retryCount, isLoading]);
+  }, [enabledDataLayers, rainRadarTileUrl, isRainRadarResolving, evChargerPoints, theme, retryCount, isLoading, mapVersion]);
 
   const searchablePlaces = useMemo<SearchPlace[]>(() => {
     const normalizedProvinceName = provinceName === 'Bangkok Metropolis' ? 'Bangkok' : provinceName;
@@ -2254,7 +2329,15 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         </div>
       )}
 
+      {isDataLayerLoading && (
+        <div className="absolute top-16 right-4 z-[1000] flex items-center gap-2 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-cyan-500/30 text-cyan-400 text-[10px] font-bold animate-pulse shadow-lg">
+          <div className="w-2 h-2 bg-cyan-500 rounded-full animate-ping" />
+          LOADING GISTDA DATA...
+        </div>
+      )}
+
       {activeDataLayerWarnings.length > 0 && !isLoading && (
+
         <div className="absolute top-16 right-4 z-[1000] rounded-lg border border-amber-400/40 bg-black/80 px-3 py-2 text-[11px] text-amber-200 max-w-[280px] shadow-lg">
           <div className="font-bold mb-1">สถานะชั้นข้อมูล:</div>
           <ul className="list-disc list-inside space-y-0.5">

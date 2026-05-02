@@ -26,6 +26,17 @@ declare global {
         saveWeatherAqi: (records: { provinceId: string; date: string; temperature: number; aqi: number }[]) => Promise<number>
         getWeatherAqi: (provinceId?: string, date?: string) => Promise<Array<{ provinceId: string; date: string; temperature: number; aqi: number }>>
       }
+      floodCache: {
+        save: (provinceId: string, geoJsonData: object) => Promise<void>
+        get: (provinceId: string) => Promise<{ data: object; fetchedAt: string } | null>
+        isValid: (provinceId: string, maxAgeHours?: number) => Promise<boolean>
+      }
+      fuelPrices: {
+        save: (prices: Array<{ fuelType: string; price: number; source?: string }>) => Promise<void>
+        get: () => Promise<Array<{ fuelType: string; price: number; source: string; fetchedAt: string }>>
+        isValid: (maxAgeHours?: number) => Promise<boolean>
+      }
+      fetchBangchak: () => Promise<{ ok: boolean; data?: string; status?: number; error?: string }>
       assets: {
         getImageCacheStats: () => Promise<{ fileCount: number; totalBytes: number; path: string }>
         clearImageCache: () => Promise<{ fileCount: number; totalBytes: number; path: string }>

@@ -8,7 +8,8 @@ import {
   Bed,
   Compass,
   Navigation,
-  Shield
+  Shield,
+  GripVertical
 } from 'lucide-react';
 import { Province, Region } from '../../data/regions';
 import { regionTheme, RegionId } from '../../data/regionTheme';
@@ -47,6 +48,10 @@ const getLocalDateKey = (date = new Date()) => {
  * Province Tactical Detail Page - REDESIGNED
  * เน้นสิ่งที่ผู้ใช้ต้องการจริงๆ พร้อมแผนที่ Interactive
  */
+const MIN_SIDEBAR_WIDTH = 280;
+const MAX_SIDEBAR_WIDTH = 600;
+const DEFAULT_SIDEBAR_WIDTH = 420;
+
 export const ProvinceTacticalPage = () => {
   const { regionId, provinceId } = useParams();
   const navigate = useNavigate();
@@ -59,6 +64,9 @@ export const ProvinceTacticalPage = () => {
   const [loading, setLoading] = useState(true);
   const [mapTheme, setMapTheme] = useState<ProvinceMapTheme>('voyager');
   const [mapDataLayers, setMapDataLayers] = useState<Record<ProvinceDataLayer, boolean>>(defaultMapDataLayers);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const normalizeKey = useCallback((value: string) => value.toLowerCase().replace(/[^a-z0-9_-]/g, ''), []);
   const normalizeWeatherProvinceId = useCallback((value: string) => {
@@ -239,6 +247,36 @@ export const ProvinceTacticalPage = () => {
     setMapDataLayers((prev) => ({ ...prev, [layer]: !prev[layer] }));
   };
 
+  // Resize handlers for drag-to-resize sidebar
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || !containerRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const newSidebarWidth = containerRect.right - e.clientX;
+    const clampedWidth = Math.min(Math.max(newSidebarWidth, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH);
+    setSidebarWidth(clampedWidth);
+  }, [isResizing]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // Attach global mouse events when resizing
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
   useEffect(() => {
     const state = location.state as {
       focusPlace?: {
@@ -380,9 +418,12 @@ export const ProvinceTacticalPage = () => {
   const displayProvinceName = province.name === 'Bangkok Metropolis' ? 'Bangkok' : province.name;
 
   return (
-    <div className="flex-1 flex bg-[#050608] overflow-hidden">
+    <div ref={containerRef} className="flex-1 flex bg-[#050608] overflow-hidden">
       {/* LEFT: MAP SECTION */}
-      <div className="w-[65%] relative">
+      <div 
+        className="relative transition-all" 
+        style={{ width: `calc(100% - ${sidebarWidth}px)` }}
+      >
         {/* Back Button Overlay */}
         <button 
             onClick={() => navigate('/map')}
@@ -396,6 +437,7 @@ export const ProvinceTacticalPage = () => {
         <ProvinceMap 
           ref={mapRef}
           provinceName={province.name}
+          provinceId={province.id}
           markers={provinceData.mapMarkers}
           zoom={12}
           theme={mapTheme}
@@ -407,8 +449,22 @@ export const ProvinceTacticalPage = () => {
         />
       </div>
 
+      {/* RESIZE HANDLE */}
+      <div
+        onMouseDown={handleMouseDown}
+        className={`w-1 flex-shrink-0 bg-transparent hover:bg-cyan-500/50 cursor-col-resize transition-colors relative group ${isResizing ? 'bg-cyan-500/70' : ''}`}
+        style={{ cursor: isResizing ? 'col-resize' : 'col-resize' }}
+      >
+        <div className={`absolute inset-y-0 -left-1 -right-1 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${isResizing ? 'opacity-100' : ''}`}>
+          <GripVertical size={16} className="text-cyan-400 drop-shadow-lg" />
+        </div>
+      </div>
+
       {/* RIGHT: CONTENT SECTION */}
-      <div className="w-[35%] flex flex-col border-l border-white/10">
+      <div 
+        className="flex flex-col border-l border-white/10 transition-all"
+        style={{ width: sidebarWidth }}
+      >
         {/* Tab Navigation */}
         <div className="flex-shrink-0 border-b border-white/10 bg-[#08090c]">
           <div className="flex px-2 overflow-x-auto no-scrollbar">

@@ -253,6 +253,29 @@ export function initDatabase() {
   `);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_weather_province_date ON weather_aqi(province_id, date);`);
 
+  // ====== 12. Flood Cache: แคชข้อมูลน้ำท่วม GISTDA ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS flood_cache (
+      province_id TEXT NOT NULL,
+      data TEXT NOT NULL,
+      fetched_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (province_id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_flood_cache_fetched ON flood_cache(fetched_at);`);
+
+  // ====== 13. Fuel Prices: ราคาน้ำมันจาก Bangchak ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS fuel_prices (
+      fuel_type TEXT NOT NULL,
+      price REAL NOT NULL,
+      source TEXT DEFAULT 'Bangchak',
+      fetched_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (fuel_type)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_fuel_prices_fetched ON fuel_prices(fetched_at);`);
+
   // Indexes creation moved after column migrations to ensure columns exist
 
   // Migrations: ensure numeric columns exist for legacy DBs
@@ -331,6 +354,96 @@ export function getWeatherAqi(provinceId?: string, date?: string): { provinceId:
   
   const rows = db.prepare(sql).all(...params) as { province_id: string; date: string; temperature: number; aqi: number }[];
   return rows.map(r => ({ provinceId: r.province_id, date: r.date, temperature: r.temperature, aqi: r.aqi }));
+}
+
+// ====== Flood Data Cache ======
+export function saveFloodCache(provinceId: string, geoJsonData: object) {
+  const upsert = db.prepare(`
+    INSERT INTO flood_cache (province_id, data, fetched_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(province_id) DO UPDATE SET
+      data = excluded.data,
+      fetched_at = datetime('now')
+  `);
+  upsert.run(provinceId, JSON.stringify(geoJsonData));
+}
+
+export function getFloodCache(provinceId: string): { data: object; fetchedAt: string } | null {
+  const row = db.prepare('SELECT data, fetched_at FROM flood_cache WHERE province_id = ?').get(provinceId) as { data: string; fetched_at: string } | undefined;
+  if (!row) return null;
+  return { data: JSON.parse(row.data), fetchedAt: row.fetched_at };
+}
+
+export function isFloodCacheValid(provinceId: string, maxAgeHours = 24): boolean {
+  const row = db.prepare('SELECT fetched_at FROM flood_cache WHERE province_id = ?').get(provinceId) as { fetched_at: string } | undefined;
+  if (!row) return false;
+  const fetchedAt = new Date(row.fetched_at);
+  const now = new Date();
+  const hoursDiff = (now.getTime() - fetchedAt.getTime()) / (1000 * 60 * 60);
+  return hoursDiff < maxAgeHours;
+}
+
+// ====== Fuel Prices CRUD ======
+export interface FuelPrice {
+  fuelType: string;
+  price: number;
+  source: string;
+  fetchedAt: string;
+}
+
+// Lazy-initialized statement — prepared only after initDatabase() has created the table
+let _upsertFuelPrice: ReturnType<typeof db.prepare> | null = null;
+function getUpsertFuelPrice() {
+  if (!_upsertFuelPrice) {
+    _upsertFuelPrice = db.prepare(`
+      INSERT INTO fuel_prices (fuel_type, price, source, fetched_at)
+      VALUES (?, ?, ?, datetime('now'))
+      ON CONFLICT(fuel_type) DO UPDATE SET
+        price = excluded.price,
+        source = excluded.source,
+        fetched_at = datetime('now')
+    `);
+  }
+  return _upsertFuelPrice;
+}
+
+export function saveFuelPrices(prices: Array<{ fuelType: string; price: number; source?: string }>): void {
+  const stmt = getUpsertFuelPrice();
+  const doUpsert = db.transaction((items: Array<{ fuelType: string; price: number; source?: string }>) => {
+    for (const item of items) {
+      stmt.run(item.fuelType, item.price, item.source || 'Bangchak');
+    }
+  });
+  doUpsert(prices);
+}
+
+export function getFuelPrices(): FuelPrice[] {
+  const rows = db.prepare('SELECT fuel_type, price, source, fetched_at FROM fuel_prices ORDER BY fuel_type').all() as Array<{
+    fuel_type: string;
+    price: number;
+    source: string;
+    fetched_at: string;
+  }>;
+  return rows.map(row => ({
+    fuelType: row.fuel_type,
+    price: row.price,
+    source: row.source,
+    fetchedAt: row.fetched_at
+  }));
+}
+
+export function getFuelPricesLastFetched(): string | null {
+  const row = db.prepare('SELECT fetched_at FROM fuel_prices ORDER BY fetched_at DESC LIMIT 1').get() as { fetched_at: string } | undefined;
+  return row ? row.fetched_at : null;
+}
+
+export function isFuelPricesValid(maxAgeHours = 6): boolean {
+  const lastFetched = getFuelPricesLastFetched();
+  if (!lastFetched) return false;
+  const fetchedAt = new Date(lastFetched);
+  const now = new Date();
+  const hoursDiff = (now.getTime() - fetchedAt.getTime()) / (1000 * 60 * 60);
+  return hoursDiff < maxAgeHours;
 }
 
 // Database row types (raw from SQLite)

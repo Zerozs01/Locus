@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getFuelPricesWithRefresh, refreshFuelPrices } from '../services/fuelPricesService';
 import {
   MapPin,
   Compass,
@@ -49,12 +50,12 @@ const DISCOVERY_CHIPS: DiscoveryChip[] = [
 ];
 
 const REGIONS = [
-  { id: 'north', name: 'ภาคเหนือ', eng: 'North', color: '#a855f7' },
   { id: 'northeast', name: 'ภาคอีสาน', eng: 'Isan', color: '#ef4444' },
   { id: 'central', name: 'ภาคกลาง', eng: 'Central', color: '#f97316' },
+  { id: 'south', name: 'ภาคใต้', eng: 'South', color: '#eab308' },
+  { id: 'north', name: 'ภาคเหนือ', eng: 'North', color: '#a855f7' },
   { id: 'east', name: 'ตะวันออก', eng: 'East', color: '#06b6d4' },
   { id: 'west', name: 'ตะวันตก', eng: 'West', color: '#22c55e' },
-  { id: 'south', name: 'ภาคใต้', eng: 'South', color: '#eab308' },
 ];
 
 // ─── Theme Colors per Question ──────────────────────
@@ -173,6 +174,73 @@ export const GeoArchivePage = () => {
   const [finalSuggestion, setFinalSuggestion] = useState('');
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
+  const [showAllFuelPrices, setShowAllFuelPrices] = useState(false);
+  const [fuelPricesExpanded, setFuelPricesExpanded] = useState(false);
+  const [isRefreshingFuel, setIsRefreshingFuel] = useState(false);
+  const [gasPrices, setGasPrices] = useState<Array<{ type: string; price: number; color: string }>>([
+    { type: '95', price: 42.45, color: 'bg-blue-500' },
+    { type: '91', price: 42.08, color: 'bg-teal-500' },
+    { type: 'E20', price: 35.45, color: 'bg-emerald-500' },
+    { type: 'E85', price: 31.39, color: 'bg-rose-500' },
+    { type: 'B7', price: 32.94, color: 'bg-amber-500' },
+    { type: 'B20', price: 33.20, color: 'bg-orange-500' },
+    { type: 'Diesel', price: 40.20, color: 'bg-slate-500' },
+    { type: 'Premium', price: 62.10, color: 'bg-purple-600' },
+    { type: '98+', price: 56.04, color: 'bg-red-600' },
+  ]);
+
+  // Load fuel prices from database on mount
+  useEffect(() => {
+    let isMounted = true;
+    const loadFuelPrices = async () => {
+      try {
+        const colorMap: Record<string, string> = {
+          '95': 'bg-blue-500', '91': 'bg-teal-500', 'E20': 'bg-emerald-500',
+          'E85': 'bg-rose-500', 'B7': 'bg-amber-500', 'B20': 'bg-orange-500',
+          'Diesel': 'bg-slate-500', 'Premium': 'bg-purple-600', '98+': 'bg-red-600'
+        };
+        const prices = await getFuelPricesWithRefresh();
+        if (!isMounted) return;
+        
+        if (prices && prices.length > 0) {
+          setGasPrices(prices.map(p => ({
+            type: p.fuelType,
+            price: p.price,
+            color: colorMap[p.fuelType] || 'bg-slate-500'
+          })));
+        }
+      } catch (err) {
+        console.error('[GeoArchive] Failed to load fuel prices:', err);
+      }
+    };
+    loadFuelPrices();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Manual refresh fuel prices
+  const handleRefreshFuelPrices = async () => {
+    if (isRefreshingFuel) return;
+    setIsRefreshingFuel(true);
+    try {
+      const colorMap: Record<string, string> = {
+        '95': 'bg-blue-500', '91': 'bg-teal-500', 'E20': 'bg-emerald-500',
+        'E85': 'bg-rose-500', 'B7': 'bg-amber-500', 'B20': 'bg-orange-500',
+        'Diesel': 'bg-slate-500', 'Premium': 'bg-purple-600', '98+': 'bg-red-600'
+      };
+      const prices = await refreshFuelPrices();
+      if (prices && prices.length > 0) {
+        setGasPrices(prices.map(p => ({
+          type: p.fuelType,
+          price: p.price,
+          color: colorMap[p.fuelType] || 'bg-slate-500'
+        })));
+      }
+    } catch (err) {
+      console.error('[GeoArchive] Failed to refresh fuel prices:', err);
+    } finally {
+      setIsRefreshingFuel(false);
+    }
+  };
 
   const handleBack = useCallback(() => {
     if (mode === 'help' && helpStep > 0) {
@@ -358,17 +426,6 @@ export const GeoArchivePage = () => {
   // ─── Intent Selection (Home) ──────────────────────
   if (mode === null) {
     // Mock data for widgets
-    const gasPrices = [
-      { type: '95', price: 42.45, color: 'bg-blue-500' },
-      { type: '91', price: 42.08, color: 'bg-teal-500' },
-      { type: 'E20', price: 35.45, color: 'bg-emerald-500' },
-      { type: 'E85', price: 31.39, color: 'bg-rose-500' },
-      { type: 'B7', price: 32.94, color: 'bg-amber-500' },
-      { type: 'B20', price: 33.20, color: 'bg-orange-500' },
-      { type: 'Diesel', price: 40.20, color: 'bg-slate-500' },
-      { type: 'Premium', price: 62.10, color: 'bg-purple-600' },
-      { type: '98+', price: 56.04, color: 'bg-red-600' },
-    ];
     const trendingLocations = [
       { name: 'แม่กำปอง', province: 'เชียงใหม่', temp: 18, status: 'กำลังฮิต', image: 'https://images.unsplash.com/photo-1528181304800-2f190854b798?auto=format&fit=crop&q=80&w=200' },
       { name: 'เกาะกูด', province: 'ตราด', temp: 28, status: 'สงบ', image: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&q=80&w=200' },
@@ -381,39 +438,39 @@ export const GeoArchivePage = () => {
       <div className="flex-1 bg-[#050608] overflow-y-auto">
         <div className="mx-auto max-w-6xl px-8 py-10">
           {/* ─── Header Section ─── */}
-          <div className="mb-8 flex items-start justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-3">
+          {/* <div className="mb-8 flex items-start justify-between"> */}
+            {/* <div> */}
+              {/* <div className="mb-2 flex items-center gap-3"> */}
                 {/* <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-blue-600/20"> */}
                   {/* <Compass size={24} className="text-cyan-400" /> */}
                 {/* </div> */}
-                <div>
+                {/*<div>
                   <h1 className="text-2xl font-bold text-white">Hello user</h1>
                   <p className="text-sm text-slate-500">โปรดเลือกจุดเริ่มต้นที่เหมาะกับคุณ</p>
-                </div>
-              </div>
-            </div>
+                 </div> */}
+              {/* </div> */}
+            {/* </div> */}
 
             {/* Quick Status Widgets */}
-            <div className="flex items-center gap-3">
+            {/* <div className="flex items-center gap-3"> */}
               {/* Weather Widget */}
-              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#0a0c10] px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🌤️</span>
-                  <div>
-                    <div className="text-xs text-slate-500">กรุงเทพฯ</div>
-                    <div className="text-sm font-semibold text-white">32°C</div>
-                  </div>
-                </div>
-                <div className="h-8 w-[1px] bg-white/10" />
-                <div className="text-right">
-                  <div className="text-xs text-slate-500">PM 2.5</div>
-                  <div className="text-sm font-semibold text-emerald-400">42 ดี</div>
-                </div>
-              </div>
+              {/* <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#0a0c10] px-4 py-2"> */}
+                {/* <div className="flex items-center gap-2"> */}
+                  {/* <span className="text-lg">🌤️</span> */}
+                  {/* <div> */}
+                    {/* <div className="text-xs text-slate-500">กรุงเทพฯ</div> */}
+                    {/* <div className="text-sm font-semibold text-white">32°C</div> */}
+                  {/* </div> */}
+                {/* </div> */}
+                {/* <div className="h-8 w-[1px] bg-white/10" /> */}
+                {/* <div className="text-right"> */}
+                  {/* <div className="text-xs text-slate-500">PM 2.5</div> */}
+                  {/* <div className="text-sm font-semibold text-emerald-400">42 ดี</div> */}
+                {/* </div> */}
+              {/* </div> */}
 
-            </div>
-          </div>
+            {/* </div> */}
+          {/* </div> */}
 
           {/* ─── Main Grid Layout ─── */}
           <div className="grid grid-cols-12 gap-6">
@@ -558,20 +615,32 @@ export const GeoArchivePage = () => {
                     <a 
                       href="https://oil-price.bangchak.co.th/BcpOilPrice2/th" 
                       target="_blank" 
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className="text-[10px] text-teal-400  uppercase tracking-tighter hover:underline"
                     >
                      From: Bangchak Corporation
                     </a>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Bangchak S Evo</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleRefreshFuelPrices}
+                      disabled={isRefreshingFuel}
+                      className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50"
+                      title="รีเฟรชราคาน้ำมัน"
+                    >
+                      <svg className={`w-3.5 h-3.5 text-slate-400 ${isRefreshingFuel ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                    <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Bangchak S Evo</span>
+                    </div>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-3 gap-2 relative z-10">
-                  {gasPrices.map((gas) => (
+                  {(showAllFuelPrices ? gasPrices : gasPrices.slice(0, 3)).map((gas) => (
                     <div key={gas.type} className="bg-white/[0.03] p-2.5 rounded-xl border border-white/5 hover:bg-white/[0.06] transition-all hover:scale-[1.02]">
                       <div className="flex items-center gap-1.5 mb-1">
                         <div className={`w-1.5 h-1.5 rounded-full ${gas.color} shadow-[0_0_8px_rgba(255,255,255,0.2)]`}></div>
@@ -584,6 +653,14 @@ export const GeoArchivePage = () => {
                     </div>
                   ))}
                 </div>
+                {gasPrices.length > 3 && (
+                  <button
+                    onClick={() => setShowAllFuelPrices(!showAllFuelPrices)}
+                    className="mt-3 w-full py-1.5 text-xs text-teal-400 hover:text-teal-300 border border-teal-400/20 rounded-lg hover:bg-teal-400/10 transition-all"
+                  >
+                    {showAllFuelPrices ? '▲ ซ่อนราคาน้ำมัน' : '▼ ดูราคาน้ำมันทั้งหมด'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1051,10 +1128,10 @@ export const GeoArchivePage = () => {
         <div className="mx-auto max-w-4xl px-6 py-12">
           <BackButton onClick={handleBack} />
           <h2 className="mb-2 text-2xl font-bold text-white">
-            <Compass size={24} className="mr-2 inline text-amber-400" />
+            {/* <Compass size={24} className="mr-2 inline text-amber-400" /> */}
             สำรวจตามความสนใจ
           </h2>
-          <p className="mb-8 text-sm text-slate-500">เลือกหมวดที่สนใจ แล้วดูสถานที่ที่เหมาะ</p>
+          {/* <p className="mb-8 text-sm text-slate-500">เลือกหมวดที่สนใจ แล้วดูสถานที่ที่เหมาะ</p> */}
 
           {/* Discovery Chips */}
           <div className="mb-8 flex flex-wrap gap-2">
