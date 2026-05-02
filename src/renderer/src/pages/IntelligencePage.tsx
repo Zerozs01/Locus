@@ -383,7 +383,7 @@ export const IntelligencePage = () => {
               {showSidebar ? <PanelLeftClose size={20} className="text-slate-400" /> : <PanelLeftOpen size={20} className="text-slate-400" />}
             </button>
             <div>
-              <h1 className="text-lg font-bold text-white">Locus Intelligence</h1>
+              <h1 className="text-lg font-bold text-white">Locus Agent</h1>
               <p className="text-xs text-slate-500">Powered by LightRAG + Gemini</p>
             </div>
           </div>

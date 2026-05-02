@@ -386,11 +386,11 @@ export const AnalyticsPage = () => {
 
         <div className="flex flex-wrap items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 flex items-center justify-center">
-              <Radar size={24} className="text-white" />
-            </div>
+            {/* <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 flex items-center justify-center"> */}
+              {/* <Radar size={24} className="text-white" /> */}
+            {/* </div>ี */}
             <div>
-              <h1 className="text-3xl font-semibold text-white">Provincial News Briefing</h1>
+              <h1 className="text-3xl font-semibold text-white">Provincial News </h1>
               <p className="text-sm text-slate-400">สรุปสถานการณ์รายจังหวัดเพื่อการประเมินและเฝ้าระวัง</p>
             </div>
           </div>

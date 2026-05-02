@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Map, Activity, Settings, Brain, Package, Navigation } from 'lucide-react';
+import { Compass, Map, Newspaper, Settings, MessageSquare, Package, Navigation } from 'lucide-react';
 import { ResourceInventory } from './ResourceInventory';
 
 interface SidebarBtnProps {
@@ -54,14 +54,14 @@ export const Sidebar = () => {
             onClick={() => navigate('/map')}
           />
           <SidebarBtn 
-            icon={<Brain size={20}/>} 
-            label="Intelligence" 
+            icon={<MessageSquare size={20}/>} 
+            label="Agent" 
             active={isActive('/intelligence')}
             onClick={() => navigate('/intelligence')}
           />
           <SidebarBtn 
-            icon={<Activity size={20}/>} 
-            label="Analytics" 
+            icon={<Newspaper size={20}/>} 
+            label="News" 
             active={isActive('/analytics')}
             onClick={() => navigate('/analytics')}
           />
