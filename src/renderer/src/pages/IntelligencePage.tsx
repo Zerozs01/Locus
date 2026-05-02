@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Send, 
   Bot, 
   User, 
-  Sparkles,
   FileText,
   Link2,
   Network,
@@ -17,21 +16,93 @@ import {
   ChevronRight,
   MapPin,
   ExternalLink,
-  Lightbulb,
   BookOpen,
   X,
   Tag,
   Trash2,
   MessageSquarePlus,
-  Clock3
+  Clock3,
+  Edit3,
+  RotateCcw,
+  CornerDownLeft,
+  Settings,
+  Lightbulb,
+  Map,
+  Compass,
+  Bed,
+  Utensils,
+  Bus,
+  Flame,
+  Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { ChatContext, ChatMessage as Message, RecentChatSummary, Source, useIntelligenceChatStore } from '../services/intelligenceChatStore';
 import { MarkdownLite } from '../components/MarkdownLite';
+import { useChatTheme } from '../theme/useChatTheme';
+import { useChatThemeStore } from '../services/chatThemeStore';
+import { GradientProgressBar } from '../components/GradientProgressBar';
+import { Menu } from 'lucide-react';
+import { regionsData, type Region, type Province } from '../data/regions';
 
 interface SuggestedQuery {
   text: string;
   icon: React.ReactNode;
 }
+
+// ==================== PROVINCE ACTION DETECTION ====================
+
+interface DetectedProvince {
+  name: string;
+  id: string;
+  regionId: string;
+  regionName: string;
+}
+
+/** Build a flat lookup from all regions + provinces for fast text matching */
+const buildProvinceLookup = (): { provinces: Array<{ name: string; nameLower: string; id: string; regionId: string; regionName: string }>; regions: Array<{ id: string; name: string; engName: string }> } => {
+  const provinces: Array<{ name: string; nameLower: string; id: string; regionId: string; regionName: string }> = [];
+  const regions: Array<{ id: string; name: string; engName: string }> = [];
+
+  for (const region of regionsData) {
+    regions.push({ id: region.id, name: region.name, engName: region.engName });
+    for (const province of region.subProvinces) {
+      provinces.push({
+        name: province.name,
+        nameLower: province.name.toLowerCase(),
+        id: province.id,
+        regionId: region.id,
+        regionName: region.engName,
+      });
+    }
+  }
+  return { provinces, regions };
+};
+
+const PROVINCE_LOOKUP = buildProvinceLookup();
+
+/** Scan AI response text and extract mentioned provinces */
+const extractMentionedProvinces = (text: string): DetectedProvince[] => {
+  const lowerText = text.toLowerCase();
+  const found: DetectedProvince[] = [];
+  const seen = new Set<string>();
+
+  for (const p of PROVINCE_LOOKUP.provinces) {
+    if (lowerText.includes(p.nameLower) && !seen.has(p.id)) {
+      seen.add(p.id);
+      found.push({ name: p.name, id: p.id, regionId: p.regionId, regionName: p.regionName });
+    }
+  }
+  return found;
+};
+
+/** Detect if a region is mentioned */
+const extractMentionedRegions = (text: string): Array<{ id: string; name: string; engName: string }> => {
+  const lowerText = text.toLowerCase();
+  return PROVINCE_LOOKUP.regions.filter(
+    (r) => lowerText.includes(r.engName.toLowerCase()) || lowerText.includes(r.name)
+  );
+};
 
 // ==================== MAIN COMPONENT ====================
 
@@ -49,23 +120,67 @@ export const IntelligencePage = () => {
     deleteConversation,
     clearChat,
     sendMessage,
+    resubmitMessage,
+    deleteMessage,
     addUploadedFile
   } = useIntelligenceChatStore();
+  const { theme } = useChatThemeStore();
   const [inputText, setInputText] = useState('');
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
   const [activeContextId, setActiveContextId] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+    const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [editTextareaRef, setEditTextareaRef] = useState<HTMLTextAreaElement | null>(null);
+  const [showPaletteSettings, setShowPaletteSettings] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoSentRef = useRef(false);
+
+  // Auto-resize textarea to fit content (like ChatGPT/Gemini)
+  const autoResizeTextarea = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const maxHeight = 300; // Larger max height
+    el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, []);
   const activeContext = activeContextId ? messages.find((message) => message.id === activeContextId) || null : null;
+
+  useChatTheme(theme);
 
   // Check for context passed via navigation state
   useEffect(() => {
-    const state = location.state as { context?: ChatContext } | null;
+    const state = location.state as {
+      context?: ChatContext;
+      prefillInput?: string;
+      autoSendMessage?: string;
+      autoSendSystemContext?: string;
+    } | null;
+
     if (state?.context) {
       setChatContext(state.context);
     }
-  }, [location.state]);
+
+    if (state?.autoSendMessage && !autoSentRef.current) {
+      autoSentRef.current = true;
+      sendMessage(state.autoSendMessage, {
+        systemContext: state.autoSendSystemContext,
+      });
+      setInputText('');
+    }
+
+    if (state?.prefillInput) {
+      setInputText(state.prefillInput);
+    }
+
+    if (state?.context || state?.prefillInput || state?.autoSendMessage) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, sendMessage, setChatContext]);
 
   // Suggested queries for empty state
   const suggestedQueries: SuggestedQuery[] = chatContext ? [
@@ -94,6 +209,10 @@ export const IntelligencePage = () => {
     }
   }, [activeContextId, messages]);
 
+  useEffect(() => {
+    autoResizeTextarea();
+  }, [inputText, autoResizeTextarea]);
+
   // Handle file drop
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -119,18 +238,72 @@ export const IntelligencePage = () => {
     addUploadedFile(file);
   };
 
-  const handleSend = async () => {
+    const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
     sendMessage(inputText);
     setInputText('');
   };
 
+
+  const handleResend = (messageText: string) => {
+    if (isLoading) return;
+    sendMessage(messageText);
+  };
+
+  const handleStartEdit = (messageId: string, messageText: string) => {
+    setEditingMessageId(messageId);
+    setEditingText(messageText);
+  };
+
+  const handleConfirmEdit = () => {
+    if (!editingMessageId || !editingText.trim() || isLoading) return;
+    resubmitMessage(editingMessageId, editingText);
+    setEditingMessageId(null);
+    setEditingText('');
+    setInputText('');
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    deleteMessage(messageId);
+    if (activeContextId === messageId) {
+      setActiveContextId(null);
+    }
+  };
+
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingText('');
+  };
+
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (editingMessageId) {
+        handleConfirmEdit();
+      } else {
+        handleSend();
+      }
+    }
+    if (e.key === 'Escape' && editingMessageId) {
+      handleCancelEdit();
     }
   };
+
+
+  // Auto-resize edit textarea
+  const autoResizeEditTextarea = useCallback(() => {
+    const el = editTextareaRef;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+  }, [editTextareaRef]);
+
+
+  useEffect(() => {
+    autoResizeEditTextarea();
+  }, [editingText, autoResizeEditTextarea]);
 
   const handleSuggestedQuery = (query: string) => {
     setInputText(query);
@@ -138,92 +311,107 @@ export const IntelligencePage = () => {
 
   return (
     <div className="flex-1 flex bg-[#050608] overflow-hidden">
-      <div className="w-[280px] shrink-0 border-r border-white/5 bg-[#080a0f] flex flex-col">
-        <div className="h-16 px-4 flex items-center justify-between border-b border-white/5">
-          <div>
-            <h2 className="text-sm font-semibold text-white">Recent Chats</h2>
-            <p className="text-[11px] text-slate-500">ประวัติจะอยู่ตรงนี้จนกว่าจะลบเอง</p>
-          </div>
-          <button
-            onClick={() => {
-              const newConversationId = createConversation();
-              setActiveConversation(newConversationId);
-              setActiveContextId(null);
-            }}
-            className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-500/20 hover:text-white"
-          >
-            <MessageSquarePlus size={14} />
-            New
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {recentChats.length === 0 ? (
-            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm text-slate-500">
-              ยังไม่มีบทสนทนา เริ่มพิมพ์คำถามแรกได้เลย
+      {/* Sidebar (Recent Chats) toggleable */}
+      {showSidebar && (
+        <div className="w-[280px] shrink-0 border-r border-white/5 bg-[#080a0f] flex flex-col">
+          <div className="h-16 px-4 flex items-center justify-between border-b border-white/5">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Recent Chats</h2>
+              <p className="text-[11px] text-slate-500">ประวัติจะอยู่ตรงนี้จนกว่าจะลบเอง</p>
             </div>
-          ) : (
-            recentChats.map((chat) => (
-              <RecentChatItem
-                key={chat.id}
-                chat={chat}
-                isActive={chat.id === activeConversationId}
-                onSelect={() => {
-                  setActiveConversation(chat.id);
-                  setActiveContextId(null);
-                }}
-                onDelete={() => {
-                  const isDeletingActive = chat.id === activeConversationId;
-                  deleteConversation(chat.id);
-                  if (isDeletingActive) {
+            <button
+              onClick={() => {
+                const newConversationId = createConversation();
+                setActiveConversation(newConversationId);
+                setActiveContextId(null);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:text-white hover:brightness-110"
+              style={{
+                borderColor: 'var(--chat-accent-soft-border)',
+                backgroundColor: 'var(--chat-accent-soft)',
+                color: 'var(--chat-accent-text)'
+              }}
+            >
+              <MessageSquarePlus size={14} />
+              New
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {recentChats.length === 0 ? (
+              <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm text-slate-500">
+                ยังไม่มีบทสนทนา เริ่มพิมพ์คำถามแรกได้เลย
+              </div>
+            ) : (
+              recentChats.map((chat) => (
+                <RecentChatItem
+                  key={chat.id}
+                  chat={chat}
+                  isActive={chat.id === activeConversationId}
+                  onSelect={() => {
+                    setActiveConversation(chat.id);
                     setActiveContextId(null);
-                  }
-                }}
-              />
-            ))
-          )}
+                  }}
+                  onDelete={() => {
+                    const isDeletingActive = chat.id === activeConversationId;
+                    deleteConversation(chat.id);
+                    if (isDeletingActive) {
+                      setActiveContextId(null);
+                    }
+                  }}
+                />
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* LEFT PANEL: CHAT */}
       <div 
-        className={`flex flex-col transition-all duration-300 ${isCanvasExpanded ? 'w-[400px]' : 'flex-1'}`}
+        className="flex flex-col flex-1 transition-all duration-300"
         onDragEnter={handleDrag}
       >
         {/* Chat Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#0a0c10] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Sparkles size={20} className="text-white" />
-            </div>
+            {/* Sidebar Toggle Button */}
+            <button
+              onClick={() => setShowSidebar((v) => !v)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-transparent hover:bg-white/10 transition-transform"
+              title={showSidebar ? 'ซ่อน Recent Chats' : 'แสดง Recent Chats'}
+            >
+              {showSidebar ? <PanelLeftClose size={20} className="text-slate-400" /> : <PanelLeftOpen size={20} className="text-slate-400" />}
+            </button>
             <div>
-              <h1 className="text-lg font-bold text-white">Locus Intelligence</h1>
+              <h1 className="text-lg font-bold text-white">Locus Agent</h1>
               <p className="text-xs text-slate-500">Powered by LightRAG + Gemini</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
+            {/* Palette Settings Button */}
+            <button
+              onClick={() => setShowPaletteSettings(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 text-xs text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+              title="ตั้งค่าสีแชต"
+            >
+              <Settings size={12} />
+              สีแชต
+            </button>
             {/* Context Badge */}
             {chatContext && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 rounded-full border border-purple-500/20">
-                <Tag size={12} className="text-purple-400" />
-                <span className="text-xs text-purple-300 font-medium">{chatContext.name}</span>
+                <div className="flex items-center gap-2 rounded-full border px-3 py-1.5" style={{ borderColor: 'var(--chat-accent-soft-border)', backgroundColor: 'var(--chat-accent-soft)' }}>
+                <Tag size={12} style={{ color: 'var(--chat-md-list-strong)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--chat-md-list-strong)' }}>{chatContext.name}</span>
                 <button 
                   onClick={() => setChatContext(null)}
                   title="ลบ context"
-                  className="ml-1 text-purple-400 hover:text-white transition-colors"
+                  className="ml-1 transition-colors hover:text-white"
+                  style={{ color: 'var(--chat-md-list-strong)' }}
                 >
                   <X size={12} />
                 </button>
               </div>
             )}
-            <button
-              onClick={clearChat}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 text-xs text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
-              title="ลบบทสนทนาปัจจุบัน"
-            >
-              <Trash2 size={12} />
-              Delete Chat
-            </button>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
               <span className="text-xs text-emerald-400 font-medium">{isLoading ? 'Thinking...' : 'Online'}</span>
@@ -284,31 +472,43 @@ export const IntelligencePage = () => {
             </div>
           )}
 
-          {/* Messages */}
+                    {/* Messages */}
           {messages.map((msg) => (
             <MessageBubble 
               key={msg.id} 
               message={msg} 
               onViewContext={() => setActiveContextId(msg.id)}
               isActiveContext={activeContext?.id === msg.id}
+              isLoading={isLoading}
+              onResend={handleResend}
+              onStartEdit={handleStartEdit}
+              isEditing={editingMessageId === msg.id}
+              editingText={editingText}
+              onEditingTextChange={setEditingText}
+              onConfirmEdit={handleConfirmEdit}
+              onCancelEdit={handleCancelEdit}
+              onDelete={() => handleDeleteMessage(msg.id)}
+              setEditTextareaRef={setEditTextareaRef}
             />
           ))}
 
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} className="h-24" />
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t border-white/5 bg-[#0a0c10]">
-          <div className="relative">
+                <div className="p-4 mx-auto w-full max-w-4xl bg-gradient-to-t from-[#0a0c10] pb-8 via-[#0a0c10] to-transparent sticky bottom-0 z-10">
+          <div className="relative flex items-end gap-3 bg-[#15181e] border border-white/10 rounded-3xl px-6 py-2 pb-3 shadow-[0_10px_40px_rgba(0,0,0,0.4)] focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/30 transition-all">
             <textarea
+              ref={textareaRef}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="ถามคำถาม หรือลากไฟล์มาวิเคราะห์..."
+              placeholder="ถามคำถาม หรือบอกให้ Locus ช่วยวางแผนให้..."
               rows={1}
-              className="w-full bg-[#0f1115] border border-white/10 rounded-xl px-4 py-3 pr-24 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 resize-none transition-all"
+              style={{ maxHeight: "300px", minHeight: "32px", overflowY: "auto" }}
+              className="w-full flex-1 bg-transparent border-none outline-none text-[15px] text-white placeholder:text-slate-500 resize-none py-2.5 leading-relaxed custom-scrollbar"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <div className="flex items-center gap-2 shrink-0 pb-1">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -337,8 +537,8 @@ export const IntelligencePage = () => {
         </div>
       </div>
 
-      {/* RIGHT PANEL: CONTEXT CANVAS */}
-      <div className={`border-l border-white/5 bg-[#0a0c10] flex flex-col transition-all duration-300 ${isCanvasExpanded ? 'flex-1' : 'w-[450px]'}`}>
+            {/* RIGHT PANEL: CONTEXT CANVAS */}
+      <div className="hidden">
         {/* Canvas Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-white/5 shrink-0">
           <div className="flex items-center gap-2">
@@ -362,21 +562,187 @@ export const IntelligencePage = () => {
           )}
         </div>
       </div>
+
+      {/* CHAT PALETTE SETTINGS MODAL */}
+      {showPaletteSettings && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-3xl max-h-[80vh] bg-[#0a0c10] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+              <div>
+                <h2 className="text-lg font-bold text-white">ตั้งค่าสีแชต</h2>
+                <p className="text-xs text-slate-500">ปรับสีของคำตอบแชตแบบสดๆ ได้เลย</p>
+              </div>
+              <button
+                onClick={() => setShowPaletteSettings(false)}
+                className="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                {/* Chat Accent Section */}
+                <div className="bg-[#0f1115] rounded-xl border border-white/5 p-4">
+                  <h3 className="text-sm font-semibold text-white mb-4">Chat Accent</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { key: 'accentPrimary', label: 'Primary Accent' },
+                      { key: 'accentPrimaryHover', label: 'Primary Hover' },
+                      { key: 'accentText', label: 'Accent Text' },
+                      { key: 'accentSoft', label: 'Soft Surface' },
+                      { key: 'accentSoftBorder', label: 'Soft Border' },
+                      { key: 'recentActiveBg', label: 'Recent Active BG' },
+                      { key: 'recentActiveBorder', label: 'Recent Active Border' },
+                      { key: 'recentActiveShadow', label: 'Recent Active Shadow' },
+                    ].map((field) => (
+                      <PaletteColorField
+                        key={field.key}
+                        label={field.label}
+                        value={theme[field.key as keyof typeof theme]}
+                        onChange={(val) => {
+                          const { patchTheme } = useChatThemeStore.getState();
+                          patchTheme({ [field.key]: val } as any);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Markdown Hierarchy Section */}
+                <div className="bg-[#0f1115] rounded-xl border border-white/5 p-4">
+                  <h3 className="text-sm font-semibold text-white mb-4">Markdown Hierarchy</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { key: 'markdownHeading1', label: '# Heading 1' },
+                      { key: 'markdownHeading2', label: '## Heading 2' },
+                      { key: 'markdownHeading3', label: '### Heading 3' },
+                      { key: 'markdownListStrong', label: 'Bullet Strong' },
+                      { key: 'markdownStrong', label: 'Default Strong' },
+                      { key: 'markdownText', label: 'Body Text' },
+                      { key: 'markdownMuted', label: 'Muted Text' },
+                      { key: 'markdownItalic', label: 'Italic Text' },
+                      { key: 'markdownCodeText', label: 'Inline Code Text' },
+                      { key: 'markdownCodeBg', label: 'Inline Code BG' },
+                      { key: 'markdownBullet', label: 'Bullet Marker' },
+                      { key: 'markdownDivider', label: 'Divider' },
+                    ].map((field) => (
+                      <PaletteColorField
+                        key={field.key}
+                        label={field.label}
+                        value={theme[field.key as keyof typeof theme]}
+                        onChange={(val) => {
+                          const { patchTheme } = useChatThemeStore.getState();
+                          patchTheme({ [field.key]: val } as any);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-white/5">
+              <button
+                onClick={() => {
+                  const { resetTheme } = useChatThemeStore.getState();
+                  resetTheme();
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-slate-300 transition-colors"
+              >
+                <RotateCcw size={14} />
+                Reset Colors
+              </button>
+              <button
+                onClick={() => setShowPaletteSettings(false)}
+                className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-xl text-sm font-bold text-white transition-colors"
+              >
+                ปิด
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-// ==================== SUB COMPONENTS ====================
+// ==================== PALETTE COLOR FIELD ====================
+const PaletteColorField = ({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+}) => {
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className="w-8 h-8 rounded-lg border border-white/10 shrink-0 cursor-pointer"
+        style={{ background: value }}
+        title={value}
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-xs text-slate-400 truncate">{label}</div>
+        <div className="flex items-center gap-1">
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-6 h-6 rounded border border-white/10 bg-transparent cursor-pointer p-0"
+          />
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="flex-1 bg-[#0b0d11] border border-white/10 rounded px-2 py-1 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+        // ==================== SUB COMPONENTS ====================
 
 interface MessageBubbleProps {
   message: Message;
   onViewContext: () => void;
   isActiveContext: boolean;
+  isLoading: boolean;
+  onResend: (text: string) => void;
+  onStartEdit: (id: string, text: string) => void;
+  isEditing: boolean;
+  editingText: string;
+  onEditingTextChange: (text: string) => void;
+  onConfirmEdit: () => void;
+  onCancelEdit: () => void;
+  onDelete: () => void;
+  setEditTextareaRef: (el: HTMLTextAreaElement | null) => void;
 }
 
-const MessageBubble = ({ message, onViewContext, isActiveContext }: MessageBubbleProps) => {
+const MessageBubble = ({
+  message,
+  onViewContext,
+  isActiveContext,
+  isLoading,
+  onResend,
+  onStartEdit,
+  isEditing,
+  editingText,
+  onEditingTextChange,
+  onConfirmEdit,
+  onCancelEdit,
+  onDelete,
+  setEditTextareaRef
+}: MessageBubbleProps) => {
   const [copied, setCopied] = useState(false);
   const isUser = message.sender === 'user';
+  const isError = message.status === 'error';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.text);
@@ -384,82 +750,295 @@ const MessageBubble = ({ message, onViewContext, isActiveContext }: MessageBubbl
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Find the user message that this bot message is responding to
+  // (used for resend - we want to resend the user message that preceded this error)
+
   return (
-    <div className={`flex gap-3 group ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div className={`flex gap-3 group ${isUser ? 'flex-row-reverse' : 'flex-row'} ${isEditing ? 'flex-col' : ''}`}>
       {/* Avatar */}
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-        isUser 
-          ? 'bg-gradient-to-br from-cyan-500 to-blue-600' 
-          : 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20'
-      }`}>
-        {isUser ? <User size={18} className="text-white" /> : <Bot size={18} className="text-cyan-400" />}
-      </div>
+      {!isEditing && (
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+          isUser 
+            ? 'bg-gradient-to-br from-cyan-500 to-blue-600' 
+            : 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20'
+        }`}>
+          {isUser ? <User size={18} className="text-white" /> : <Bot size={18} className="text-cyan-400" />}
+        </div>
+      )}
 
       {/* Message Content */}
-      <div className={`max-w-[80%] ${isUser ? 'items-end' : 'items-start'}`}>
-        <div className={`p-4 rounded-2xl ${
-          isUser 
-            ? 'bg-cyan-600/10 border border-cyan-500/20 rounded-tr-md' 
-            : `bg-white/5 border ${
-                message.status === 'error'
-                  ? 'border-red-500/30'
-                  : isActiveContext
-                    ? 'border-cyan-500/50'
-                    : 'border-white/5'
-              } rounded-tl-md`
-        }`}>
-          {/* Message Text with Markdown-like formatting */}
-          <MarkdownLite text={message.text} className="text-sm" />
-
-          {message.status === 'pending' && (
-            <div className="mt-3 flex items-center gap-2 text-xs text-cyan-400">
-              <RefreshCw size={12} className="animate-spin" />
-              <span>กำลังรอคำตอบอยู่เบื้องหลัง</span>
+      <div className={`max-w-[80%] ${isUser ? 'items-end' : 'items-start'} w-full`}>
+        {isEditing ? (
+          /* ── Edit Mode ── */
+          <div className="flex flex-col gap-2">
+            {/* Edit input row */}
+            <div className="flex items-center gap-2">
+              <CornerDownLeft size={14} className="text-cyan-400 shrink-0" />
+              <span className="text-xs text-cyan-400">แก้ไขข้อความ</span>
             </div>
-          )}
-
-          {/* Sources */}
-          {message.status !== 'pending' && message.sources && message.sources.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-white/10">
-              <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                <Link2 size={12} />
-                <span>Sources</span>
-              </div>
-              <div className="space-y-1">
-                {message.sources.map((source) => (
-                  <SourceBadge key={source.id} source={source} />
-                ))}
+            <div className="relative flex items-end gap-2 bg-[#1a1e26] border border-cyan-500/50 rounded-2xl px-4 py-2">
+              <textarea
+                ref={setEditTextareaRef}
+                value={editingText}
+                onChange={(e) => onEditingTextChange(e.target.value)}
+                className="flex-1 bg-transparent border-none outline-none text-sm text-white resize-none py-2 max-h-[200px] overflow-y-auto"
+                rows={1}
+                autoFocus
+              />
+              <div className="flex items-center gap-1 shrink-0 pb-1">
+                <button
+                  onClick={onCancelEdit}
+                  className="p-1.5 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-xs"
+                  title="ยกเลิก (Esc)"
+                >
+                  <X size={14} />
+                </button>
+                <button
+                  onClick={onConfirmEdit}
+                  disabled={!editingText.trim() || isLoading}
+                  className="p-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg text-white transition-colors"
+                  title="ส่งข้อความใหม่ (Enter)"
+                >
+                  <Send size={14} />
+                </button>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Message Actions */}
-        {!isUser && (
-          <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={handleCopy}
-              className="p-1.5 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              title="Copy"
-            >
-              {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-            </button>
-            {message.contextType && (
-              <button
-                onClick={onViewContext}
-                className={`flex items-center gap-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
-                  isActiveContext 
-                    ? 'bg-cyan-500/20 text-cyan-400' 
-                    : 'text-slate-500 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <Network size={12} />
-                View Context
-              </button>
-            )}
+            <p className="text-[10px] text-slate-500">กด Enter เพื่อส่ง หรือ Esc เพื่อยกเลิก</p>
           </div>
+        ) : (
+          /* ── Normal / Error Bubble ── */
+          <>
+            <div className={`p-4 rounded-2xl ${
+              isUser 
+                ? 'bg-cyan-600/10 border border-cyan-500/20 rounded-tr-md' 
+                : `bg-white/5 border ${
+                    isError
+                      ? 'border-red-500/30'
+                      : isActiveContext
+                        ? 'border-cyan-500/50'
+                        : 'border-white/5'
+                  } rounded-tl-md`
+            }`}>
+              {/* Error banner */}
+              {isError && (
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                  <span className="shrink-0">⚠️</span>
+                  <span>ส่งข้อความไปไม่ได้ ลองส่งใหม่หรือแก้ไขข้อความ</span>
+                </div>
+              )}
+
+              {/* Message Text with Markdown-like formatting */}
+              <MarkdownLite text={message.text} className="text-sm" />
+
+              {message.status === 'pending' && (
+                <div className="mt-3 flex items-center gap-2 text-xs text-cyan-400">
+                  <RefreshCw size={12} className="animate-spin" />
+                  <span>กำลังรอคำตอบอยู่เบื้องหลัง</span>
+                </div>
+              )}
+
+              {/* Smart Action Buttons - only for bot messages that are complete */}
+              {!isUser && message.status === 'complete' && !message.isSystem && (
+                <SmartActionBar text={message.text} />
+              )}
+
+              {/* Sources */}
+              {false && message.status !== 'pending' && message.sources && message.sources.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-white/10">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                    <Link2 size={12} />
+                    <span>Sources</span>
+                  </div>
+                  <div className="space-y-1">
+                    {message.sources.map((source) => (
+                      <SourceBadge key={source.id} source={source} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Message Actions */}
+            <div className={`flex items-center gap-1 mt-2 transition-opacity ${isError ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+              {/* User: edit + resend */}
+              {isUser && (
+                <>
+                  <button
+                    onClick={() => onStartEdit(message.id, message.text)}
+                    disabled={isLoading}
+                    className="flex items-center gap-1 px-2 py-1.5 text-xs rounded-lg border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+                    title="แก้ไขข้อความ"
+                  >
+                    <Edit3 size={12} />
+                    แก้ไข
+                  </button>
+                  {(isError || message.status === 'pending') && (
+                    <button
+                      onClick={() => onResend(message.text)}
+                      disabled={isLoading}
+                      className="flex items-center gap-1 px-2 py-1.5 text-xs rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors disabled:opacity-50"
+                      title="ส่งใหม่"
+                    >
+                      <RotateCcw size={12} />
+                      ส่งใหม่
+                    </button>
+                  )}
+                </>
+              )}
+              {/* Bot: copy */}
+              {!isUser && (
+                <button
+                  onClick={handleCopy}
+                  className="p-1.5 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Copy"
+                >
+                  {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                </button>
+              )}
+              {/* Delete button (for both) */}
+              <button
+                onClick={onDelete}
+                className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors ml-auto"
+                title="ลบข้อความนี้"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </>
         )}
       </div>
+    </div>
+  );
+};
+
+// ==================== SMART ACTION BAR ====================
+
+interface SmartActionBarProps {
+  text: string;
+}
+
+const SmartActionBar = ({ text }: SmartActionBarProps) => {
+  const navigate = useNavigate();
+  const provinces = useMemo(() => extractMentionedProvinces(text), [text]);
+  const regions = useMemo(() => extractMentionedRegions(text), [text]);
+
+  // If no provinces or regions detected, show generic actions only
+  const hasContext = provinces.length > 0 || regions.length > 0;
+  if (!hasContext) return null;
+
+  // Pick first detected province for primary actions
+  const primaryProvince = provinces[0] || null;
+  const primaryRegion = regions[0] || null;
+
+  // Determine navigation targets
+  const regionIdForTravel = primaryProvince?.regionId || primaryRegion?.id || 'central';
+
+  const actionButtons: Array<{
+    label: string;
+    icon: React.ReactNode;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+    onClick: () => void;
+  }> = [];
+
+  // Hot Location button
+  actionButtons.push({
+    label: 'Hot Location',
+    icon: <Flame size={13} />,
+    color: 'text-orange-300',
+    bgColor: 'bg-orange-500/10',
+    borderColor: 'border-orange-500/30',
+    onClick: () => navigate('/', { state: { focusRegion: regionIdForTravel } }),
+  });
+
+  // Travel Guide button
+  actionButtons.push({
+    label: 'Travel Guide',
+    icon: <Compass size={13} />,
+    color: 'text-teal-300',
+    bgColor: 'bg-teal-500/10',
+    borderColor: 'border-teal-500/30',
+    onClick: () => navigate(`/travel-guide/${regionIdForTravel}`),
+  });
+
+  // Province-specific buttons (only if a province was detected)
+  if (primaryProvince) {
+    actionButtons.push({
+      label: 'Open Map',
+      icon: <Map size={13} />,
+      color: 'text-sky-300',
+      bgColor: 'bg-sky-500/10',
+      borderColor: 'border-sky-500/30',
+      onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`),
+    });
+  }
+
+  // Category quick-links
+  if (primaryProvince) {
+    actionButtons.push(
+      {
+        label: 'Transit',
+        icon: <Bus size={13} />,
+        color: 'text-blue-300',
+        bgColor: 'bg-blue-500/10',
+        borderColor: 'border-blue-500/30',
+        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'travel' } }),
+      },
+      {
+        label: 'Stay',
+        icon: <Bed size={13} />,
+        color: 'text-violet-300',
+        bgColor: 'bg-violet-500/10',
+        borderColor: 'border-violet-500/30',
+        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'stay' } }),
+      },
+      {
+        label: 'Food',
+        icon: <Utensils size={13} />,
+        color: 'text-amber-300',
+        bgColor: 'bg-amber-500/10',
+        borderColor: 'border-amber-500/30',
+        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'eat' } }),
+      },
+    );
+  }
+
+  // If multiple provinces found, show secondary province chips
+  const secondaryProvinces = provinces.slice(1, 4);
+
+  return (
+    <div className="mt-4 pt-3 border-t border-white/[0.06]">
+      {/* Action Buttons Row */}
+      <div className="flex flex-wrap gap-1.5">
+        {actionButtons.map((btn, idx) => (
+          <button
+            key={idx}
+            onClick={btn.onClick}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 hover:brightness-125 hover:scale-[1.03] active:scale-[0.97] ${btn.color} ${btn.bgColor} ${btn.borderColor}`}
+          >
+            {btn.icon}
+            {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Secondary Province Chips */}
+      {secondaryProvinces.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] text-slate-500 mr-1">ยังเกี่ยวข้องกับ:</span>
+          {secondaryProvinces.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => navigate(`/province/${p.regionId}/${p.id}`)}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-white/10 bg-white/[0.03] text-[10px] text-slate-400 hover:text-white hover:border-cyan-500/30 hover:bg-cyan-500/10 transition-all"
+            >
+              <MapPin size={10} />
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -508,12 +1087,31 @@ const RecentChatItem = ({ chat, isActive, onSelect, onDelete }: RecentChatItemPr
   <div
     className={`group w-full rounded-2xl border p-3 transition-all ${
       isActive
-        ? 'border-cyan-500/40 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.08)]'
+        ? ''
         : 'border-white/5 bg-white/[0.03] hover:border-white/10 hover:bg-white/[0.05]'
     }`}
+    style={
+      isActive
+        ? {
+            borderColor: 'var(--chat-recent-active-border)',
+            backgroundColor: 'var(--chat-recent-active-bg)',
+            boxShadow: 'var(--chat-recent-active-shadow)'
+          }
+        : undefined
+    }
   >
     <div className="flex items-start gap-3">
-      <div className={`mt-0.5 rounded-xl p-2 ${isActive ? 'bg-cyan-500/15 text-cyan-300' : 'bg-white/5 text-slate-400'}`}>
+      <div
+        className={`mt-0.5 rounded-xl p-2 ${isActive ? '' : 'bg-white/5 text-slate-400'}`}
+        style={
+          isActive
+            ? {
+                backgroundColor: 'var(--chat-recent-active-icon-bg)',
+                color: 'var(--chat-recent-active-icon-text)'
+              }
+            : undefined
+        }
+      >
         <Clock3 size={14} />
       </div>
       <div className="min-w-0 flex-1">
@@ -684,5 +1282,5 @@ const EmptyCanvas = () => (
   </div>
 );
 
-// ==================== HELPER FUNCTIONS ====================
+// ==================== END OF FILE ====================
 

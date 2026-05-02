@@ -1,8 +1,24 @@
-import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid } from './database/db'
 import { initialRegions } from './database/initialData'
+import { isanUpper1 } from './database/portalSeed_isanUpper1'
+import { isanUpper2 } from './database/portalSeed_isanUpper2'
+import { isanLower1 } from './database/portalSeed_isanLower1'
+import { isanLower2 } from './database/portalSeed_isanLower2'
+import { eastWest1 } from './database/portalSeed_eastWest1'
+import { eastWest2 } from './database/portalSeed_eastWest2'
+import { eastWest3 } from './database/portalSeed_eastWest3'
+import { southPart1 } from './database/portalSeed_south1'
+import { southPart2 } from './database/portalSeed_south2'
+import { southPart3 } from './database/portalSeed_south3'
+import { centralPart1 } from './database/portalSeed_central1'
+import { centralPart2 } from './database/portalSeed_central2'
+import { centralPart3 } from './database/portalSeed_central3'
+import { northPart1 } from './database/portalSeed_north1'
+import { northPart2 } from './database/portalSeed_north2'
+import { northPart3 } from './database/portalSeed_north3'
 import { readRuntimeConfig, writeRuntimeConfig } from './config/runtimeConfig'
 import { createHash } from 'crypto'
 import { promises as fs } from 'fs'
@@ -149,6 +165,25 @@ type N8nOverrides = {
   apiKey?: string
 }
 
+type N8nChatPayload = {
+  message: string
+  sessionId?: string
+  provinceName?: string
+  city?: string
+  regionName?: string
+  country?: string
+  lat?: number
+  lng?: number
+} & N8nOverrides
+
+type MapEvSearchParams = {
+  lat: number
+  lng: number
+  distanceKm?: number
+  maxResults?: number
+  apiKey?: string
+}
+
 const resolveN8nConfig = async (overrides?: N8nOverrides) => {
   const config = await readRuntimeConfig()
   const webhookUrl = (overrides?.webhookUrl || config.ngrok || process.env.VITE_NGROK_URL || DEFAULT_N8N_WEBHOOK_URL).replace(/\/+$/, '')
@@ -236,7 +271,7 @@ const pingN8nHealth = async (overrides?: N8nOverrides) => {
   }
 }
 
-const postN8nChat = async (payload: { message: string; sessionId?: string } & N8nOverrides) => {
+const postN8nChat = async (payload: N8nChatPayload) => {
   const { webhookUrl, apiKey } = await resolveN8nConfig(payload)
   const candidates = buildN8nEndpointCandidates(webhookUrl, 'chat')
   let lastResponse: Awaited<ReturnType<typeof parseN8nResponse>> | null = null
@@ -247,7 +282,13 @@ const postN8nChat = async (payload: { message: string; sessionId?: string } & N8
       headers: buildN8nHeaders(apiKey, 'application/json'),
       body: JSON.stringify({
         message: payload.message,
-        sessionId: payload.sessionId
+        sessionId: payload.sessionId,
+        provinceName: payload.provinceName,
+        city: payload.city,
+        regionName: payload.regionName,
+        country: payload.country,
+        lat: payload.lat,
+        lng: payload.lng
       })
     })
 
@@ -265,6 +306,116 @@ const postN8nChat = async (payload: { message: string; sessionId?: string } & N8
       error: 'n8n chat endpoint not found'
     }
   )
+}
+
+const getOpenWeatherRainTileTemplate = async (): Promise<string | null> => {
+  try {
+    const runtimeConfig = await readRuntimeConfig()
+    const apiKey = String(runtimeConfig.openweather || process.env.VITE_OPENWEATHER_API_KEY || '').trim()
+    if (!apiKey) {
+      console.warn('[main] OpenWeather API key is missing; cannot use precipitation fallback layer')
+      return null
+    }
+
+    // OpenWeather does not provide true radar in this endpoint, but precipitation tiles are usable fallback.
+    return `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${encodeURIComponent(apiKey)}`
+  } catch (error) {
+    console.warn('[main] Failed to resolve OpenWeather precipitation fallback:', error)
+    return null
+  }
+}
+
+const getRainRadarTileTemplate = async (): Promise<string | null> => {
+  const getFallback = async () => {
+    const fallbackTemplate = await getOpenWeatherRainTileTemplate()
+    if (fallbackTemplate) return fallbackTemplate
+    // Dynamic fallback: fetch latest RainViewer timestamp
+    try {
+      const rvRes = await net.fetch('https://api.rainviewer.com/public/weather-maps.json');
+      if (rvRes.ok) {
+        const rvData = await rvRes.json() as { radar?: { past?: Array<{ path?: string }> } };
+        const latestPath = rvData?.radar?.past?.[rvData.radar.past.length - 1]?.path;
+        if (latestPath) {
+          return `https://tilecache.rainviewer.com${latestPath}/256/{z}/{x}/{y}/2/1_1.png`;
+        }
+      }
+    } catch { /* ignore */ }
+    return null;
+  }
+
+  try {
+    const response = await net.fetch('https://api.rainviewer.com/public/weather-maps.json', {
+      method: 'GET'
+    })
+    if (!response.ok) {
+      console.warn(`[main] RainViewer weather-maps request failed with status ${response.status}`)
+      return await getFallback()
+    }
+
+    const payload = (await response.json()) as {
+      radar?: {
+        past?: Array<{ path?: string }>
+        nowcast?: Array<{ path?: string }>
+      }
+    }
+
+    const pastFrames = Array.isArray(payload?.radar?.past) ? payload.radar.past : []
+    const latestFramePath =
+      (pastFrames.length > 0 ? pastFrames[pastFrames.length - 1]?.path : null) ||
+      payload?.radar?.nowcast?.[0]?.path
+
+    if (!latestFramePath) {
+      console.warn('[main] RainViewer payload did not include a radar frame path')
+      return await getFallback()
+    }
+    return `https://tilecache.rainviewer.com${latestFramePath}/256/{z}/{x}/{y}/2/1_1.png`
+  } catch (error) {
+    console.warn('[main] Failed to resolve RainViewer tile template:', error)
+    return await getFallback()
+  }
+}
+
+const searchEvChargers = async (params: MapEvSearchParams) => {
+  try {
+    const query = new URLSearchParams({
+      output: 'json',
+      countrycode: 'TH',
+      latitude: String(params.lat),
+      longitude: String(params.lng),
+      distance: String(params.distanceKm ?? 80),
+      distanceunit: 'KM',
+      maxresults: String(params.maxResults ?? 120),
+      compact: 'true',
+      verbose: 'false'
+    })
+
+    if (params.apiKey) {
+      query.set('key', params.apiKey)
+    }
+
+    const response = await net.fetch(`https://api.openchargemap.io/v3/poi/?${query.toString()}`, {
+      method: 'GET'
+    })
+    if (!response.ok) return []
+
+    const rows = (await response.json()) as any[]
+    if (!Array.isArray(rows)) return []
+
+    return rows
+      .map((row) => {
+        const lat = Number(row?.AddressInfo?.Latitude)
+        const lng = Number(row?.AddressInfo?.Longitude)
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+
+        const title = row?.AddressInfo?.Title || 'EV Charger'
+        const subtitle = [row?.AddressInfo?.Town, row?.AddressInfo?.StateOrProvince].filter(Boolean).join(', ')
+        return { lat, lng, title, subtitle }
+      })
+      .filter((item): item is { lat: number; lng: number; title: string; subtitle: string } => item !== null)
+      .slice(0, Math.max(1, Math.min(params.maxResults ?? 120, 200)))
+  } catch {
+    return []
+  }
 }
 
 const registerImageProtocol = async () => {
@@ -427,6 +578,7 @@ app.whenReady().then(async () => {
   // Initialize and Seed Database
   initDatabase()
   seedDatabase(initialRegions)
+  seedProvincePortalData({ ...isanUpper1, ...isanUpper2, ...isanLower1, ...isanLower2, ...eastWest1, ...eastWest2, ...eastWest3, ...southPart1, ...southPart2, ...southPart3, ...centralPart1, ...centralPart2, ...centralPart3, ...northPart1, ...northPart2, ...northPart3 })
   await registerImageProtocol().catch((error) => console.error('Failed to register image protocol:', error))
 
   // Default open or close DevTools by F12 in development
@@ -436,6 +588,7 @@ app.whenReady().then(async () => {
 
   // IPC handlers
   ipcMain.on('ping', () => console.log('pong'))
+
   ipcMain.handle('db:getRegions', () => {
      return getRegions();
   })
@@ -447,10 +600,13 @@ app.whenReady().then(async () => {
   ipcMain.handle('db:getRegion', (_, id) => {
      return getRegion(id);
   })
-  
-  // Example of parameter usage, though currently not heavily used by frontend yet
+
   ipcMain.handle('db:getProvince', (_, id) => {
      return getProvince(id);
+  })
+
+  ipcMain.handle('db:getProvincePortal', (_, id) => {
+     return getProvincePortal(id);
   })
 
   ipcMain.handle('db:getProvincesByRegion', (_, id) => {
@@ -460,7 +616,6 @@ app.whenReady().then(async () => {
   ipcMain.handle('db:getProvinceIndex', () => {
      return getProvinceIndex();
   })
-
   ipcMain.handle('db:getArchiveProvinces', (_, params) => {
      return getArchiveProvinces(params);
   })
@@ -473,6 +628,38 @@ app.whenReady().then(async () => {
   ipcMain.handle('db:forceReseed', () => {
      forceReseedDatabase(initialRegions);
      return getDatabaseStats();
+  })
+
+  ipcMain.handle('db:saveWeatherAqi', (_, records: { provinceId: string; date: string; temperature: number; aqi: number }[]) => {
+     return saveWeatherAqi(records);
+  })
+
+  ipcMain.handle('db:getWeatherAqi', (_, provinceId?: string, date?: string) => {
+     return getWeatherAqi(provinceId, date);
+  })
+
+  ipcMain.handle('db:saveFloodCache', (_, provinceId: string, geoJsonData: object) => {
+     return saveFloodCache(provinceId, geoJsonData);
+  })
+
+  ipcMain.handle('db:getFloodCache', (_, provinceId: string) => {
+     return getFloodCache(provinceId);
+  })
+
+  ipcMain.handle('db:isFloodCacheValid', (_, provinceId: string, maxAgeHours = 24) => {
+     return isFloodCacheValid(provinceId, maxAgeHours);
+  })
+
+  ipcMain.handle('db:saveFuelPrices', (_, prices: Array<{ fuelType: string; price: number; source?: string }>) => {
+     return saveFuelPrices(prices);
+  })
+
+  ipcMain.handle('db:getFuelPrices', () => {
+     return getFuelPrices();
+  })
+
+  ipcMain.handle('db:isFuelPricesValid', (_, maxAgeHours = 6) => {
+     return isFuelPricesValid(maxAgeHours);
   })
 
   ipcMain.handle('assets:getImageCacheStats', () => {
@@ -505,7 +692,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle(
     'n8n:chat',
-    async (_, payload: { message: string; sessionId?: string; webhookUrl?: string; apiKey?: string }) => {
+    async (_, payload: N8nChatPayload) => {
       try {
         return await postN8nChat(payload)
       } catch (error) {
@@ -517,6 +704,64 @@ app.whenReady().then(async () => {
       }
     }
   )
+
+  ipcMain.handle('map:getRainRadarTileTemplate', async () => {
+    return getRainRadarTileTemplate()
+  })
+
+  // Create a session that bypasses the system proxy for GISTDA requests
+  const noProxySession = session.fromPartition('persist:no-proxy')
+  noProxySession.setProxy({ proxyRules: 'direct://' }).catch(err => {
+    console.error('[Main] Failed to set proxy for no-proxy session:', err)
+  })
+
+  ipcMain.handle('map:fetchGistdaFeatures', async (_, url: string, headers?: Record<string, string>) => {
+    try {
+      // Use noProxySession.fetch directly since net.fetch ignores the session option in RequestInit
+      const response = await noProxySession.fetch(url, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        redirect: 'follow'
+      })
+      if (!response.ok) {
+        return { ok: false, status: response.status, statusText: response.statusText }
+      }
+      const data = await response.json()
+      return { ok: true, data }
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Unknown network error'
+      }
+    }
+  })
+
+  ipcMain.handle('fuel:getBangchakPrices', async () => {
+    try {
+      const BANGCHAK_URL = 'https://oil-price.bangchak.co.th/apioilprice2/th'
+      const response = await noProxySession.fetch(BANGCHAK_URL, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        redirect: 'follow'
+      })
+      if (!response.ok) {
+        return { ok: false, status: response.status, statusText: response.statusText }
+      }
+      const html = await response.text()
+      return { ok: true, data: html }
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Unknown network error'
+      }
+    }
+  })
 
   createWindow()
 

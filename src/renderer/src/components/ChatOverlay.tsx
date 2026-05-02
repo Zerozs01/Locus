@@ -1,7 +1,9 @@
 import { X, Send, Bot, User } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useIntelligenceChatStore } from '../services/intelligenceChatStore';
+import { useChatThemeStore } from '../services/chatThemeStore';
 import { MarkdownLite } from './MarkdownLite';
+import { useChatTheme } from '../theme/useChatTheme';
 
 export interface ChatOverlayProps {
   isOpen: boolean;
@@ -10,8 +12,11 @@ export interface ChatOverlayProps {
 
 export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
   const { messages, isLoading, sendMessage } = useIntelligenceChatStore();
+  const { theme } = useChatThemeStore();
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useChatTheme(theme);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,23 +43,43 @@ export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
           <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_#10b981]"></div>
           <span className="text-xs font-bold uppercase tracking-widest text-slate-300">Locus AI</span>
         </div>
-        <button onClick={onClose}><X size={18} className="text-slate-500 hover:text-white"/></button>
+        <button onClick={onClose} title="Close chat overlay"><X size={18} className="text-slate-500 hover:text-white"/></button>
       </div>
       
       <div className="flex-1 p-6 overflow-y-auto space-y-4">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.sender === 'user' ? 'bg-cyan-600' : 'bg-emerald-600/20 text-emerald-400'}`}>
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.sender === 'user' ? 'text-white' : ''}`}
+              style={
+                msg.sender === 'user'
+                  ? { backgroundColor: 'var(--chat-accent-primary)' }
+                  : {
+                      backgroundColor: 'var(--chat-accent-soft)',
+                      color: 'var(--chat-accent-text)'
+                    }
+              }
+            >
               {msg.sender === 'user' ? <User size={14} className="text-white" /> : <Bot size={16} />}
             </div>
             <div className={`max-w-[80%] p-3 rounded-xl text-sm ${
               msg.sender === 'user' 
                 ? 'bg-cyan-600/10 border border-cyan-500/20 text-cyan-100' 
                 : `${msg.status === 'error' ? 'bg-red-500/10 border border-red-500/20' : 'bg-white/5 border border-white/5'} text-slate-300`
-            }`}>
+            }`}
+              style={
+                msg.sender === 'user'
+                  ? {
+                      backgroundColor: 'var(--chat-accent-soft)',
+                      borderColor: 'var(--chat-accent-soft-border)',
+                      color: 'var(--chat-md-text)'
+                    }
+                  : undefined
+              }
+            >
               <MarkdownLite text={msg.text} className="text-sm" />
               {msg.status === 'pending' && (
-                <div className="mt-2 text-xs text-cyan-400">กำลังรอคำตอบอยู่เบื้องหลัง...</div>
+                <div className="mt-2 text-xs" style={{ color: 'var(--chat-accent-text)' }}>กำลังรอคำตอบอยู่เบื้องหลัง...</div>
               )}
             </div>
           </div>
@@ -75,7 +100,9 @@ export const ChatOverlay = ({ isOpen, onClose }: ChatOverlayProps) => {
           <button 
             onClick={handleSend}
             disabled={isLoading}
-            className={`p-2 rounded transition-colors ${isLoading ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500 text-white'}`}
+            title="Send message"
+            className={`p-2 rounded transition-colors ${isLoading ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'text-white hover:brightness-110'}`}
+            style={isLoading ? undefined : { backgroundColor: 'var(--chat-accent-primary)' }}
           >
             <Send size={14} />
           </button>

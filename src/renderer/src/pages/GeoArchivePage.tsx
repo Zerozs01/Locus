@@ -1,10 +1,1699 @@
-import { ArchiveView } from '../views/ArchiveView';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getFuelPricesWithRefresh, refreshFuelPrices } from '../services/fuelPricesService';
+import { getRecords } from '../utils/csvDb';
+import { AQI_SYNC_EVENT } from '../utils/aqi';
+import {
+  MapPin,
+  Compass,
+  Sparkles,
+  TreePine,
+  UtensilsCrossed,
+  Bed,
+  PartyPopper,
+  Landmark,
+  Car,
+  Coffee,
+  Users,
+  CalendarDays,
+  ArrowRight,
+  ChevronRight,
+  Mountain,
+  Waves,
+  Camera,
+  Heart,
+  Zap,
+  Map,
+  Pencil,
+  Settings,
+  Bus,
+  Train,
+  CarTaxiFront,
+  Bike,
+  TrendingUp,
+  BarChart3,
+  Filter,
+  Info
+} from 'lucide-react';
 
-/**
- * Geo-Archive Page
- * Gallery & Comparison view for all provinces
- * Features: Filter by region, cost, safety | Sort | Compare up to 3 provinces
- */
-export const GeoArchivePage = () => {
-  return <ArchiveView />;
+// ─── Types ──────────────────────────────────────────
+type IntentMode = null | 'help' | 'explore';
+
+interface DiscoveryChip {
+  label: string;
+  icon: React.ReactNode;
+  keywords: string[];
+}
+
+interface RegionStats {
+  id: string;
+  name: string;
+  color: string;
+  avgAqi: number;
+  avgTemp: number;
+  dataPoints: number;
+}
+
+// ─── Data ───────────────────────────────────────────
+const DISCOVERY_CHIPS: DiscoveryChip[] = [
+  { label: 'ป่าไม้', icon: <TreePine size={14} />, keywords: ['nature', 'forest'] },
+  { label: 'ทะเล', icon: <Waves size={14} />, keywords: ['beach', 'sea'] },
+  { label: 'ของกิน', icon: <UtensilsCrossed size={14} />, keywords: ['food', 'restaurant'] },
+  { label: 'สถานบันเทิง', icon: <PartyPopper size={14} />, keywords: ['nightlife', 'party'] },
+];
+
+const REGIONS = [
+  { id: 'northeast', name: 'ภาคอีสาน', eng: 'Isan', color: '#ef4444', colorClass: 'text-red-400', barClass: 'bg-gradient-to-t from-red-800 to-red-500' },
+  { id: 'central', name: 'ภาคกลาง', eng: 'Central', color: '#f97316', colorClass: 'text-orange-400', barClass: 'bg-gradient-to-t from-orange-700 to-orange-400' },
+  { id: 'south', name: 'ภาคใต้', eng: 'South', color: '#2563eb', colorClass: 'text-blue-400', barClass: 'bg-gradient-to-t from-blue-800 to-sky-400' },
+  { id: 'north', name: 'ภาคเหนือ', eng: 'North', color: '#a855f7', colorClass: 'text-purple-400', barClass: 'bg-gradient-to-t from-violet-800 to-purple-400' },
+  { id: 'east', name: 'ตะวันออก', eng: 'East', color: '#facc15', colorClass: 'text-yellow-400', barClass: 'bg-gradient-to-t from-amber-600 to-yellow-400' },
+  { id: 'west', name: 'ตะวันตก', eng: 'West', color: '#22c55e', colorClass: 'text-emerald-400', barClass: 'bg-gradient-to-t from-emerald-800 to-lime-500' },
+];
+
+const FUEL_EFFICIENCY = {
+  motorcycle: 35,
+  car: 14,
 };
+
+const FUEL_TYPE_DETAILS: Record<string, { label: string; motorcycle: boolean; car: boolean }> = {
+  '95': { label: 'แก๊สโซฮอล์ 95', motorcycle: true, car: true },
+  '91': { label: 'แก๊สโซฮอล์ 91', motorcycle: true, car: true },
+  'E20': { label: 'แก๊สโซฮอล์ E20', motorcycle: true, car: true },
+  'E85': { label: 'แก๊สโซฮอล์ E85', motorcycle: false, car: true },
+  '98+': { label: 'แก๊ซโซฮอร์ 98+', motorcycle: true, car: true },
+  'B7': { label: 'ไฮดีเซล', motorcycle: false, car: true },
+  'B20': { label: 'ดีเซล B20', motorcycle: false, car: true },
+  'Diesel': { label: 'ดีเซล', motorcycle: false, car: true },
+  'Premium': { label: 'ดีเซล High Premium+', motorcycle: false, car: true },
+};
+
+const FUEL_INFO_THEME: Record<string, { bg: string; border: string }> = {
+  '95': { bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+  '91': { bg: 'bg-teal-500/10', border: 'border-teal-500/30' },
+  'E20': { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  'E85': { bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
+  '98+': { bg: 'bg-red-500/10', border: 'border-red-500/30' },
+  'B7': { bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+  'B20': { bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
+  'Diesel': { bg: 'bg-slate-500/10', border: 'border-slate-500/30' },
+  'Premium': { bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
+};
+
+// ─── Theme Colors per Question ──────────────────────
+// Each question has its own accent color to make selections feel distinct
+interface QuestionTheme {
+  accent: string;       // e.g. '#a855f7'
+  accentBg: string;     // selected bg
+  accentBorder: string; // selected border
+  progressColor: string;
+  labelColor: string;
+}
+
+const QUESTION_THEMES: QuestionTheme[] = [
+  // Q1: อยากเที่ยวแบบไหน → ม่วง
+  { accent: '#a855f7', accentBg: 'rgba(168,85,247,0.12)', accentBorder: 'rgba(168,85,247,0.5)', progressColor: '#a855f7', labelColor: 'text-purple-400' },
+  // Q2: ไปกี่วัน → น้ำเงิน
+  { accent: '#3b82f6', accentBg: 'rgba(59,130,246,0.12)', accentBorder: 'rgba(59,130,246,0.5)', progressColor: '#3b82f6', labelColor: 'text-blue-400' },
+  // Q3: มีรถไหม → เขียว
+  { accent: '#22c55e', accentBg: 'rgba(34,197,94,0.12)', accentBorder: 'rgba(34,197,94,0.5)', progressColor: '#22c55e', labelColor: 'text-emerald-400' },
+  // Q4: ไปกับใคร → ชมพู
+  { accent: '#ec4899', accentBg: 'rgba(236,72,153,0.12)', accentBorder: 'rgba(236,72,153,0.5)', progressColor: '#ec4899', labelColor: 'text-pink-400' },
+  // Q5: งบประมาณ → เหลืองทอง
+  { accent: '#eab308', accentBg: 'rgba(234,179,8,0.12)', accentBorder: 'rgba(234,179,8,0.5)', progressColor: '#eab308', labelColor: 'text-yellow-400' },
+];
+
+// ─── Questions ──────────────────────────────────────
+interface HelpQuestion {
+  id: string;
+  question: string;
+  options: { label: string; value: string; icon?: React.ReactNode }[];
+}
+
+const HELP_QUESTIONS: HelpQuestion[] = [
+  {
+    id: 'style',
+    question: 'อยากเที่ยวแบบไหน?',
+    options: [
+      { label: 'พักผ่อน ชิลล์ๆ', value: 'chill', icon: <Bed size={16} /> },
+      { label: 'ผจญภัย ลุยๆ', value: 'adventure', icon: <Zap size={16} /> },
+      { label: 'ธรรมชาติ ป่าเขา', value: 'nature', icon: <TreePine size={16} /> },
+      { label: 'วัฒนธรรม ประวัติศาสตร์', value: 'culture', icon: <Landmark size={16} /> },
+    ],
+  },
+  {
+    id: 'duration',
+    question: 'ไปกี่วัน?',
+    options: [
+      { label: 'เช้าไป-เย็นกลับ', value: '1day' },
+      { label: '2 วัน 1 คืน', value: '2d1n' },
+      { label: '3-4 วัน', value: '3-4d' },
+      { label: '5 วัน+', value: '5d+' },
+    ],
+  },
+  {
+    id: 'transport',
+    question: 'มีรถส่วนตัวไหม?',
+    options: [
+      { label: 'ขับรถไป', value: 'car', icon: <Car size={16} /> },
+      { label: 'ไม่มีรถ (ขนส่งสาธารณะ)', value: 'public', icon: <Map size={16} /> },
+    ],
+  },
+  {
+    id: 'companion',
+    question: 'ไปกับใคร?',
+    options: [
+      { label: 'คนเดียว', value: 'solo' },
+      { label: 'คู่รัก', value: 'couple', icon: <Heart size={16} /> },
+      { label: 'เพื่อน / กลุ่ม', value: 'friends', icon: <Users size={16} /> },
+      { label: 'ครอบครัว', value: 'family', icon: <Users size={16} /> },
+    ],
+  },
+  {
+    id: 'budget',
+    question: 'Budget รวม?',
+    options: [
+      { label: 'ประหยัด (< 1,000/วัน)', value: 'low' },
+      { label: 'ปานกลาง (1,000-3,000/วัน)', value: 'mid' },
+      { label: 'สบายๆ (3,000+/วัน)', value: 'high' },
+    ],
+  },
+];
+
+// ═══════════════════════════════════════════════════════
+// Main Component
+// ═══════════════════════════════════════════════════════
+export const GeoArchivePage = () => {
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<IntentMode>(null);
+  const [helpStep, setHelpStep] = useState(0);
+  const [helpAnswers, setHelpAnswers] = useState<Record<string, string>>({});
+  const [helpOthers, setHelpOthers] = useState<Record<string, string>>({});
+  const [showCarSettings, setShowCarSettings] = useState(false);
+  const [transportMeta, setTransportMeta] = useState({
+    carModel: '',
+    fuelPercent: '',
+    fuelType: '',
+    publicModes: [] as string[],
+    publicOther: '',
+  });
+  const [companionMeta, setCompanionMeta] = useState({
+    groupTotal: '',
+    male: '',
+    female: '',
+    lgbtq: '',
+    lgbtqType: '',
+    familyTotal: '',
+    familyAdults: '',
+    familyChildren: '',
+    familyAdultAges: '',
+    familyChildAges: '',
+  });
+  const [budgetMeta, setBudgetMeta] = useState({
+    totalBudget: '',
+    budgetNote: '',
+  });
+  const [finalSuggestion, setFinalSuggestion] = useState('');
+  const [selectedChips, setSelectedChips] = useState<string[]>([]);
+  const [showRegionFilter, setShowRegionFilter] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
+  const [showAllFuelPrices, setShowAllFuelPrices] = useState(false);
+  const [openFuelType, setOpenFuelType] = useState<string | null>(null);
+  const [isRefreshingFuel, setIsRefreshingFuel] = useState(false);
+  const [gasPrices, setGasPrices] = useState<Array<{ type: string; price: number; color: string }>>([
+    { type: '95', price: 42.45, color: 'bg-blue-500' },
+    { type: '91', price: 42.08, color: 'bg-teal-500' },
+    { type: 'E20', price: 35.45, color: 'bg-emerald-500' },
+    { type: 'E85', price: 31.39, color: 'bg-rose-500' },
+    { type: 'B7', price: 32.94, color: 'bg-amber-500' },
+    { type: 'B20', price: 33.20, color: 'bg-orange-500' },
+    { type: 'Diesel', price: 40.20, color: 'bg-slate-500' },
+    { type: 'Premium', price: 62.10, color: 'bg-purple-600' },
+    { type: '98+', price: 56.04, color: 'bg-red-600' },
+  ]);
+  const [regionStats, setRegionStats] = useState<RegionStats[]>([]);
+  const [statsViewMode, setStatsViewMode] = useState<'temp' | 'aqi'>('temp');
+
+  // Load fuel prices from database on mount
+  useEffect(() => {
+    let isMounted = true;
+    const loadFuelPrices = async () => {
+      try {
+        const colorMap: Record<string, string> = {
+          '95': 'bg-blue-500', '91': 'bg-teal-500', 'E20': 'bg-emerald-500',
+          'E85': 'bg-rose-500', 'B7': 'bg-amber-500', 'B20': 'bg-orange-500',
+          'Diesel': 'bg-slate-500', 'Premium': 'bg-purple-600', '98+': 'bg-red-600'
+        };
+        const prices = await getFuelPricesWithRefresh();
+        if (!isMounted) return;
+        
+        if (prices && prices.length > 0) {
+          setGasPrices(prices.map(p => ({
+            type: p.fuelType,
+            price: p.price,
+            color: colorMap[p.fuelType] || 'bg-slate-500'
+          })));
+        }
+      } catch (err) {
+        console.error('[GeoArchive] Failed to load fuel prices:', err);
+      }
+    };
+    loadFuelPrices();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Manual refresh fuel prices
+  const handleRefreshFuelPrices = async () => {
+    if (isRefreshingFuel) return;
+    setIsRefreshingFuel(true);
+    try {
+      const colorMap: Record<string, string> = {
+        '95': 'bg-blue-500', '91': 'bg-teal-500', 'E20': 'bg-emerald-500',
+        'E85': 'bg-rose-500', 'B7': 'bg-amber-500', 'B20': 'bg-orange-500',
+        'Diesel': 'bg-slate-500', 'Premium': 'bg-purple-600', '98+': 'bg-red-600'
+      };
+      const prices = await refreshFuelPrices();
+      if (prices && prices.length > 0) {
+        setGasPrices(prices.map(p => ({
+          type: p.fuelType,
+          price: p.price,
+          color: colorMap[p.fuelType] || 'bg-slate-500'
+        })));
+      }
+    } catch (err) {
+      console.error('[GeoArchive] Failed to refresh fuel prices:', err);
+    } finally {
+      setIsRefreshingFuel(false);
+    }
+  };
+
+  // Load regional stats (AQI & Temperature averages)
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRegionalStats = async () => {
+      try {
+        const api = (window as any).api;
+        const dbRows = api?.db?.getWeatherAqi ? await api.db.getWeatherAqi() : [];
+        const csvRows = getRecords().map((row) => ({
+          provinceId: row.id,
+          date: row.date,
+          temperature: row.temperature,
+          aqi: row.aqi
+        }));
+        const provinceIndexRows = api?.db?.getProvinceIndex ? await api.db.getProvinceIndex() : [];
+
+        const normalizeProvinceId = (value: string) => {
+          let normalized = value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+          if (normalized === 'bangkokmetropolis') normalized = 'bangkok';
+          if (normalized === 'phranakhonsiayutthaya') normalized = 'ayutthaya';
+          return normalized;
+        };
+
+        const provinceIdToRegionId: Record<string, string> = {};
+        if (Array.isArray(provinceIndexRows)) {
+          provinceIndexRows.forEach((row: any) => {
+            const regionId = String(row?.regionId || '').trim();
+            if (!regionId) return;
+            const idKey = normalizeProvinceId(String(row?.id || ''));
+            const nameKey = normalizeProvinceId(String(row?.name || ''));
+            if (idKey) provinceIdToRegionId[idKey] = regionId;
+            if (nameKey) provinceIdToRegionId[nameKey] = regionId;
+          });
+        }
+
+        const dbMaxDate = Array.isArray(dbRows) && dbRows.length > 0
+          ? dbRows.reduce((max: string, r: any) => (r?.date > max ? r.date : max), '')
+          : '';
+        const csvMaxDate = csvRows.length > 0
+          ? csvRows.reduce((max, r) => (r.date > max ? r.date : max), '')
+          : '';
+        const shouldSyncFromCsv = csvRows.length > 0 && (!dbMaxDate || csvMaxDate > dbMaxDate);
+
+        if (shouldSyncFromCsv && api?.db?.saveWeatherAqi) {
+          await api.db.saveWeatherAqi(csvRows);
+        }
+
+        const weatherRows = csvRows.length > 0
+          ? csvRows
+          : (Array.isArray(dbRows) ? dbRows : []);
+
+        if (!Array.isArray(weatherRows) || weatherRows.length === 0) {
+          console.log('[GeoArchive] No weather data available');
+          return;
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const groupedByProvince: Record<string, Array<{ date: string; temperature: number; aqi: number }>> = {};
+        weatherRows.forEach((row: any) => {
+          const normalizedId = normalizeProvinceId(String(row?.provinceId || ''));
+          const date = typeof row?.date === 'string' ? row.date : '';
+          if (!normalizedId || !date) return;
+          if (!groupedByProvince[normalizedId]) groupedByProvince[normalizedId] = [];
+          groupedByProvince[normalizedId].push({
+            date,
+            temperature: Number(row.temperature),
+            aqi: Number(row.aqi)
+          });
+        });
+
+        const resolvedRows = Object.entries(groupedByProvince).map(([provinceId, records]) => {
+          const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+          const today = sorted.find((r) => r.date === todayStr);
+          const latestPast = sorted.find((r) => r.date <= todayStr);
+          const latest = sorted[0];
+          const resolved = today || latestPast || latest;
+          return resolved ? { provinceId, temperature: resolved.temperature, aqi: resolved.aqi } : null;
+        }).filter((row): row is { provinceId: string; temperature: number; aqi: number } => Boolean(row));
+
+        // Build province to region mapping
+        const provinceToRegion: Record<string, string> = {
+          // North
+          'chiangmai': 'north', 'chiangrai': 'north', 'phayao': 'north', 'nan': 'north',
+          'phrae': 'north', 'uttaradit': 'north', 'sukhothai': 'north', 'tak': 'north',
+          // Northeast
+          'khonkaen': 'northeast', 'korat': 'northeast', 'udonthani': 'northeast',
+          'nakhonphanom': 'northeast', 'sakonakhon': 'northeast', 'yasothon': 'northeast',
+          'amnatcharoen': 'northeast', 'maha': 'northeast', 'loei': 'northeast',
+          'chaiyaphum': 'northeast', 'roiet': 'northeast',
+          // Central
+          'bangkok': 'central', 'ayutthaya': 'central', 'lopburi': 'central',
+          'sara': 'central', 'nakhonnayok': 'central', 'phetchaburi': 'central',
+          'chumphon': 'central',
+          // South
+          'phuket': 'south', 'krabi': 'south', 'phangnga': 'south',
+          'surat': 'south', 'nakhorn': 'south', 'ranong': 'south',
+          // East
+          'chachoengsao': 'east', 'chonburi': 'east', 'rayong': 'east',
+          'trad': 'east',
+          // West
+          'kanchanaburi': 'west', 'ratchaburi': 'west', 'prachuap': 'west'
+        };
+
+        // Group by region
+        const regionData: Record<string, { temps: number[]; aqis: number[] }> = {};
+        
+        resolvedRows.forEach((row) => {
+          const normalizedId = normalizeProvinceId(row.provinceId);
+          const mappedRegionId = provinceIdToRegionId[normalizedId];
+          const fallbackRegionId = Object.entries(provinceToRegion).find(([prov]) =>
+            normalizedId.includes(prov) || prov.includes(normalizedId)
+          )?.[1];
+          const regionId = mappedRegionId || fallbackRegionId;
+
+          if (regionId) {
+            if (!regionData[regionId]) {
+              regionData[regionId] = { temps: [], aqis: [] };
+            }
+            const data = regionData[regionId];
+            if (Number.isFinite(row.temperature)) data.temps.push(row.temperature);
+            if (Number.isFinite(row.aqi)) data.aqis.push(row.aqi);
+          }
+        });
+
+        // Calculate averages for each region
+        const stats: RegionStats[] = REGIONS
+          .map(r => {
+            const data = regionData[r.id];
+            const avgTemp = data && data.temps.length > 0
+              ? Math.round(data.temps.reduce((a: number, b: number) => a + b, 0) / data.temps.length * 10) / 10
+              : 0;
+            const avgAqi = data && data.aqis.length > 0
+              ? Math.round(data.aqis.reduce((a: number, b: number) => a + b, 0) / data.aqis.length)
+              : 0;
+
+            return {
+              id: r.id,
+              name: r.name,
+              color: r.color,
+              avgTemp,
+              avgAqi,
+              dataPoints: data ? Math.min(data.temps.length, data.aqis.length) : 0,
+            };
+          })
+          .filter(s => s.dataPoints > 0);
+
+        if (isMounted) {
+          setRegionStats(stats);
+        }
+      } catch (err) {
+        console.error('[GeoArchive] Failed to load regional stats:', err);
+      }
+    };
+
+    loadRegionalStats();
+    const onWeatherUpdated = () => {
+      void loadRegionalStats();
+    };
+    window.addEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
+    return () => {
+      isMounted = false;
+      window.removeEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
+    };
+  }, []);
+
+  const handleBack = useCallback(() => {
+    if (mode === 'help' && helpStep > 0) {
+      setHelpStep((s) => s - 1);
+    } else {
+      setMode(null);
+      setHelpStep(0);
+      setHelpAnswers({});
+      setHelpOthers({});
+      setShowCarSettings(false);
+      setTransportMeta({
+        carModel: '',
+        fuelPercent: '',
+        fuelType: '',
+        publicModes: [],
+        publicOther: '',
+      });
+      setCompanionMeta({
+        groupTotal: '',
+        male: '',
+        female: '',
+        lgbtq: '',
+        lgbtqType: '',
+        familyTotal: '',
+        familyAdults: '',
+        familyChildren: '',
+        familyAdultAges: '',
+        familyChildAges: '',
+      });
+      setBudgetMeta({
+        totalBudget: '',
+        budgetNote: '',
+      });
+      setFinalSuggestion('');
+      setSelectedChips([]);
+      setEditingQuestion(null);
+    }
+  }, [mode, helpStep]);
+
+  const toggleChip = (label: string) => {
+    setSelectedChips((prev) =>
+      prev.includes(label) ? prev.filter((c) => c !== label) : [...prev, label]
+    );
+  };
+
+  const togglePublicMode = (value: string) => {
+    setTransportMeta((prev) => ({
+      ...prev,
+      publicModes: prev.publicModes.includes(value)
+        ? prev.publicModes.filter((mode) => mode !== value)
+        : [...prev.publicModes, value],
+    }));
+  };
+
+  const getAnswerLabel = (questionId: string) => {
+    const question = HELP_QUESTIONS.find((q) => q.id === questionId);
+    if (!question) return 'ไม่ระบุ';
+    const selected = question.options.find((option) => option.value === helpAnswers[questionId]);
+    if (selected) return selected.label;
+    if ((questionId === 'style' || questionId === 'duration') && helpOthers[questionId]?.trim()) {
+      return 'อื่นๆ';
+    }
+    return 'ไม่ระบุ';
+  };
+
+  const getQuestionDetails = (questionId: string) => {
+    const details: string[] = [];
+    const otherText = helpOthers[questionId]?.trim();
+
+    if (otherText) {
+      details.push(`อื่นๆ: ${otherText}`);
+    }
+
+    if (questionId === 'transport') {
+      if (helpAnswers.transport === 'car') {
+        if (transportMeta.carModel.trim()) details.push(`รถ: ${transportMeta.carModel.trim()}`);
+        if (transportMeta.fuelPercent.trim()) details.push(`น้ำมันคงเหลือ: ${transportMeta.fuelPercent.trim()}%`);
+        if (transportMeta.fuelType.trim()) details.push(`ชนิดน้ำมัน: ${transportMeta.fuelType.trim()}`);
+      }
+
+      if (helpAnswers.transport === 'public') {
+        if (transportMeta.publicModes.length > 0) {
+          details.push(`ขนส่งที่สนใจ: ${transportMeta.publicModes.join(', ')}`);
+        }
+        if (transportMeta.publicOther.trim()) {
+          details.push(`ขนส่งอื่นๆ: ${transportMeta.publicOther.trim()}`);
+        }
+      }
+    }
+
+    if (questionId === 'companion') {
+      if (helpAnswers.companion === 'friends') {
+        if (companionMeta.groupTotal.trim()) details.push(`จำนวนกลุ่ม: ${companionMeta.groupTotal.trim()} คน`);
+        if (companionMeta.male.trim()) details.push(`ชาย: ${companionMeta.male.trim()} คน`);
+        if (companionMeta.female.trim()) details.push(`หญิง: ${companionMeta.female.trim()} คน`);
+        if (companionMeta.lgbtq.trim()) details.push(`LGBTQ+: ${companionMeta.lgbtq.trim()} คน`);
+        if (companionMeta.lgbtqType.trim()) details.push(`ประเภท LGBTQ+: ${companionMeta.lgbtqType.trim()}`);
+      }
+
+      if (helpAnswers.companion === 'family') {
+        if (companionMeta.familyTotal.trim()) details.push(`สมาชิกครอบครัว: ${companionMeta.familyTotal.trim()} คน`);
+        if (companionMeta.familyAdults.trim()) details.push(`ผู้ใหญ่: ${companionMeta.familyAdults.trim()} คน`);
+        if (companionMeta.familyChildren.trim()) details.push(`เด็ก: ${companionMeta.familyChildren.trim()} คน`);
+        if (companionMeta.familyAdultAges.trim()) details.push(`อายุผู้ใหญ่ (รายคน): ${companionMeta.familyAdultAges.trim()}`);
+        if (companionMeta.familyChildAges.trim()) details.push(`อายุเด็ก (รายคน): ${companionMeta.familyChildAges.trim()}`);
+      }
+    }
+
+    if (questionId === 'budget') {
+      if (budgetMeta.totalBudget.trim()) details.push(`งบรวมทริป: ${budgetMeta.totalBudget.trim()} บาท`);
+      if (budgetMeta.budgetNote.trim()) details.push(`หมายเหตุงบ: ${budgetMeta.budgetNote.trim()}`);
+    }
+
+    return details;
+  };
+
+  // Build structured payload text for AI chat context
+  const buildStructuredTravelInfo = () => {
+    const payload = {
+      travel_style: {
+        selection: helpAnswers.style || 'other_only',
+        selectionLabel: getAnswerLabel('style'),
+        other: (helpOthers.style || '').trim(),
+      },
+      duration: {
+        selection: helpAnswers.duration || 'other_only',
+        selectionLabel: getAnswerLabel('duration'),
+        other: (helpOthers.duration || '').trim(),
+      },
+      transport: {
+        selection: helpAnswers.transport || 'unspecified',
+        selectionLabel: getAnswerLabel('transport'),
+        other: (helpOthers.transport || '').trim(),
+        car: {
+          model: transportMeta.carModel.trim(),
+          fuelPercent: transportMeta.fuelPercent.trim(),
+          fuelType: transportMeta.fuelType.trim(),
+        },
+        publicTransport: {
+          preferredModes: transportMeta.publicModes,
+          other: transportMeta.publicOther.trim(),
+        },
+      },
+      companion: {
+        selection: helpAnswers.companion || 'unspecified',
+        selectionLabel: getAnswerLabel('companion'),
+        other: (helpOthers.companion || '').trim(),
+        friendsGroup: {
+          total: companionMeta.groupTotal.trim(),
+          male: companionMeta.male.trim(),
+          female: companionMeta.female.trim(),
+          lgbtq: companionMeta.lgbtq.trim(),
+          lgbtqType: companionMeta.lgbtqType.trim(),
+        },
+        family: {
+          total: companionMeta.familyTotal.trim(),
+          adults: companionMeta.familyAdults.trim(),
+          children: companionMeta.familyChildren.trim(),
+          adultAges: companionMeta.familyAdultAges.trim(),
+          childAges: companionMeta.familyChildAges.trim(),
+        },
+      },
+      budget: {
+        selection: helpAnswers.budget || 'unspecified',
+        selectionLabel: getAnswerLabel('budget'),
+        other: (helpOthers.budget || '').trim(),
+        tripTotalBudget: budgetMeta.totalBudget.trim(),
+        note: budgetMeta.budgetNote.trim(),
+      },
+    };
+
+    return JSON.stringify(payload, null, 2);
+  };
+
+  const buildReadableSummary = () => {
+    return HELP_QUESTIONS.map((q) => {
+      const details = getQuestionDetails(q.id);
+      const detailText = details.length > 0 ? `\n- ${details.join('\n- ')}` : '';
+      return `${q.question} ${getAnswerLabel(q.id)}${detailText}`;
+    }).join('\n');
+  };
+
+  // ─── Intent Selection (Home) ──────────────────────
+  if (mode === null) {
+    // Mock data for widgets
+    const trendingLocations = [
+      { name: 'แม่กำปอง', province: 'เชียงใหม่', temp: 18, status: 'กำลังฮิต', image: 'https://images.unsplash.com/photo-1528181304800-2f190854b798?auto=format&fit=crop&q=80&w=200' },
+      { name: 'เกาะกูด', province: 'ตราด', temp: 28, status: 'สงบ', image: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&q=80&w=200' },
+      { name: 'เขาค้อ', province: 'เพชรบูรณ์', temp: 22, status: 'มีหมอก', image: 'https://images.unsplash.com/photo-1510797215324-95aa89f43c33?auto=format&fit=crop&q=80&w=200' },
+      { name: 'บ้านนา', province: 'นครนายก', temp: 26, status: 'ใกล้กรุง', image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=200' },
+    ];
+
+    const visibleGas = showAllFuelPrices ? gasPrices : gasPrices.slice(0, 3);
+    const displayStats = regionStats
+      .slice()
+      .sort((a, b) => (statsViewMode === 'temp' ? b.avgTemp - a.avgTemp : b.avgAqi - a.avgAqi));
+    const maxValue = displayStats.length > 0
+      ? Math.max(...displayStats.map((stat) => (statsViewMode === 'temp' ? stat.avgTemp : stat.avgAqi)))
+      : 0;
+    const minValue = displayStats.length > 0
+      ? Math.min(...displayStats.map((stat) => (statsViewMode === 'temp' ? stat.avgTemp : stat.avgAqi)))
+      : 0;
+    const valueRange = Math.max(maxValue - minValue, 1);
+    const minBar = 12;
+    const maxBar = 48;
+
+
+    return (
+      <div className="flex-1 bg-[#050608] overflow-y-auto">
+        <div className="mx-auto max-w-6xl px-8 py-10">
+          {/* ─── Main Grid Layout ─── */}
+          <div className="grid grid-cols-12 gap-x-6 gap-y-4">
+            {/* Top Row - Left: Intent Cards (7 cols) */}
+            <div className="col-span-7 space-y-3">
+              <IntentCard
+                icon={<MapPin size={32} />}
+                title="มีที่ในใจแล้ว"
+                subtitle="ระบุพิกัดที่คุณอยากไป แล้วให้เราจัดการเส้นทางให้"
+                gradient="from-emerald-500/20 to-teal-600/10"
+                border="border-emerald-500/30"
+                iconBg="bg-emerald-500/20"
+                iconColor="text-emerald-400"
+                onClick={() => navigate('/map', { state: { focusSearch: true } })}
+              />
+              <IntentCard
+                icon={<Compass size={32} />}
+                title="สำรวจตามความสนใจ"
+                subtitle="เลือกหมวดหมู่ที่ชอบ — ป่าไม้, ทะเล, ของกิน หรือ สถานบันเทิง"
+                gradient="from-amber-500/20 to-orange-600/10"
+                border="border-amber-500/30"
+                iconBg="bg-amber-500/20"
+                iconColor="text-amber-400"
+                onClick={() => setMode('explore')}
+              >
+                <div className="mt-4 flex gap-2">
+                  {DISCOVERY_CHIPS.map((chip) => (
+                    <div 
+                      key={chip.label}
+                      className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/70 transition-all hover:bg-amber-500/30 hover:text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMode('explore');
+                        setSelectedChips([chip.label]);
+                      }}
+                    >
+                      <span className="scale-75 opacity-70">{chip.icon}</span>
+                      {chip.label}
+                    </div>
+                  ))}
+                </div>
+              </IntentCard>
+              <IntentCard
+                icon={<Sparkles size={32} />}
+                title="ช่วยเลือกให้หน่อย"
+                subtitle="ตอบคำถามสั้นๆ แล้ว Locus จะค้นหาจุดหมายที่ใช่ที่สุดสำหรับคุณ"
+                isAi={true}
+                gradient="from-purple-500/20 to-indigo-600/10"
+                border="border-purple-500/30"
+                iconBg="bg-purple-500/20"
+                iconColor="text-purple-400"
+                onClick={() => setMode('help')}
+              />
+            </div>
+
+            {/* Top Row - Right: Trending (5 cols) */}
+            <div className="col-span-5">
+              <div className="h-full rounded-2xl border border-white/10 bg-[#0a0c10] overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between border-b border-white/5 px-5 py-1">
+                  <h3 className="text-sm  text-white flex items-center gap-2">
+                    <TrendingUp size={16} className="text-cyan-400" />
+                    กำลังฮิตในสัปดาห์นี้
+                  </h3>
+                  <button className="text-xs text-cyan-400 hover:underline">ดูเพิ่มเติม</button>
+                </div>
+                <div className="p-3 space-y-2 flex-1">
+                  {trendingLocations.map((loc, i) => (
+                    <div
+                      key={i}
+                      className="group flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-all hover:bg-white/5"
+                      onClick={() => navigate('/map', { state: { searchQuery: loc.name } })}
+                    >
+                      <div className="relative">
+                        <img
+                          src={loc.image}
+                          alt={loc.name}
+                          className="h-14 w-14 rounded-lg object-cover"
+                        />
+                        <div className="absolute -top-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500 text-[10px] font-bold text-black">
+                          {i + 1}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-white group-hover:text-cyan-300 transition-colors">
+                          {loc.name}
+                        </div>
+                        <div className="text-xs text-slate-500">{loc.province}</div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className="text-xs text-slate-400">{loc.temp}°C</span>
+                          <span className="text-xs text-cyan-400/70">• {loc.status}</span>
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+              {/* Bottom Row - Left: Regional Histogram (7 cols) */}
+              <div className="col-span-7">
+                <div className="h-full rounded-2xl border border-white/10 bg-[#0a0c10] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col">
+                  <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2.5">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <BarChart3 size={16} className="text-white" />
+                      เปรียบเทียบภูมิภาค
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setStatsViewMode('temp')}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                          statsViewMode === 'temp'
+                            ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-300'
+                            : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'
+                        }`}
+                      >
+                        อุณหภูมิ
+                      </button>
+                      <button
+                        onClick={() => setStatsViewMode('aqi')}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                          statsViewMode === 'aqi'
+                            ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-300'
+                            : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'
+                        }`}
+                      >
+                        AQI
+                      </button>
+                    </div>
+                  </div>
+
+                  {regionStats.length > 0 ? (
+                    <div className="flex-1 flex flex-col justify-end">
+                      <div className="grid grid-cols-6 gap-2">
+                        {displayStats.map((region) => {
+                          const regionMeta = REGIONS.find((item) => item.id === region.id);
+                          const value = statsViewMode === 'temp' ? region.avgTemp : region.avgAqi;
+                          const valueLabel = statsViewMode === 'temp'
+                            ? `${value.toFixed(1)}°C`
+                            : `${value.toFixed(0)}`;
+                          
+                          const normalized = valueRange > 0 ? (value - minValue) / valueRange : 0.5;
+                          const barHeight = minBar + normalized * (maxBar - minBar);
+
+                          return (
+                            <div key={`col-${region.id}`} className="flex flex-col items-center group cursor-help">
+                              {/* Bar - Back at the Top */}
+                              <div className="h-14 w-full flex items-end justify-center px-1 mb-3">
+                                <div 
+                                  className={`w-full max-w-[16px] rounded-sm transition-all duration-700 ease-out group-hover:scale-x-110 shadow-lg shadow-black/20 ${regionMeta?.barClass || 'bg-cyan-500'}`}
+                                  style={{ height: `${barHeight}px` }}
+                                />
+                              </div>
+
+                              {/* Labels - At the Bottom */}
+                              <div className={`text-[11px] font-black tracking-tight ${regionMeta?.colorClass || 'text-slate-300'}`}>
+                                {valueLabel}
+                              </div>
+                              <div className="text-[10px] font-medium text-slate-500 truncate w-full text-center">
+                                {region.name}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
+                      <div className="text-center">
+                        <p className="text-xs text-slate-600">ไม่พบข้อมูล</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            {/* Bottom Row - Right: Gas Price (5 cols) */}
+            <div className="col-span-5">
+              <div className="h-full rounded-2xl border border-white/10 bg-[#0a0c10] p-5 shadow-xl relative overflow-hidden flex flex-col">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                <div className="flex items-center justify-between mb-4 relative z-10">
+                  <div className="flex flex-col">
+                    <h3 className="text-sm text-white">ราคาน้ำมันวันนี้</h3>
+                    <a 
+                      href="https://oil-price.bangchak.co.th/BcpOilPrice2/th" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-teal-400 uppercase tracking-tighter hover:underline"
+                    >
+                      From: Bangchak Corporation
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleRefreshFuelPrices}
+                      disabled={isRefreshingFuel}
+                      className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50"
+                      title="รีเฟรชราคาน้ำมัน"
+                    >
+                      <svg className={`w-3.5 h-3.5 text-slate-400 ${isRefreshingFuel ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setShowAllFuelPrices(!showAllFuelPrices)}
+                      className={`flex items-center justify-center p-1.5 rounded-lg border transition-all ${
+                        showAllFuelPrices 
+                        ? 'bg-teal-500/20 border-teal-500/30 text-teal-400' 
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                      }`}
+                      title={showAllFuelPrices ? 'แสดงน้อยลง' : 'แสดงทั้งหมด'}
+                    >
+                      <BarChart3 size={14} className={showAllFuelPrices ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-2 relative z-10">
+                  {(() => {
+                    const chunks = [];
+                    for (let i = 0; i < visibleGas.length; i += 3) {
+                      chunks.push(visibleGas.slice(i, i + 3));
+                    }
+                    return chunks.map((chunk, chunkIdx) => {
+                      const openInThisChunk = chunk.find(g => g.type === openFuelType);
+                      return (
+                        <React.Fragment key={chunkIdx}>
+                          {chunk.map((gas) => {
+                            const details = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
+                            const isOpen = openFuelType === gas.type;
+                            return (
+                              <div key={gas.type} className="flex flex-col gap-2">
+                                <div className="bg-white/[0.03] p-2.5 rounded-xl border border-white/5 hover:bg-white/[0.06] transition-all h-full">
+                                  <div className="flex items-start justify-between mb-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <div className={`w-1.5 h-1.5 rounded-full ${gas.color} shadow-[0_0_8px_rgba(255,255,255,0.2)]`}></div>
+                                      <span className="text-[9px] text-slate-500 font-bold tracking-tight">{details.label}</span>
+                                    </div>
+                                    <button
+                                      onClick={() => setOpenFuelType(isOpen ? null : gas.type)}
+                                      className={`p-1 rounded-md border transition-all ${
+                                        isOpen
+                                          ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300'
+                                          : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                                      }`}
+                                      title={isOpen ? 'ซ่อนข้อมูลคำนวณ' : 'ดูข้อมูลคำนวณ'}
+                                    >
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                    </button>
+                                  </div>
+                                  <div className="flex items-baseline gap-0.5">
+                                    <span className="text-sm font-black text-white leading-none">{gas.price.toFixed(2)}</span>
+                                    <span className="text-[8px] text-slate-600 font-bold uppercase">฿/L</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {openInThisChunk && (
+                            <div className="col-span-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] text-slate-400 mt-1 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                                {FUEL_TYPE_DETAILS[openInThisChunk.type]?.label || openInThisChunk.type} — คำนวณโดยประมาณ
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                {(() => {
+                                  const gas = openInThisChunk;
+                                  const details = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
+                                  const motoCostKm = gas.price / FUEL_EFFICIENCY.motorcycle;
+                                  const carCostKm = gas.price / FUEL_EFFICIENCY.car;
+                                  return (
+                                    <>
+                                      <div className="rounded-md border border-white/10 bg-white/[0.03] p-2">
+                                        <div className="text-[9px] font-semibold text-slate-300">รถจักรยานยนต์</div>
+                                        {details.motorcycle ? (
+                                          <>
+                                            <div className="text-[12px] font-semibold text-white">{motoCostKm.toFixed(2)} บ./กม</div>
+                                            <div className="text-[10px] text-slate-400">{(motoCostKm * 10).toFixed(1)} บ./10กม</div>
+                                          </>
+                                        ) : (
+                                          <div className="text-[10px] text-slate-500">ไม่แนะนำ</div>
+                                        )}
+                                      </div>
+                                      <div className="rounded-md border border-white/10 bg-white/[0.03] p-2">
+                                        <div className="text-[9px] font-semibold text-slate-300">รถยนต์</div>
+                                        {details.car ? (
+                                          <>
+                                            <div className="text-[12px] font-semibold text-white">{carCostKm.toFixed(2)} บ./กม</div>
+                                            <div className="text-[10px] text-slate-400">{(carCostKm * 10).toFixed(1)} บ./10กม</div>
+                                          </>
+                                        ) : (
+                                          <div className="text-[10px] text-slate-500">ไม่แนะนำ</div>
+                                        )}
+                                      </div>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Mode: "ช่วยเลือกให้หน่อย" ───────────────────
+  if (mode === 'help') {
+    const currentQ = HELP_QUESTIONS[helpStep];
+    const theme = QUESTION_THEMES[helpStep] || QUESTION_THEMES[0];
+    const isLastStep = helpStep >= HELP_QUESTIONS.length - 1;
+    const currentOther = currentQ ? (helpOthers[currentQ.id] || '').trim() : '';
+    const hasPrimaryAnswer = Boolean(currentQ && helpAnswers[currentQ.id]);
+    const allowOtherOnly = Boolean(currentQ && (currentQ.id === 'style' || currentQ.id === 'duration'));
+    const hasBudgetTotal = Boolean(currentQ?.id === 'budget' && budgetMeta.totalBudget.trim());
+    const hasAnswered = hasPrimaryAnswer || (allowOtherOnly && currentOther.length > 0) || hasBudgetTotal;
+
+    // All questions answered → show editable summary
+    if (helpStep >= HELP_QUESTIONS.length) {
+      return (
+        <div className="flex-1 bg-[#050608] overflow-y-auto">
+          <div className="mx-auto max-w-3xl px-6 py-12">
+            <BackButton onClick={handleBack} />
+            <h2 className="mb-2 text-2xl font-bold text-white">
+              <Sparkles size={24} className="mr-2 inline text-purple-400" />
+              สรุปความต้องการของคุณ
+            </h2>
+            <p className="mb-8 text-sm text-slate-500">
+              กดปุ่ม ✏️ เพื่อแก้ไขคำตอบได้ ก่อนส่งให้ AI วิเคราะห์
+            </p>
+
+            {/* Editable Summary */}
+            <div className="mb-8 rounded-2xl border border-white/10 bg-[#0a0c10] p-6">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {HELP_QUESTIONS.map((q, idx) => {
+                  const qTheme = QUESTION_THEMES[idx];
+                  const isEditing = editingQuestion === q.id;
+                  const detailLines = getQuestionDetails(q.id);
+                  return (
+                    <div
+                      key={q.id}
+                      className="relative rounded-xl p-3 transition-all"
+                      style={{
+                        backgroundColor: isEditing ? qTheme.accentBg : 'rgba(255,255,255,0.03)',
+                        border: isEditing ? `1px solid ${qTheme.accentBorder}` : '1px solid transparent',
+                      }}
+                    >
+                      <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {q.question}
+                      </div>
+
+                      {isEditing ? (
+                        <div className="mt-2 space-y-1.5">
+                          {q.options.map((opt) => (
+                            <button
+                              key={opt.value}
+                              onClick={() => {
+                                setHelpAnswers((prev) => ({ ...prev, [q.id]: opt.value }));
+                                setEditingQuestion(null);
+                              }}
+                              className="block w-full rounded-lg px-3 py-1.5 text-left text-xs transition-all"
+                              style={{
+                                backgroundColor: helpAnswers[q.id] === opt.value ? qTheme.accentBg : 'rgba(255,255,255,0.05)',
+                                border: helpAnswers[q.id] === opt.value ? `1px solid ${qTheme.accentBorder}` : '1px solid transparent',
+                                color: helpAnswers[q.id] === opt.value ? '#fff' : '#94a3b8',
+                              }}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-medium text-white">
+                              {getAnswerLabel(q.id) || '—'}
+                            </div>
+                            <button
+                              onClick={() => setEditingQuestion(q.id)}
+                              className="ml-2 rounded-lg p-1 text-slate-600 transition-colors hover:bg-white/10 hover:text-white"
+                              title="แก้ไข"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          </div>
+                          {detailLines.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {detailLines.map((line) => (
+                                <div key={line} className="text-[11px] text-slate-400">
+                                  • {line}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Send to AI — auto-send on Intelligence page */}
+            <div className="mb-4 rounded-2xl border border-white/10 bg-[#0a0c10] p-4">
+              <label className="mb-2 block text-sm font-semibold text-slate-200">อยากถามอะไรเพิ่มกับ AI? (Optional)</label>
+              <textarea
+                value={finalSuggestion}
+                onChange={(event) => setFinalSuggestion(event.target.value)}
+                rows={3}
+                placeholder="เช่น เน้นจังหวัดปลอดภัย คนไม่พลุกพล่าน หรือแผนเที่ยวเชิงนิเวศ"
+                className="w-full resize-none rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-purple-500/40"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                const structuredInfo = buildStructuredTravelInfo();
+                const readableSummary = buildReadableSummary();
+                const userAsk = finalSuggestion.trim() || 'ช่วยแนะนำจังหวัดที่เหมาะกับความต้องการนี้';
+                navigate('/intelligence', {
+                  state: {
+                    autoSendMessage:
+                      `${userAsk}\n\n` +
+                      `สรุปความต้องการ:\n${readableSummary}`,
+                    autoSendSystemContext:
+                      'TRAVEL_PROFILE_JSON:\n' + structuredInfo,
+                  },
+                });
+              }}
+              className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-purple-500/30 bg-gradient-to-r from-purple-600/20 to-indigo-600/20 py-4 text-sm font-bold text-white transition-all hover:-translate-y-0.5"
+            >
+              <Sparkles size={18} className="text-purple-400" />
+              ส่งให้ AI วิเคราะห์แนะนำ
+              <ArrowRight size={16} className="text-purple-400 transition-transform group-hover:translate-x-1" />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Question Flow ──────────────────────────────
+    return (
+      <div className="flex-1 bg-[#050608] overflow-y-auto">
+        <div className="mx-auto max-w-2xl px-6 py-12">
+          <BackButton onClick={handleBack} />
+
+          {/* Progress bar with theme colors */}
+          <div className="mb-8 flex items-center gap-3">
+            {HELP_QUESTIONS.map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  backgroundColor:
+                    i < helpStep
+                      ? QUESTION_THEMES[i].progressColor
+                      : i === helpStep
+                        ? theme.progressColor
+                        : 'rgba(255,255,255,0.07)',
+                  opacity: i <= helpStep ? 1 : 0.3,
+                }}
+              />
+            ))}
+          </div>
+          <div className={`mb-2 text-xs font-medium ${theme.labelColor}`}>
+            คำถามที่ {helpStep + 1} / {HELP_QUESTIONS.length}
+          </div>
+          <h2 className="mb-8 text-2xl font-bold text-white">{currentQ.question}</h2>
+
+          {currentQ.id === 'budget' && (
+            <div className="mb-4 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-yellow-300">Budget รวม (ใส่อย่างเดียวก็ไปต่อได้)</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  value={budgetMeta.totalBudget}
+                  onChange={(event) => setBudgetMeta((prev) => ({ ...prev, totalBudget: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="งบรวมทั้งทริป (บาท)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-yellow-400/40"
+                />
+                <input
+                  value={budgetMeta.budgetNote}
+                  onChange={(event) => setBudgetMeta((prev) => ({ ...prev, budgetNote: event.target.value }))}
+                  placeholder="ข้อจำกัดงบเพิ่มเติม เช่น กินหรูได้ 1 มื้อ"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-yellow-400/40"
+                />
+              </div>
+              <p className="mt-2 text-xs text-slate-500">ตัวเลือกงบต่อวันด้านล่างเป็นตัวช่วยเสริม (ไม่บังคับ)</p>
+            </div>
+          )}
+
+          <div className="grid gap-3">
+            {currentQ.options.map((opt) => {
+              const isSelected = helpAnswers[currentQ.id] === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setHelpAnswers((prev) => ({ ...prev, [currentQ.id]: opt.value }));
+                    if (currentQ.id === 'transport' && opt.value !== 'car') {
+                      setShowCarSettings(false);
+                    }
+                  }}
+                  className={`group flex items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200 ${
+                    isSelected
+                      ? 'shadow-[0_8px_24px_rgba(0,0,0,0.35)]'
+                      : 'border-white/10 bg-[#0a0c10] hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[0.04]'
+                  }`}
+                  style={
+                    isSelected
+                      ? {
+                          borderColor: theme.accentBorder,
+                          backgroundColor: theme.accentBg,
+                        }
+                      : undefined
+                  }
+                >
+                  {opt.icon && (
+                    <div
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors"
+                      style={{
+                        borderColor: isSelected ? theme.accentBorder : 'rgba(255,255,255,0.1)',
+                        backgroundColor: isSelected ? theme.accentBg : 'rgba(255,255,255,0.03)',
+                        color: isSelected ? theme.accent : '#94a3b8',
+                      }}
+                    >
+                      {opt.icon}
+                    </div>
+                  )}
+                  <span
+                    className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-slate-300'}`}
+                  >
+                    {opt.label}
+                  </span>
+                  {currentQ.id === 'transport' && opt.value === 'car' && isSelected && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setShowCarSettings((prev) => !prev);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setShowCarSettings((prev) => !prev);
+                        }
+                      }}
+                      className="ml-auto inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-200 transition-colors hover:bg-white/10"
+                      aria-label="ตั้งค่าข้อมูลรถส่วนตัว"
+                    >
+                      <Settings size={14} />
+                      ตั้งค่ารถ
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Optional free text for every question */}
+          <div className="mt-5 rounded-2xl border border-white/10 bg-[#0a0c10] p-4">
+            <label className="mb-2 block text-xs font-medium text-slate-400">อื่นๆ (พิมพ์เพิ่มได้)</label>
+            <textarea
+              value={helpOthers[currentQ.id] || ''}
+              onChange={(event) => {
+                const value = event.target.value;
+                setHelpOthers((prev) => ({ ...prev, [currentQ.id]: value }));
+              }}
+              rows={2}
+              placeholder="เช่น โฟกัสความปลอดภัย อยากเลี่ยงคนเยอะ หรือรายละเอียดเฉพาะที่อยากบอก AI"
+              className="w-full resize-none rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-500/40"
+            />
+          </div>
+
+          {/* Transport details */}
+          {currentQ.id === 'transport' && helpAnswers.transport === 'car' && (
+            <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-emerald-300">ตั้งค่าข้อมูลรถส่วนตัว (เพื่อช่วยคำนวณค่าน้ำมัน)</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCarSettings((prev) => !prev)}
+                  className="rounded-lg border border-white/10 px-2 py-1 text-xs text-slate-300 transition-colors hover:bg-white/10"
+                >
+                  {showCarSettings ? 'ซ่อนรายละเอียด' : 'แสดงรายละเอียด'}
+                </button>
+              </div>
+
+              {showCarSettings && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={transportMeta.carModel}
+                    onChange={(event) => setTransportMeta((prev) => ({ ...prev, carModel: event.target.value }))}
+                    placeholder="รุ่นรถ เช่น Civic, Hilux"
+                    className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-400/40"
+                  />
+                  <input
+                    value={transportMeta.fuelPercent}
+                    onChange={(event) => setTransportMeta((prev) => ({ ...prev, fuelPercent: event.target.value.replace(/[^0-9]/g, '') }))}
+                    placeholder="น้ำมันคงเหลือ (%)"
+                    className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-400/40"
+                  />
+                  <input
+                    value={transportMeta.fuelType}
+                    onChange={(event) => setTransportMeta((prev) => ({ ...prev, fuelType: event.target.value }))}
+                    placeholder="ชนิดน้ำมัน เช่น แก๊สโซฮอล์ 95 / ดีเซล"
+                    className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-400/40 sm:col-span-2"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {currentQ.id === 'transport' && helpAnswers.transport === 'public' && (
+            <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-cyan-300">เลือกขนส่งสาธารณะที่อยากใช้ (เลือกได้หลายแบบ)</h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  { label: 'รถบัส', value: 'รถบัส', icon: <Bus size={14} /> },
+                  { label: 'รถตู้', value: 'รถตู้', icon: <Train size={14} /> },
+                  { label: 'Grab / Taxi ส่วนตัว', value: 'Grab / Taxi', icon: <CarTaxiFront size={14} /> },
+                  { label: 'มอเตอร์ไซค์รับจ้าง', value: 'มอเตอร์ไซค์รับจ้าง', icon: <Bike size={14} /> },
+                  { label: 'ไม่มีรถสาธารณะในใจ', value: 'ไม่ระบุ', icon: <Map size={14} /> },
+                ].map((option) => {
+                  const selected = transportMeta.publicModes.includes(option.value);
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => togglePublicMode(option.value)}
+                      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
+                        selected
+                          ? 'border-cyan-400/50 bg-cyan-500/15 text-cyan-200'
+                          : 'border-white/10 bg-[#07090d] text-slate-300 hover:border-cyan-500/40 hover:text-white'
+                      }`}
+                    >
+                      {option.icon}
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                value={transportMeta.publicOther}
+                onChange={(event) => setTransportMeta((prev) => ({ ...prev, publicOther: event.target.value }))}
+                placeholder="ขนส่งอื่นๆ ที่อยากใช้ (ถ้ามี)"
+                className="mt-3 w-full rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-500/40"
+              />
+            </div>
+          )}
+
+          {/* Companion details */}
+          {currentQ.id === 'companion' && helpAnswers.companion === 'friends' && (
+            <div className="mt-4 rounded-2xl border border-pink-500/20 bg-pink-500/5 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-pink-300">รายละเอียดกลุ่มเพื่อน (ไม่บังคับ)</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  value={companionMeta.groupTotal}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, groupTotal: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="จำนวนทั้งหมด (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.male}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, male: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="ชาย (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.female}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, female: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="หญิง (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.lgbtq}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, lgbtq: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="LGBTQ+ (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <select
+                  value={companionMeta.lgbtqType}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, lgbtqType: event.target.value }))}
+                  aria-label="ประเภท LGBTQ+"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none focus:border-pink-400/40 sm:col-span-2"
+                >
+                  <option value="">ประเภท LGBTQ+ (ไม่ระบุได้)</option>
+                  <option value="สาว">สาว</option>
+                  <option value="แมน">แมน</option>
+                  <option value="หลากหลาย">หลากหลาย</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {currentQ.id === 'companion' && helpAnswers.companion === 'family' && (
+            <div className="mt-4 rounded-2xl border border-pink-500/20 bg-pink-500/5 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-pink-300">รายละเอียดครอบครัว (ไม่บังคับ)</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  value={companionMeta.familyTotal}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, familyTotal: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="สมาชิกทั้งหมด (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.familyAdults}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, familyAdults: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="ผู้ใหญ่ (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.familyChildren}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, familyChildren: event.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="เด็ก (คน)"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.familyAdultAges}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, familyAdultAges: event.target.value }))}
+                  placeholder="อายุผู้ใหญ่รายคน เช่น 38,35"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40"
+                />
+                <input
+                  value={companionMeta.familyChildAges}
+                  onChange={(event) => setCompanionMeta((prev) => ({ ...prev, familyChildAges: event.target.value }))}
+                  placeholder="อายุเด็กรายคน เช่น 4,7"
+                  className="rounded-xl border border-white/10 bg-[#07090d] px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-pink-400/40 sm:col-span-2"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Next Button — uses current question's theme */}
+          {hasAnswered && (
+            <button
+              onClick={() => setHelpStep((s) => s + 1)}
+              className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl border py-3 text-sm font-bold text-white transition-all hover:brightness-110"
+              style={{
+                borderColor: theme.accentBorder,
+                backgroundColor: theme.accentBg,
+              }}
+            >
+              {isLastStep ? 'ดูสรุป' : 'ถัดไป'}
+              <ArrowRight size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Mode: "สำรวจตามความสนใจ" ─────────────────────
+  if (mode === 'explore') {
+    return (
+      <div className="flex-1 bg-[#050608] overflow-y-auto">
+        <div className="mx-auto max-w-4xl px-6 py-12">
+          <div className="mb-8 flex items-start justify-between relative">
+            <div>
+              <BackButton onClick={handleBack} />
+              <h2 className="text-2xl font-bold text-white">สำรวจตามความสนใจ</h2>
+            </div>
+
+            {/* Region Filter Dropdown */}
+            <div className="relative pt-2">
+              <button
+                onClick={() => setShowRegionFilter(!showRegionFilter)}
+                className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all ${
+                  showRegionFilter
+                    ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
+                    : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
+                }`}
+              >
+                <Filter size={16} />
+                <span className="text-xs font-bold">กรองตามภูมิภาค</span>
+              </button>
+
+              {showRegionFilter && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowRegionFilter(false)}
+                  />
+                  <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c10] p-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="space-y-1">
+                      {REGIONS.map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => {
+                            navigate('/map', { state: { regionId: r.id } });
+                            setShowRegionFilter(false);
+                          }}
+                          className="flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+                        >
+                          <div
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: r.color, boxShadow: `0 0 8px ${r.color}60` }}
+                          />
+                          {r.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Discovery Chips */}
+          <div className="mb-8 flex flex-wrap gap-2">
+            {DISCOVERY_CHIPS.map((chip) => {
+              const isSelected = selectedChips.includes(chip.label);
+              return (
+                <button
+                  key={chip.label}
+                  onClick={() => toggleChip(chip.label)}
+                  className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                    isSelected
+                      ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
+                      : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
+                  }`}
+                >
+                  {chip.icon}
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Region Filter was here */}
+
+          {/* Explore Results */}
+          {selectedChips.length > 0 ? (
+            <div>
+              <h3 className="mb-4 text-sm font-bold text-white">
+                ผลลัพธ์สำหรับ: {selectedChips.join(', ')}
+              </h3>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {getExploreResults(selectedChips).map((item, i) => (
+                  <div
+                    key={i}
+                    className="group cursor-pointer rounded-2xl border border-white/10 bg-[#0a0c10] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/5"
+                    onClick={() => {
+                      if (item.regionId && item.provinceId) {
+                        navigate(`/province/${item.regionId}/${item.provinceId}`);
+                      }
+                    }}
+                  >
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-slate-400">
+                        {item.icon}
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {item.category}
+                      </span>
+                    </div>
+                    <div className="mb-1 text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
+                      {item.title}
+                    </div>
+                    <div className="text-xs text-slate-500">{item.location}</div>
+                    {item.tags && (
+                      <div className="mt-3 flex flex-wrap gap-1">
+                        {item.tags.map((tag) => (
+                          <span key={tag} className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-slate-500">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => {
+                  navigate('/intelligence', {
+                    state: {
+                      context: { type: 'explore', name: selectedChips.join(', ') },
+                      prefillInput: `แนะนำสถานที่ท่องเที่ยวในไทยที่เกี่ยวกับ: ${selectedChips.join(', ')} หน่อยครับ`,
+                    },
+                  });
+                }}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 py-3 text-sm font-medium text-cyan-300 transition-all hover:bg-cyan-500/20"
+              >
+                <Sparkles size={16} />
+                ให้ AI แนะนำเพิ่มเติม
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-[#0a0c10] py-16 text-center">
+              <PartyPopper size={32} className="mb-4 text-slate-600" />
+              <p className="text-sm text-slate-500">เลือกหมวดด้านบนเพื่อเริ่มสำรวจ</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+// ═══════════════════════════════════════════════════════
+// Sub Components
+// ═══════════════════════════════════════════════════════
+interface IntentCardProps {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  gradient: string;
+  border: string;
+  iconColor: string;
+  onClick: () => void;
+}
+
+const IntentCard = ({ icon, title, subtitle, gradient, border, iconBg, iconColor, onClick, isAi, children }: any) => (
+  <button
+    onClick={onClick}
+    className={`group relative w-full overflow-hidden rounded-[2rem] border ${border} bg-[#0a0c10] p-6 text-left transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] active:scale-[0.99]`}
+  >
+    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-40 transition-opacity group-hover:opacity-60`} />
+    <div className="relative z-10 flex items-center gap-6">
+      <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${iconBg} ${iconColor} shadow-inner transition-transform group-hover:scale-110`}>
+        {icon}
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <h3 className="text-xl font-black tracking-tight text-white">{title}</h3>
+          {isAi && (
+            <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter text-white shadow-lg shadow-indigo-500/30">
+              Guide agent
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-sm font-medium text-slate-400">{subtitle}</p>
+        {children}
+      </div>
+      <div className="translate-x-2 text-slate-600 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100">
+        <ChevronRight size={24} />
+      </div>
+    </div>
+  </button>
+);
+
+const BackButton = ({ onClick }: { onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="mb-6 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-400 transition-all hover:bg-white/10 hover:text-white"
+  >
+    ← กลับ
+  </button>
+);
+
+// ─── Mock Explore Results ───────────────────────────
+interface ExploreResult {
+  title: string;
+  location: string;
+  category: string;
+  icon: React.ReactNode;
+  tags?: string[];
+  regionId?: string;
+  provinceId?: string;
+}
+
+function getExploreResults(chips: string[]): ExploreResult[] {
+  const allResults: Record<string, ExploreResult[]> = {
+    'ธรรมชาติ': [
+      { title: 'ดอยอินทนนท์', location: 'เชียงใหม่', category: 'ธรรมชาติ', icon: <Mountain size={16} />, tags: ['ภูเขา', 'ป่าดิบ'], regionId: 'north', provinceId: 'chiang-mai' },
+      { title: 'เขาสก', location: 'สุราษฎร์ธานี', category: 'ธรรมชาติ', icon: <TreePine size={16} />, tags: ['ทะเลสาบ', 'ป่าดึกดำบรรพ์'], regionId: 'south', provinceId: 'surat-thani' },
+      { title: 'อุทยานแห่งชาติเขาใหญ่', location: 'นครราชสีมา', category: 'ธรรมชาติ', icon: <TreePine size={16} />, tags: ['นํ้าตก', 'สัตว์ป่า'], regionId: 'northeast', provinceId: 'nakhon-ratchasima' },
+    ],
+    'อาหาร': [
+      { title: 'ย่านเยาวราช', location: 'กรุงเทพฯ', category: 'อาหาร', icon: <UtensilsCrossed size={16} />, tags: ['Street Food', 'จีน'], regionId: 'central', provinceId: 'bangkok' },
+      { title: 'ตลาดโต้รุ่ง', location: 'เชียงใหม่', category: 'อาหาร', icon: <UtensilsCrossed size={16} />, tags: ['ข้าวซอย', 'ไส้อั่ว'], regionId: 'north', provinceId: 'chiang-mai' },
+      { title: 'ตลาดน้ำ 4 ภาค', location: 'พัทยา', category: 'อาหาร', icon: <UtensilsCrossed size={16} />, tags: ['ตลาดน้ำ', 'ของกิน'], regionId: 'east', provinceId: 'chon-buri' },
+    ],
+    'ทะเล': [
+      { title: 'เกาะพีพี', location: 'กระบี่', category: 'ทะเล', icon: <Waves size={16} />, tags: ['ดำน้ำ', 'หาดทราย'], regionId: 'south', provinceId: 'krabi' },
+      { title: 'เกาะเสม็ด', location: 'ระยอง', category: 'ทะเล', icon: <Waves size={16} />, tags: ['ใกล้กรุงเทพ', 'Weekend'], regionId: 'east', provinceId: 'rayong' },
+      { title: 'เกาะสมุย', location: 'สุราษฎร์ธานี', category: 'ทะเล', icon: <Waves size={16} />, tags: ['รีสอร์ท', 'พาร์ตี้'], regionId: 'south', provinceId: 'surat-thani' },
+    ],
+    'คาเฟ่': [
+      { title: 'คาเฟ่ม่อนแจ่ม', location: 'เชียงใหม่', category: 'คาเฟ่', icon: <Coffee size={16} />, tags: ['วิว', 'ภูเขา'], regionId: 'north', provinceId: 'chiang-mai' },
+      { title: 'คาเฟ่พระนครศรีอยุธยา', location: 'อยุธยา', category: 'คาเฟ่', icon: <Coffee size={16} />, tags: ['โบราณ', 'ริมน้ำ'], regionId: 'central', provinceId: 'ayutthaya' },
+    ],
+    'วัฒนธรรม': [
+      { title: 'วัดพระแก้ว', location: 'กรุงเทพฯ', category: 'วัฒนธรรม', icon: <Landmark size={16} />, tags: ['UNESCO', 'Temple'], regionId: 'central', provinceId: 'bangkok' },
+      { title: 'อุทยานประวัติศาสตร์สุโขทัย', location: 'สุโขทัย', category: 'วัฒนธรรม', icon: <Landmark size={16} />, tags: ['มรดกโลก'], regionId: 'north', provinceId: 'sukhothai' },
+    ],
+    'Road Trip': [
+      { title: 'เส้นทาง 1095 แม่ฮ่องสอน', location: 'แม่ฮ่องสอน', category: 'Road Trip', icon: <Car size={16} />, tags: ['762 โค้ง', 'ทิวทัศน์'], regionId: 'north', provinceId: 'mae-hong-son' },
+      { title: 'Scenic route เขาค้อ', location: 'เพชรบูรณ์', category: 'Road Trip', icon: <Car size={16} />, tags: ['ภูเขา', 'ทะเลหมอก'], regionId: 'north', provinceId: 'phetchabun' },
+    ],
+    'ครอบครัว': [
+      { title: 'ซาฟารีเวิลด์', location: 'กรุงเทพฯ', category: 'ครอบครัว', icon: <Users size={16} />, tags: ['เด็ก', 'สัตว์'], regionId: 'central', provinceId: 'bangkok' },
+      { title: 'สวนนงนุช', location: 'พัทยา', category: 'ครอบครัว', icon: <Users size={16} />, tags: ['สวนสวย', 'โชว์'], regionId: 'east', provinceId: 'chon-buri' },
+    ],
+    'ภูเขา': [
+      { title: 'ดอยอ่างขาง', location: 'เชียงใหม่', category: 'ภูเขา', icon: <Mountain size={16} />, tags: ['ดอกไม้', 'อากาศเย็น'], regionId: 'north', provinceId: 'chiang-mai' },
+      { title: 'ภูชี้ฟ้า', location: 'เชียงราย', category: 'ภูเขา', icon: <Mountain size={16} />, tags: ['ทะเลหมอก', 'พระอาทิตย์ขึ้น'], regionId: 'north', provinceId: 'chiang-rai' },
+    ],
+    'ถ่ายรูป': [
+      { title: 'วัดร่องขุ่น', location: 'เชียงราย', category: 'ถ่ายรูป', icon: <Camera size={16} />, tags: ['Iconic', 'สถาปัตยกรรม'], regionId: 'north', provinceId: 'chiang-rai' },
+      { title: 'ปาย', location: 'แม่ฮ่องสอน', category: 'ถ่ายรูป', icon: <Camera size={16} />, tags: ['IG Famous', 'Chill'], regionId: 'north', provinceId: 'mae-hong-son' },
+    ],
+    'พักผ่อน': [
+      { title: 'หัวหิน', location: 'ประจวบฯ', category: 'พักผ่อน', icon: <Bed size={16} />, tags: ['ทะเล', 'รีสอร์ท'], regionId: 'west', provinceId: 'prachuap-khiri-khan' },
+    ],
+    '2D1N': [
+      { title: 'เขาใหญ่ Weekend', location: 'นครราชสีมา', category: '2D1N', icon: <CalendarDays size={16} />, tags: ['ใกล้กรุงเทพ', 'ธรรมชาติ'], regionId: 'northeast', provinceId: 'nakhon-ratchasima' },
+    ],
+    'Hidden Gems': [
+      { title: 'เกาะขาม', location: 'ชลบุรี', category: 'Hidden Gems', icon: <Heart size={16} />, tags: ['ทะเลใส', 'คนน้อย'], regionId: 'east', provinceId: 'chon-buri' },
+      { title: 'ผาเดียวดาย', location: 'ชัยภูมิ', category: 'Hidden Gems', icon: <Heart size={16} />, tags: ['ทุ่งดอกไม้', 'ลับ'], regionId: 'northeast', provinceId: 'chaiyaphum' },
+    ],
+  };
+
+  const results: ExploreResult[] = [];
+  chips.forEach((chip) => {
+    if (allResults[chip]) results.push(...allResults[chip]);
+  });
+
+  const seen = new Set<string>();
+  return results.filter((r) => {
+    if (seen.has(r.title)) return false;
+    seen.add(r.title);
+    return true;
+  });
+}

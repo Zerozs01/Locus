@@ -1,11 +1,15 @@
 import { useSyncExternalStore } from 'react'
-import { sendChatMessage } from './n8nClient'
+import { sendChatMessage, type ChatLocationPayload } from './n8nClient'
 
 export interface ChatContext {
   type: 'region' | 'province'
   name: string
   regionId?: string
   engName?: string
+  city?: string
+  country?: string
+  lat?: number
+  lng?: number
   provinces?: string[]
   stats?: {
     dailyCost?: string
@@ -269,6 +273,32 @@ const buildContextPrompt = (userText: string, chatContext: ChatContext | null) =
   return `${contextInfo}\n\nUser question: ${userText}`
 }
 
+const buildLocationPayload = (chatContext: ChatContext | null): ChatLocationPayload | undefined => {
+  if (!chatContext) return undefined
+
+  const payload: ChatLocationPayload = {
+    country: chatContext.country || 'TH'
+  }
+
+  if (chatContext.type === 'province') {
+    const provinceName = chatContext.engName?.trim() || chatContext.name.trim()
+    payload.provinceName = provinceName
+    payload.city = chatContext.city?.trim() || provinceName
+  } else {
+    payload.regionName = chatContext.engName?.trim() || chatContext.name.trim()
+  }
+
+  if (typeof chatContext.lat === 'number') {
+    payload.lat = chatContext.lat
+  }
+
+  if (typeof chatContext.lng === 'number') {
+    payload.lng = chatContext.lng
+  }
+
+  return payload
+}
+
 const updateConversation = (conversationId: string, updater: (conversation: ChatConversation) => ChatConversation) => {
   setState((current) => ({
     ...current,
@@ -385,6 +415,90 @@ export const intelligenceChatStore = {
     if (!activeConversation) return
     intelligenceChatStore.deleteConversation(activeConversation.id)
   },
+  deleteMessage(messageId: string) {
+    const activeConversation = getActiveConversation(state);
+    if (!activeConversation) return;
+
+    updateConversation(activeConversation.id, (conversation) => ({
+      ...conversation,
+      updatedAt: new Date().toISOString(),
+      messages: conversation.messages.filter(m => m.id !== messageId)
+    }));
+  },
+  resubmitMessage(messageId: string, newText: string) {
+    const trimmed = newText.trim();
+    if (!trimmed) return;
+
+    const activeConversation = getActiveConversation(state);
+    if (!activeConversation) return;
+
+    const messageIndex = activeConversation.messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
+
+    const truncatedMessages = activeConversation.messages.slice(0, messageIndex);
+    const conversationId = activeConversation.id;
+
+    const userMessage: ChatMessage = {
+      id: createId('user'),
+      text: trimmed,
+      sender: 'user',
+      timestamp: new Date().toISOString(),
+      status: 'complete'
+    };
+
+    const pendingReply: ChatMessage = {
+      id: createId('bot'),
+      text: 'กำลังวิเคราะห์...',
+      sender: 'bot',
+      timestamp: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    const messageWithContext = buildContextPrompt(trimmed, activeConversation.chatContext);
+    const locationPayload = buildLocationPayload(activeConversation.chatContext);
+
+    // Atomic: truncate history + append new user msg + pending bot in ONE setState
+    setState((current) => ({
+      ...current,
+      conversations: sortConversations(
+        current.conversations.map((conversation) =>
+          conversation.id !== conversationId
+            ? conversation
+            : {
+                ...conversation,
+                updatedAt: new Date().toISOString(),
+                messages: [...truncatedMessages, userMessage, pendingReply].slice(-MAX_MESSAGES)
+              }
+        )
+      )
+    }));
+
+    void sendChatMessage(messageWithContext, undefined, undefined, locationPayload)
+      .then((responseText) => {
+        updateConversation(conversationId, (conversation) => ({
+          ...conversation,
+          updatedAt: new Date().toISOString(),
+          messages: conversation.messages.map((message) =>
+            message.id === pendingReply.id
+              ? { ...message, text: responseText, status: 'complete' }
+              : message
+          )
+        }));
+      })
+      .catch((error) => {
+        const errorMessage =
+          error instanceof Error ? error.message : 'ไม่สามารถเชื่อมต่อ Agent ได้';
+        updateConversation(conversationId, (conversation) => ({
+          ...conversation,
+          updatedAt: new Date().toISOString(),
+          messages: conversation.messages.map((message) =>
+            message.id === pendingReply.id
+              ? { ...message, text: `❌ ${errorMessage}`, status: 'error' }
+              : message
+          )
+        }));
+      });
+  },
   addUploadedFile(file: File) {
     let conversationId = ''
 
@@ -439,7 +553,7 @@ export const intelligenceChatStore = {
       }))
     }, 1000)
   },
-  sendMessage(userText: string) {
+  sendMessage(userText: string, options?: { systemContext?: string }) {
     const trimmed = userText.trim()
     if (!trimmed) return
 
@@ -461,12 +575,17 @@ export const intelligenceChatStore = {
 
     let conversationId = ''
     let messageWithContext = trimmed
+    let locationPayload: ChatLocationPayload | undefined
 
     setState((current) => {
       const ensured = ensureConversation(current)
       const currentConversation = ensured.conversation
       conversationId = currentConversation.id
       messageWithContext = buildContextPrompt(trimmed, currentConversation.chatContext)
+      if (options?.systemContext?.trim()) {
+        messageWithContext = `${options.systemContext.trim()}\n\n${messageWithContext}`
+      }
+      locationPayload = buildLocationPayload(currentConversation.chatContext)
 
       const updatedConversation: ChatConversation = {
         ...currentConversation,
@@ -483,7 +602,7 @@ export const intelligenceChatStore = {
       }
     })
 
-    void sendChatMessage(messageWithContext)
+    void sendChatMessage(messageWithContext, undefined, undefined, locationPayload)
       .then((responseText) => {
         updateConversation(conversationId, (conversation) => ({
           ...conversation,
@@ -552,6 +671,8 @@ export const useIntelligenceChatStore = () => {
     deleteConversation: intelligenceChatStore.deleteConversation,
     clearChat: intelligenceChatStore.clear,
     sendMessage: intelligenceChatStore.sendMessage,
+    resubmitMessage: intelligenceChatStore.resubmitMessage,
+    deleteMessage: intelligenceChatStore.deleteMessage,
     addUploadedFile: intelligenceChatStore.addUploadedFile
   }
 }

@@ -1,0 +1,1514 @@
+{
+  "Surat Thani": {
+    "ecoEntities": [
+      {
+        "id": "fl_rafflesia",
+        "name": "บัวผุด",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "edible": false, "poisonous": false, "medicinal": null, "protected": true },
+        "context": {
+          "location": ["ป่าดิบชื้นเขาสก", "พื้นที่ชื้นใต้ร่มไม้"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "day"
+        },
+        "description": "พืชดอกขนาดใหญ่ที่พบในป่าดิบชื้นบางส่วนของสุราษฎร์ธานี โดยเฉพาะพื้นที่ป่าฝนสมบูรณ์ ควรชมโดยไม่เหยียบย่ำพื้นที่รอบโคน"
+      },
+      {
+        "id": "fl_mangrove",
+        "name": "โกงกาง",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "edible": false, "poisonous": false, "medicinal": false, "protected": false },
+        "context": {
+          "location": ["ป่าชายเลนชายฝั่ง", "ปากแม่น้ำ", "อ่าวบ้านดอน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ไม้เด่นของป่าชายเลนชายฝั่งสุราษฎร์ฯ ช่วยยึดตะกอนและเป็นแหล่งอนุบาลสัตว์น้ำ"
+      },
+      {
+        "id": "f_whitehanded_gibbon",
+        "name": "ชะนีมือขาว",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "caution" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["ป่าดิบชื้นเขาสก", "ป่าต้นน้ำ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "พบในผืนป่าฝนขนาดใหญ่ของจังหวัด นักท่องเที่ยวควรเว้นระยะและไม่ให้อาหาร"
+      },
+      {
+        "id": "f_gaur",
+        "name": "กระทิง",
+        "category": "fauna",
+        "tags": { "riskLevel": "high", "frequency": "rare", "interaction": "dangerous" },
+        "attributes": { "aggressive": true, "protected": true },
+        "context": {
+          "location": ["ป่าเขาสก", "แนวป่าต่อเนื่องคลองแสง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "สัตว์กีบขนาดใหญ่ในผืนป่าภาคใต้ พบไม่บ่อยแต่หากเผชิญระยะใกล้ไม่ควรเข้าใกล้หรือขวางทาง"
+      },
+      {
+        "id": "t_limestone_lake",
+        "name": "ภูเขาหินปูนและทะเลสาบเชี่ยวหลาน",
+        "category": "terrain",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["อุทยานแห่งชาติเขาสก", "เขื่อนรัชชประภา"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ภูมิประเทศเด่นของสุราษฎร์ฯ คือภูเขาหินปูนสูงชันและอ่างเก็บน้ำขนาดใหญ่ในผืนป่าดิบชื้น"
+      },
+      {
+        "id": "c_heavy_rain",
+        "name": "ฝนชุกยาวนาน",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["พื้นที่ภูเขา", "ลุ่มน้ำ", "ชายฝั่ง"],
+          "season": ["พ.ค.-ธ.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดมีฝนมากจากอิทธิพลมรสุมและภูมิประเทศป่าฝน ทำให้เส้นทางธรรมชาติเปียกลื่นและทัศนวิสัยลดลง"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำป่าไหลหลาก",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["เชิงเขา", "ลำห้วย", "น้ำตก"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ป่าต้นน้ำและน้ำตกมีความเสี่ยงน้ำหลากฉับพลันหลังฝนตกหนักต่อเนื่อง"
+      },
+      {
+        "id": "h_landslide",
+        "name": "ดินถล่ม",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ลาดเขา", "ถนนภูเขา", "พื้นที่ตัดผ่านป่า"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "ลาดชันในเขตภูเขาและดินอุ้มน้ำสูงมีโอกาสเกิดดินถล่มเมื่อฝนตกสะสมมาก"
+      }
+    ]
+  },
+  "Phuket": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove",
+        "name": "โกงกาง",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "edible": false, "poisonous": false, "medicinal": false, "protected": false },
+        "context": {
+          "location": ["ป่าชายเลนตะวันออกของเกาะ", "คลองปากน้ำ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ป่าชายเลนยังเป็นระบบนิเวศสำคัญของภูเก็ต ช่วยลดคลื่นและเป็นแหล่งสัตว์น้ำวัยอ่อน"
+      },
+      {
+        "id": "fl_seagrass",
+        "name": "หญ้าทะเล",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "edible": false, "poisonous": false, "medicinal": false, "protected": true },
+        "context": {
+          "location": ["อ่าวตื้นชายฝั่ง", "แนวชายฝั่งอันดามัน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "แหล่งหญ้าทะเลของภูเก็ตมีความสำคัญต่อสัตว์ทะเลกินหญ้าและสัตว์หน้าดิน แต่บางพื้นที่มีภาวะเสื่อมโทรม"
+      },
+      {
+        "id": "f_dugong",
+        "name": "พะยูน",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["อ่าวตื้นที่มีหญ้าทะเล", "ชายฝั่งตะวันตกบางช่วง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "มีรายงานการใช้พื้นที่หญ้าทะเลของพะยูนตามชายฝั่งอันดามัน รวมถึงพื้นที่ใกล้ภูเก็ต ควรหลีกเลี่ยงการรบกวนด้วยเรือ"
+      },
+      {
+        "id": "f_sea_turtle",
+        "name": "เต่าทะเล",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "caution" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["ชายหาดบางช่วง", "น่านน้ำอุทยานสิรินาถ"],
+          "season": ["พ.ย.-มี.ค."],
+          "timeOfDay": "night"
+        },
+        "description": "เต่าทะเลพบในน่านน้ำและชายหาดบางส่วนของภูเก็ต โดยเฉพาะช่วงวางไข่และขึ้นหาด"
+      },
+      {
+        "id": "t_coastal_headland",
+        "name": "แหลมชายฝั่งและหาดทราย",
+        "category": "terrain",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["รอบเกาะภูเก็ต"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ภูเก็ตมีชายฝั่งหลากหลายทั้งหาดทราย แหลมหิน และอ่าวตื้น เหมาะกับกิจกรรมทะเลแต่ความเสี่ยงต่างกันมากตามฤดูกาล"
+      },
+      {
+        "id": "c_southwest_monsoon",
+        "name": "มรสุมตะวันตกเฉียงใต้แรง",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ชายฝั่งตะวันตก", "ทะเลอันดามัน"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงมรสุมฝั่งอันดามันมีฝนถี่ คลื่นลมแรง และทะเลแปรปรวนกว่าฤดูท่องเที่ยวปกติ"
+      },
+      {
+        "id": "h_rip_current",
+        "name": "กระแสน้ำย้อนกลับ",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["หาดฝั่งตะวันตก", "ชายหาดเปิดรับคลื่น"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "หาดหลายแห่งของภูเก็ตเสี่ยง rip current ในช่วงคลื่นลมแรง นักท่องเที่ยวไม่ควรลงเล่นน้ำเมื่อมีธงแดง"
+      },
+      {
+        "id": "h_coastal_flood",
+        "name": "น้ำท่วมขังเมืองและชายฝั่ง",
+        "category": "hazard",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["เขตเมืองลุ่มต่ำ", "ถนนชายหาด", "ซอยลาดชัน"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักระยะสั้นทำให้เกิดน้ำท่วมขังและน้ำไหลแรงในเขตเมืองท่องเที่ยวได้เร็ว"
+      }
+    ]
+  },
+  "Krabi": {
+    "ecoEntities": [
+      {
+        "id": "fl_seagrass",
+        "name": "หญ้าทะเล",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["อ่าวตื้น", "ใกล้เกาะลันตา", "ชายฝั่งกระบี่"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "กระบี่มีแหล่งหญ้าทะเลสำคัญของฝั่งอันดามัน เป็นฐานอาหารของพะยูนและสัตว์ทะเลอีกหลายชนิด"
+      },
+      {
+        "id": "fl_mangrove",
+        "name": "ป่าชายเลน",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["คลองท่อม", "อ่าวลึก", "ปากแม่น้ำชายฝั่ง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ป่าชายเลนกระบี่เป็นแหล่งดูดซับคาร์บอนและเป็นแนวกันชนธรรมชาติของชายฝั่ง"
+      },
+      {
+        "id": "f_dugong",
+        "name": "พะยูน",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["แนวหญ้าทะเล", "ทะเลตื้นใกล้เกาะลันตา"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พะยูนยังใช้พื้นที่ทะเลตื้นของกระบี่เป็นแหล่งหากิน จึงควรควบคุมความเร็วเรือในแนวหญ้าทะเล"
+      },
+      {
+        "id": "f_whitehanded_gibbon",
+        "name": "ชะนีมือขาว",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "caution" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["ป่าดิบชื้นเขาพนมเบญจา", "ป่าเขาตะนาวศรีตอนใต้"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "พบในพื้นที่ป่าดิบเขาและป่าดิบชื้นของกระบี่ ไม่ควรเปิดเสียงล่อหรือให้อาหาร"
+      },
+      {
+        "id": "t_karst_coast",
+        "name": "หน้าผาหินปูนและเกาะหินปูน",
+        "category": "terrain",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["อ่าวนาง", "ไร่เลย์", "อ่าวลึก", "หมู่เกาะชายฝั่ง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ภูมิประเทศเด่นของกระบี่คือภูเขาหินปูนชัน ถ้ำ และอ่าวเว้าแหว่งจำนวนมาก"
+      },
+      {
+        "id": "c_monsoon_rain",
+        "name": "ฝนมรสุมฝั่งอันดามัน",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ชายฝั่ง", "หมู่เกาะ", "เขตภูเขา"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงฤดูฝนกระบี่มีฝนตกชุกและคลื่นลมแรง การเดินเรือและกิจกรรมหน้าผาควรติดตามประกาศอากาศ"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำป่าและน้ำหลาก",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["พื้นที่เชิงเขา", "ลำคลอง", "น้ำตก"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนตกสะสมในพื้นที่ภูเขาหินปูนและป่าดิบสามารถทำให้น้ำหลากได้รวดเร็ว"
+      },
+      {
+        "id": "h_rip_current",
+        "name": "คลื่นแรงและกระแสน้ำย้อน",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ชายหาดเปิดรับคลื่น", "เกาะนอกฝั่ง"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "ชายหาดบางแห่งของกระบี่มีคลื่นลมแรงและกระแสน้ำอันตรายในฤดูมรสุม"
+      }
+    ]
+  },
+  "Phang Nga": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove",
+        "name": "ป่าชายเลน",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["อ่าวพังงา", "ปากน้ำชายฝั่ง", "คลองตื้น"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พังงามีผืนป่าชายเลนขนาดใหญ่ต่อเนื่องกับอ่าวตื้นและปากแม่น้ำหลายแห่ง"
+      },
+      {
+        "id": "fl_seagrass",
+        "name": "หญ้าทะเล",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["อ่าวตื้น", "ชายฝั่งทะเลอันดามัน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "แหล่งหญ้าทะเลของพังงาเชื่อมโยงกับระบบนิเวศพะยูนและสัตว์ทะเลตื้นของอันดามัน"
+      },
+      {
+        "id": "f_leatherback_turtle",
+        "name": "เต่ามะเฟือง",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "caution" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["หาดบางขวัญ", "ชายหาดตะกั่วทุ่ง", "หาดเปิดโล่ง"],
+          "season": ["พ.ย.-มี.ค."],
+          "timeOfDay": "night"
+        },
+        "description": "พังงาเป็นจังหวัดที่มีการติดตามรังวางไข่เต่ามะเฟืองอย่างต่อเนื่อง ชายหาดช่วงกลางคืนควรลดแสงและเสียง"
+      },
+      {
+        "id": "f_dugong",
+        "name": "พะยูน",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["แนวหญ้าทะเลอ่าวตื้น", "ชายฝั่งบางพื้นที่"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พบใช้พื้นที่หญ้าทะเลตามแนวอันดามันตอนบน ควรจำกัดการรบกวนจากเรือและกิจกรรมชายฝั่ง"
+      },
+      {
+        "id": "t_karst_bay",
+        "name": "อ่าวหินปูนและเกาะหินปูน",
+        "category": "terrain",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["อ่าวพังงา", "ชายฝั่งทะเลอันดามัน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ลักษณะเด่นของพังงาคืออ่าวตื้นกว้างที่มีเกาะหินปูนจำนวนมากและระบบคลองชายเลนสลับซับซ้อน"
+      },
+      {
+        "id": "c_southwest_monsoon",
+        "name": "ฝนหนักฝั่งอันดามัน",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ทั้งจังหวัด", "ชายฝั่งและเชิงเขา"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ได้รับอิทธิพลมรสุมตะวันตกเฉียงใต้ชัดเจน ทำให้เกิดฝนตกหนักและทะเลมีคลื่นลมแรง"
+      },
+      {
+        "id": "h_rip_current",
+        "name": "คลื่นทะเลแรงและกระแสน้ำย้อน",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["หาดเปิดรับคลื่นอันดามัน"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "หาดฝั่งทะเลเปิดมีความเสี่ยงต่อคลื่นแรงและกระแสน้ำดูดกลับในฤดูมรสุม"
+      },
+      {
+        "id": "h_landslide",
+        "name": "ดินถล่มและน้ำป่า",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["เชิงเขา", "พื้นที่ป่าเขา", "ถนนลาดชัน"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนสะสมมากบนพื้นที่ลาดชันทำให้เกิดดินถล่มและน้ำป่าไหลแรงได้"
+      }
+    ]
+  },
+  "Nakhon Si Thammarat": {
+    "ecoEntities": [
+      {
+        "id": "fl_krajood",
+        "name": "กระจูด",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "edible": false, "poisonous": false, "medicinal": false, "protected": false },
+        "context": {
+          "location": ["พื้นที่ชุ่มน้ำ", "ขอบป่าพรุ", "ลุ่มน้ำปากพนัง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พืชท้องถิ่นสำคัญของพื้นที่ชุ่มน้ำภาคใต้ พบตามพรุและหนองน้ำ ใช้ประโยชน์ด้านหัตถกรรมอย่างแพร่หลาย"
+      },
+      {
+        "id": "fl_wild_orchid",
+        "name": "กล้วยไม้ป่า",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "protected": true, "medicinal": null },
+        "context": {
+          "location": ["อุทยานแห่งชาติเขาหลวง", "ป่าดิบเขา"],
+          "season": ["ฤดูฝน", "ฤดูหนาว"],
+          "timeOfDay": "day"
+        },
+        "description": "ป่าดิบเขาของนครศรีฯ มีกล้วยไม้ป่าหลากหลายชนิด ไม่ควรเก็บออกจากธรรมชาติ"
+      },
+      {
+        "id": "f_southern_spectacled_langur",
+        "name": "ค่างแว่นถิ่นใต้",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "caution" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["ป่าดิบชื้น", "เขาหลวง", "ป่าต้นน้ำ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "ลิงใบไม้ประจำผืนป่าภาคใต้ พบในป่าค่อนข้างสมบูรณ์ของจังหวัด"
+      },
+      {
+        "id": "f_waterbird",
+        "name": "นกน้ำอพยพ",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["ทะเลน้อยตอนเหนือ", "พื้นที่ชุ่มน้ำเชื่อมทะเลสาบสงขลา"],
+          "season": ["ต.ค.-มี.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นที่ชุ่มน้ำรอบทะเลน้อยรองรับนกน้ำท้องถิ่นและนกอพยพจำนวนมากในฤดูหนาว"
+      },
+      {
+        "id": "t_peat_swamp",
+        "name": "ป่าพรุควนเคร็ง",
+        "category": "terrain",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ชะอวด", "เชียรใหญ่", "เฉลิมพระเกียรติ", "ร่อนพิบูลย์"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่พรุขนาดใหญ่ของภาคใต้ ทำหน้าที่กักเก็บน้ำและคาร์บอน แต่มีความเปราะบางต่อการแห้งและไฟพรุ"
+      },
+      {
+        "id": "c_gulf_monsoon",
+        "name": "ฝนชุกฝั่งอ่าวไทย",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ชายฝั่ง", "เชิงเขา", "เมืองลุ่มต่ำ"],
+          "season": ["ต.ค.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "นครศรีฯ ได้รับผลเด่นจากมรสุมตะวันออกเฉียงเหนือ ทำให้ปลายปีถึงต้นปีมีฝนหนักหลายระลอก"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมลุ่มน้ำและเมืองลุ่มต่ำ",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ลุ่มน้ำปากพนัง", "พื้นที่ลุ่มต่ำ", "เขตเมือง"],
+          "season": ["ต.ค.-ธ.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดเผชิญน้ำท่วมซ้ำซากจากฝนสะสมและการระบายน้ำช้าของพื้นที่ลุ่ม"
+      },
+      {
+        "id": "h_peat_fire",
+        "name": "ไฟป่าพรุ",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ป่าพรุควนเคร็ง"],
+          "season": ["หน้าแล้ง", "ช่วงพรุแห้ง"],
+          "timeOfDay": "both"
+        },
+        "description": "เมื่อระดับน้ำในพรุลดลง มีความเสี่ยงเกิดไฟพรุลุกลามยากต่อการควบคุมและส่งผลต่อคุณภาพอากาศ"
+      }
+    ]
+  },
+  "Songkhla": {
+    "ecoEntities": [
+      {
+        "id": "fl_lotus",
+        "name": "บัวหลวง",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "edible": true, "poisonous": false, "medicinal": true, "protected": false },
+        "context": {
+          "location": ["พื้นที่ชุ่มน้ำ", "ทะเลสาบสงขลาตอนบน", "คลองเชื่อมทะเลน้อย"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "พืชน้ำสำคัญของพื้นที่ชุ่มน้ำสงขลาและรอยต่อทะเลน้อย เป็นทั้งแหล่งอาหารและที่อยู่อาศัยสัตว์น้ำ"
+      },
+      {
+        "id": "fl_mangrove",
+        "name": "แสมทะเลและโกงกาง",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "medicinal": false },
+        "context": {
+          "location": ["ปากอ่าว", "ชายฝั่งทะเลสาบ", "คลองชายฝั่ง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ป่าชายเลนรอบอ่าวและทะเลสาบช่วยลดการกัดเซาะและเป็นแหล่งอนุบาลสัตว์น้ำ"
+      },
+      {
+        "id": "f_irrawaddy_dolphin",
+        "name": "โลมาอิรวดี",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["ทะเลสาบสงขลา", "ทะเลหลวง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "โลมาอิรวดีเป็นชนิดเด่นของระบบทะเลสาบสงขลา แต่ประชากรเปราะบางมากและได้รับผลกระทบจากอวนประมง"
+      },
+      {
+        "id": "f_migratory_waterbird",
+        "name": "นกน้ำอพยพ",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["ทะเลสาบสงขลา", "พื้นที่ชุ่มน้ำเชื่อมทะเลน้อย", "นาเกลือบางส่วน"],
+          "season": ["ต.ค.-มี.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "ระบบทะเลสาบสงขลารองรับนกน้ำจำนวนมากทั้งชนิดประจำถิ่นและอพยพ"
+      },
+      {
+        "id": "t_lagoon_system",
+        "name": "ระบบลากูนทะเลสาบสงขลา",
+        "category": "terrain",
+        "tags": { "riskLevel": "medium", "frequency": "everywhere", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["รอบทะเลสาบสงขลา", "คาบสมุทรสทิงพระ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นระบบทะเลสาบกึ่งน้ำจืดกึ่งน้ำเค็มที่เชื่อมกับอ่าวไทย มีพื้นที่ชุ่มน้ำและคันทรายยาวเด่นชัด"
+      },
+      {
+        "id": "c_northeast_monsoon",
+        "name": "มรสุมตะวันออกเฉียงเหนือ",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ชายฝั่งอ่าวไทย", "ทะเลสาบ", "เขตเมือง"],
+          "season": ["ต.ค.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "สงขลาได้รับผลชัดจากมรสุมฝั่งอ่าวไทย ทำให้ปลายปีถึงต้นปีมีฝนหนักและทะเลมีคลื่นลมจัด"
+      },
+      {
+        "id": "h_coastal_erosion",
+        "name": "การกัดเซาะชายฝั่ง",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ชายฝั่งอ่าวไทย", "แนวหาดเปิดโล่ง"],
+          "season": ["ฤดูมรสุมอ่าวไทย"],
+          "timeOfDay": "both"
+        },
+        "description": "คลื่นลมและการเปลี่ยนแปลงตะกอนทำให้หลายช่วงชายฝั่งสงขลามีปัญหากัดเซาะต่อเนื่อง"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมจากฝนสะสม",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["เมืองลุ่มต่ำ", "รอบทะเลสาบ", "พื้นที่รับน้ำ"],
+          "season": ["พ.ย.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนสะสมช่วงมรสุมทำให้เกิดน้ำท่วมทั้งพื้นที่ลุ่มรอบทะเลสาบและเขตเมือง"
+      }
+    ]
+  },
+  "Trang": {
+    "ecoEntities": [
+      {
+        "id": "fl_seagrass",
+        "name": "หญ้าทะเล",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["รอบเกาะลิบง", "เกาะมุก", "ทะเลตื้นชายฝั่ง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "ตรังเป็นพื้นที่หญ้าทะเลที่สำคัญมากของไทยและเป็นฐานอาหารหลักของพะยูน"
+      },
+      {
+        "id": "fl_mangrove",
+        "name": "ป่าชายเลน",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["ชายฝั่งตรัง", "ปากคลอง", "แนวอ่าว"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ป่าชายเลนของตรังเชื่อมกับหาดเลน หญ้าทะเล และระบบหมู่เกาะทะเลตรัง"
+      },
+      {
+        "id": "f_dugong",
+        "name": "พะยูน",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["เกาะลิบง", "ทะเลตื้นที่มีหญ้าทะเล"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ตรังเป็นจังหวัดที่ขึ้นชื่อเรื่องพะยูน เพราะมีทุ่งหญ้าทะเลขนาดใหญ่รองรับการหากิน"
+      },
+      {
+        "id": "f_sea_turtle",
+        "name": "เต่าทะเล",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "caution" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["แนวเกาะและชายหาดบางส่วน", "อุทยานทางทะเล"],
+          "season": ["พ.ย.-มี.ค."],
+          "timeOfDay": "night"
+        },
+        "description": "เต่าทะเลพบในเขตหมู่เกาะทะเลตรังและพื้นที่ชายหาดบางแห่ง โดยเฉพาะในน่านน้ำค่อนข้างสมบูรณ์"
+      },
+      {
+        "id": "t_island_seascape",
+        "name": "หมู่เกาะทะเลตรัง",
+        "category": "terrain",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["เกาะลิบง", "เกาะมุก", "เกาะเชือก", "ชายฝั่งทะเลตรัง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่เด่นคือหมู่เกาะ หาดทราย ถ้ำทะเล และแนวหญ้าทะเลที่ต่อเนื่องกับป่าชายเลน"
+      },
+      {
+        "id": "c_andaman_monsoon",
+        "name": "มรสุมฝั่งอันดามัน",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ชายฝั่ง", "เกาะ", "ทะเลเปิด"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ทะเลตรังมีสภาพแปรปรวนชัดในฤดูมรสุม เรือเล็กและกิจกรรมดำน้ำควรระวังเป็นพิเศษ"
+      },
+      {
+        "id": "h_boat_strike",
+        "name": "ความเสี่ยงเรือชนสัตว์ทะเลหายาก",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["แนวหญ้าทะเล", "เส้นทางเรือท่องเที่ยว"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่พะยูนของตรังมีความเสี่ยงจากการเดินเรือเร็วและการรบกวนสัตว์ทะเลหายาก"
+      },
+      {
+        "id": "h_rough_sea",
+        "name": "คลื่นลมแรงและกระแสน้ำแรง",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ทะเลเปิด", "เกาะนอกฝั่ง", "หาดรับคลื่น"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "ช่วงมรสุมทะเลเปิดและเกาะรอบตรังเสี่ยงคลื่นสูง การลงเล่นน้ำและเดินเรือต้องดูประกาศทุกครั้ง"
+      }
+    ]
+  },
+  "Satun": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove",
+        "name": "ป่าชายเลน",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["ปากน้ำ", "ชายฝั่งสตูล", "อ่าวตื้น"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ชายฝั่งสตูลยังมีป่าชายเลนและหาดเลนที่เชื่อมโยงกับระบบหมู่เกาะทะเล"
+      },
+      {
+        "id": "fl_seagrass",
+        "name": "หญ้าทะเล",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["ทะเลตื้นชายฝั่ง", "เกาะในอุทยานหมู่เกาะเภตรา"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "หญ้าทะเลของสตูลเป็นส่วนหนึ่งของแนวอันดามันตอนล่างที่รองรับสัตว์ทะเลหายาก"
+      },
+      {
+        "id": "f_mouse_deer",
+        "name": "กระจง",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["อุทยานแห่งชาติตะรุเตา", "ป่าบนเกาะ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "กระจงเป็นสัตว์ขนาดเล็กที่พบในป่าเกาะของตะรุเตาและพื้นที่ป่าที่ค่อนข้างสมบูรณ์"
+      },
+      {
+        "id": "f_dusky_langur",
+        "name": "ค่างแว่น",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "caution" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["อุทยานแห่งชาติตะรุเตา", "ป่าชายฝั่ง", "ป่าดิบชื้นบนเกาะ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "พบได้ในเขตหมู่เกาะและป่าเกาะที่ยังสมบูรณ์ นักท่องเที่ยวไม่ควรให้อาหาร"
+      },
+      {
+        "id": "t_karst_islands",
+        "name": "หมู่เกาะหินปูนและชายฝั่งสตูล",
+        "category": "terrain",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["ตะรุเตา", "หลีเป๊ะใกล้เคียง", "หมู่เกาะเภตรา", "ชายฝั่งสตูล"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "สตูลเด่นด้วยหมู่เกาะทะเล ป่าบนเกาะ ชายฝั่ง และภูมิประเทศหินปูนแบบคาสต์"
+      },
+      {
+        "id": "c_andaman_monsoon",
+        "name": "ฝนและคลื่นลมมรสุม",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ทะเลเปิด", "ชายฝั่ง", "เกาะ"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "สตูลได้รับผลจากมรสุมฝั่งอันดามัน ทำให้การเดินเรือและกิจกรรมทะเลเสี่ยงขึ้นมากในฤดูฝน"
+      },
+      {
+        "id": "h_rough_sea",
+        "name": "ทะเลแปรปรวนและคลื่นสูง",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["เกาะนอกฝั่ง", "ท่าเรือ", "หาดรับคลื่น"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ในฤดูมรสุมคลื่นลมแรงกระทบการเดินเรือโดยสารและเรือเล็กอย่างชัดเจน"
+      },
+      {
+        "id": "h_rip_current",
+        "name": "กระแสน้ำแรงตามหาดและช่องแคบ",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["หาดเปิดโล่ง", "ร่องน้ำระหว่างเกาะ"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "หาดบางแห่งและร่องน้ำระหว่างเกาะมีน้ำไหลแรง โดยเฉพาะช่วงคลื่นมรสุมและน้ำขึ้นลงจัด"
+      }
+    ]
+  },
+  "Phatthalung": {
+    "ecoEntities": [
+      {
+        "id": "fl_lotus",
+        "name": "บัวแดง",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "edible": false, "poisonous": false, "medicinal": false, "protected": false },
+        "context": {
+          "location": ["ทะเลน้อย", "คลองปากประ", "พื้นที่ชุ่มน้ำ"],
+          "season": ["ธ.ค.-เม.ย."],
+          "timeOfDay": "day"
+        },
+        "description": "บัวแดงเป็นภาพจำของทะเลน้อยและเป็นส่วนสำคัญของระบบนิเวศพื้นที่ชุ่มน้ำ"
+      },
+      {
+        "id": "fl_krajood",
+        "name": "กระจูด",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "medicinal": false },
+        "context": {
+          "location": ["ขอบพื้นที่ชุ่มน้ำ", "ชานพรุ", "ลุ่มต่ำ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พบทั่วไปตามพื้นที่ชุ่มน้ำและเกี่ยวพันกับวิถีชุมชนรอบทะเลน้อย"
+      },
+      {
+        "id": "f_waterbird",
+        "name": "นกน้ำประจำถิ่นและนกอพยพ",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["เขตห้ามล่าสัตว์ป่าทะเลน้อย", "พื้นที่ชุ่มน้ำ"],
+          "season": ["ต.ค.-มี.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "พัทลุงเด่นมากเรื่องนกน้ำหลากหลายชนิดจากระบบทะเลน้อยและทะเลสาบสงขลา"
+      },
+      {
+        "id": "f_water_buffalo",
+        "name": "ควายน้ำ",
+        "category": "fauna",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": { "aggressive": true, "protected": false },
+        "context": {
+          "location": ["ทะเลน้อย", "ทุ่งชุ่มน้ำริมทะเลสาบ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นสัตว์เลี้ยงวิถีชุมชนที่กลายเป็นเอกลักษณ์ของทะเลน้อย ควรเว้นระยะเมื่ออยู่ในฝูง"
+      },
+      {
+        "id": "t_freshwater_wetland",
+        "name": "พื้นที่ชุ่มน้ำทะเลน้อย",
+        "category": "terrain",
+        "tags": { "riskLevel": "medium", "frequency": "everywhere", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ควนขนุน", "ทะเลน้อย", "คลองปากประ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ทะเลน้อยเป็นพื้นที่ชุ่มน้ำจืดขนาดใหญ่และเป็นแหล่งนกน้ำสำคัญระดับประเทศ"
+      },
+      {
+        "id": "c_morning_fog_wetland",
+        "name": "อากาศชื้นและหมอกยามเช้า",
+        "category": "climate",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ทะเลน้อย", "พื้นที่ชุ่มน้ำ"],
+          "season": ["ปลายฝน-ต้นหนาว", "ฤดูหนาว"],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นที่ชุ่มน้ำและอุณหภูมิยามเช้าทำให้เกิดหมอกและไอน้ำได้บ่อย ส่งผลต่อทัศนวิสัยทางเรือและถนน"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมพื้นที่ลุ่ม",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["รอบทะเลน้อย", "ลุ่มต่ำ", "พื้นที่เกษตร"],
+          "season": ["พ.ย.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ลุ่มรับน้ำรอบทะเลน้อยเสี่ยงน้ำท่วมจากฝนสะสมและน้ำหนุน"
+      },
+      {
+        "id": "h_lightning_storm",
+        "name": "พายุฝนฟ้าคะนองกลางพื้นที่เปิด",
+        "category": "hazard",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ทะเลน้อย", "ทุ่งโล่ง", "พื้นที่ชุ่มน้ำเปิด"],
+          "season": ["ฤดูฝน", "ช่วงเปลี่ยนฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "การอยู่กลางเรือหรือพื้นที่โล่งในช่วงมีฟ้าคะนองเสี่ยงอันตรายจากลมแรงและฟ้าผ่า"
+      }
+    ]
+  },
+  "Chumphon": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove",
+        "name": "ป่าชายเลน",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["อ่าวทุ่งคา", "ปากน้ำชุมพร", "ชายฝั่งทะเล"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ชุมพรมีป่าชายเลนตามปากอ่าวและชายฝั่งซึ่งเป็นฐานอนุบาลสัตว์น้ำและช่วยลดคลื่น"
+      },
+      {
+        "id": "fl_seagrass",
+        "name": "หญ้าทะเล",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["อ่าวตื้นบางส่วน", "แนวทะเลชายฝั่ง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "พบเป็นหย่อมในพื้นที่อ่าวตื้นและช่วยพยุงความสมบูรณ์ของทะเลชายฝั่ง"
+      },
+      {
+        "id": "f_green_turtle",
+        "name": "เต่าตนุ",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "caution" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["อุทยานแห่งชาติหมู่เกาะชุมพร", "แนวเกาะและแนวปะการัง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เต่าตนุพบในเขตอุทยานทางทะเลของชุมพร โดยเฉพาะบริเวณเกาะและแนวปะการัง"
+      },
+      {
+        "id": "f_crabeating_macaque",
+        "name": "ลิงแสม",
+        "category": "fauna",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": { "aggressive": true, "protected": false },
+        "context": {
+          "location": ["ป่าชายเลน", "ชายฝั่ง", "พื้นที่ท่องเที่ยวบางจุด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "ลิงแสมพบตามชายฝั่งและป่าชายเลน หากคุ้นคนมากจะมีพฤติกรรมแย่งอาหารได้"
+      },
+      {
+        "id": "t_archipelago_coast",
+        "name": "ชายฝั่งยาวและหมู่เกาะทะเล",
+        "category": "terrain",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["หมู่เกาะชุมพร", "ชายฝั่งอ่าวไทย"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ชุมพรเด่นด้วยชายฝั่งยาว หมู่เกาะจำนวนมาก และอ่าวที่เหมาะต่อระบบนิเวศทะเล"
+      },
+      {
+        "id": "c_northeast_monsoon",
+        "name": "มรสุมฝั่งอ่าวไทย",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ทะเลอ่าวไทย", "ชายฝั่ง", "เกาะ"],
+          "season": ["ต.ค.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ปลายปีชุมพรมีคลื่นลมแรงและฝนต่อเนื่องจากมรสุมตะวันออกเฉียงเหนือ"
+      },
+      {
+        "id": "h_rough_sea",
+        "name": "คลื่นลมแรงทางทะเล",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["หมู่เกาะชุมพร", "ทะเลเปิด", "ท่าเรือ"],
+          "season": ["พ.ย.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "เรือเล็กและกิจกรรมทะเลมีความเสี่ยงสูงขึ้นมากในช่วงคลื่นลมแรงฝั่งอ่าวไทย"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำหลากจากฝนหนัก",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["เชิงเขา", "ลุ่มน้ำสั้นไหลลงทะเล", "พื้นที่ชุมชนลุ่มต่ำ"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักต่อเนื่องสามารถทำให้ลุ่มน้ำสั้นของชุมพรเกิดน้ำหลากเข้าพื้นที่ชุมชนได้รวดเร็ว"
+      }
+    ]
+  },
+  "Ranong": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove",
+        "name": "ป่าชายเลน",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["ลำน้ำกระบุรี", "ชายฝั่งระนอง", "อ่าวบางเบน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ระนองมีป่าชายเลนกว้างมาก โดยเฉพาะแนวลำน้ำกระบุรีและชายฝั่งทะเลตื้น"
+      },
+      {
+        "id": "fl_seagrass",
+        "name": "หญ้าทะเล",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["อ่าวบางเบน", "ทะเลตื้นชายฝั่ง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "มีแหล่งหญ้าทะเลในอ่าวบางเบนและแนวชายฝั่งบางส่วนของระนอง แม้บางพื้นที่มีสภาพเปลี่ยนแปลงได้"
+      },
+      {
+        "id": "f_dugong",
+        "name": "พะยูน",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["แนวหญ้าทะเลอันดามันตอนบน", "ทะเลตื้นบางส่วน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "แนวชายฝั่งอันดามันตอนบนรวมถึงระนองอยู่ในช่วงกระจายของพะยูนที่ใช้แหล่งหญ้าทะเล"
+      },
+      {
+        "id": "f_crabeating_macaque",
+        "name": "ลิงแสม",
+        "category": "fauna",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": { "aggressive": true, "protected": false },
+        "context": {
+          "location": ["ป่าชายเลน", "ปากน้ำ", "แหล่งท่องเที่ยวชายฝั่ง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "ลิงแสมพบได้ตามแนวชายฝั่งและป่าชายเลนของระนอง โดยเฉพาะพื้นที่คนผ่านบ่อย"
+      },
+      {
+        "id": "t_estuary_mangrove",
+        "name": "ปากแม่น้ำและป่าชายเลนกว้าง",
+        "category": "terrain",
+        "tags": { "riskLevel": "medium", "frequency": "everywhere", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ลำน้ำกระบุรี", "ชายฝั่งระนอง", "อ่าวบางเบน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ภูมิประเทศระนองเด่นด้วยปากแม่น้ำเลน ป่าชายเลน และชายฝั่งอันดามันตอนบนที่รับฝนมาก"
+      },
+      {
+        "id": "c_extreme_rainfall",
+        "name": "ฝนตกชุกมาก",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "everywhere", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ทั้งจังหวัด", "เชิงเขา", "ชายฝั่ง"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ระนองเป็นหนึ่งในจังหวัดที่ฝนมากของไทยจากอิทธิพลมรสุมฝั่งอันดามันและภูเขารับลม"
+      },
+      {
+        "id": "h_landslide",
+        "name": "ดินถล่มและถนนภูเขาอันตราย",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["เชิงเขา", "ถนนลาดชัน", "พื้นที่ป่าเขา"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักยาวนานทำให้พื้นที่ลาดชันของระนองเสี่ยงดินถล่มและหินหล่น"
+      },
+      {
+        "id": "h_rough_sea",
+        "name": "ทะเลแปรปรวนและเรือเล็กงดออก",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ทะเลอันดามัน", "เกาะ", "ท่าเรือ"],
+          "season": ["พ.ค.-ต.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ในฤดูมรสุมอันดามัน ระนองมีคลื่นแรงและฝนลดทัศนวิสัยต่อการเดินเรืออย่างชัดเจน"
+      }
+    ]
+  },
+  "Yala": {
+    "ecoEntities": [
+      {
+        "id": "fl_wild_orchid",
+        "name": "กล้วยไม้ป่า",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["ป่าฮาลา-บาลา", "ป่าดิบชื้นเขาสูง"],
+          "season": ["ฤดูฝน", "ฤดูหนาว"],
+          "timeOfDay": "day"
+        },
+        "description": "ป่าดิบชื้นของยะลามีความหลากหลายทางพืชสูง รวมถึงกล้วยไม้ป่าหลายชนิด"
+      },
+      {
+        "id": "fl_rattan",
+        "name": "หวายป่า",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "caution" },
+        "attributes": { "edible": false, "poisonous": false, "medicinal": false },
+        "context": {
+          "location": ["ป่าดิบชื้น", "ร่องหุบเขา", "ป่าฮาลา-บาลา"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พืชเด่นของป่าฝนภาคใต้ พบเป็นกอหรือเถามีหนามตามป่าทึบ"
+      },
+      {
+        "id": "f_hornbill",
+        "name": "นกเงือก",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["เขตรักษาพันธุ์สัตว์ป่าฮาลา-บาลา", "ป่าดิบชื้น"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "ฮาลา-บาลาเป็นพื้นที่เด่นของนกเงือกภาคใต้และมีความสำคัญต่อการอนุรักษ์ในระดับประเทศ"
+      },
+      {
+        "id": "f_siamang",
+        "name": "ชะนีสยามัง",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "caution" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["ป่าฮาลา-บาลา", "ป่าดิบชื้นติดชายแดน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "ไพรเมตเด่นของป่าฝนตอนล่าง พบในผืนป่าติดชายแดนที่ยังคงความสมบูรณ์"
+      },
+      {
+        "id": "t_mountain_rainforest",
+        "name": "ป่าดิบชื้นภูเขา",
+        "category": "terrain",
+        "tags": { "riskLevel": "medium", "frequency": "everywhere", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ฮาลา-บาลา", "เทือกเขาสันกาลาคีรี", "อ่างเก็บน้ำบางลาง"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ยะลามีภูมิประเทศเป็นป่าฝนภูเขาและหุบเขาลึกซึ่งเป็นแหล่งต้นน้ำสำคัญ"
+      },
+      {
+        "id": "c_wet_tropical",
+        "name": "อากาศชื้นฝนตกบ่อย",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "everywhere", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ภูเขา", "ป่าฝน", "อำเภอชายแดน"],
+          "season": ["พ.ค.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ป่าฝนตอนล่างของยะลามีความชื้นสูงและฝนตกบ่อย ทำให้ทางป่าลื่นและทัศนวิสัยต่ำ"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำป่าไหลหลาก",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ลำห้วยภูเขา", "เชิงเขา", "หมู่บ้านริมน้ำ"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "ลุ่มน้ำภูเขาสั้นและชันทำให้ยะลามีความเสี่ยงน้ำหลากหลังฝนหนักได้รวดเร็ว"
+      },
+      {
+        "id": "h_landslide",
+        "name": "ดินถล่ม",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ลาดเขา", "ถนนตัดผ่านภูเขา", "ป่าฝนชื้น"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ลาดชันและฝนตกต่อเนื่องเพิ่มความเสี่ยงดินถล่มในเส้นทางภูเขา"
+      }
+    ]
+  },
+  "Pattani": {
+    "ecoEntities": [
+      {
+        "id": "fl_mangrove",
+        "name": "ป่าชายเลน",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["อ่าวปัตตานี", "อ.ยะหริ่ง", "ปากแม่น้ำ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "อ่าวปัตตานีมีป่าชายเลนและหาดเลนกว้างซึ่งเป็นฐานสำคัญของสัตว์น้ำและนกชายเลน"
+      },
+      {
+        "id": "fl_nipa_palm",
+        "name": "จาก",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "edible": true, "poisonous": false, "medicinal": false },
+        "context": {
+          "location": ["ปากน้ำกร่อย", "คลองชายฝั่ง", "ชายเลน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พืชชายเลนสำคัญของพื้นที่น้ำกร่อย ใช้ประโยชน์ในชุมชนชายฝั่งและช่วยพยุงตะกอน"
+      },
+      {
+        "id": "f_migratory_shorebird",
+        "name": "นกชายเลนอพยพ",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "everywhere", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["อ่าวปัตตานี", "หาดเลน", "ปากแม่น้ำ"],
+          "season": ["ต.ค.-มี.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "อ่าวปัตตานีเป็นพื้นที่สำคัญระดับนานาชาติของนกชายเลนอพยพและนกน้ำรวมฝูง"
+      },
+      {
+        "id": "f_smoothcoated_otter",
+        "name": "นากใหญ่ขนเรียบ",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "safe" },
+        "attributes": { "aggressive": false, "protected": true },
+        "context": {
+          "location": ["อ่าวปัตตานี", "ป่าชายเลน", "คลองน้ำกร่อย"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นสัตว์เลี้ยงลูกด้วยนมที่มีรายงานในระบบอ่าวปัตตานี โดยพึ่งพาพื้นที่ชุ่มน้ำและแหล่งปลา"
+      },
+      {
+        "id": "t_intertidal_mudflat",
+        "name": "หาดเลนระหว่างน้ำขึ้นน้ำลง",
+        "category": "terrain",
+        "tags": { "riskLevel": "medium", "frequency": "everywhere", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["อ่าวปัตตานี", "ชายฝั่งตื้น", "ปากแม่น้ำ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ภูมิประเทศเด่นของปัตตานีคืออ่าวตื้น หาดเลน และป่าชายเลนกว้างที่เชื่อมกับแม่น้ำหลายสาย"
+      },
+      {
+        "id": "c_gulf_monsoon",
+        "name": "ฝนหนักปลายปี",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "common", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ชายฝั่งอ่าวไทย", "ลุ่มต่ำ", "ปากน้ำ"],
+          "season": ["ต.ค.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "มรสุมตะวันออกเฉียงเหนือส่งผลให้ปัตตานีมีฝนสะสมและคลื่นลมแรงในช่วงปลายปี"
+      },
+      {
+        "id": "h_coastal_flood",
+        "name": "น้ำท่วมชายฝั่งและน้ำหนุน",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["อ่าวปัตตานี", "พื้นที่ลุ่มชายฝั่ง", "ชุมชนริมน้ำ"],
+          "season": ["พ.ย.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักร่วมกับระดับน้ำทะเลและน้ำหนุนทำให้พื้นที่ชายฝั่งลุ่มต่ำเสี่ยงน้ำท่วม"
+      },
+      {
+        "id": "h_habitat_degradation",
+        "name": "การเสื่อมโทรมของป่าชายเลนและหาดเลน",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["อ่าวปัตตานี", "พื้นที่เพาะเลี้ยงสัตว์น้ำ", "ชายฝั่งพัฒนา"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "การเปลี่ยนพื้นที่ชุ่มน้ำเป็นการใช้ประโยชน์อื่นและมลพิษกระทบถิ่นอาศัยของนกและสัตว์น้ำ"
+      }
+    ]
+  },
+  "Narathiwat": {
+    "ecoEntities": [
+      {
+        "id": "fl_white_melaleuca",
+        "name": "เสม็ดขาว",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "medicinal": false, "protected": false },
+        "context": {
+          "location": ["ป่าพรุโต๊ะแดง", "พื้นที่ชุ่มน้ำกรดจัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ไม้เด่นของป่าพรุภาคใต้ พบในพื้นที่พรุโต๊ะแดงและดินชุ่มน้ำเฉพาะแบบ"
+      },
+      {
+        "id": "fl_krajood",
+        "name": "กระจูด",
+        "category": "flora",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": {},
+        "context": {
+          "location": ["ขอบพรุ", "หนองน้ำ", "พื้นที่ชุ่มน้ำ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "กระจูดขึ้นได้ดีในพื้นที่ชุ่มน้ำและเป็นพืชที่สัมพันธ์กับวิถีชุมชนภาคใต้ตอนล่าง"
+      },
+      {
+        "id": "f_hornbill",
+        "name": "นกเงือก",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "common", "interaction": "safe" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["ฮาลา-บาลาส่วนบาลา", "ป่าดิบชื้นชายแดน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "นราธิวาสเป็นส่วนสำคัญของผืนป่าฮาลา-บาลาที่ขึ้นชื่อเรื่องนกเงือกหลากหลายชนิด"
+      },
+      {
+        "id": "f_siamang",
+        "name": "ชะนีสยามัง",
+        "category": "fauna",
+        "tags": { "riskLevel": "low", "frequency": "rare", "interaction": "caution" },
+        "attributes": { "protected": true },
+        "context": {
+          "location": ["ป่าฮาลา-บาลา", "ป่าดิบชื้นภูเขา"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "ไพรเมตป่าฝนตอนล่างที่พบในผืนป่าชายแดนของนราธิวาสและยะลา"
+      },
+      {
+        "id": "t_peat_swamp",
+        "name": "ป่าพรุโต๊ะแดง",
+        "category": "terrain",
+        "tags": { "riskLevel": "medium", "frequency": "everywhere", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ตากใบ", "สุไหงโก-ลก", "สุไหงปาดี"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นป่าพรุขนาดใหญ่และสำคัญมากของไทย ทำหน้าที่กักเก็บน้ำและคาร์บอน"
+      },
+      {
+        "id": "c_very_wet_monsoon",
+        "name": "ฝนหนักต่อเนื่อง",
+        "category": "climate",
+        "tags": { "riskLevel": "medium", "frequency": "everywhere", "interaction": "caution" },
+        "attributes": {},
+        "context": {
+          "location": ["ชายฝั่งอ่าวไทย", "พื้นที่พรุ", "เชิงเขา"],
+          "season": ["ต.ค.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "นราธิวาสได้รับอิทธิพลมรสุมอ่าวไทยอย่างชัด ทำให้ปลายปีมีฝนหนักสะสมยาว"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมพื้นที่ลุ่มและชุมชนริมน้ำ",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ลุ่มต่ำ", "ใกล้พรุ", "เมืองริมน้ำ"],
+          "season": ["พ.ย.-ม.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "น้ำท่วมเป็นความเสี่ยงหลักของนราธิวาสจากฝนสะสมและการระบายช้าของพื้นที่ลุ่มชุ่มน้ำ"
+      },
+      {
+        "id": "h_peat_fire",
+        "name": "ไฟป่าพรุ",
+        "category": "hazard",
+        "tags": { "riskLevel": "high", "frequency": "common", "interaction": "dangerous" },
+        "attributes": {},
+        "context": {
+          "location": ["ป่าพรุโต๊ะแดง"],
+          "season": ["หน้าแล้ง", "ช่วงระดับน้ำต่ำ"],
+          "timeOfDay": "both"
+        },
+        "description": "เมื่อพรุแห้งผิดปกติ มีโอกาสเกิดไฟใต้ดินและควันยาวนานซึ่งควบคุมยาก"
+      }
+    ]
+  }
+}

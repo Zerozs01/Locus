@@ -1,0 +1,1510 @@
+{
+  "Nakhon Ratchasima": {
+    "ecoEntities": [
+      {
+        "id": "fl_pradu",
+        "name": "ประดู่",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": null,
+          "protected": null
+        },
+        "context": {
+          "location": ["ป่าเบญจพรรณ", "เขตป่าอนุรักษ์ด้านใต้จังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นไม้เด่นของป่าเบญจพรรณและป่าเต็งรังในโคราช พบในเขตป่าอนุรักษ์หลายแห่งของจังหวัด"
+      },
+      {
+        "id": "fl_phayung",
+        "name": "พะยูง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": null,
+          "protected": true
+        },
+        "context": {
+          "location": ["ป่าดิบแล้ง", "แนวทับลาน", "เขาใหญ่ตอนรอยต่อ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ไม้มีค่าที่พบในป่าธรรมชาติของอีสานตอนล่าง แต่มีความเสี่ยงจากการลักลอบตัดไม้"
+      },
+      {
+        "id": "f_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": ["อุทยานแห่งชาติเขาใหญ่", "อุทยานแห่งชาติทับลาน", "แนวป่าเขาแผงม้า"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นสัตว์เด่นของแนวป่าดงพญาเย็น-เขาใหญ่ มีความเสี่ยงปะทะกับคนตามแนวเกษตรและถนนรอยต่อป่า"
+      },
+      {
+        "id": "f_gaur",
+        "name": "กระทิง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": ["ทับลาน", "เขาใหญ่", "ป่ารอยต่อดงพญาเย็น"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พบในผืนป่ารอยต่อของจังหวัด โดยเฉพาะพื้นที่ป่าอนุรักษ์ขนาดใหญ่"
+      },
+      {
+        "id": "t_khorat_plateau",
+        "name": "ที่ราบสูงโคราช",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตอนกลางและตอนเหนือของจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ลักษณะพื้นที่หลักของจังหวัด เป็นที่ราบสูงกว้าง เหมาะกับเมือง เกษตร และคมนาคม"
+      },
+      {
+        "id": "t_mountain_forest",
+        "name": "แนวเขาดงพญาเย็น-ป่าเขาใหญ่",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ด้านใต้จังหวัด", "ปากช่อง", "วังน้ำเขียว"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นพื้นที่ภูเขาและป่าต้นน้ำสำคัญ เชื่อมกับผืนป่ามรดกโลก"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่นละออง PM2.5",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตัวเมือง", "ริมทางหลวง", "พื้นที่เกษตรที่มีการเผา"],
+          "season": ["ธ.ค.-เม.ย."],
+          "timeOfDay": "both"
+        },
+        "description": "อีสานตอนล่างมีปัญหาฝุ่นเด่นในช่วงปลายหนาวถึงต้นร้อน โดยเฉพาะวันที่ลมนิ่งและมีการเผา"
+      },
+      {
+        "id": "h_wildfire",
+        "name": "ไฟป่าและไฟลามทุ่ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["แนวป่าเขาใหญ่", "ทับลาน", "พื้นที่เกษตรรอยต่อป่า"],
+          "season": ["ม.ค.-พ.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "เกิดได้ทั้งในป่าและพื้นที่เกษตรช่วงอากาศแห้ง เพิ่มทั้งความเสี่ยงไฟและฝุ่น"
+      }
+    ]
+  },
+  "Buri Ram": {
+    "ecoEntities": [
+      {
+        "id": "fl_suphannika",
+        "name": "สุพรรณิการ์",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": null,
+          "protected": null
+        },
+        "context": {
+          "location": ["เขตชุมชน", "พื้นที่ราชการ", "ปลูกประดับในจังหวัด"],
+          "season": ["ปลายฤดูหนาว", "ฤดูร้อน"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นดอกไม้ประจำจังหวัด พบในงานภูมิทัศน์เมืองและพื้นที่ราชการ"
+      },
+      {
+        "id": "fl_phayung",
+        "name": "พะยูง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "protected": true
+        },
+        "context": {
+          "location": ["เขตรักษาพันธุ์สัตว์ป่าดงใหญ่", "ป่าชายแดนใต้จังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พบในกลุ่มป่าดงใหญ่-พนมดงรัก เป็นไม้มีค่าที่อยู่ภายใต้แรงกดดันด้านการคุ้มครอง"
+      },
+      {
+        "id": "f_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": ["เขตรักษาพันธุ์สัตว์ป่าดงใหญ่", "แนวป่าชายแดนใต้"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พบในแนวป่าอนุรักษ์ตอนใต้ของจังหวัด และอาจออกหากินใกล้พื้นที่เกษตรบางช่วง"
+      },
+      {
+        "id": "f_gaur",
+        "name": "กระทิง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": ["ป่าดงใหญ่", "ป่ารอยต่อพนมดงรัก"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นสัตว์กีบขนาดใหญ่ที่สัมพันธ์กับผืนป่าอนุรักษ์ของบุรีรัมย์"
+      },
+      {
+        "id": "t_volcanic_land",
+        "name": "ที่ดอนภูเขาไฟเก่า",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["นางรอง", "เฉลิมพระเกียรติ", "ประโคนชัย"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "บุรีรัมย์มีภูมิประเทศเด่นเป็นที่ดอนจากภูเขาไฟเก่าหลายแห่ง ส่งผลต่อดินและทัศนียภาพ"
+      },
+      {
+        "id": "t_lam_plaimat_plain",
+        "name": "ที่ราบลุ่มลำปลายมาศ",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตอนกลางและตอนเหนือของจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ราบเกษตรกรรมหลักของจังหวัด เชื่อมกับระบบลำน้ำมูลและลำปลายมาศ"
+      },
+      {
+        "id": "c_heat_dry",
+        "name": "อากาศร้อนและแห้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ทั่วจังหวัด"],
+          "season": ["มี.ค.-พ.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "ช่วงปลายฤดูร้อนอากาศร้อนจัดและความชื้นต่ำ ส่งผลต่อการเดินทางกลางแจ้งและความเสี่ยงขาดน้ำ"
+      },
+      {
+        "id": "h_drought",
+        "name": "ภัยแล้ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["พื้นที่เกษตรนอกเขตชลประทาน", "ที่ดอน"],
+          "season": ["ปลายฤดูหนาว", "ฤดูร้อน"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นความเสี่ยงประจำของจังหวัดเกษตรในอีสานล่าง โดยเฉพาะพื้นที่ที่พึ่งพาฝน"
+      }
+    ]
+  },
+  "Surin": {
+    "ecoEntities": [
+      {
+        "id": "fl_kangkrao",
+        "name": "กันเกรา",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "medicinal": true,
+          "poisonous": false
+        },
+        "context": {
+          "location": ["ชุมชน", "พื้นที่ราชการ", "สวนสาธารณะ"],
+          "season": ["ฤดูร้อน", "ฤดูฝน"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นพรรณไม้ที่เชื่อมโยงกับอัตลักษณ์จังหวัดสุรินทร์ และพบปลูกในเขตชุมชนจำนวนมาก"
+      },
+      {
+        "id": "fl_jasmine_rice",
+        "name": "ข้าวหอมมะลิทุ่งกุลาร้องไห้",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false
+        },
+        "context": {
+          "location": ["ทุ่งกุลาร้องไห้", "นาข้าวอาศัยน้ำฝน"],
+          "season": ["ฤดูฝน", "ฤดูเก็บเกี่ยว"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นพืชเศรษฐกิจเด่นของพื้นที่ทุ่งกุลาในสุรินทร์ มีชื่อเสียงด้านคุณภาพเมล็ดและกลิ่นหอม"
+      },
+      {
+        "id": "f_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": ["แนวพนมดงรัก", "ชายแดนใต้จังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "แม้สุรินทร์เด่นด้านช้างเลี้ยงเชิงวัฒนธรรม แต่พื้นที่ป่าชายแดนยังสัมพันธ์กับช้างป่าด้วย"
+      },
+      {
+        "id": "f_openbill_stork",
+        "name": "นกปากห่าง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": ["นาข้าว", "พื้นที่ชุ่มน้ำ", "หนองบึง"],
+          "season": ["ฤดูฝน", "หลังเก็บเกี่ยว"],
+          "timeOfDay": "day"
+        },
+        "description": "พบตามนาและพื้นที่ชุ่มน้ำ กินหอยและสัตว์น้ำขนาดเล็ก เป็นตัวชี้สภาพแวดล้อมเกษตรชุ่มน้ำได้ดี"
+      },
+      {
+        "id": "t_thung_kula_plain",
+        "name": "ทุ่งกุลาร้องไห้",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตอนเหนือและตะวันออกของจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นพื้นที่ราบกว้าง เน้นนาข้าวหอมมะลิอาศัยน้ำฝน ดินและน้ำมีผลต่อระบบเกษตรอย่างมาก"
+      },
+      {
+        "id": "t_phanom_dongrak",
+        "name": "แนวเทือกเขาพนมดงรัก",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["พนมดงรัก", "กาบเชิง", "ชายแดนใต้"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่สูงและป่าชายแดน ทำหน้าที่เป็นต้นน้ำย่อยและแหล่งความหลากหลายชีวภาพ"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่นละออง PM2.5",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตัวเมือง", "พื้นที่เผาเศษวัสดุการเกษตร"],
+          "season": ["ธ.ค.-เม.ย."],
+          "timeOfDay": "both"
+        },
+        "description": "เกิดได้จากการเผาในที่โล่งและสภาพอากาศปิด ทำให้ทัศนวิสัยและสุขภาพได้รับผลกระทบ"
+      },
+      {
+        "id": "h_drought",
+        "name": "ภัยแล้งและขาดแคลนน้ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["นอกเขตชลประทาน", "ทุ่งกุลาฯ"],
+          "season": ["ปลายฤดูหนาว", "ฤดูร้อน"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่เกษตรพึ่งพาฝนสูง จึงเสี่ยงน้ำไม่พอในปีที่ฝนทิ้งช่วงหรือฝนต่ำกว่าค่าเฉลี่ย"
+      }
+    ]
+  },
+  "Si Sa Ket": {
+    "ecoEntities": [
+      {
+        "id": "fl_lamduan",
+        "name": "ลำดวน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "poisonous": false,
+          "medicinal": null
+        },
+        "context": {
+          "location": ["ชุมชน", "พื้นที่ราชการ", "สวนสาธารณะ"],
+          "season": ["ฤดูร้อน"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นต้นไม้ประจำจังหวัดและพบปลูกทั่วไปในพื้นที่ชุมชนของศรีสะเกษ"
+      },
+      {
+        "id": "fl_jasmine_rice",
+        "name": "ข้าวหอมมะลิทุ่งกุลาร้องไห้",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true
+        },
+        "context": {
+          "location": ["เขตทุ่งกุลาฯ ในจังหวัด", "นาข้าวอาศัยน้ำฝน"],
+          "season": ["ฤดูฝน", "ฤดูเก็บเกี่ยว"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นพืชเศรษฐกิจสำคัญของพื้นที่ราบในจังหวัด โดยเฉพาะโซนที่เชื่อมกับทุ่งกุลาร้องไห้"
+      },
+      {
+        "id": "f_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": ["เขตรักษาพันธุ์สัตว์ป่าพนมดงรัก", "เขตรักษาพันธุ์สัตว์ป่าห้วยศาลา"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "สัมพันธ์กับผืนป่าชายแดนของจังหวัด และมีความเสี่ยงเมื่อออกนอกพื้นที่ป่า"
+      },
+      {
+        "id": "f_gaur",
+        "name": "กระทิง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": ["พนมดงรัก", "ห้วยศาลา", "เขตรอยต่อป่าอนุรักษ์"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นสัตว์ป่าขนาดใหญ่ที่พบในป่าชายแดนของศรีสะเกษ"
+      },
+      {
+        "id": "t_mun_basin",
+        "name": "ที่ราบลุ่มแม่น้ำมูล",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตอนเหนือและตอนกลางของจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นพื้นที่ราบลุ่มเกษตรกรรมหลักของจังหวัด และเกี่ยวข้องกับความเสี่ยงน้ำท่วมฤดูฝน"
+      },
+      {
+        "id": "t_phanom_dongrak",
+        "name": "แนวพนมดงรักและป่าชายแดน",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["กันทรลักษ์", "ขุนหาญ", "ภูสิงห์"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่สูงชันและป่าอนุรักษ์สำคัญของจังหวัด เป็นต้นทางลำห้วยหลายสาย"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่นละออง PM2.5",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตัวเมือง", "พื้นที่เกษตร", "แนวลมสะสมฝุ่น"],
+          "season": ["ธ.ค.-เม.ย."],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงต้นปีอากาศปิดและกิจกรรมเผาในที่โล่งทำให้ฝุ่นสะสมได้"
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำหลากฉับพลันจากพื้นที่สูง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ชายเชิงเขาพนมดงรัก", "ลำห้วยตอนล่าง"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักบริเวณพื้นที่สูงสามารถทำให้น้ำไหลหลากลงพื้นที่ลุ่มได้รวดเร็ว"
+      }
+    ]
+  },
+  "Ubon Ratchathani": {
+    "ecoEntities": [
+      {
+        "id": "fl_phayung",
+        "name": "พะยูง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "protected": true
+        },
+        "context": {
+          "location": ["กลุ่มป่าพนมดงรัก-ผาแต้ม", "ป่าดิบแล้ง", "ป่าผสมผลัดใบ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นไม้เด่นและมีคุณค่าทางอนุรักษ์ในกลุ่มป่าทางตะวันออกของจังหวัด"
+      },
+      {
+        "id": "fl_yaangna",
+        "name": "ยางนา",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "medicinal": true
+        },
+        "context": {
+          "location": ["ป่าดิบแล้ง", "ริมห้วย", "พื้นที่ชุ่มชื้นในป่า"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พบได้ในป่าธรรมชาติหลายส่วนของจังหวัด โดยเฉพาะพื้นที่ที่มีความชุ่มชื้นมากกว่าเขตนา"
+      },
+      {
+        "id": "f_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": ["เขตรักษาพันธุ์สัตว์ป่าบุณฑริก-ยอดมน", "แนวป่าตะวันออกจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พบในแนวป่าอนุรักษ์รอยต่อชายแดนและเป็นสัตว์ที่ต้องระวังอย่างมากเมื่อเข้าเขตป่า"
+      },
+      {
+        "id": "f_hornbill",
+        "name": "นกเงือก",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "protected": true
+        },
+        "context": {
+          "location": ["ผาแต้ม", "ภูจองนายอย", "ป่าดิบแล้งขนาดใหญ่"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นกลุ่มนกป่าที่ผูกกับผืนป่าค่อนข้างสมบูรณ์ของอุบลราชธานี"
+      },
+      {
+        "id": "t_mekong_cliff",
+        "name": "หน้าผาและลานหินริมแม่น้ำโขง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ผาแต้ม", "โขงเจียม", "ริมโขงตะวันออก"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ลักษณะภูมิประเทศเด่นของจังหวัด เป็นหน้าผาหินทรายและลานหินริมแม่น้ำโขง"
+      },
+      {
+        "id": "t_mun_mekong_basin",
+        "name": "ลุ่มน้ำมูล-โขง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตอนกลางและตะวันออกของจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นระบบพื้นที่ลุ่มน้ำสำคัญมากของจังหวัด รองรับเกษตร เมือง และพื้นที่ชุ่มน้ำจำนวนมาก"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่นละออง PM2.5",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตัวเมือง", "แนวชุมชน", "พื้นที่เกษตรที่มีการเผา"],
+          "season": ["ธ.ค.-เม.ย."],
+          "timeOfDay": "both"
+        },
+        "description": "อากาศนิ่งและการเผาในที่โล่งทำให้ฝุ่นสะสมได้เด่นในบางช่วงของปี"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมพื้นที่ลุ่มแม่น้ำมูลและโขง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["พื้นที่ลุ่มริมน้ำ", "ชุมชนริมมูล", "ชุมชนริมโขง"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ลุ่มแม่น้ำสายใหญ่ของจังหวัดเสี่ยงน้ำหลากและน้ำท่วมเมื่อมีฝนสะสมหรือมีน้ำหนุนจากต้นน้ำ"
+      }
+    ]
+  },
+  "Roi Et": {
+    "ecoEntities": [
+      {
+        "id": "fl_jasmine_rice",
+        "name": "ข้าวหอมมะลิทุ่งกุลาร้องไห้",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true
+        },
+        "context": {
+          "location": ["ทุ่งกุลาร้องไห้", "นาข้าวอาศัยน้ำฝน"],
+          "season": ["ฤดูฝน", "ฤดูเก็บเกี่ยว"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นพืชเศรษฐกิจและภาพจำทางนิเวศเกษตรที่สำคัญมากของร้อยเอ็ด"
+      },
+      {
+        "id": "fl_lotus",
+        "name": "บัวหลวง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "medicinal": true
+        },
+        "context": {
+          "location": ["บึง", "หนองน้ำ", "แหล่งน้ำชุมชน"],
+          "season": ["ฤดูฝน", "ฤดูน้ำหลาก"],
+          "timeOfDay": "day"
+        },
+        "description": "พบในแหล่งน้ำตื้นและพื้นที่ชุ่มน้ำของจังหวัด เป็นทั้งพืชอาหารและใช้ประโยชน์ในชุมชน"
+      },
+      {
+        "id": "f_openbill_stork",
+        "name": "นกปากห่าง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "protected": true
+        },
+        "context": {
+          "location": ["นาข้าว", "หนองบึง", "พื้นที่ชุ่มน้ำ"],
+          "season": ["ฤดูฝน", "หลังเก็บเกี่ยว"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นนกที่พบตามพื้นที่เกษตรชุ่มน้ำและแหล่งหอยน้ำจืดในจังหวัด"
+      },
+      {
+        "id": "f_snakehead_fish",
+        "name": "ปลาช่อน",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true
+        },
+        "context": {
+          "location": ["หนองน้ำ", "คลอง", "นาข้าวที่มีน้ำขัง"],
+          "season": ["ฤดูฝน", "หลังน้ำหลาก"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นสัตว์น้ำพื้นถิ่นที่พบได้ในแหล่งน้ำจืดของพื้นที่ราบลุ่ม"
+      },
+      {
+        "id": "t_chi_basin_plain",
+        "name": "ที่ราบลุ่มลำน้ำชี",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตอนกลางและตะวันตกของจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นภูมิประเทศหลักของร้อยเอ็ด ใช้ประโยชน์ด้านเกษตรกรรมอย่างกว้างขวาง"
+      },
+      {
+        "id": "t_wetland",
+        "name": "บึงและพื้นที่ชุ่มน้ำ",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["บึงพลาญชัย", "หนองบึงท้องถิ่น", "พื้นที่ลุ่มต่ำ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ทำหน้าที่เป็นทั้งแหล่งน้ำ แหล่งอาศัยสัตว์น้ำ และพื้นที่พักน้ำในฤดูฝน"
+      },
+      {
+        "id": "c_heat_dry",
+        "name": "อากาศร้อนจัดช่วงหน้าแล้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ทั่วจังหวัด"],
+          "season": ["มี.ค.-พ.ค."],
+          "timeOfDay": "day"
+        },
+        "description": "อุณหภูมิสูงและแดดแรงเป็นลักษณะเด่นของพื้นที่ราบอีสานในปลายฤดูร้อน"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมพื้นที่นาและชุมชนลุ่มต่ำ",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ลุ่มน้ำชี", "แอ่งรับน้ำ", "พื้นที่ชุมชนลุ่มต่ำ"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนสะสมทำให้พื้นที่ลุ่มนามีน้ำท่วมขังได้ โดยเฉพาะช่วงน้ำมากในลำน้ำสายหลัก"
+      }
+    ]
+  },
+  "Maha Sarakham": {
+    "ecoEntities": [
+      {
+        "id": "fl_jasmine_rice",
+        "name": "ข้าวหอมมะลิทุ่งกุลาร้องไห้",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true
+        },
+        "context": {
+          "location": ["เขตทุ่งกุลาฯ ในจังหวัด", "นาข้าวน้ำฝน"],
+          "season": ["ฤดูฝน", "ฤดูเก็บเกี่ยว"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นพืชเศรษฐกิจสำคัญและผูกกับภูมิทัศน์ชนบทของจังหวัด"
+      },
+      {
+        "id": "fl_lotus",
+        "name": "บัว",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "medicinal": true
+        },
+        "context": {
+          "location": ["อ่างเก็บน้ำแก่งเลิงจาน", "หนองน้ำ", "บึงชุมชน"],
+          "season": ["ฤดูฝน", "ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "พบบ่อยในแหล่งน้ำจืดตื้นของจังหวัด และมีบทบาททั้งด้านอาหารและภูมิทัศน์"
+      },
+      {
+        "id": "f_openbill_stork",
+        "name": "นกปากห่าง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "protected": true
+        },
+        "context": {
+          "location": ["นาข้าว", "แหล่งน้ำตื้น", "บึง"],
+          "season": ["ฤดูฝน", "หลังเก็บเกี่ยว"],
+          "timeOfDay": "day"
+        },
+        "description": "พบได้ในภูมิทัศน์นาข้าวและพื้นที่ชุ่มน้ำซึ่งมีหอยและสัตว์น้ำขนาดเล็ก"
+      },
+      {
+        "id": "f_frog_ricefield",
+        "name": "กบนา",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true
+        },
+        "context": {
+          "location": ["นาข้าว", "คันนา", "หนองน้ำตื้น"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "night"
+        },
+        "description": "เป็นสัตว์สะเทินน้ำสะเทินบกที่สัมพันธ์กับระบบนิเวศนาข้าวและช่วงฝน"
+      },
+      {
+        "id": "t_chi_basin_plain",
+        "name": "ที่ราบลุ่มลำน้ำชี",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ทั่วจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "มหาสารคามเป็นจังหวัดที่ราบลุ่มและที่ราบเกษตรเป็นหลัก เชื่อมโยงกับลุ่มน้ำชี"
+      },
+      {
+        "id": "t_reservoir_wetland",
+        "name": "อ่างเก็บน้ำและพื้นที่ชุ่มน้ำ",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["แก่งเลิงจาน", "ห้วยคะคาง", "บึงชุมชน"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นแหล่งน้ำสำคัญของจังหวัดและเป็นถิ่นอาศัยสัตว์น้ำกับนกน้ำ"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5 และควันจากการเผา",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตัวเมือง", "พื้นที่เกษตร", "ขอบเมือง"],
+          "season": ["ธ.ค.-เม.ย."],
+          "timeOfDay": "both"
+        },
+        "description": "ฤดูแล้งและการเผาในที่โล่งทำให้คุณภาพอากาศแย่ลงได้ชัดเจน"
+      },
+      {
+        "id": "h_drought",
+        "name": "ภัยแล้งสลับน้ำท่วม",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["พื้นที่เกษตรนอกชลประทาน", "ลุ่มต่ำริมลำน้ำ"],
+          "season": ["ฤดูร้อน", "ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดมีความเปราะบางต่อทั้งฝนทิ้งช่วงและน้ำท่วมขังในบางปี"
+      }
+    ]
+  },
+  "Yasothon": {
+    "ecoEntities": [
+      {
+        "id": "fl_jasmine_rice",
+        "name": "ข้าวหอมมะลิทุ่งกุลาร้องไห้",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true
+        },
+        "context": {
+          "location": ["ทุ่งกุลาฯ", "นาข้าวน้ำฝน"],
+          "season": ["ฤดูฝน", "ฤดูเก็บเกี่ยว"],
+          "timeOfDay": "day"
+        },
+        "description": "ยโสธรเป็นหนึ่งในพื้นที่ปลูกข้าวหอมมะลิ GI ของทุ่งกุลาร้องไห้"
+      },
+      {
+        "id": "fl_bamboo",
+        "name": "ไผ่",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "medicinal": false
+        },
+        "context": {
+          "location": ["ป่าชุมชน", "คันนา", "ลำห้วย"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พบในป่าชุมชนและพื้นที่ชนบท ใช้ประโยชน์ได้หลากหลายและสัมพันธ์กับวิถีท้องถิ่น"
+      },
+      {
+        "id": "f_openbill_stork",
+        "name": "นกปากห่าง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "protected": true
+        },
+        "context": {
+          "location": ["นาข้าว", "พื้นที่ชุ่มน้ำ", "หนองบึง"],
+          "season": ["ฤดูฝน", "หลังเก็บเกี่ยว"],
+          "timeOfDay": "day"
+        },
+        "description": "มักพบหากินตามนาและแหล่งน้ำตื้นของจังหวัด"
+      },
+      {
+        "id": "f_frog_ricefield",
+        "name": "กบนา",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true
+        },
+        "context": {
+          "location": ["นาข้าว", "คันนา", "หนองน้ำตื้น"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "night"
+        },
+        "description": "เป็นสัตว์ที่สัมพันธ์ชัดกับระบบนิเวศนาข้าวและฤดูฝนของยโสธร"
+      },
+      {
+        "id": "t_chi_plain",
+        "name": "ที่ราบลุ่มเกษตรกรรม",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ทั่วจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ภูมิประเทศหลักเป็นที่ราบลุ่มและทุ่งนา ใช้ปลูกข้าวอย่างกว้างขวาง"
+      },
+      {
+        "id": "t_wetland",
+        "name": "หนองบึงและพื้นที่ชุ่มน้ำ",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["หนองน้ำชุมชน", "พื้นที่ลุ่มต่ำ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นแหล่งน้ำสำคัญของชุมชนและแหล่งอาศัยของสัตว์น้ำกับนกน้ำ"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่นละอองและควันจากการเผา",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["พื้นที่เกษตร", "ตัวเมือง", "ชุมชนรอบนอก"],
+          "season": ["ธ.ค.-เม.ย."],
+          "timeOfDay": "both"
+        },
+        "description": "คุณภาพอากาศอาจแย่ลงในช่วงแล้งจากการเผาเศษวัสดุและสภาพลมนิ่ง"
+      },
+      {
+        "id": "h_flood",
+        "name": "น้ำท่วมขังพื้นที่นา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["พื้นที่ลุ่มต่ำ", "นาข้าว", "ริมลำห้วย"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักต่อเนื่องทำให้พื้นที่นาและทางท้องน้ำระบายน้ำช้าเกิดน้ำท่วมขังได้"
+      }
+    ]
+  },
+  "Amnat Charoen": {
+    "ecoEntities": [
+      {
+        "id": "fl_phayung",
+        "name": "พะยูง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "protected": true
+        },
+        "context": {
+          "location": ["ป่าธรรมชาติทางตะวันออก", "แนวป่ารอยต่ออุบลฯ"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นไม้มีค่าที่พบในกลุ่มป่าอีสานตะวันออกและต้องคุ้มครองอย่างเข้มงวด"
+      },
+      {
+        "id": "fl_bamboo",
+        "name": "ไผ่พื้นถิ่น",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true
+        },
+        "context": {
+          "location": ["ป่าชุมชน", "ลำห้วย", "พื้นที่ชนบท"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พบได้ตามป่าชุมชนและริมแหล่งน้ำ ใช้ประโยชน์ในครัวเรือนและอาหารพื้นบ้าน"
+      },
+      {
+        "id": "f_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": ["ป่ารอยต่อจังหวัดอุบลราชธานี", "แนวเขาตะวันออก"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เกี่ยวข้องกับแนวผืนป่าฝั่งตะวันออกของจังหวัดและเขตรอยต่อพื้นที่อนุรักษ์"
+      },
+      {
+        "id": "f_openbill_stork",
+        "name": "นกปากห่าง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "protected": true
+        },
+        "context": {
+          "location": ["นาข้าว", "หนองบึง", "พื้นที่ชุ่มน้ำ"],
+          "season": ["ฤดูฝน", "หลังเก็บเกี่ยว"],
+          "timeOfDay": "day"
+        },
+        "description": "พบบ่อยในภูมิทัศน์เกษตรกรรมและพื้นที่ชุ่มน้ำของจังหวัด"
+      },
+      {
+        "id": "t_undulating_plain",
+        "name": "ที่ราบลูกคลื่นสลับเนิน",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ทั่วจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "ลักษณะเด่นคือพื้นที่เกษตรบนที่ดอนสลับพื้นที่ลุ่มขนาดเล็ก"
+      },
+      {
+        "id": "t_stream_forest",
+        "name": "ลำห้วยและป่าชุมชน",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["แนวลำห้วย", "ป่าชุมชน", "พื้นที่ตะวันออก"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นภูมิทัศน์สำคัญของจังหวัดที่รองรับความหลากหลายชีวภาพในระดับชุมชน"
+      },
+      {
+        "id": "c_heat_dry",
+        "name": "อากาศร้อนแห้งและฝนทิ้งช่วง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ทั่วจังหวัด"],
+          "season": ["มี.ค.-พ.ค.", "บางช่วงฤดูฝน"],
+          "timeOfDay": "day"
+        },
+        "description": "สภาพอากาศร้อนและความผันผวนของฝนมีผลต่อเกษตรน้ำฝนของจังหวัด"
+      },
+      {
+        "id": "h_drought",
+        "name": "ภัยแล้ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ที่ดอน", "พื้นที่เกษตรนอกเขตชลประทาน"],
+          "season": ["ปลายฤดูหนาว", "ฤดูร้อน"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นความเสี่ยงเด่นของจังหวัดที่พึ่งพาฝนและมีแหล่งน้ำขนาดใหญ่ไม่มาก"
+      }
+    ]
+  },
+  "Chaiyaphum": {
+    "ecoEntities": [
+      {
+        "id": "fl_siam_tulip",
+        "name": "ดอกกระเจียว",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "protected": true
+        },
+        "context": {
+          "location": ["อุทยานแห่งชาติไทรทอง", "ลานหินงาม", "ทุ่งหญ้าสูง"],
+          "season": ["ฤดูฝน"],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นพืชเด่นของชัยภูมิและเป็นภาพจำทางนิเวศของทุ่งหญ้าบนภู"
+      },
+      {
+        "id": "fl_dipterocarp",
+        "name": "ไม้เต็งรัง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "protected": null
+        },
+        "context": {
+          "location": ["ภูแลนคา", "ป่าผลัดใบ", "ที่สูงหินทราย"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นกลุ่มพืชเด่นของป่าผลัดใบบนพื้นที่สูงในชัยภูมิ"
+      },
+      {
+        "id": "f_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": ["ภูแลนคา", "ป่ารอยต่ออีสานตะวันตก"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พบในพื้นที่ป่าอนุรักษ์บางส่วนของจังหวัดและต้องระวังเมื่อเข้าพื้นที่ป่า"
+      },
+      {
+        "id": "f_hornbill",
+        "name": "นกเงือก",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "rare",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "protected": true
+        },
+        "context": {
+          "location": ["ป่าภูแลนคา", "ป่าค่อนข้างสมบูรณ์"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "day"
+        },
+        "description": "บ่งชี้ถึงคุณภาพป่าที่ดีและต้นไม้ใหญ่ที่ยังเหลืออยู่"
+      },
+      {
+        "id": "t_sandstone_cliff",
+        "name": "หน้าผาหินทรายและลานหิน",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["มอหินขาว", "ลานหินงาม", "ภูแลนคา"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นลักษณะภูมิประเทศเด่นของชัยภูมิ เกิดเป็นจุดชมวิวและลานหินขนาดใหญ่"
+      },
+      {
+        "id": "t_plateau_mountain",
+        "name": "ภูเขาสูงสลับทุ่งหญ้า",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ไทรทอง", "ภูแลนคา", "พื้นที่สูงของจังหวัด"],
+          "season": ["ทุกฤดู"],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่สูงของจังหวัดมีทั้งป่า ทุ่งหญ้า และหน้าผา เป็นภูมิประเทศต่างจากอีสานตอนในทั่วไป"
+      },
+      {
+        "id": "c_pm25",
+        "name": "ฝุ่น PM2.5",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ตัวเมือง", "พื้นที่เกษตร", "พื้นที่ป่าช่วงไฟป่า"],
+          "season": ["ธ.ค.-เม.ย."],
+          "timeOfDay": "both"
+        },
+        "description": "ทั้งควันจากการเผาและไฟป่าทำให้คุณภาพอากาศลดลงในบางช่วงของปี"
+      },
+      {
+        "id": "h_wildfire",
+        "name": "ไฟป่าในพื้นที่สูง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": ["ไทรทอง", "ภูแลนคา", "ป่าผลัดใบ"],
+          "season": ["ม.ค.-พ.ค."],
+          "timeOfDay": "both"
+        },
+        "description": "ป่าโปร่งและทุ่งหญ้าบนพื้นที่สูงเสี่ยงไฟป่าในฤดูแห้งมากกว่าพื้นที่ราบทั่วไป"
+      }
+    ]
+  }
+}

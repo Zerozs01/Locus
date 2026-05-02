@@ -14,7 +14,9 @@ import {
   RefreshCw,
   Zap,
   Cloud,
+  Wind,
   Shield,
+  ShieldOff,
   Activity,
   Wifi,
   WifiOff,
@@ -23,11 +25,13 @@ import {
   Bot,
   Map,
   Mountain,
-  WifiOff as OfflineIcon
+  WifiOff as OfflineIcon,
+  Palette,
+  RotateCcw,
+  MessageSquareText
 } from 'lucide-react';
 import { pingAgent, sendChatMessage } from '../services/n8nClient';
 import { ThreatConfig } from '../components/ThreatConfig';
-
 interface ApiKey {
   id: string;
   name: string;
@@ -36,6 +40,7 @@ interface ApiKey {
   placeholder: string;
   icon: React.ReactNode;
   required: boolean;
+  disabled?: boolean;
 }
 
 interface SystemStatus {
@@ -63,6 +68,8 @@ type OfflineMode = boolean;
 /**
  * Settings Page - API Keys & Configuration Management
  */
+
+
 export const SettingsPage = () => {
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -81,6 +88,7 @@ export const SettingsPage = () => {
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [strictOfflineMode, setStrictOfflineMode] = useState<OfflineMode>(false);
+  const [aqiProvider, setAqiProvider] = useState<'openweather' | 'aqicn'>('openweather');
   
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([
     {
@@ -119,14 +127,15 @@ export const SettingsPage = () => {
       icon: <Cpu size={18} />,
       required: false,
     },
-    {
+        {
       id: 'supabase_url',
       name: 'Supabase Project URL',
       description: 'Your Supabase project URL',
       value: '',
       placeholder: 'https://xxxx.supabase.co',
       icon: <Database size={18} />,
-      required: true,
+      required: false,
+      disabled: true,
     },
     {
       id: 'supabase_key',
@@ -135,7 +144,8 @@ export const SettingsPage = () => {
       value: '',
       placeholder: 'eyJhbGciOiJIUzI1NiIsInR5cCI6...',
       icon: <Key size={18} />,
-      required: true,
+      required: false,
+      disabled: true,
     },
     {
       id: 'openweather',
@@ -147,12 +157,31 @@ export const SettingsPage = () => {
       required: false,
     },
     {
+      id: 'aqicn',
+      name: 'AQICN API Token (World AQI)',
+      description: 'สำหรับดึงค่าฝุ่น PM2.5 ที่แม่นยำจากสถานีจริง (แนะนําให้ใช้แทน OpenWeather)',
+      value: '',
+      placeholder: 'your_aqicn_token',
+      icon: <Wind size={18} />,
+      required: false,
+    },
+    {
       id: 'google_maps',
       name: 'Google Maps API Key',
       description: 'For map and location services',
       value: '',
       placeholder: 'AIzaSy...',
       icon: <Globe size={18} />,
+      required: false,
+      disabled: true,
+    },
+    {
+      id: 'airtable',
+      name: 'Airtable API Key',
+      description: 'สำหรับดึงข้อมูลจาก Airtable database (ใช้แทน Supabase)',
+      value: '',
+      placeholder: 'patXXXXXXXXXXXXXX...',
+      icon: <Database size={18} />,
       required: false,
     },
     {
@@ -213,6 +242,13 @@ export const SettingsPage = () => {
         
         // Load Strict Offline Mode
         setStrictOfflineMode(parsed['strict_offline_mode'] === 'true');
+
+        // Load AQI Provider
+        if (parsed['aqi_provider']) {
+          setAqiProvider(parsed['aqi_provider'] as 'openweather' | 'aqicn');
+        } else if (parsed['aqicn']) {
+          setAqiProvider('aqicn'); // Automatically switch if they have the key but no setting
+        }
       } catch (error) {
         console.error('Failed to load API keys:', error);
       }
@@ -311,6 +347,7 @@ export const SettingsPage = () => {
     }, {} as Record<string, string>);
     
     keysToSave['strict_offline_mode'] = String(strictOfflineMode);
+    keysToSave['aqi_provider'] = aqiProvider;
 
     if (window.api?.config?.set) {
       await window.api.config.set(keysToSave);
@@ -598,30 +635,83 @@ export const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Tactical Mode: Strict Offline Toggle */}
+        {/* AQI Data Source Selection */}
         <div className="bg-[#0a0c10] rounded-xl border border-white/5 p-6 mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                strictOfflineMode ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-slate-400'
-              }`}>
-                <OfflineIcon size={20} />
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                <Wind size={20} />
               </div>
               <div>
-                <div className="text-white font-medium flex items-center gap-2">
-                  Strict Offline Mode
+                <h3 className="text-white font-medium mb-1">Air Quality API Source</h3>
+                <p className="text-xs text-slate-500 max-w-lg mb-3">
+                  เลือกแหล่งที่มาของข้อมูลสำหรับค่าฝุ่น PM2.5 แนะนำให้ใช้ AQICN เนื่องจากดึงค่าจากสถานีภาคพื้นดินโดยตรง ทำให้แม่นยำกว่าการพยากรณ์ด้วยโมเดลดาวเทียมจาก OpenWeather
+                </p>
+                <div className="flex bg-[#0f1115] border border-white/10 rounded-lg overflow-hidden w-fit">
+                  <button
+                    onClick={async () => {
+                      setAqiProvider('openweather');
+                      setSaveStatus('idle');
+                      try {
+                        const keysToSave = apiKeys.reduce((acc, key) => { acc[key.id] = key.value; return acc; }, {} as Record<string, string>);
+                        keysToSave['strict_offline_mode'] = String(strictOfflineMode);
+                        keysToSave['aqi_provider'] = 'openweather';
+                        if (window.api?.config?.set) await window.api.config.set(keysToSave);
+                        else localStorage.setItem('locus_api_keys', JSON.stringify(keysToSave));
+                      } catch(e) {}
+                    }}
+                    className={`px-4 py-2 text-sm font-bold transition-colors border-r border-white/10 ${
+                      aqiProvider === 'openweather' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    OpenWeather
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setAqiProvider('aqicn');
+                      setSaveStatus('idle');
+                      try {
+                        const keysToSave = apiKeys.reduce((acc, key) => { acc[key.id] = key.value; return acc; }, {} as Record<string, string>);
+                        keysToSave['strict_offline_mode'] = String(strictOfflineMode);
+                        keysToSave['aqi_provider'] = 'aqicn';
+                        if (window.api?.config?.set) await window.api.config.set(keysToSave);
+                        else localStorage.setItem('locus_api_keys', JSON.stringify(keysToSave));
+                      } catch(e) {}
+                    }}
+                    className={`px-4 py-2 text-sm font-bold transition-colors ${
+                      aqiProvider === 'aqicn' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    AQICN (แนะนำ)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Strict Offline Mode */}
+        <div className="bg-[#0a0c10] rounded-xl border border-white/5 p-6 mb-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center">
+                <ShieldOff size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-white font-medium">Strict Offline Mode</h3>
                   {strictOfflineMode && (
                     <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded uppercase font-bold">Active</span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 max-w-lg">
                   ตัดการเชื่อมต่อ API ภายนอกทั้งหมด ใช้เฉพาะ Local Data (สำหรับสถานการณ์ฉุกเฉินที่อินเทอร์เน็ตล่ม)
                 </p>
               </div>
             </div>
             <button
               onClick={() => setStrictOfflineMode(prev => !prev)}
-              className={`relative w-14 h-7 rounded-full transition-all duration-300 ${
+              className={`relative w-14 h-7 rounded-full transition-all duration-300 mt-1 ${
                 strictOfflineMode 
                   ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' 
                   : 'bg-white/10 hover:bg-white/20'
@@ -671,6 +761,7 @@ interface ApiKeyInputProps {
 
 const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest, testState }: ApiKeyInputProps) => {
   const hasValue = apiKey.value.length > 0;
+  const isDisabled = apiKey.disabled;
   const testLabel = testState === 'testing'
     ? 'Testing...'
     : testState === 'success'
@@ -686,7 +777,7 @@ const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest, testSt
   
   return (
     <div className={`bg-[#0a0c10] rounded-xl border p-4 transition-all ${
-      hasValue ? 'border-emerald-500/30' : apiKey.required ? 'border-red-500/20' : 'border-white/5'
+      isDisabled ? 'border-white/5 opacity-50' : hasValue ? 'border-emerald-500/30' : apiKey.required ? 'border-red-500/20' : 'border-white/5'
     }`}>
       <div className="flex items-start gap-4">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -698,7 +789,10 @@ const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest, testSt
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-white font-medium">{apiKey.name}</span>
-            {apiKey.required && (
+            {isDisabled && (
+              <span className="text-[10px] px-1.5 py-0.5 bg-slate-500/20 text-slate-400 rounded uppercase">Disabled</span>
+            )}
+            {!isDisabled && apiKey.required && (
               <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded uppercase">Required</span>
             )}
             {hasValue && (
@@ -714,19 +808,22 @@ const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest, testSt
                 value={apiKey.value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={apiKey.placeholder}
-                className="w-full bg-[#0f1115] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all font-mono"
+                disabled={isDisabled}
+                className="w-full bg-[#0f1115] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all font-mono disabled:opacity-40"
               />
-              <button
-                onClick={onToggleShow}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-              >
-                {showValue ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              {!isDisabled && (
+                <button
+                  onClick={onToggleShow}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                >
+                  {showValue ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              )}
             </div>
             
             <button
               onClick={onTest}
-              disabled={!hasValue || testState === 'testing'}
+              disabled={!hasValue || testState === 'testing' || isDisabled}
               className={`px-4 py-2.5 disabled:opacity-30 disabled:cursor-not-allowed border rounded-lg text-sm transition-colors ${testClass}`}
             >
               {testLabel}
@@ -800,8 +897,12 @@ const StatusCard = ({ label, status, icon, detail }: StatusCardProps) => {
         </div>
       </div>
       {detail && (
-        <div className="text-xs text-slate-500 pl-7">{detail}</div>
+        <div className="mt-2 text-[10px] text-slate-500 font-mono truncate bg-black/20 rounded px-1.5 py-0.5 border border-white/5">
+          {detail}
+        </div>
       )}
     </div>
   );
 };
+
+export default SettingsPage;

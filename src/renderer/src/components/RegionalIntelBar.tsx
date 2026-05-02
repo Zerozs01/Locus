@@ -32,6 +32,7 @@ export interface ClimateStatProps {
   value: string;
   trend: string;
   tone: ClimateTone;
+  onClick?: () => void;
 }
 
 export interface StabilityStatProps {
@@ -86,17 +87,23 @@ const getMetaStyle = (toneColor: string, lift: number) => ({
   color: getAccentText(toneColor, Math.max(0.2, lift * 0.3))
 });
 
-const ClimateStat = ({ value, trend, tone, toneRamp }: ClimateStatProps & RegionSurfaceProps) => {
+const ClimateStat = ({ value, trend, tone, toneRamp, onClick }: ClimateStatProps & RegionSurfaceProps) => {
   const lift = climateLift[tone];
   const toneColor = toneRamp[2];
   const arrow = getTrendIcon(trend);
 
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={getTileStyle(toneColor, lift)}>
+    <div 
+      className={`flex items-center gap-3 p-2 -m-2 rounded-xl ${onClick ? 'cursor-pointer hover:bg-cyan-500/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.1)] group transition-all duration-300' : ''}`}
+      onClick={onClick}
+    >
+      <div 
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all duration-300 ${onClick ? 'group-hover:scale-110 group-hover:bg-cyan-500/20 group-hover:border-cyan-400/50 group-hover:text-cyan-300 group-hover:shadow-[0_0_10px_rgba(6,182,212,0.3)]' : ''}`} 
+        style={getTileStyle(toneColor, lift)}
+      >
         <Thermometer size={18} />
       </div>
-      <div className="flex flex-col">
+      <div className="flex flex-col relative z-10">
         <div className="text-lg font-semibold leading-none" style={getValueStyle(toneColor, lift)}>
           {value}
         </div>
@@ -126,7 +133,7 @@ const StabilityStat = ({ value, label, tone, toneRamp }: StabilityStatProps & Re
           {value}
         </div>
         <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
-          เสถียรภาพ
+          ระดับความปลอดภัย
         </div>
         <div className="flex items-center gap-2 text-[11px] text-white/60">
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />
@@ -155,7 +162,7 @@ const MobilityStat = ({ state, subtitle, tone, toneRamp }: MobilityStatProps & R
           {state}
         </div>
         <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
-          การเคลื่อนตัว
+          สภาพการจราจร
         </div>
         <div className="text-[11px]" style={getMetaStyle(toneColor, lift)}>
           {subtitle}

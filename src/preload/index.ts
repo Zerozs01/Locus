@@ -9,13 +9,36 @@ const api = {
     getRegionSummaries: () => ipcRenderer.invoke('db:getRegionSummaries'),
     getRegion: (id: string) => ipcRenderer.invoke('db:getRegion', id),
     getProvince: (id: string) => ipcRenderer.invoke('db:getProvince', id),
+    getProvincePortal: (id: string) => ipcRenderer.invoke('db:getProvincePortal', id),
     getProvincesByRegion: (id: string) => ipcRenderer.invoke('db:getProvincesByRegion', id),
     getProvinceIndex: () => ipcRenderer.invoke('db:getProvinceIndex'),
     getArchiveProvinces: (params: { regionIds?: string[]; ids?: string[]; sortBy?: string; offset?: number; limit?: number }) =>
       ipcRenderer.invoke('db:getArchiveProvinces', params),
     getStats: () => ipcRenderer.invoke('db:getStats'),
-    forceReseed: () => ipcRenderer.invoke('db:forceReseed')
+    forceReseed: () => ipcRenderer.invoke('db:forceReseed'),
+    saveWeatherAqi: (records: { provinceId: string; date: string; temperature: number; aqi: number }[]) =>
+      ipcRenderer.invoke('db:saveWeatherAqi', records),
+    getWeatherAqi: (provinceId?: string, date?: string) =>
+      ipcRenderer.invoke('db:getWeatherAqi', provinceId, date)
   },
+  floodCache: {
+    save: (provinceId: string, geoJsonData: object) =>
+      ipcRenderer.invoke('db:saveFloodCache', provinceId, geoJsonData),
+    get: (provinceId: string) =>
+      ipcRenderer.invoke('db:getFloodCache', provinceId),
+    isValid: (provinceId: string, maxAgeHours?: number) =>
+      ipcRenderer.invoke('db:isFloodCacheValid', provinceId, maxAgeHours)
+  },
+  fuelPrices: {
+    save: (prices: Array<{ fuelType: string; price: number; source?: string }>) =>
+      ipcRenderer.invoke('db:saveFuelPrices', prices),
+    get: () =>
+      ipcRenderer.invoke('db:getFuelPrices'),
+    isValid: (maxAgeHours?: number) =>
+      ipcRenderer.invoke('db:isFuelPricesValid', maxAgeHours)
+  },
+  fetchBangchak: () =>
+    ipcRenderer.invoke('fuel:getBangchakPrices'),
   assets: {
     getImageCacheStats: () => ipcRenderer.invoke('assets:getImageCacheStats'),
     clearImageCache: () => ipcRenderer.invoke('assets:clearImageCache')
@@ -26,8 +49,26 @@ const api = {
   },
   n8n: {
     health: (overrides?: { webhookUrl?: string; apiKey?: string }) => ipcRenderer.invoke('n8n:health', overrides),
-    chat: (payload: { message: string; sessionId?: string; webhookUrl?: string; apiKey?: string }) =>
+    chat: (payload: {
+      message: string
+      sessionId?: string
+      provinceName?: string
+      city?: string
+      regionName?: string
+      country?: string
+      lat?: number
+      lng?: number
+      webhookUrl?: string
+      apiKey?: string
+    }) =>
       ipcRenderer.invoke('n8n:chat', payload)
+  },
+  map: {
+    getRainRadarTileTemplate: () => ipcRenderer.invoke('map:getRainRadarTileTemplate'),
+    searchEvChargers: (params: { lat: number; lng: number; distanceKm?: number; maxResults?: number; apiKey?: string }) =>
+      ipcRenderer.invoke('map:searchEvChargers', params),
+    fetchGistdaFeatures: (url: string, headers?: Record<string, string>) =>
+      ipcRenderer.invoke('map:fetchGistdaFeatures', url, headers)
   }
 }
 

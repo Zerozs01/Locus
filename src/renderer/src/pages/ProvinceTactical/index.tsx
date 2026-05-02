@@ -1,19 +1,19 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, 
-  Phone, 
-  Shield, 
   Utensils, 
   AlertTriangle,
-  Wallet,
   Loader2,
   Bed,
   Compass,
   Navigation,
-  Thermometer
+  Shield,
+  GripVertical
 } from 'lucide-react';
 import { Province, Region } from '../../data/regions';
+import { regionTheme, RegionId } from '../../data/regionTheme';
+import { getThaiProvinceName } from '../../data/thaiProvinceNames';
 import ProvinceMap, { ProvinceMapHandle } from '../../components/ProvinceMap';
 import { measureAsync } from '../../utils/perf';
 import { generateProvinceData } from './data';
@@ -22,19 +22,86 @@ import { StayTab } from './tabs/StayTab';
 import { EatTab } from './tabs/EatTab';
 import { TravelTab } from './tabs/TravelTab';
 import { EssentialsTab } from './tabs/EssentialsTab';
-import * as Helpers from './components/HelperComponents';
+import { AQI_SYNC_EVENT } from '../../utils/aqi';
+
+type ProvinceMapTheme = 'voyager' | 'positron' | 'dark' | 'osm' | 'satellite' | 'terrain' | 'admin';
+type ProvinceDataLayer = 'traffic' | 'gistdaAqi' | 'aqicnAqi' | 'rainRadar' | 'floodRecurrent' | 'evCharger' | 'slope';
+
+const defaultMapDataLayers: Record<ProvinceDataLayer, boolean> = {
+  traffic: false,
+  gistdaAqi: false,
+  aqicnAqi: false,
+  rainRadar: false,
+  floodRecurrent: false,
+  evCharger: false,
+  slope: false,
+};
+
+const getLocalDateKey = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 /**
  * Province Tactical Detail Page - REDESIGNED
  * เน้นสิ่งที่ผู้ใช้ต้องการจริงๆ พร้อมแผนที่ Interactive
  */
+const MIN_SIDEBAR_WIDTH = 280;
+const MAX_SIDEBAR_WIDTH = 600;
+const DEFAULT_SIDEBAR_WIDTH = 420;
+
 export const ProvinceTacticalPage = () => {
   const { regionId, provinceId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'explore' | 'stay' | 'eat' | 'travel' | 'essentials'>('explore');
   const [region, setRegion] = useState<Region | null>(null);
   const [province, setProvince] = useState<Province | null>(null);
+  const [liveWeather, setLiveWeather] = useState<{temp: number, aqi: number} | null>(null);
+  const [provinceIndex, setProvinceIndex] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [mapTheme, setMapTheme] = useState<ProvinceMapTheme>('voyager');
+  const [mapDataLayers, setMapDataLayers] = useState<Record<ProvinceDataLayer, boolean>>(defaultMapDataLayers);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const normalizeKey = useCallback((value: string) => value.toLowerCase().replace(/[^a-z0-9_-]/g, ''), []);
+  const normalizeWeatherProvinceId = useCallback((value: string) => {
+    let normalized = String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (normalized === 'bangkokmetropolis') normalized = 'bangkok';
+    if (normalized === 'phranakhonsiayutthaya') normalized = 'ayutthaya';
+    return normalized;
+  }, []);
+
+  const provinceNameToId = useMemo(() => {
+    const map = new Map<string, string>();
+    provinceIndex.forEach((p) => {
+      map.set(p.name, p.id);
+      map.set(normalizeKey(p.name), p.id);
+    });
+    return map;
+  }, [provinceIndex, normalizeKey]);
+
+  const selectedWeatherKeyCandidates = useMemo(() => {
+    const provinceName = province?.name || '';
+    const candidates = [
+      provinceId || '',
+      province?.id || '',
+      provinceName,
+      provinceNameToId.get(provinceName) || '',
+      provinceNameToId.get(normalizeKey(provinceName)) || '',
+      provinceName === 'Bangkok Metropolis' ? 'Bangkok' : '',
+    ];
+
+    const normalized = candidates
+      .map((value) => normalizeWeatherProvinceId(value))
+      .filter((value) => value.length > 0);
+
+    return Array.from(new Set(normalized));
+  }, [normalizeKey, normalizeWeatherProvinceId, province?.id, province?.name, provinceId, provinceNameToId]);
   
   // Ref for ProvinceMap to trigger fly animations
   const mapRef = useRef<ProvinceMapHandle>(null);
@@ -42,7 +109,13 @@ export const ProvinceTacticalPage = () => {
   // Handler to fly to a specific location on the map
   const handleFlyToLocation = (lat: number, lng: number, title?: string) => {
     if (mapRef.current) {
-      mapRef.current.flyTo(lat, lng, 16);
+      console.log(`[ProvinceTactical] handleFlyToLocation called: ${title} (${lat}, ${lng})`);
+      if (title && title.trim()) {
+        // Prefer real geometry from search pipeline; fallback remains available if no polygon/bbox.
+        mapRef.current.searchAndFocus(title, { lat, lng, radiusMeters: 600 });
+      } else {
+        mapRef.current.flyToWithFallback(lat, lng, 16, title, 600);
+      }
       console.log(`Flying to: ${title || 'location'} (${lat}, ${lng})`);
     }
   };
@@ -83,10 +156,227 @@ export const ProvinceTacticalPage = () => {
     fetchData();
   }, [regionId, provinceId]);
 
+  useEffect(() => {
+    if (!window.api?.db?.getProvinceIndex) return;
+    window.api.db.getProvinceIndex()
+      .then((rows) => {
+        const safeRows = Array.isArray(rows) ? rows : [];
+        setProvinceIndex(safeRows.map((row) => ({ id: row.id, name: row.name })));
+      })
+      .catch((error) => {
+        console.warn('[ProvinceTactical] getProvinceIndex failed', error);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!window.api?.db?.getWeatherAqi || selectedWeatherKeyCandidates.length === 0) return;
+
+    let mounted = true;
+
+    const resolveLatestWeather = async () => {
+      try {
+        const dbRows = await window.api.db.getWeatherAqi();
+        if (!mounted || !Array.isArray(dbRows) || dbRows.length === 0) return;
+
+        const todayStr = getLocalDateKey();
+        const groupedByProvince = new Map<string, { date: string; aqi: number; temperature: number }[]>();
+
+        dbRows.forEach((row) => {
+          const nid = normalizeWeatherProvinceId(row.provinceId);
+          const list = groupedByProvince.get(nid) || [];
+          list.push({ date: row.date, aqi: row.aqi, temperature: row.temperature });
+          groupedByProvince.set(nid, list);
+        });
+
+        for (const key of selectedWeatherKeyCandidates) {
+          const list = groupedByProvince.get(key);
+          if (!Array.isArray(list) || list.length === 0) continue;
+
+          const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date));
+          const today = sorted.find((v) => v.date === todayStr);
+          const latestPast = sorted.find((v) => v.date <= todayStr);
+          const latest = sorted[0];
+          const resolved = today || latestPast || latest;
+
+          if (!resolved) continue;
+          if (!Number.isFinite(resolved.temperature) || !Number.isFinite(resolved.aqi)) continue;
+
+          setLiveWeather({ temp: resolved.temperature, aqi: resolved.aqi });
+          return;
+        }
+      } catch (error) {
+        console.warn('[ProvinceTactical] Weather sync failed', error);
+      }
+    };
+
+    void resolveLatestWeather();
+    const interval = window.setInterval(resolveLatestWeather, 10000);
+    const onWeatherUpdated = () => {
+      void resolveLatestWeather();
+    };
+
+        window.addEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+      window.removeEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
+    };
+  }, [normalizeWeatherProvinceId, selectedWeatherKeyCandidates]);
+
   const provinceData = useMemo(() => {
     if (!region || !province) return null;
-    return generateProvinceData(province, region);
-  }, [province, region]);
+    const baseData = generateProvinceData(province, region);
+    if (liveWeather) {
+       baseData.weather.temp = `${liveWeather.temp.toFixed(1)}°`;
+       baseData.weather.aqi = Math.round(liveWeather.aqi);
+     } else {
+       baseData.weather.temp = '--';
+       baseData.weather.aqi = undefined;
+    }
+    return baseData;
+  }, [province, region, liveWeather]);
+
+  const activeDataLayers = useMemo(
+    () => (Object.entries(mapDataLayers)
+      .filter(([, isEnabled]) => isEnabled)
+      .map(([layer]) => layer as ProvinceDataLayer)),
+    [mapDataLayers]
+  );
+
+  const handleToggleDataLayer = (layer: ProvinceDataLayer) => {
+    setMapDataLayers((prev) => ({ ...prev, [layer]: !prev[layer] }));
+  };
+
+  // Resize handlers for drag-to-resize sidebar
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || !containerRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const newSidebarWidth = containerRect.right - e.clientX;
+    const clampedWidth = Math.min(Math.max(newSidebarWidth, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH);
+    setSidebarWidth(clampedWidth);
+  }, [isResizing]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // Attach global mouse events when resizing
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
+  useEffect(() => {
+    const state = location.state as {
+      focusPlace?: {
+        lat: number;
+        lng: number;
+        title?: string;
+        boundingbox?: string[];
+        geojson?: unknown;
+        autoFocus?: boolean;
+      };
+      focusRoute?: {
+        from: string;
+        to: string;
+        lat: number;
+        lng: number;
+      };
+    } | null;
+    if (loading || (!state?.focusPlace && !state?.focusRoute)) return;
+
+    const timerId = window.setTimeout(() => {
+      if (state.focusRoute) {
+        const geocode = async (query: string) => {
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' Thailand')}&limit=1`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+              return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), title: query };
+            }
+          } catch (e) {
+            console.error(e);
+          }
+          // Fallback to rough offset near province center
+          return { lat: state.focusRoute!.lat + (Math.random() - 0.5) * 0.05, lng: state.focusRoute!.lng + (Math.random() - 0.5) * 0.05, title: query };
+        };
+
+        Promise.all([geocode(state.focusRoute.from), geocode(state.focusRoute.to)]).then(([startPos, endPos]) => {
+          if (startPos && endPos) {
+            mapRef.current?.setRouteAndCalculate(
+              startPos.lat, startPos.lng, startPos.title,
+              endPos.lat, endPos.lng, endPos.title
+            );
+          }
+        });
+        return;
+      }
+
+      if (!state.focusPlace) return;
+
+      const normalizeFocusName = (value?: string) =>
+        (value || '')
+          .toLowerCase()
+          .replace(/metropolis/g, '')
+          .replace(/province/g, '')
+          .replace(/จังหวัด/g, '')
+          .replace(/[^a-z0-9ก-๙]+/gi, ' ')
+          .trim();
+
+      const focusTitleNorm = normalizeFocusName(state.focusPlace!.title);
+      const provinceNameNorm = normalizeFocusName(province?.name);
+      const provinceAliasNorm = normalizeFocusName(province?.name === 'Bangkok Metropolis' ? 'Bangkok' : province?.name);
+      const provinceThaiNorm = normalizeFocusName(province?.name ? getThaiProvinceName(province.name) : '');
+      const isProvinceLevelFocus = !!focusTitleNorm && [provinceNameNorm, provinceAliasNorm].some(
+        (name) => !!name && (focusTitleNorm === name || focusTitleNorm.includes(name) || name.includes(focusTitleNorm))
+      );
+      const isProvinceLevelFocusByThai = !!focusTitleNorm && !!provinceThaiNorm
+        && (focusTitleNorm === provinceThaiNorm || focusTitleNorm.includes(provinceThaiNorm) || provinceThaiNorm.includes(focusTitleNorm));
+
+      const geometryType = state.focusPlace!.geojson && typeof state.focusPlace!.geojson === 'object'
+        ? (state.focusPlace!.geojson as { type?: string }).type
+        : undefined;
+      const hasPolygon = geometryType === 'Polygon' || geometryType === 'MultiPolygon';
+
+      if (hasPolygon) {
+        const suppressProvincePolygonHighlight = isProvinceLevelFocus || isProvinceLevelFocusByThai;
+        mapRef.current?.focusSearchResult({
+          lat: state.focusPlace!.lat,
+          lng: state.focusPlace!.lng,
+          title: state.focusPlace!.title,
+          zoom: 16,
+          boundingbox: suppressProvincePolygonHighlight ? undefined : state.focusPlace!.boundingbox,
+          geojson: suppressProvincePolygonHighlight ? undefined : state.focusPlace!.geojson,
+        });
+      } else {
+        // Fallback: run search flow first, then guaranteed area highlight around original target.
+        mapRef.current?.searchAndFocus(
+          state.focusPlace!.title || `${state.focusPlace!.lat},${state.focusPlace!.lng}`,
+          {
+            lat: state.focusPlace!.lat,
+            lng: state.focusPlace!.lng,
+            radiusMeters: 700,
+          },
+          { autoFocus: state.focusPlace!.autoFocus !== false }
+        );
+      }
+      console.log(`Flying to: ${state.focusPlace!.title || 'location'} (${state.focusPlace!.lat}, ${state.focusPlace!.lng})`);
+    }, 500);
+
+    window.history.replaceState({}, document.title);
+    return () => window.clearTimeout(timerId);
+  }, [location.state, loading, province?.name]);
 
   if (loading) {
     return (
@@ -128,68 +418,68 @@ export const ProvinceTacticalPage = () => {
   const displayProvinceName = province.name === 'Bangkok Metropolis' ? 'Bangkok' : province.name;
 
   return (
-    <div className="flex-1 flex bg-[#050608] overflow-hidden">
+    <div ref={containerRef} className="flex-1 flex bg-[#050608] overflow-hidden">
       {/* LEFT: MAP SECTION */}
-      <div className="w-1/2 relative">
+      <div 
+        className="relative transition-all" 
+        style={{ width: `calc(100% - ${sidebarWidth}px)` }}
+      >
         {/* Back Button Overlay */}
         <button 
-          onClick={() => navigate('/')}
-          className="absolute top-4 left-4 z-[1000] flex items-center gap-2 px-3 py-2 bg-black/70 hover:bg-black/90 backdrop-blur-sm rounded-lg border border-white/10 text-white transition-all group"
+            onClick={() => navigate('/map')}
+          className="absolute top-4 left-4 z-[1000] flex items-center justify-center p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg border border-white/10 text-white transition-all group"
+          title="Back to Thai map"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-medium">Back to Radar</span>
         </button>
-
-        {/* Province Info Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 z-[1000] p-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
-          <h1 className="text-3xl font-black text-white leading-tight">
-            {displayProvinceName} <span className="text-slate-300 text-2xl font-bold">{provinceData.thaiName}</span>
-          </h1>
-          <p className="text-sm mt-1 flex items-center gap-2 flex-wrap">
-            <span className={`px-2 py-0.5 text-xs font-mono rounded ${region.color} bg-white/10 border border-white/20`}>
-              {region.code}
-            </span>
-            <span className="text-slate-400">{region.engName} Region</span>
-            {provinceData.slogan && <span className="text-cyan-400 italic">"{provinceData.slogan}"</span>}
-          </p>
-        </div>
 
         {/* Interactive Map */}
         <ProvinceMap 
           ref={mapRef}
           provinceName={province.name}
+          provinceId={province.id}
           markers={provinceData.mapMarkers}
           zoom={12}
+          theme={mapTheme}
+          externalDataLayers={activeDataLayers}
+          regionColor={regionTheme[region.id as RegionId]?.accentHex}
+          onChangeTheme={setMapTheme}
+          onToggleLayer={handleToggleDataLayer}
+          mapDataLayers={mapDataLayers}
         />
       </div>
 
-      {/* RIGHT: CONTENT SECTION */}
-      <div className="w-1/2 flex flex-col border-l border-white/10">
-        {/* Quick Stats Bar */}
-        <div className="flex-shrink-0 p-4 bg-[#0a0c10] border-b border-white/10">
-          <div className="flex items-center gap-4">
-            <Helpers.QuickBadge icon={<Thermometer size={16} />} value={provinceData.weather.temp} label={provinceData.weather.condition} color="amber" />
-            <Helpers.QuickBadge icon={<Shield size={16} />} value={`${provinceData.safetyIndex}%`} label="Safety" color="emerald" />
-            <Helpers.QuickBadge icon={<Wallet size={16} />} value={provinceData.dailyCost} label="avg/day" color="cyan" />
-            <Helpers.QuickBadge icon={<Phone size={16} />} value="191" label="Emergency" color="red" />
-          </div>
+      {/* RESIZE HANDLE */}
+      <div
+        onMouseDown={handleMouseDown}
+        className={`w-1 flex-shrink-0 bg-transparent hover:bg-cyan-500/50 cursor-col-resize transition-colors relative group ${isResizing ? 'bg-cyan-500/70' : ''}`}
+        style={{ cursor: isResizing ? 'col-resize' : 'col-resize' }}
+      >
+        <div className={`absolute inset-y-0 -left-1 -right-1 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${isResizing ? 'opacity-100' : ''}`}>
+          <GripVertical size={16} className="text-cyan-400 drop-shadow-lg" />
         </div>
+      </div>
 
+      {/* RIGHT: CONTENT SECTION */}
+      <div 
+        className="flex flex-col border-l border-white/10 transition-all"
+        style={{ width: sidebarWidth }}
+      >
         {/* Tab Navigation */}
         <div className="flex-shrink-0 border-b border-white/10 bg-[#08090c]">
-          <div className="flex">
+          <div className="flex px-2 overflow-x-auto no-scrollbar">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 text-sm font-medium transition-all border-b-2 ${
+                className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-1 py-2 sm:px-3 sm:py-3 text-[10px] sm:text-xs font-bold uppercase transition-all border-b-2 whitespace-nowrap min-w-0 ${
                   activeTab === tab.id 
                     ? `${tab.color} border-current bg-white/5` 
                     : 'text-slate-500 border-transparent hover:text-white hover:bg-white/5'
                 }`}
               >
-                {tab.icon}
-                <span className="hidden xl:inline">{tab.label}</span>
+                <div className="shrink-0">{React.cloneElement(tab.icon, { size: 14 })}</div>
+                <span className="truncate">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -197,7 +487,25 @@ export const ProvinceTacticalPage = () => {
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {activeTab === 'explore' && <ExploreTab data={provinceData} onFlyTo={handleFlyToLocation} />}
+          {activeTab === 'explore' && (
+            <ExploreTab
+              data={provinceData}
+              onFlyTo={handleFlyToLocation}
+              provinceInfo={{
+                displayName: displayProvinceName,
+                thaiName: provinceData.thaiName,
+                regionId: region.id,
+                regionCode: region.code,
+                regionEngName: region.engName,
+                slogan: provinceData.slogan,
+                regionColor: regionTheme[region.id as RegionId]?.accentHex || '#06b6d4',
+              }}
+              mapTheme={mapTheme}
+              mapDataLayers={mapDataLayers}
+              onChangeMapTheme={setMapTheme}
+              onToggleDataLayer={handleToggleDataLayer}
+            />
+          )}
           {activeTab === 'stay' && <StayTab data={provinceData} onFlyTo={handleFlyToLocation} />}
           {activeTab === 'eat' && <EatTab data={provinceData} onFlyTo={handleFlyToLocation} />}
           {activeTab === 'travel' && <TravelTab data={provinceData} onFlyTo={handleFlyToLocation} />}

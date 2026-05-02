@@ -1,0 +1,1975 @@
+{
+  "Khon Kaen": {
+    "ecoEntities": [
+      {
+        "id": "fl_mango_banhaet",
+        "name": "มะม่วงน้ำดอกไม้สีทองบ้านแฮด",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "อำเภอบ้านแฮด",
+            "สวนเกษตร"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พืชเศรษฐกิจ GI ของจังหวัดขอนแก่น พบเด่นในพื้นที่เกษตรตอนล่างของจังหวัด กินได้และพบจริงในชุมชนเกษตร."
+      },
+      {
+        "id": "fl_bamboo_phuphaman",
+        "name": "ไผ่ป่าภูผาม่าน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "อุทยานแห่งชาติภูผาม่าน",
+            "เชิงเขาหินปูน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ภูผาม่านมีป่าไผ่หนาแน่นตามแนวภูเขาหินปูน หน่ออ่อนกินได้แต่ควรเก็บจากแหล่งที่ได้รับอนุญาตเท่านั้น."
+      },
+      {
+        "id": "f_waterbird_ubolrat",
+        "name": "นกน้ำอ่างเก็บน้ำอุบลรัตน์",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขื่อนอุบลรัตน์",
+            "ริมอ่างเก็บน้ำ",
+            "พื้นที่ชุ่มน้ำ"
+          ],
+          "season": [
+            "ฤดูหนาว",
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "บริเวณอ่างเก็บน้ำและริมเขื่อนมีฝูงนกน้ำจำนวนมากในบางช่วง โดยเฉพาะพื้นที่เปิดโล่งริมแหล่งน้ำ."
+      },
+      {
+        "id": "f_bat_phuphaman",
+        "name": "ค้างคาวถ้ำภูผาม่าน",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ถ้ำและหน้าผาหินปูนในภูผาม่าน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "night"
+        },
+        "description": "พื้นที่หินปูนและถ้ำของภูผาม่านเหมาะกับค้างคาวหลายชนิด ไม่ควรรบกวนฝูงหรือเข้าใกล้จุดเกาะพักตอนพลบค่ำ."
+      },
+      {
+        "id": "t_chi_pong_basin",
+        "name": "ลุ่มน้ำชี-น้ำพองและที่ราบลูกคลื่น",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ตอนกลางและตะวันออกของจังหวัด",
+            "ลุ่มน้ำชี",
+            "ลุ่มน้ำพอง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ขอนแก่นมีที่ราบลูกคลื่นและพื้นที่ลาดเอียงจากตะวันตกไปตะวันออก เชื่อมกับลุ่มน้ำหลักของจังหวัด."
+      },
+      {
+        "id": "c_pm25_dry",
+        "name": "ฝุ่น PM2.5 ฤดูแล้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เขตเมือง",
+            "ริมถนนใหญ่",
+            "พื้นที่เผาในที่โล่ง"
+          ],
+          "season": [
+            "ม.ค.-เม.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ปลายหนาวถึงต้นร้อนมักเสี่ยงฝุ่นสะสมจากการเผาในที่โล่งและการระบายอากาศไม่ดี ควรติดตามค่าฝุ่นก่อนทำกิจกรรมกลางแจ้ง."
+      },
+      {
+        "id": "h_flood_ubolrat",
+        "name": "น้ำท่วมลุ่มน้ำพอง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ริมแม่น้ำพอง",
+            "พื้นที่ท้ายเขื่อน",
+            "ที่ลุ่มการเกษตร"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่รับน้ำตามลุ่มน้ำพองและท้ายเขื่อนมีความเสี่ยงน้ำหลากและน้ำท่วมขังในช่วงฝนหนัก."
+      },
+      {
+        "id": "h_summer_storm",
+        "name": "พายุฤดูร้อน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั่วจังหวัด",
+            "พื้นที่โล่ง",
+            "เขตเกษตร"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงเปลี่ยนฤดูมีโอกาสเกิดลมกระโชกแรง ฝนฟ้าคะนอง และลูกเห็บบางพื้นที่ ควรหลีกเลี่ยงที่โล่งและสิ่งปลูกสร้างไม่มั่นคง."
+      }
+    ]
+  },
+  "Udon Thani": {
+    "ecoEntities": [
+      {
+        "id": "fl_red_lotus",
+        "name": "บัวแดง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "หนองหานกุมภวาปี",
+            "พื้นที่ชุ่มน้ำ"
+          ],
+          "season": [
+            "พ.ย.-ก.พ."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พืชน้ำเด่นของหนองหานกุมภวาปี สร้างภูมิทัศน์ทะเลบัวแดงที่มีชื่อเสียงและเป็นส่วนหนึ่งของระบบนิเวศพื้นที่ชุ่มน้ำ."
+      },
+      {
+        "id": "fl_reed_wetland",
+        "name": "กกและพืชน้ำชายบึง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ชายบึง",
+            "หนองหานกุมภวาปี"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พืชน้ำและพืชชายน้ำช่วยยึดตะกอนและเป็นแหล่งหลบอาศัยของสัตว์น้ำและนกน้ำในพื้นที่ชุ่มน้ำขนาดใหญ่."
+      },
+      {
+        "id": "f_ruddy_duck",
+        "name": "เป็ดแดง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "หนองหานกุมภวาปี"
+          ],
+          "season": [
+            "ฤดูหนาว"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "เป็นหนึ่งในนกน้ำที่มีรายงานพบจำนวนมากในพื้นที่ทะเลบัวแดงช่วงฤดูหนาว เหมาะกับการดูนกมากกว่าการเข้าใกล้."
+      },
+      {
+        "id": "f_waterbird_migratory",
+        "name": "นกน้ำอพยพ",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "หนองหานกุมภวาปี",
+            "พื้นที่ชุ่มน้ำ"
+          ],
+          "season": [
+            "พ.ย.-ก.พ."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นที่ชุ่มน้ำอุดรธานีเป็นจุดพักของนกอพยพหลายชนิดในฤดูหนาว สะท้อนความสำคัญทางนิเวศของบึงขนาดใหญ่."
+      },
+      {
+        "id": "t_nonghan_wetland",
+        "name": "พื้นที่ชุ่มน้ำหนองหานกุมภวาปี",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "อำเภอกุมภวาปี",
+            "อำเภอใกล้เคียง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นพื้นที่ชุ่มน้ำสำคัญระดับนานาชาติและเป็นแหล่งน้ำขนาดใหญ่ของภาคอีสานตอนบน."
+      },
+      {
+        "id": "c_pm25_dry",
+        "name": "ฝุ่น PM2.5 ฤดูแล้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เขตเมือง",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ม.ค.-เม.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "อุดรธานีมักมีช่วงค่าฝุ่นสูงในปลายหนาวถึงต้นร้อนจากสภาพอากาศนิ่งและการเผาในที่โล่ง."
+      },
+      {
+        "id": "h_wetland_flood",
+        "name": "น้ำท่วมพื้นที่ลุ่มรอบหนองหาน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ชุมชนรอบหนองหาน",
+            "พื้นที่รับน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนสะสมและน้ำหลากอาจกระทบพื้นที่รอบบึงและแปลงเกษตรลุ่มต่ำ โดยเฉพาะช่วงฝนหนักต่อเนื่อง."
+      },
+      {
+        "id": "h_summer_storm",
+        "name": "พายุฤดูร้อน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงเปลี่ยนฤดูมีความเสี่ยงลมแรง ฝนฟ้าคะนอง และฟ้าผ่า ควรหลีกเลี่ยงพื้นที่โล่งและต้นไม้ใหญ่."
+      }
+    ]
+  },
+  "Nong Khai": {
+    "ecoEntities": [
+      {
+        "id": "fl_makmao",
+        "name": "หมากเม่า",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": true,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "เชิงภู",
+            "พื้นที่เกษตรผสมผสาน",
+            "แถบอีสานเหนือ"
+          ],
+          "season": [
+            "เม.ย.-ส.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ไม้ผลท้องถิ่นของอีสานเหนือ พบในเขตภูเขาและชุมชนเกษตรบางพื้นที่ของหนองคาย ผลสุกกินได้และนิยมแปรรูป."
+      },
+      {
+        "id": "fl_dipterocarp",
+        "name": "ไม้เต็งรัง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "อำเภอสังคม",
+            "พื้นที่เนินเขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ป่าเต็งรังเป็นสังคมพืชเด่นในพื้นที่เนินเขาทางตะวันตกของจังหวัด สะท้อนสภาพดินค่อนข้างแห้งและระบายน้ำดี."
+      },
+      {
+        "id": "f_mekong_waterbird",
+        "name": "นกน้ำริมโขง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ริมแม่น้ำโขง",
+            "หาดทรายและแก่ง"
+          ],
+          "season": [
+            "ฤดูหนาว",
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "แนวแม่น้ำโขงและหาดทรายริมฝั่งเป็นแหล่งหากินของนกน้ำหลายชนิด โดยเฉพาะช่วงน้ำลด."
+      },
+      {
+        "id": "f_snake_riverbank",
+        "name": "งูพื้นที่ริมน้ำและชายป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": false
+        },
+        "context": {
+          "location": [
+            "สวนริมน้ำ",
+            "ชายป่า",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูร้อน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ริมน้ำและชายป่ามีโอกาสพบงูหลายชนิด ควรระวังเมื่อเดินในหญ้าสูงหรือบริเวณชื้นแฉะ."
+      },
+      {
+        "id": "t_mekong_plain",
+        "name": "ที่ราบริมแม่น้ำโขง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "อำเภอเมือง",
+            "ท่าบ่อ",
+            "ศรีเชียงใหม่"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ราบริมโขงเหมาะกับนาและพืชสวน เป็นลักษณะภูมิประเทศเด่นของหนองคาย."
+      },
+      {
+        "id": "c_cool_dry_morning",
+        "name": "อากาศเย็นแห้งช่วงปลายปี",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "พ.ย.-ก.พ."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ปลายฝนถึงต้นหนาวอากาศค่อนข้างเย็นและแห้งกว่าช่วงอื่น ทำให้การท่องเที่ยวริมโขงนิยมมากขึ้น."
+      },
+      {
+        "id": "h_mekong_flood",
+        "name": "น้ำท่วมริมโขง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ชุมชนริมน้ำโขง",
+            "พื้นที่เกษตรลุ่มต่ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ระดับน้ำโขงและน้ำฝนสะสมสามารถทำให้เกิดน้ำล้นตลิ่งหรือท่วมพื้นที่ลุ่มตามแนวฝั่ง."
+      },
+      {
+        "id": "h_bank_erosion",
+        "name": "ตลิ่งพังและกัดเซาะริมโขง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ริมแม่น้ำโขง",
+            "คันตลิ่ง"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ช่วงน้ำขึ้นลงแรง"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "บางช่วงริมฝั่งเสี่ยงการกัดเซาะและดินทรุด ไม่ควรยืนชิดตลิ่งอ่อนตัวหลังฝนตกหนัก."
+      }
+    ]
+  },
+  "Nong Bua Lam Phu": {
+    "ecoEntities": [
+      {
+        "id": "fl_rice_paddy",
+        "name": "ข้าวนาปี",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "พื้นที่เกษตรลุ่มราบ",
+            "รอบชุมชน"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูเก็บเกี่ยว"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พืชเกษตรหลักของจังหวัด พบกว้างในพื้นที่ราบและแอ่งรับน้ำของหนองบัวลำภู."
+      },
+      {
+        "id": "fl_dipterocarp_forest",
+        "name": "ไม้เต็งรังเชิงเขา",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ภูเก้า-ภูพานคำ",
+            "พื้นที่เนินดอน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "สังคมพืชแบบเต็งรังพบในพื้นที่ค่อนข้างแห้งและเนินดอนของจังหวัด โดยเฉพาะเขตป่าอนุรักษ์."
+      },
+      {
+        "id": "f_bat_cave",
+        "name": "ค้างคาวถ้ำ",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขตถ้ำและภูเขาหินปูน",
+            "สุวรรณคูหา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "night"
+        },
+        "description": "บริเวณถ้ำในเขตภูเขาหินปูนเป็นแหล่งอาศัยของค้างคาวหลายชนิด ไม่ควรใช้ไฟส่องหรือรบกวนฝูง."
+      },
+      {
+        "id": "f_forest_bird",
+        "name": "นกป่าเชิงภู",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ภูเก้า-ภูพานคำ",
+            "ป่าชุมชน"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นที่ป่าและเชิงภูของจังหวัดยังเป็นถิ่นอาศัยของนกป่าหลายชนิด เหมาะกับกิจกรรมดูนกมากกว่าการเข้าไล่ต้อน."
+      },
+      {
+        "id": "t_sakon_basin_plain",
+        "name": "ที่ราบสูงและแอ่งรับน้ำ",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ตอนกลางของจังหวัด",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "หนองบัวลำภูมีลักษณะเป็นที่ราบสูงสลับแอ่งรับน้ำและดินทรายลูกรังในหลายอำเภอ."
+      },
+      {
+        "id": "c_pm25_dry",
+        "name": "ฝุ่น PM2.5 ฤดูแล้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เขตเมือง",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ม.ค.-เม.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงปลายหนาวถึงต้นร้อนมีโอกาสเกิดหมอกควันและฝุ่นสะสม โดยเฉพาะเมื่อมีการเผาเศษวัสดุการเกษตร."
+      },
+      {
+        "id": "h_flash_flood",
+        "name": "น้ำหลากจากลำน้ำพองตอนบน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ที่ลุ่มรับน้ำ",
+            "พื้นที่ริมห้วย"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักจากพื้นที่ต้นน้ำและเชิงเขาอาจทำให้เกิดน้ำหลากฉับพลันในจุดลุ่มต่ำ."
+      },
+      {
+        "id": "h_summer_storm",
+        "name": "พายุฤดูร้อน",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "มี.ค.-พ.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "มักเกิดลมแรง ฝนฟ้าคะนอง และฟ้าผ่าช่วงเปลี่ยนฤดู เสี่ยงต่อบ้านเรือนเบาและป้ายสิ่งปลูกสร้าง."
+      }
+    ]
+  },
+  "Loei": {
+    "ecoEntities": [
+      {
+        "id": "fl_maple",
+        "name": "เมเปิลภูกระดึง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "อุทยานแห่งชาติภูกระดึง"
+          ],
+          "season": [
+            "ธ.ค.-ก.พ."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "เมเปิลเป็นพืชเด่นของภูกระดึงในฤดูหนาว ใบเปลี่ยนสีเป็นเอกลักษณ์และเป็นพืชที่ไม่ควรเก็บจากธรรมชาติ."
+      },
+      {
+        "id": "fl_two_needled_pine",
+        "name": "สนสองใบ",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ภูกระดึง",
+            "ป่าสนบนสันภู"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ป่าสนสองใบเป็นหนึ่งในภูมิทัศน์เด่นของจังหวัดเลย พบตามพื้นที่สูงและอากาศเย็น."
+      },
+      {
+        "id": "f_wild_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ภูกระดึงและป่าอนุรักษ์ใกล้เคียง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "มีรายงานการจัดการช้างป่าในพื้นที่ภูกระดึงช่วงปี 2567-2569 ไม่ควรเดินออกนอกเส้นทางหรือเข้าใกล้สัตว์."
+      },
+      {
+        "id": "f_serow",
+        "name": "เลียงผา",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "rare",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "หน้าผาและป่าภูเขาในภูกระดึง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "สัตว์ป่าคุ้มครองที่สัมพันธ์กับภูเขาสูงและหน้าผา พบยากและไม่ควรรบกวนถิ่นอาศัย."
+      },
+      {
+        "id": "t_mountain_plateau",
+        "name": "ภูเขาสูงและที่ราบบนสันภู",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ภูกระดึง",
+            "ภูเรือ",
+            "ด่านซ้าย"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "เลยมีภูเขาสูงสลับซับซ้อนและแหล่งต้นน้ำจำนวนมาก ทำให้ภูมิประเทศต่างจากอีสานตอนในอย่างชัดเจน."
+      },
+      {
+        "id": "c_cold_winter",
+        "name": "อากาศหนาวเด่น",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "พื้นที่สูง",
+            "ภูเขา"
+          ],
+          "season": [
+            "พ.ย.-ก.พ."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดเลยมีอากาศหนาวเด่นกว่าหลายจังหวัดในอีสาน โดยเฉพาะบนยอดภูและช่วงเช้ามืด."
+      },
+      {
+        "id": "h_forest_fire",
+        "name": "ไฟป่าฤดูแล้ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ป่าอนุรักษ์",
+            "เชิงเขา",
+            "ภูกระดึง"
+          ],
+          "season": [
+            "ม.ค.-เม.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงแล้งเสี่ยงไฟป่าและหมอกควันในพื้นที่ป่าเขา ควรหลีกเลี่ยงการก่อไฟและติดตามประกาศปิดพื้นที่."
+      },
+      {
+        "id": "h_trail_accident",
+        "name": "อุบัติเหตุทางเดินเขาและหน้าผา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เส้นทางเดินป่า",
+            "หน้าผา",
+            "น้ำตก"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูหนาว"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "เส้นทางภูเขาอาจลื่น ชัน หรือมีสัตว์ป่ารบกวน โดยเฉพาะเมื่อออกนอกเส้นทางหรือทัศนวิสัยต่ำ."
+      }
+    ]
+  },
+  "Sakon Nakhon": {
+    "ecoEntities": [
+      {
+        "id": "fl_makmao",
+        "name": "หมากเม่า",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": true,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "เทือกเขาภูพาน",
+            "อำเภอภูพาน",
+            "สวนชุมชน"
+          ],
+          "season": [
+            "เม.ย.-ส.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "หมากเม่าเป็นพืชท้องถิ่นเด่นของสกลนครและมีสถานะสินค้า GI ของจังหวัด นิยมแปรรูปเป็นน้ำและไวน์."
+      },
+      {
+        "id": "fl_wetland_aquatic",
+        "name": "พืชน้ำหนองหาร",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "หนองหาร",
+            "พื้นที่ชุ่มน้ำ"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พืชน้ำรอบหนองหารช่วยคงสมดุลระบบนิเวศ เป็นแหล่งหลบอาศัยของปลาและนกน้ำจำนวนมาก."
+      },
+      {
+        "id": "f_waterbird_nonghan",
+        "name": "นกน้ำหนองหาร",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "หนองหาร",
+            "ชายบึง"
+          ],
+          "season": [
+            "ฤดูหนาว",
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "หนองหารเป็นแหล่งอาศัยและหากินของนกน้ำหลายชนิด จนได้รับการมองว่าเป็นสวรรค์ของนกน้ำในจังหวัด."
+      },
+      {
+        "id": "f_forest_bird_phuphan",
+        "name": "นกป่าเทือกเขาภูพาน",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เทือกเขาภูพาน",
+            "ป่าอนุรักษ์"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "พื้นที่ป่าภูพานเป็นแหล่งอาศัยของนกป่าหลากชนิด เหมาะกับการท่องเที่ยวเชิงอนุรักษ์มากกว่าการใช้เสียงรบกวน."
+      },
+      {
+        "id": "t_nonghan_lake",
+        "name": "ทะเลสาบน้ำจืดหนองหาร",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "อำเภอเมืองสกลนครและโดยรอบ"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "หนองหารเป็นทะเลสาบน้ำจืดขนาดใหญ่และเป็นภูมิประเทศเด่นที่สุดของจังหวัด."
+      },
+      {
+        "id": "c_basin_cool_season",
+        "name": "อากาศเย็นในแอ่งสกลนคร",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "พ.ย.-ก.พ."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "สกลนครอยู่ในแอ่งสกลนครและมีช่วงอากาศเย็นค่อนข้างชัดในฤดูหนาว เมื่อเทียบกับอีสานตอนในหลายจังหวัด."
+      },
+      {
+        "id": "h_nonghan_flood",
+        "name": "น้ำท่วมรอบหนองหาร",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "พื้นที่ลุ่มรอบหนองหาร",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนสะสมและระดับน้ำในหนองหารอาจทำให้เกิดน้ำท่วมขังในชุมชนและพื้นที่เกษตรลุ่มต่ำ."
+      },
+      {
+        "id": "h_pm25_burning",
+        "name": "หมอกควันจากการเผา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เขตเมือง",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ม.ค.-เม.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงแล้งมีความเสี่ยงฝุ่นและหมอกควันจากการเผาเศษวัสดุการเกษตรและสภาพอากาศนิ่ง."
+      }
+    ]
+  },
+  "Nakhon Phanom": {
+    "ecoEntities": [
+      {
+        "id": "fl_makmao",
+        "name": "หมากเม่า",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": true,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "เชิงภู",
+            "ชุมชนเกษตรในอีสานเหนือ"
+          ],
+          "season": [
+            "เม.ย.-ส.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "หมากเม่าพบในเขตอีสานเหนือตามแนวภูพานและพื้นที่ใกล้เคียงของนครพนม นิยมกินสดและแปรรูป."
+      },
+      {
+        "id": "fl_dipterocarp",
+        "name": "ไม้เต็งรังที่ดอน",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "พื้นที่ห่างฝั่งโขง",
+            "ที่ดอนลูกรัง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ด้านตะวันตกของจังหวัดมีลักษณะที่ดอนและป่าเต็งรัง สะท้อนสภาพดินลูกรังและค่อนข้างแห้ง."
+      },
+      {
+        "id": "f_mekong_waterbird",
+        "name": "นกน้ำริมโขง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ริมแม่น้ำโขง",
+            "ดอนทราย"
+          ],
+          "season": [
+            "ฤดูหนาว",
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "แนวแม่น้ำโขงและแหล่งน้ำธรรมชาติในนครพนมเป็นพื้นที่หากินของนกน้ำและนกริมตลิ่งหลายชนิด."
+      },
+      {
+        "id": "f_fish_mekong",
+        "name": "ปลาน้ำจืดแม่น้ำโขง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false
+        },
+        "context": {
+          "location": [
+            "แม่น้ำโขง",
+            "ลำห้วยสาขา"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "แม่น้ำโขงเป็นฐานทรัพยากรสัตว์น้ำสำคัญของจังหวัด ทั้งเพื่อระบบนิเวศและวิถีชุมชนริมฝั่ง."
+      },
+      {
+        "id": "t_mekong_riparian",
+        "name": "ที่ราบลุ่มเลียบแม่น้ำโขง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "แนวแม่น้ำโขงตลอดจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "นครพนมมีแนวยาวเลียบฝั่งขวาของแม่น้ำโขง ทำให้พื้นที่ริมน้ำเป็นลักษณะภูมิประเทศหลักของจังหวัด."
+      },
+      {
+        "id": "c_rainy_monsoon",
+        "name": "ฝนชุกจากมรสุม",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "พ.ค.-ต.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "นครพนมมักมีฝนชุกในฤดูฝนจากอิทธิพลมรสุมและระบบพายุจากทะเลจีนใต้ที่เคลื่อนเข้ามาใกล้."
+      },
+      {
+        "id": "h_mekong_flood",
+        "name": "น้ำท่วมลุ่มโขง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ชุมชนริมน้ำโขง",
+            "พื้นที่ท่วมถึง"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่ใกล้แม่น้ำโขงมีความเสี่ยงน้ำล้นตลิ่งและน้ำท่วมขังในช่วงฝนหนักหรือเมื่อน้ำโขงสูง."
+      },
+      {
+        "id": "h_bank_erosion",
+        "name": "ตลิ่งทรุดและกัดเซาะริมโขง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ริมฝั่งแม่น้ำโขง"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "หลังฝนหนัก"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "บางจุดริมฝั่งโขงเสี่ยงตลิ่งอ่อนตัวและการกัดเซาะ ไม่ควรจอดรถหรือยืนชิดตลิ่งหลังฝนตกต่อเนื่อง."
+      }
+    ]
+  },
+  "Mukdahan": {
+    "ecoEntities": [
+      {
+        "id": "fl_makmao",
+        "name": "หมากเม่า",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": true,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "เชิงภู",
+            "สวนชุมชน",
+            "แถบอีสานเหนือ"
+          ],
+          "season": [
+            "เม.ย.-ส.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "หมากเม่าเป็นพืชท้องถิ่นที่พบได้ในแนวภูพานและพื้นที่อีสานเหนือรวมถึงมุกดาหาร นิยมทำเครื่องดื่มและแยม."
+      },
+      {
+        "id": "fl_dry_dipterocarp",
+        "name": "ไม้เต็งรังและเบญจพรรณแล้ง",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "พื้นที่ภูเขา",
+            "ที่ดอนของจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จังหวัดมุกดาหารมีพื้นที่ภูเขาสลับที่ราบสูง ป่าเต็งรังและป่าเบญจพรรณแล้งจึงพบได้มากในเขตดอน."
+      },
+      {
+        "id": "f_mekong_waterbird",
+        "name": "นกน้ำริมโขง",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ริมแม่น้ำโขง",
+            "หาดทราย"
+          ],
+          "season": [
+            "ฤดูหนาว",
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "แนวโขงของมุกดาหารเป็นพื้นที่เปิดที่มีนกน้ำและนกริมตลิ่งหลายชนิดใช้หากินตามฤดูกาล."
+      },
+      {
+        "id": "f_forest_reptile",
+        "name": "สัตว์เลื้อยคลานชายป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "aggressive": false
+        },
+        "context": {
+          "location": [
+            "ป่าโปร่ง",
+            "โขดหิน",
+            "ชายป่า"
+          ],
+          "season": [
+            "ฤดูร้อน",
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่หินและป่าโปร่งของมุกดาหารเอื้อต่อสัตว์เลื้อยคลานหลายชนิด ควรระวังเมื่อเดินนอกทาง."
+      },
+      {
+        "id": "t_hill_mekong_mix",
+        "name": "ภูเขาสลับที่ราบสูงเลียบโขง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั้งจังหวัด"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "มุกดาหารมีลักษณะเด่นเป็นภูเขาสลับที่ราบสูง มีที่ราบลุ่มบางส่วนทางตอนกลางและด้านตะวันออกเฉียงเหนือ."
+      },
+      {
+        "id": "c_hot_dry",
+        "name": "อากาศร้อนแห้งเด่น",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ทั่วจังหวัด"
+          ],
+          "season": [
+            "ก.พ.-พ.ค."
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "ช่วงปลายหนาวถึงต้นร้อนอากาศค่อนข้างร้อนและแห้ง โดยเฉพาะในพื้นที่เปิดโล่งและดอนสูง."
+      },
+      {
+        "id": "h_mekong_flood",
+        "name": "น้ำท่วมริมโขง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ชุมชนและพื้นที่เกษตรเลียบโขง"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พื้นที่เลียบโขงมีความเสี่ยงน้ำท่วมขังหรือน้ำล้นตลิ่งในช่วงฝนหนักและระดับน้ำสูง."
+      },
+      {
+        "id": "h_storm_rock_area",
+        "name": "พายุและฟ้าผ่าบนพื้นที่หินโล่ง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ลานหิน",
+            "จุดชมวิว",
+            "พื้นที่โล่ง"
+          ],
+          "season": [
+            "มี.ค.-พ.ค.",
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "จุดชมวิวหินและพื้นที่โล่งรับลมแรงง่ายในช่วงพายุฝนฟ้าคะนอง ควรหลีกเลี่ยงการอยู่บนลานหินขณะฟ้าคะนอง."
+      }
+    ]
+  },
+  "Kalasin": {
+    "ecoEntities": [
+      {
+        "id": "fl_rice_jasmine",
+        "name": "ข้าวหอมมะลิ",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": true,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "พื้นที่เกษตรทั่วจังหวัด"
+          ],
+          "season": [
+            "ฤดูฝน",
+            "ฤดูเก็บเกี่ยว"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "กาฬสินธุ์เป็นจังหวัดเกษตรกรรมสำคัญของอีสานตอนกลาง พื้นที่นาส่วนใหญ่ปลูกข้าวเป็นหลัก."
+      },
+      {
+        "id": "fl_wetland_grass",
+        "name": "พืชชายน้ำลำปาว",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ลำน้ำปาว",
+            "เขื่อนลำปาว",
+            "ชายหนองบึง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "พืชชายน้ำตามลำน้ำปาวและแหล่งเก็บน้ำช่วยยึดตะกอนและเป็นที่หลบอาศัยของสัตว์น้ำและนกน้ำ."
+      },
+      {
+        "id": "f_waterbird_lampao",
+        "name": "นกน้ำลำปาว",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขื่อนลำปาว",
+            "อ่างเก็บน้ำ"
+          ],
+          "season": [
+            "ฤดูหนาว",
+            "ฤดูแล้ง"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "อ่างเก็บน้ำขนาดใหญ่และพื้นที่ชุ่มน้ำในกาฬสินธุ์ดึงดูดนกน้ำตามฤดูกาล โดยเฉพาะในช่วงน้ำลด."
+      },
+      {
+        "id": "f_freshwater_prawn",
+        "name": "กุ้งก้ามกรามกาฬสินธุ์",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false
+        },
+        "context": {
+          "location": [
+            "แหล่งเพาะเลี้ยงน้ำจืด",
+            "ลุ่มน้ำปาว"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "เป็นสัตว์น้ำเศรษฐกิจที่ได้รับการรับรอง GI ของจังหวัด สะท้อนความสำคัญของทรัพยากรน้ำจืดในพื้นที่."
+      },
+      {
+        "id": "t_lampao_basin",
+        "name": "ลุ่มน้ำลำปาวและที่ราบลูกคลื่น",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ตอนกลางจังหวัด",
+            "รอบเขื่อนลำปาว"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "กาฬสินธุ์มีที่ราบลูกคลื่นและระบบลุ่มน้ำลำปาวเป็นแกนหลักของภูมิประเทศและเกษตรกรรม."
+      },
+      {
+        "id": "c_pm25_dry",
+        "name": "ฝุ่น PM2.5 ฤดูแล้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เขตเมือง",
+            "พื้นที่เกษตร"
+          ],
+          "season": [
+            "ม.ค.-เม.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ช่วงปลายหนาวถึงต้นร้อนมักมีหมอกควันและฝุ่นสะสมจากการเผาและอากาศนิ่ง."
+      },
+      {
+        "id": "h_lampao_flood",
+        "name": "น้ำท่วมลุ่มน้ำปาว",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "พื้นที่เกษตรลุ่มต่ำ",
+            "ชุมชนริมน้ำ"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ฝนหนักและน้ำหลากในลุ่มน้ำปาวอาจกระทบพื้นที่เกษตรและทางสัญจรในพื้นที่ต่ำ."
+      },
+      {
+        "id": "h_drought",
+        "name": "ภัยแล้งและน้ำต้นทุนลด",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "พื้นที่เกษตรนอกเขตชลประทาน",
+            "ที่ดอน"
+          ],
+          "season": [
+            "ก.พ.-พ.ค."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "กาฬสินธุ์มีความเสี่ยงภัยแล้งในช่วงปลายฤดูแล้ง โดยเฉพาะพื้นที่นอกเขตชลประทานและแหล่งน้ำขนาดเล็ก."
+      }
+    ]
+  },
+  "Bueng Kan": {
+    "ecoEntities": [
+      {
+        "id": "fl_yangna",
+        "name": "ยางนา",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "เขตรักษาพันธุ์สัตว์ป่าภูวัว",
+            "ป่าดิบแล้ง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ยางนาเป็นไม้สำคัญที่พบในป่าดิบแล้งของภูวัว สะท้อนความสมบูรณ์ของผืนป่าฝั่งโขง."
+      },
+      {
+        "id": "fl_rattan",
+        "name": "หวายป่า",
+        "category": "flora",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "caution"
+        },
+        "attributes": {
+          "edible": false,
+          "poisonous": false,
+          "medicinal": false,
+          "protected": false
+        },
+        "context": {
+          "location": [
+            "ป่าดิบแล้งริมห้วย",
+            "ภูวัว"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "หวายเป็นไม้พื้นล่างสำคัญในผืนป่าชื้นของภูวัว มีหนามและอาจเกี่ยวเสื้อผ้าหรือผิวหนังได้ง่าย."
+      },
+      {
+        "id": "f_wild_elephant",
+        "name": "ช้างป่า",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "rare",
+          "interaction": "dangerous"
+        },
+        "attributes": {
+          "aggressive": true,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "เขตรักษาพันธุ์สัตว์ป่าภูวัว"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "มีข้อมูลรายงานช้างป่าในผืนป่าภูวัว ไม่ควรเข้าใกล้หรือเดินนอกเส้นทางในพื้นที่ป่าอนุรักษ์."
+      },
+      {
+        "id": "f_green_pigeon",
+        "name": "นกเขาเขียว",
+        "category": "fauna",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "common",
+          "interaction": "safe"
+        },
+        "attributes": {
+          "aggressive": false,
+          "protected": true
+        },
+        "context": {
+          "location": [
+            "ป่าภูวัว",
+            "ป่าโปร่ง",
+            "ชายป่า"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "day"
+        },
+        "description": "มีรายงานการพบในชุดข้อมูลความหลากชนิดสัตว์ป่าของภูวัว เป็นนกประจำป่าที่พบได้ในพื้นที่ไม้ผลและป่าโปร่ง."
+      },
+      {
+        "id": "t_wetland_mountain_mix",
+        "name": "บึงโขงหลงและภูเขาฝั่งโขง",
+        "category": "terrain",
+        "tags": {
+          "riskLevel": "low",
+          "frequency": "everywhere",
+          "interaction": "safe"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "บึงโขงหลง",
+            "ภูวัว",
+            "แนวแม่น้ำโขง"
+          ],
+          "season": [
+            "ทุกฤดู"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "บึงกาฬมีภูมิประเทศเด่นทั้งพื้นที่ชุ่มน้ำขนาดใหญ่ แม่น้ำโขง และเขาหินทราย/ป่าภูเขาใกล้กัน."
+      },
+      {
+        "id": "c_pm25_dry",
+        "name": "ฝุ่น PM2.5 ฤดูแล้ง",
+        "category": "climate",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "เขตเมือง",
+            "พื้นที่เกษตร",
+            "เส้นทางคมนาคม"
+          ],
+          "season": [
+            "ม.ค.-เม.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "บึงกาฬมีช่วงเสี่ยงฝุ่นสะสมในฤดูแล้งเช่นเดียวกับอีสานตอนบน โดยเฉพาะเมื่อการระบายอากาศไม่ดี."
+      },
+      {
+        "id": "h_mekong_flood",
+        "name": "น้ำท่วมเลียบโขงและบึงโขงหลง",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "medium",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ชุมชนเลียบโขง",
+            "รอบบึงโขงหลง",
+            "พื้นที่ลุ่ม"
+          ],
+          "season": [
+            "ฤดูฝน"
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "แนวโขงและพื้นที่ลุ่มรอบบึงมีโอกาสเกิดน้ำท่วมขังและการสัญจรถูกตัดขาดในช่วงน้ำสูง."
+      },
+      {
+        "id": "h_forest_fire",
+        "name": "ไฟป่าพื้นที่ป่าเขา",
+        "category": "hazard",
+        "tags": {
+          "riskLevel": "high",
+          "frequency": "common",
+          "interaction": "dangerous"
+        },
+        "attributes": {},
+        "context": {
+          "location": [
+            "ภูวัว",
+            "ป่าเต็งรัง",
+            "เชิงเขา"
+          ],
+          "season": [
+            "ม.ค.-เม.ย."
+          ],
+          "timeOfDay": "both"
+        },
+        "description": "ป่าโปร่งและป่าเต็งรังในบึงกาฬเสี่ยงไฟป่าในฤดูแล้ง ซึ่งมักสัมพันธ์กับหมอกควันและทัศนวิสัยต่ำ."
+      }
+    ]
+  }
+}

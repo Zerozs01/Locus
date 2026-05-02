@@ -84,6 +84,198 @@ export function initDatabase() {
     );
   `);
 
+  // ====== 1. Transport: ระบบขนส่งรายจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_transport (
+      id TEXT PRIMARY KEY,
+      province_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      short_name TEXT,
+      type TEXT NOT NULL,
+      operator TEXT,
+      description TEXT,
+      warp_url TEXT,
+      logo_text TEXT,
+      color TEXT,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_transport_province ON province_transport(province_id);`);
+
+  // ====== 2. Transport Routes: เส้นทางเดินทาง ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_routes (
+      id TEXT PRIMARY KEY,
+      province_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      operator TEXT,
+      origin TEXT NOT NULL,
+      destination TEXT NOT NULL,
+      via TEXT,
+      departure_times TEXT,
+      duration TEXT,
+      base_fare INTEGER,
+      frequency TEXT,
+      terminal TEXT,
+      notes TEXT,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_routes_province ON province_routes(province_id);`);
+
+  // ====== 3. Local Food: อาหารท้องถิ่นรายจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_foods (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      province_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      price_range TEXT,
+      note TEXT,
+      category TEXT DEFAULT 'local',
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_foods_province ON province_foods(province_id);`);
+
+  // ====== 4. Accommodation: ที่พักรายจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_accommodation (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      province_id TEXT NOT NULL,
+      tier TEXT NOT NULL,
+      label TEXT NOT NULL,
+      price_range TEXT,
+      examples TEXT,
+      booking_url TEXT,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_accom_province ON province_accommodation(province_id);`);
+
+  // ====== 5. Danger Zones & Warnings: โซนอันตรายรายจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_dangers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      province_id TEXT NOT NULL,
+      label TEXT NOT NULL,
+      severity TEXT DEFAULT 'medium',
+      note TEXT,
+      season TEXT,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_dangers_province ON province_dangers(province_id);`);
+
+  // ====== 6. Knowledge Tips: ทิปส์ความรู้รายจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_knowledge_tips (
+      id TEXT PRIMARY KEY,
+      province_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      tip_type TEXT,
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_knowledge_tips_province ON province_knowledge_tips(province_id);`);
+
+  // ====== 7. Supply Points: จุดเติมเสบียง/จุดบริการ ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_supply_points (
+      id TEXT PRIMARY KEY,
+      province_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      label TEXT NOT NULL,
+      area TEXT,
+      note TEXT,
+      open_hours TEXT,
+      map_url TEXT,
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_supply_points_province ON province_supply_points(province_id);`);
+
+  // ====== 8. Emergency Contacts: เบอร์ฉุกเฉินเฉพาะจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_emergency_contacts (
+      id TEXT PRIMARY KEY,
+      province_id TEXT NOT NULL,
+      label TEXT NOT NULL,
+      number TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_emergency_contacts_province ON province_emergency_contacts(province_id);`);
+
+  // ====== 9. Planner Hints: ข้อมูลช่วยแพลนต้นทาง/ปลายทาง ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_planner_hints (
+      province_id TEXT PRIMARY KEY,
+      common_origins TEXT,
+      common_destinations TEXT,
+      transit_hubs TEXT,
+      route_notes TEXT,
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+
+  // ====== 10. New Eco Entities: สิ่งแวดล้อมเฉพาะจังหวัดเพิ่มเติม ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS province_new_eco_entities (
+      id TEXT PRIMARY KEY,
+      province_id TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      tags TEXT,
+      description TEXT,
+      sort_order INTEGER DEFAULT 0,
+      FOREIGN KEY(province_id) REFERENCES provinces(id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_new_eco_entities_province ON province_new_eco_entities(province_id);`);
+
+  // ====== 11. Weather & AQI: ข้อมูลสภาพอากาศและค่าฝุ่นรายจังหวัด ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS weather_aqi (
+      province_id TEXT NOT NULL,
+      date TEXT NOT NULL,
+      temperature REAL,
+      aqi INTEGER,
+      updated_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (province_id, date)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_weather_province_date ON weather_aqi(province_id, date);`);
+
+  // ====== 12. Flood Cache: แคชข้อมูลน้ำท่วม GISTDA ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS flood_cache (
+      province_id TEXT NOT NULL,
+      data TEXT NOT NULL,
+      fetched_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (province_id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_flood_cache_fetched ON flood_cache(fetched_at);`);
+
+  // ====== 13. Fuel Prices: ราคาน้ำมันจาก Bangchak ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS fuel_prices (
+      fuel_type TEXT NOT NULL,
+      price REAL NOT NULL,
+      source TEXT DEFAULT 'Bangchak',
+      fetched_at TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (fuel_type)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_fuel_prices_fetched ON fuel_prices(fetched_at);`);
+
   // Indexes creation moved after column migrations to ensure columns exist
 
   // Migrations: ensure numeric columns exist for legacy DBs
@@ -94,8 +286,32 @@ export function initDatabase() {
   ensureColumn('provinces', 'population_value', 'INTEGER');
   ensureColumn('provinces', 'area_value', 'REAL');
   ensureColumn('provinces', 'dailyCost_value', 'INTEGER');
+  ensureColumn('provinces', 'eco_ids', 'TEXT');
+  ensureColumn('provinces', 'best_season', 'TEXT');
 
   backfillNumericColumns();
+  
+  // Cleanup legacy mock province IDs that were replaced
+    const legacyIds = "('pte', 'bkk', 'ay', 'kan', 'sp', 'nbi', 'chon', 'ray', 'chan', 'trat')";
+  
+    // Disable FK enforcement for cleanup
+    db.exec("PRAGMA foreign_keys = OFF");
+  
+    // Clean up ALL dependent tables in correct order (handle CASCADE manually)
+    db.exec(`DELETE FROM weather_aqi WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_new_eco_entities WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_planner_hints WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_emergency_contacts WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_supply_points WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_knowledge_tips WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_dangers WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_accommodation WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_foods WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_routes WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM province_transport WHERE province_id IN ${legacyIds}`);
+    db.exec(`DELETE FROM provinces WHERE id IN ${legacyIds}`);
+  
+    db.exec("PRAGMA foreign_keys = ON");
 
   // Create indexes for faster queries
   db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region ON provinces(region_id);`);
@@ -106,6 +322,128 @@ export function initDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_region_safety ON provinces(region_id, safety);`);
 
   console.log('✓ Database ready at:', dbPath);
+}
+
+// ====== Weather & AQI persistent storage ======
+export function saveWeatherAqi(records: { provinceId: string; date: string; temperature: number; aqi: number }[]) {
+  const upsert = db.prepare(`
+    INSERT INTO weather_aqi (province_id, date, temperature, aqi, updated_at)
+    VALUES (?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(province_id, date) DO UPDATE SET
+      temperature = excluded.temperature,
+      aqi = excluded.aqi,
+      updated_at = datetime('now')
+  `);
+  const doUpsert = db.transaction(() => {
+    for (const r of records) {
+      upsert.run(r.provinceId, r.date, r.temperature, r.aqi);
+    }
+  });
+  doUpsert();
+  return records.length;
+}
+
+export function getWeatherAqi(provinceId?: string, date?: string): { provinceId: string; date: string; temperature: number; aqi: number }[] {
+  let sql = 'SELECT province_id, date, temperature, aqi FROM weather_aqi';
+  const params: string[] = [];
+  const conditions: string[] = [];
+  if (provinceId) { conditions.push('province_id = ?'); params.push(provinceId); }
+  if (date) { conditions.push('date = ?'); params.push(date); }
+  if (conditions.length > 0) sql += ' WHERE ' + conditions.join(' AND ');
+  sql += ' ORDER BY date DESC';
+  
+  const rows = db.prepare(sql).all(...params) as { province_id: string; date: string; temperature: number; aqi: number }[];
+  return rows.map(r => ({ provinceId: r.province_id, date: r.date, temperature: r.temperature, aqi: r.aqi }));
+}
+
+// ====== Flood Data Cache ======
+export function saveFloodCache(provinceId: string, geoJsonData: object) {
+  const upsert = db.prepare(`
+    INSERT INTO flood_cache (province_id, data, fetched_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(province_id) DO UPDATE SET
+      data = excluded.data,
+      fetched_at = datetime('now')
+  `);
+  upsert.run(provinceId, JSON.stringify(geoJsonData));
+}
+
+export function getFloodCache(provinceId: string): { data: object; fetchedAt: string } | null {
+  const row = db.prepare('SELECT data, fetched_at FROM flood_cache WHERE province_id = ?').get(provinceId) as { data: string; fetched_at: string } | undefined;
+  if (!row) return null;
+  return { data: JSON.parse(row.data), fetchedAt: row.fetched_at };
+}
+
+export function isFloodCacheValid(provinceId: string, maxAgeHours = 24): boolean {
+  const row = db.prepare('SELECT fetched_at FROM flood_cache WHERE province_id = ?').get(provinceId) as { fetched_at: string } | undefined;
+  if (!row) return false;
+  const fetchedAt = new Date(row.fetched_at);
+  const now = new Date();
+  const hoursDiff = (now.getTime() - fetchedAt.getTime()) / (1000 * 60 * 60);
+  return hoursDiff < maxAgeHours;
+}
+
+// ====== Fuel Prices CRUD ======
+export interface FuelPrice {
+  fuelType: string;
+  price: number;
+  source: string;
+  fetchedAt: string;
+}
+
+// Lazy-initialized statement — prepared only after initDatabase() has created the table
+let _upsertFuelPrice: ReturnType<typeof db.prepare> | null = null;
+function getUpsertFuelPrice() {
+  if (!_upsertFuelPrice) {
+    _upsertFuelPrice = db.prepare(`
+      INSERT INTO fuel_prices (fuel_type, price, source, fetched_at)
+      VALUES (?, ?, ?, datetime('now'))
+      ON CONFLICT(fuel_type) DO UPDATE SET
+        price = excluded.price,
+        source = excluded.source,
+        fetched_at = datetime('now')
+    `);
+  }
+  return _upsertFuelPrice;
+}
+
+export function saveFuelPrices(prices: Array<{ fuelType: string; price: number; source?: string }>): void {
+  const stmt = getUpsertFuelPrice();
+  const doUpsert = db.transaction((items: Array<{ fuelType: string; price: number; source?: string }>) => {
+    for (const item of items) {
+      stmt.run(item.fuelType, item.price, item.source || 'Bangchak');
+    }
+  });
+  doUpsert(prices);
+}
+
+export function getFuelPrices(): FuelPrice[] {
+  const rows = db.prepare('SELECT fuel_type, price, source, fetched_at FROM fuel_prices ORDER BY fuel_type').all() as Array<{
+    fuel_type: string;
+    price: number;
+    source: string;
+    fetched_at: string;
+  }>;
+  return rows.map(row => ({
+    fuelType: row.fuel_type,
+    price: row.price,
+    source: row.source,
+    fetchedAt: row.fetched_at
+  }));
+}
+
+export function getFuelPricesLastFetched(): string | null {
+  const row = db.prepare('SELECT fetched_at FROM fuel_prices ORDER BY fetched_at DESC LIMIT 1').get() as { fetched_at: string } | undefined;
+  return row ? row.fetched_at : null;
+}
+
+export function isFuelPricesValid(maxAgeHours = 6): boolean {
+  const lastFetched = getFuelPricesLastFetched();
+  if (!lastFetched) return false;
+  const fetchedAt = new Date(lastFetched);
+  const now = new Date();
+  const hoursDiff = (now.getTime() - fetchedAt.getTime()) / (1000 * 60 * 60);
+  return hoursDiff < maxAgeHours;
 }
 
 // Database row types (raw from SQLite)
@@ -155,6 +493,111 @@ interface ProvinceRow {
   dailyCost: string | null;
   dailyCost_value: number | null;
   safety: number | null;
+  eco_ids: string | null;
+  best_season: string | null;
+}
+
+interface ProvinceTransportRow {
+  id: string;
+  province_id: string;
+  name: string;
+  short_name: string | null;
+  type: string;
+  operator: string | null;
+  description: string | null;
+  warp_url: string | null;
+  logo_text: string | null;
+  color: string | null;
+}
+
+interface ProvinceRouteRow {
+  id: string;
+  province_id: string;
+  name: string;
+  type: string;
+  operator: string | null;
+  origin: string;
+  destination: string;
+  via: string | null; // JSON
+  departure_times: string | null; // JSON
+  duration: string;
+  base_fare: number;
+  frequency: string | null;
+  terminal: string | null;
+  notes: string | null;
+}
+
+interface ProvinceFoodRow {
+  province_id: string;
+  name: string;
+  price_range: string | null;
+  note: string | null;
+  category: string;
+}
+
+interface ProvinceAccommodationRow {
+  province_id: string;
+  tier: string;
+  label: string;
+  price_range: string | null;
+  examples: string | null; // JSON
+  booking_url: string | null;
+}
+
+interface ProvinceDangerRow {
+  province_id: string;
+  label: string;
+  severity: string;
+  note: string | null;
+  season: string | null;
+}
+
+interface ProvinceKnowledgeTipRow {
+  id: string;
+  province_id: string;
+  title: string;
+  content: string;
+  tip_type: string | null;
+  sort_order: number;
+}
+
+interface ProvinceSupplyPointRow {
+  id: string;
+  province_id: string;
+  type: string;
+  label: string;
+  area: string | null;
+  note: string | null;
+  open_hours: string | null;
+  map_url: string | null;
+  sort_order: number;
+}
+
+interface ProvinceEmergencyContactRow {
+  id: string;
+  province_id: string;
+  label: string;
+  number: string;
+  sort_order: number;
+}
+
+interface ProvincePlannerHintsRow {
+  province_id: string;
+  common_origins: string | null;
+  common_destinations: string | null;
+  transit_hubs: string | null;
+  route_notes: string | null;
+}
+
+interface ProvinceNewEcoEntityRow {
+  id: string;
+  province_id: string;
+  entity_id: string;
+  name: string;
+  category: string;
+  tags: string | null;
+  description: string | null;
+  sort_order: number;
 }
 
 interface ArchiveProvinceRow {
@@ -420,6 +863,118 @@ export function getProvince(id: string): Province | undefined {
     };
 }
 
+export function getProvincePortal(provinceId: string) {
+  const province = db.prepare('SELECT * FROM provinces WHERE id = ?').get(provinceId) as ProvinceRow | undefined;
+  if (!province) return null;
+
+  const transport = db.prepare('SELECT * FROM province_transport WHERE province_id = ?').all(provinceId) as ProvinceTransportRow[];
+  const routes = db.prepare('SELECT * FROM province_routes WHERE province_id = ?').all(provinceId) as ProvinceRouteRow[];
+  const foods = db.prepare('SELECT * FROM province_foods WHERE province_id = ?').all(provinceId) as ProvinceFoodRow[];
+  const accommodation = db.prepare('SELECT * FROM province_accommodation WHERE province_id = ?').all(provinceId) as ProvinceAccommodationRow[];
+  const dangers = db.prepare('SELECT * FROM province_dangers WHERE province_id = ?').all(provinceId) as ProvinceDangerRow[];
+  const knowledgeTips = db.prepare('SELECT * FROM province_knowledge_tips WHERE province_id = ? ORDER BY sort_order ASC').all(provinceId) as ProvinceKnowledgeTipRow[];
+  const supplyPoints = db.prepare('SELECT * FROM province_supply_points WHERE province_id = ? ORDER BY sort_order ASC').all(provinceId) as ProvinceSupplyPointRow[];
+  const emergencyContacts = db.prepare('SELECT * FROM province_emergency_contacts WHERE province_id = ? ORDER BY sort_order ASC').all(provinceId) as ProvinceEmergencyContactRow[];
+  const plannerHints = db.prepare('SELECT * FROM province_planner_hints WHERE province_id = ?').get(provinceId) as ProvincePlannerHintsRow | undefined;
+  const newEcoEntities = db.prepare('SELECT * FROM province_new_eco_entities WHERE province_id = ? ORDER BY sort_order ASC').all(provinceId) as ProvinceNewEcoEntityRow[];
+
+  const parsedKnowledgeTips = knowledgeTips.map((tip) => ({
+    title: tip.title,
+    content: tip.content,
+    type: tip.tip_type || 'other'
+  }));
+
+  const parsedSupplyPoints = supplyPoints.map((point) => ({
+    type: point.type,
+    label: point.label,
+    area: point.area || '',
+    note: point.note || '',
+    openHours: point.open_hours || null,
+    mapUrl: point.map_url || ''
+  }));
+
+  const parsedEmergencyContacts = emergencyContacts.map((contact) => ({
+    label: contact.label,
+    number: contact.number
+  }));
+
+  const parsedNewEcoEntities = newEcoEntities.map((entity) => ({
+    id: entity.entity_id,
+    name: entity.name,
+    category: entity.category,
+    tags: entity.tags ? JSON.parse(entity.tags) : [],
+    desc: entity.description || ''
+  }));
+
+  const parsedPlannerHints = {
+    commonOrigins: plannerHints?.common_origins ? JSON.parse(plannerHints.common_origins) : [],
+    commonDestinations: plannerHints?.common_destinations ? JSON.parse(plannerHints.common_destinations) : [],
+    transitHubs: plannerHints?.transit_hubs ? JSON.parse(plannerHints.transit_hubs) : [],
+    routeNotes: plannerHints?.route_notes ? JSON.parse(plannerHints.route_notes) : []
+  };
+
+  const parsedFoods = foods.map(f => ({
+    name: f.name,
+    priceRange: f.price_range || '',
+    note: f.note || '',
+    category: f.category || 'local'
+  }));
+
+  return {
+    provinceId: province.id,
+    bestSeason: province.best_season,
+    ecoIds: province.eco_ids ? JSON.parse(province.eco_ids) : [],
+    // Map to frontend interface:
+    transport: transport.map(t => ({
+      name: t.name,
+      shortName: t.short_name || '',
+      type: t.type,
+      description: t.description || '',
+      warpUrl: t.warp_url || '',
+      logoText: t.logo_text || '',
+      color: t.color || '#fbbf24'
+    })),
+    transportRoutes: routes.map(r => ({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      operator: r.operator || 'บขส.',
+      from: r.origin,
+      to: r.destination,
+      via: r.via ? JSON.parse(r.via) : [],
+      departureTime: r.departure_times ? JSON.parse(r.departure_times) : [],
+      departureTimes: r.departure_times ? JSON.parse(r.departure_times) : [],
+      duration: r.duration,
+      baseFare: r.base_fare,
+      frequency: r.frequency || 'N/A',
+      terminal: r.terminal || '',
+      notes: r.notes || ''
+    })),
+    localFood: parsedFoods,
+    localFoods: parsedFoods,
+    accommodation: accommodation.map(a => ({
+      tier: a.tier,
+      label: a.label,
+      priceRange: a.price_range || '',
+      examples: a.examples ? JSON.parse(a.examples) : [],
+      bookingUrl: a.booking_url || ''
+    })),
+    dangerZones: dangers.map(d => ({
+      label: d.label,
+      severity: d.severity,
+      note: d.note || '',
+      season: d.season || ''
+    })),
+    supply: parsedSupplyPoints,
+    knowledge: parsedKnowledgeTips,
+    tips: parsedKnowledgeTips,
+    emergencyNumbers: parsedEmergencyContacts,
+    plannerHints: parsedPlannerHints,
+    newEcoEntities: parsedNewEcoEntities,
+    eco: { animals: [], plants: [], terrain: '', climate: '' }
+  };
+}
+
 export function getRegionSummaries(): Region[] {
   if (regionSummaryCache) return regionSummaryCache;
 
@@ -622,7 +1177,7 @@ export function seedDatabase(initialRegions: Region[]) {
     
     // Quick check to skip if everything looks populated (simple heuristic)
     if (regionCount.count >= expectedRegions && provinceCount.count >= expectedProvinces) {
-        console.log(`✓ Database checks out (${regionCount.count} regions, ${provinceCount.count} provinces). Skipping seed.`);
+        console.log(`✓ Database checks out (${regionCount.count} regions, ${provinceCount.count} provinces). Validating theme...`);
         // Keep static theme columns in sync for existing DBs.
         const updateTheme = db.prepare(`UPDATE regions SET color = ?, gradient = ? WHERE id = ?`);
         db.transaction(() => {
@@ -630,7 +1185,8 @@ export function seedDatabase(initialRegions: Region[]) {
             updateTheme.run(reg.color, reg.gradient || null, reg.id);
           }
         })();
-        return;
+        // REMOVED EARLY RETURN to ensure any new provinces are inserted via INSERT OR IGNORE
+        // return;
     }
 
     console.log('⏳ Verifying and Seeding Database...');
@@ -720,9 +1276,25 @@ export function forceReseedDatabase(initialRegions: Region[]) {
     provincesCache = null;
     provincesByRegionCache = null;
     provinceIndexCache = null;
-    db.exec('DELETE FROM provinces;');
-    db.exec('DELETE FROM region_stats;');
-    db.exec('DELETE FROM regions;');
+
+    const clearAll = db.transaction(() => {
+      db.exec('DELETE FROM weather_aqi;');
+      db.exec('DELETE FROM province_new_eco_entities;');
+      db.exec('DELETE FROM province_planner_hints;');
+      db.exec('DELETE FROM province_emergency_contacts;');
+      db.exec('DELETE FROM province_supply_points;');
+      db.exec('DELETE FROM province_knowledge_tips;');
+      db.exec('DELETE FROM province_dangers;');
+      db.exec('DELETE FROM province_accommodation;');
+      db.exec('DELETE FROM province_foods;');
+      db.exec('DELETE FROM province_routes;');
+      db.exec('DELETE FROM province_transport;');
+      db.exec('DELETE FROM provinces;');
+      db.exec('DELETE FROM region_stats;');
+      db.exec('DELETE FROM regions;');
+    });
+
+    clearAll();
     
     // Call seedDatabase with cleared tables
     seedDatabase(initialRegions);
@@ -733,11 +1305,421 @@ export function getDatabaseStats() {
     const regionCount = db.prepare('SELECT count(*) as count FROM regions').get() as { count: number };
     const provinceCount = db.prepare('SELECT count(*) as count FROM provinces').get() as { count: number };
     const statsCount = db.prepare('SELECT count(*) as count FROM region_stats').get() as { count: number };
+    const transportCount = db.prepare('SELECT count(*) as count FROM province_transport').get() as { count: number };
+    const routeCount = db.prepare('SELECT count(*) as count FROM province_routes').get() as { count: number };
+    const foodCount = db.prepare('SELECT count(*) as count FROM province_foods').get() as { count: number };
+    const accomCount = db.prepare('SELECT count(*) as count FROM province_accommodation').get() as { count: number };
+    const dangerCount = db.prepare('SELECT count(*) as count FROM province_dangers').get() as { count: number };
+    const knowledgeTipCount = db.prepare('SELECT count(*) as count FROM province_knowledge_tips').get() as { count: number };
+    const supplyPointCount = db.prepare('SELECT count(*) as count FROM province_supply_points').get() as { count: number };
+    const emergencyContactCount = db.prepare('SELECT count(*) as count FROM province_emergency_contacts').get() as { count: number };
+    const plannerHintsCount = db.prepare('SELECT count(*) as count FROM province_planner_hints').get() as { count: number };
+    const newEcoEntityCount = db.prepare('SELECT count(*) as count FROM province_new_eco_entities').get() as { count: number };
     
     return {
         regions: regionCount.count,
         provinces: provinceCount.count,
         stats: statsCount.count,
+        transport: transportCount.count,
+        routes: routeCount.count,
+        foods: foodCount.count,
+        accommodation: accomCount.count,
+        dangers: dangerCount.count,
+        knowledgeTips: knowledgeTipCount.count,
+        supplyPoints: supplyPointCount.count,
+        emergencyContacts: emergencyContactCount.count,
+        plannerHints: plannerHintsCount.count,
+        newEcoEntities: newEcoEntityCount.count,
         dbPath: dbPath
     };
+}
+
+// ===== Province Portal Seed Data Types & Function =====
+export interface PortalTransportSeed {
+  name: string;
+  shortName: string;
+  type: string;
+  description: string;
+  warpUrl: string;
+  logoText: string;
+  color: string;
+}
+
+export interface PortalRouteSeed {
+  name: string;
+  type: string;
+  operator: string;
+  from: string;
+  to: string;
+  via: string[];
+  departureTimes: string[];
+  duration: string;
+  baseFare: number;
+  frequency: string;
+  terminal: string;
+  notes: string | null;
+}
+
+export interface PortalFoodSeed {
+  name: string;
+  priceRange: string;
+  category: string;
+  note: string | null;
+}
+
+export interface PortalAccommodationSeed {
+  tier: string;
+  label: string;
+  priceRange: string;
+  examples: string[];
+  bookingUrl: string | null;
+}
+
+export interface PortalDangerSeed {
+  label: string;
+  severity: string;
+  note: string;
+  season: string | null;
+}
+
+export interface PortalMetadataSeed {
+  climate?: string;
+  terrain?: string;
+  bestSeason?: string;
+  emergencyContacts?: Array<{ label: string; number: string }>;
+}
+
+export interface ProvincePortalSeedData {
+  transport?: PortalTransportSeed[];
+  routes?: PortalRouteSeed[];
+  localFoods?: PortalFoodSeed[];
+  accommodation?: PortalAccommodationSeed[];
+  dangerZones?: PortalDangerSeed[];
+  ecoIds?: string[];
+  newEcoEntities?: Array<{ id: string; name: string; category: string; tags: string[]; desc: string }>;
+  knowledgeTips?: Array<{ title: string; content: string; type?: string }>;
+  supplyPoints?: Array<{ type: string; label: string; area?: string | null; note?: string | null; openHours?: string | null; mapUrl?: string }>;
+  plannerHints?: { commonOrigins?: string[]; commonDestinations?: string[]; transitHubs?: string[]; routeNotes?: string[] };
+  metadata?: PortalMetadataSeed;
+}
+
+/**
+ * Seed province portal data.
+ * Base tables (transport/routes/foods/accommodation/dangers) are inserted once.
+ * Auxiliary tables (knowledge/supply/emergency/planner/new-eco) are refreshed each run.
+ */
+export function seedProvincePortalData(data: Record<string, ProvincePortalSeedData>) {
+  const insertTransport = db.prepare(`
+    INSERT OR IGNORE INTO province_transport (id, province_id, name, short_name, type, description, warp_url, logo_text, color)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertRoute = db.prepare(`
+    INSERT OR IGNORE INTO province_routes (id, province_id, name, type, operator, origin, destination, via, departure_times, duration, base_fare, frequency, terminal, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertFood = db.prepare(`
+    INSERT INTO province_foods (province_id, name, price_range, note, category)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+
+  const insertAccom = db.prepare(`
+    INSERT INTO province_accommodation (province_id, tier, label, price_range, examples, booking_url)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertDanger = db.prepare(`
+    INSERT INTO province_dangers (province_id, label, severity, note, season)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+
+  const replaceKnowledgeTip = db.prepare(`
+    INSERT OR REPLACE INTO province_knowledge_tips (id, province_id, title, content, tip_type, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  const replaceSupplyPoint = db.prepare(`
+    INSERT OR REPLACE INTO province_supply_points (id, province_id, type, label, area, note, open_hours, map_url, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const replaceEmergencyContact = db.prepare(`
+    INSERT OR REPLACE INTO province_emergency_contacts (id, province_id, label, number, sort_order)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+
+  const upsertPlannerHints = db.prepare(`
+    INSERT INTO province_planner_hints (province_id, common_origins, common_destinations, transit_hubs, route_notes, updated_at)
+    VALUES (?, ?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(province_id) DO UPDATE SET
+      common_origins = excluded.common_origins,
+      common_destinations = excluded.common_destinations,
+      transit_hubs = excluded.transit_hubs,
+      route_notes = excluded.route_notes,
+      updated_at = datetime('now')
+  `);
+
+  const replaceNewEcoEntity = db.prepare(`
+    INSERT OR REPLACE INTO province_new_eco_entities (id, province_id, entity_id, name, category, tags, description, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const deleteKnowledgeTips = db.prepare('DELETE FROM province_knowledge_tips WHERE province_id = ?');
+  const deleteSupplyPoints = db.prepare('DELETE FROM province_supply_points WHERE province_id = ?');
+  const deleteEmergencyContacts = db.prepare('DELETE FROM province_emergency_contacts WHERE province_id = ?');
+  const deleteNewEcoEntities = db.prepare('DELETE FROM province_new_eco_entities WHERE province_id = ?');
+
+  const updateEcoAndSeason = db.prepare(`
+    UPDATE provinces SET eco_ids = ?, best_season = ? WHERE id = ?
+  `);
+
+  const getProvinceEcoAndSeason = db.prepare('SELECT eco_ids, best_season FROM provinces WHERE id = ?');
+
+  // Province name → id mapping (English name from deep research → province_id in DB)
+  const nameToId: Record<string, string> = {
+    'Khon Kaen': 'khonkaen',
+    'Udon Thani': 'udonthani',
+    'Nong Khai': 'nongkhai',
+    'Nong Bua Lam Phu': 'nongbualamphu',
+    'Loei': 'loei',
+    'Sakon Nakhon': 'sakonnakhon',
+    'Nakhon Phanom': 'nakhonphanom',
+    'Mukdahan': 'mukdahan',
+    'Kalasin': 'kalasin',
+    'Bueng Kan': 'buengkan',
+    // Part 4 - Isan lower
+    'Nakhon Ratchasima': 'nakhonratchasima',
+    'Buri Ram': 'buriram',
+    'Surin': 'surin',
+    'Si Sa Ket': 'sisaket',
+    'Ubon Ratchathani': 'ubonratchathani',
+    'Roi Et': 'roiet',
+    'Maha Sarakham': 'mahasarakham',
+    'Yasothon': 'yasothon',
+    'Amnat Charoen': 'amnatcharoen',
+    'Chaiyaphum': 'chaiyaphum',
+    // Part 2 - North
+    'Chiang Mai': 'chiangmai',
+    'Chiang Rai': 'chiangrai',
+    'Lampang': 'lampang',
+    'Lamphun': 'lamphun',
+    'Mae Hong Son': 'maehongson',
+    'Nan': 'nan',
+    'Phayao': 'phayao',
+    'Phrae': 'phrae',
+    'Uttaradit': 'uttaradit',
+    'Sukhothai': 'sukhothai',
+    'Tak': 'tak',
+    'Kamphaeng Phet': 'kamphaengphet',
+    'Phitsanulok': 'phitsanulok',
+    'Phichit': 'phichit',
+    'Phetchabun': 'phetchabun',
+    'Nakhon Sawan': 'nakhonsawan',
+    'Uthai Thani': 'uthaithani',
+    // Part 1 - Central
+    'Bangkok': 'bangkok',
+    'Nonthaburi': 'nonthaburi',
+    'Pathum Thani': 'pathumthani',
+    'Samut Prakan': 'samutprakan',
+    'Phra Nakhon Si Ayutthaya': 'ayutthaya',
+    'Ayutthaya': 'ayutthaya', // Fallback for short name
+    'Nakhon Pathom': 'nakhonpathom',
+    'Samut Sakhon': 'samutsakhon',
+    'Samut Songkhram': 'samutsongkhram',
+    'Suphan Buri': 'suphanburi',
+    'Sing Buri': 'singburi',
+    'Ang Thong': 'angthong',
+    'Lop Buri': 'lopburi',
+    'Saraburi': 'saraburi',
+    'Chai Nat': 'chainat',
+    'Nakhon Nayok': 'nakhonnayok',
+    // Part 5 - East + West
+    'Chon Buri': 'chonburi',
+    'Rayong': 'rayong',
+    'Chanthaburi': 'chanthaburi',
+    'Trat': 'trat',
+    'Sa Kaeo': 'sakaeo',
+    'Chachoengsao': 'chachoengsao',
+    'Prachin Buri': 'prachinburi',
+    'Kanchanaburi': 'kanchanaburi',
+    'Ratchaburi': 'ratchaburi',
+    'Phetchaburi': 'phetchaburi',
+    'Prachuap Khiri Khan': 'prachuapkhirikhan',
+    // Part 6 - South
+    'Surat Thani': 'suratthani',
+    'Phuket': 'phuket',
+    'Krabi': 'krabi',
+    'Phang Nga': 'phangnga',
+    'Nakhon Si Thammarat': 'nakhonsithammarat',
+    'Songkhla': 'songkhla',
+    'Trang': 'trang',
+    'Satun': 'satun',
+    'Phatthalung': 'phatthalung',
+    'Chumphon': 'chumphon',
+    'Ranong': 'ranong',
+    'Yala': 'yala',
+    'Pattani': 'pattani',
+    'Narathiwat': 'narathiwat',
+  };
+
+  let seeded = 0;
+  let skipped = 0;
+  let enriched = 0;
+
+  const doSeed = db.transaction(() => {
+    for (const [provinceName, portal] of Object.entries(data)) {
+      // Support both display names ("Kamphaeng Phet") and pre-normalized IDs ("kamphaengphet")
+      let provinceId = nameToId[provinceName];
+      if (!provinceId) {
+        // Try using the key directly as a province_id
+        const directCheck = db.prepare('SELECT id FROM provinces WHERE id = ?').get(provinceName) as { id: string } | undefined;
+        if (directCheck) {
+          provinceId = directCheck.id;
+        } else {
+          console.warn(`⚠ Portal seed: unknown province "${provinceName}", skipping`);
+          skipped++;
+          continue;
+        }
+      }
+
+      const transportSeeds = Array.isArray(portal.transport) ? portal.transport : [];
+      const routeSeeds = Array.isArray(portal.routes) ? portal.routes : [];
+      const foodSeeds = Array.isArray(portal.localFoods) ? portal.localFoods : [];
+      const accommodationSeeds = Array.isArray(portal.accommodation) ? portal.accommodation : [];
+      const dangerSeeds = Array.isArray(portal.dangerZones) ? portal.dangerZones : [];
+      const metadata = portal.metadata;
+      const hasBasePayload =
+        transportSeeds.length > 0 ||
+        routeSeeds.length > 0 ||
+        foodSeeds.length > 0 ||
+        accommodationSeeds.length > 0 ||
+        dangerSeeds.length > 0;
+
+      // Check if base portal data is already seeded.
+      const existing = db.prepare('SELECT count(*) as c FROM province_transport WHERE province_id = ?').get(provinceId) as { c: number };
+      if (existing.c > 0) {
+        skipped++;
+      } else if (hasBasePayload) {
+        // 1. Transport
+        transportSeeds.forEach((t, i) => {
+          const id = `${provinceId}_t_${i}`;
+          insertTransport.run(id, provinceId, t.name, t.shortName, t.type, t.description, t.warpUrl || null, t.logoText, t.color);
+        });
+
+        // 2. Routes
+        routeSeeds.forEach((r, i) => {
+          const id = `${provinceId}_r_${i}`;
+          insertRoute.run(
+            id, provinceId, r.name, r.type, r.operator, r.from, r.to,
+            JSON.stringify(r.via), JSON.stringify(r.departureTimes),
+            r.duration, r.baseFare, r.frequency, r.terminal, r.notes
+          );
+        });
+
+        // 3. Local foods
+        foodSeeds.forEach(f => {
+          insertFood.run(provinceId, f.name, f.priceRange, f.note, f.category);
+        });
+
+        // 4. Accommodation
+        accommodationSeeds.forEach(a => {
+          insertAccom.run(provinceId, a.tier, a.label, a.priceRange, JSON.stringify(a.examples), a.bookingUrl);
+        });
+
+        // 5. Danger zones
+        dangerSeeds.forEach(d => {
+          insertDanger.run(provinceId, d.label, d.severity, d.note, d.season);
+        });
+
+        seeded++;
+      } else {
+        skipped++;
+      }
+
+      // 6. Update eco_ids and best_season on provinces table
+      const hasEcoUpdate = Array.isArray(portal.ecoIds);
+      const hasBestSeasonUpdate = typeof metadata?.bestSeason === 'string';
+      if (hasEcoUpdate || hasBestSeasonUpdate) {
+        const current = getProvinceEcoAndSeason.get(provinceId) as { eco_ids: string | null; best_season: string | null } | undefined;
+        const nextEcoIds = hasEcoUpdate ? JSON.stringify(portal.ecoIds) : (current?.eco_ids ?? null);
+        const nextBestSeason = hasBestSeasonUpdate
+          ? (metadata?.bestSeason && metadata.bestSeason.trim() ? metadata.bestSeason : null)
+          : (current?.best_season ?? null);
+        updateEcoAndSeason.run(nextEcoIds, nextBestSeason, provinceId);
+      }
+
+      // 7. Province-specific emergency contacts
+      if (Array.isArray(metadata?.emergencyContacts)) {
+        deleteEmergencyContacts.run(provinceId);
+        metadata.emergencyContacts.forEach((contact, i) => {
+          const id = `${provinceId}_em_${i}`;
+          replaceEmergencyContact.run(id, provinceId, contact.label, contact.number, i);
+        });
+      }
+
+      // 8. Knowledge tips
+      if (portal.knowledgeTips !== undefined) {
+        deleteKnowledgeTips.run(provinceId);
+        (portal.knowledgeTips || []).forEach((tip, i) => {
+          const id = `${provinceId}_kt_${i}`;
+          replaceKnowledgeTip.run(id, provinceId, tip.title, tip.content, tip.type || 'other', i);
+        });
+      }
+
+      // 9. Supply points
+      if (portal.supplyPoints !== undefined) {
+        deleteSupplyPoints.run(provinceId);
+        (portal.supplyPoints || []).forEach((point, i) => {
+          const id = `${provinceId}_sp_${i}`;
+          replaceSupplyPoint.run(
+            id,
+            provinceId,
+            point.type,
+            point.label,
+            point.area || '',
+            point.note || '',
+            point.openHours || null,
+            point.mapUrl || '',
+            i
+          );
+        });
+      }
+
+      // 10. Planner hints
+      if (portal.plannerHints !== undefined) {
+        const planner = portal.plannerHints || {};
+        upsertPlannerHints.run(
+          provinceId,
+          JSON.stringify(planner.commonOrigins || []),
+          JSON.stringify(planner.commonDestinations || []),
+          JSON.stringify(planner.transitHubs || []),
+          JSON.stringify(planner.routeNotes || [])
+        );
+      }
+
+      // 11. New eco entities
+      if (portal.newEcoEntities !== undefined) {
+        deleteNewEcoEntities.run(provinceId);
+        (portal.newEcoEntities || []).forEach((eco, i) => {
+          const id = `${provinceId}_eco_${i}`;
+          replaceNewEcoEntity.run(
+            id,
+            provinceId,
+            eco.id,
+            eco.name,
+            eco.category,
+            JSON.stringify(eco.tags || []),
+            eco.desc,
+            i
+          );
+        });
+      }
+
+      enriched++;
+    }
+  });
+
+  doSeed();
+  console.log(`✓ Portal data seeded: ${seeded} provinces, ${skipped} skipped, ${enriched} enriched`);
 }

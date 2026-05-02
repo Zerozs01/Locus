@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Globe, Radar as RadarIcon, Activity, Database, Settings, Brain, Package } from 'lucide-react';
+import { Compass, Map, Newspaper, Settings, MessageSquare, Package, Navigation } from 'lucide-react';
 import { ResourceInventory } from './ResourceInventory';
 
 interface SidebarBtnProps {
@@ -41,46 +41,49 @@ export const Sidebar = () => {
           className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.4)] mb-8 cursor-pointer hover:scale-110 transition-transform"
           title="Locus Home"
         >
-          <Globe className="w-5 h-5 text-white" />
+          <Compass className="w-5 h-5 text-white" />
         </div>
 
         {/* Navigation */}
         <div className="flex-1 w-full px-2 space-y-4">
+
           <SidebarBtn 
-            icon={<RadarIcon size={20}/>} 
-            label="Threat Radar" 
-            active={isActive('/')} 
-            onClick={() => navigate('/')}
+            icon={<Map size={20}/>} 
+            label="Thai Map" 
+            active={isActive('/map')}
+            onClick={() => navigate('/map')}
           />
           <SidebarBtn 
-            icon={<Database size={20}/>} 
-            label="Geo-Archive" 
-            active={isActive('/archive')}
-            onClick={() => navigate('/archive')}
-          />
-          <SidebarBtn 
-            icon={<Brain size={20}/>} 
-            label="Intelligence" 
+            icon={<MessageSquare size={20}/>} 
+            label="Agent" 
             active={isActive('/intelligence')}
             onClick={() => navigate('/intelligence')}
           />
           <SidebarBtn 
-            icon={<Activity size={20}/>} 
-            label="Analytics" 
+            icon={<Newspaper size={20}/>} 
+            label="News" 
             active={isActive('/analytics')}
             onClick={() => navigate('/analytics')}
           />
+          {/* Directions & Resource Inventory - DISABLED for demo */}
+          {/* <SidebarBtn 
+            icon={<Navigation size={20}/>} 
+            label="Directions" 
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('locus-trigger-routing'));
+            }}
+          /> */}
 
           {/* Divider */}
           <div className="border-t border-white/5 my-2" />
 
           {/* Resource Inventory */}
-          <SidebarBtn 
+          {/* <SidebarBtn 
             icon={<Package size={20}/>} 
             label="Resource Inventory" 
             active={showInventory}
             onClick={() => setShowInventory(prev => !prev)}
-          />
+          /> */}
         </div>
 
         {/* Bottom Section */}

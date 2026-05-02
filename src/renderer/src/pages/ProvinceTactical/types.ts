@@ -5,7 +5,7 @@ export type FlyToHandler = (lat: number, lng: number, title?: string) => void;
 export interface ProvinceData {
   thaiName: string;
   slogan: string;
-  weather: { temp: string; condition: string; humidity: string };
+  weather: { temp: string; condition: string; humidity: string; aqi?: number };
   safetyIndex: number;
   dailyCost: string;
   attractions: Array<{ name: string; type: string; rating: number; description?: string; openHours?: string; price?: string; coordinates?: { lat: number; lng: number } }>;

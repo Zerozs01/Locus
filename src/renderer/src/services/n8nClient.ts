@@ -60,6 +60,15 @@ interface N8nOverrides {
   apiKey?: string
 }
 
+export interface ChatLocationPayload {
+  provinceName?: string
+  city?: string
+  regionName?: string
+  country?: string
+  lat?: number
+  lng?: number
+}
+
 const CHAT_SESSION_STORAGE_KEY = 'locus_chat_session_id'
 
 const resolveSessionId = (explicitSessionId?: string): string => {
@@ -169,13 +178,22 @@ export interface ChatResponse {
   output: string
 }
 
-export const sendChatMessage = async (message: string, sessionId?: string, overrides?: N8nOverrides): Promise<string> => {
+export const sendChatMessage = async (
+  message: string,
+  sessionId?: string,
+  overrides?: N8nOverrides,
+  location?: ChatLocationPayload
+): Promise<string> => {
   const resolvedSessionId = resolveSessionId(sessionId)
+  const payload = {
+    message,
+    sessionId: resolvedSessionId,
+    ...location
+  }
 
   if (window.api?.n8n?.chat) {
     const response = await window.api.n8n.chat({
-      message,
-      sessionId: resolvedSessionId,
+      ...payload,
       ...overrides
     })
 
@@ -211,7 +229,7 @@ export const sendChatMessage = async (message: string, sessionId?: string, overr
     const response = await withRetry(() =>
       axios.post(
         `${webhookUrl}/chat`,
-        { message, sessionId: resolvedSessionId },
+        payload,
         {
           headers: authHeaders,
           timeout: 30000
