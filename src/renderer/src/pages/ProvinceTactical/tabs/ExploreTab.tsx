@@ -1,5 +1,6 @@
 import { 
   Camera,
+  Image as ImageIcon,
   Thermometer,
   Wallet,
   Wind
@@ -30,16 +31,20 @@ interface ExploreTabProps {
   mapDataLayers?: Record<ProvinceDataLayer, boolean>;
   onChangeMapTheme?: (theme: ProvinceMapTheme) => void;
   onToggleDataLayer?: (layer: ProvinceDataLayer) => void;
+  provinceImage?: string;
 }
 
 export const ExploreTab = ({
   data,
   onFlyTo,
   provinceInfo,
+  provinceImage,
 }: ExploreTabProps) => {
   const [currentSeason, setCurrentSeason] = useState<{name: string; months: string; description: string}>({ name: 'Season', months: '', description: '' });
   const [showWeatherHistory, setShowWeatherHistory] = useState(false);
   const [showSloganPopup, setShowSloganPopup] = useState(false);
+  // Image dimensions: 480x280 (banner) or 160x120 (thumbnail)
+  // AVIF/WebP recommended for best compression
 
   const aqiLevelLabel = useMemo(() => {
     const aqi = Number(data.weather.aqi);
@@ -84,6 +89,7 @@ export const ExploreTab = ({
     <div className="space-y-4">
       {provinceInfo && (
         <div className="rounded-xl bg-[#0a0c10] border border-white/10 p-3 flex flex-col gap-1.5 overflow-hidden">
+          {/* Banner Image Removed as requested */}
           <div className="flex justify-between items-center gap-3">
             <div className="flex items-baseline gap-2 min-w-0 flex-1">
               <h1 className="text-xl font-black text-white truncate leading-none">
@@ -165,6 +171,7 @@ export const ExploreTab = ({
               openHours={item.openHours}
               price={item.price}
               coordinates={item.coordinates}
+              sourceUrl={item.sourceUrl}
               onFlyTo={onFlyTo}
             />
           ))}

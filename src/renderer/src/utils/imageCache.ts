@@ -19,7 +19,14 @@ const fallbackImage = `data:image/svg+xml;utf8,${encodeURIComponent(fallbackSvg)
 
 export const getCachedImageUrl = (url: string) => {
   if (!url) return fallbackImage
-  if (isSpecialScheme(url) || isRelativeAsset(url)) return url
+  if (isSpecialScheme(url)) return url
+  
+  // Handle local/relative paths for Electron
+  if (isRelativeAsset(url)) {
+    if (!isElectronEnv()) return url;
+    return `locus://local?path=${encodeURIComponent(url)}`;
+  }
+
   if (!isElectronEnv()) return url
   if (!isHttpUrl(url)) return fallbackImage
   return `locus://image?url=${encodeURIComponent(url)}`

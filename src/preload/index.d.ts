@@ -7,6 +7,24 @@ interface DatabaseStats {
   dbPath: string
 }
 
+interface ExplorePlace {
+  id: number
+  title: string
+  locationName: string | null
+  category: string | null
+  iconName: string | null
+  regionId: string | null
+  provinceId: string | null
+  tags: string[] | null
+  thumbnailUrl: string | null
+  fullImageUrl: string | null
+  description: string | null
+  rating: number | null
+  openingHours: string | null
+  sourceUrl: string | null
+  updatedAt: string | null
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
@@ -25,6 +43,9 @@ declare global {
         forceReseed: () => Promise<DatabaseStats>
         saveWeatherAqi: (records: { provinceId: string; date: string; temperature: number; aqi: number }[]) => Promise<number>
         getWeatherAqi: (provinceId?: string, date?: string) => Promise<Array<{ provinceId: string; date: string; temperature: number; aqi: number }>>
+        getExplorePlaces: (category?: string, regionId?: string) => Promise<ExplorePlace[]>
+        getExplorePlacesByCategories: (categories: string[]) => Promise<ExplorePlace[]>
+        getPopularProvinces: (regionId?: string, limit?: number) => Promise<Array<{ provinceId: string; provinceName: string; regionId: string; visitorCount: number; popularityFactors?: string; lastUpdated?: string }>>
       }
       floodCache: {
         save: (provinceId: string, geoJsonData: object) => Promise<void>
@@ -35,6 +56,10 @@ declare global {
         save: (prices: Array<{ fuelType: string; price: number; source?: string }>) => Promise<void>
         get: () => Promise<Array<{ fuelType: string; price: number; source: string; fetchedAt: string }>>
         isValid: (maxAgeHours?: number) => Promise<boolean>
+      }
+      explorePlaces: {
+        getAll: () => Promise<ExplorePlace[]>
+        getByCategories: (categories: string[]) => Promise<ExplorePlace[]>
       }
       fetchBangchak: () => Promise<{ ok: boolean; data?: string; status?: number; error?: string }>
       assets: {

@@ -276,6 +276,46 @@ export function initDatabase() {
   `);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_fuel_prices_fetched ON fuel_prices(fetched_at);`);
 
+  // ====== 14. Explore Places: สถานที่ท่องเที่ยวสำหรับ GeoArchive ======
+  // db.exec(`DROP TABLE IF EXISTS explore_places;`); // DONE: UNIQUE constraint applied, persistence enabled
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS explore_places (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      location_name TEXT,
+      category TEXT,
+      icon_name TEXT,
+      region_id TEXT,
+      province_id TEXT,
+      tags TEXT,
+      thumbnail_url TEXT,
+      full_image_url TEXT,
+      description TEXT,
+      rating REAL,
+      opening_hours TEXT,
+      source_url TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(title, province_id)
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_explore_places_category ON explore_places(category);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_explore_places_region ON explore_places(region_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_explore_places_province ON explore_places(province_id);`);
+
+  // ====== 15. Provinces Stats: Regional popularity data from MOTS ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS provinces_stats (
+      province_id TEXT PRIMARY KEY,
+      province_name TEXT NOT NULL,
+      region_id TEXT NOT NULL,
+      visitor_count INTEGER DEFAULT 0,
+      popularity_factors TEXT,
+      last_updated TEXT DEFAULT (datetime('now'))
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_stats_region ON provinces_stats(region_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_stats_visitors ON provinces_stats(visitor_count DESC);`);
+
   // Indexes creation moved after column migrations to ensure columns exist
 
   // Migrations: ensure numeric columns exist for legacy DBs
@@ -1191,18 +1231,57 @@ export function seedDatabase(initialRegions: Region[]) {
 
     console.log('⏳ Verifying and Seeding Database...');
     const insertRegion = db.prepare(`
-        INSERT OR IGNORE INTO regions (id, name, engName, code, desc, color, gradient, image, safety, population, population_value, area, area_value, province_count)
+        INSERT INTO regions (id, name, engName, code, desc, color, gradient, image, safety, population, population_value, area, area_value, province_count)
         VALUES (@id, @name, @engName, @code, @desc, @color, @gradient, @image, @safety, @population, @population_value, @area, @area_value, @province_count)
+        ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
+            engName = excluded.engName,
+            code = excluded.code,
+            desc = excluded.desc,
+            color = excluded.color,
+            gradient = excluded.gradient,
+            image = excluded.image,
+            safety = excluded.safety,
+            population = excluded.population,
+            population_value = excluded.population_value,
+            area = excluded.area,
+            area_value = excluded.area_value,
+            province_count = excluded.province_count
     `);
 
     const insertStats = db.prepare(`
-        INSERT OR IGNORE INTO region_stats (region_id, dailyCost, dailyCost_value, monthlyCost, monthlyCost_value, food, flora, attraction, nightlife)
+        INSERT INTO region_stats (region_id, dailyCost, dailyCost_value, monthlyCost, monthlyCost_value, food, flora, attraction, nightlife)
         VALUES (@region_id, @dailyCost, @dailyCost_value, @monthlyCost, @monthlyCost_value, @food, @flora, @attraction, @nightlife)
+        ON CONFLICT(region_id) DO UPDATE SET
+            dailyCost = excluded.dailyCost,
+            dailyCost_value = excluded.dailyCost_value,
+            monthlyCost = excluded.monthlyCost,
+            monthlyCost_value = excluded.monthlyCost_value,
+            food = excluded.food,
+            flora = excluded.flora,
+            attraction = excluded.attraction,
+            nightlife = excluded.nightlife
     `);
 
     const insertProvince = db.prepare(`
-        INSERT OR IGNORE INTO provinces (id, region_id, name, image, dist, tam, serenity, entertainment, relax, population, population_value, area, area_value, dailyCost, dailyCost_value, safety)
+        INSERT INTO provinces (id, region_id, name, image, dist, tam, serenity, entertainment, relax, population, population_value, area, area_value, dailyCost, dailyCost_value, safety)
         VALUES (@id, @region_id, @name, @image, @dist, @tam, @serenity, @entertainment, @relax, @population, @population_value, @area, @area_value, @dailyCost, @dailyCost_value, @safety)
+        ON CONFLICT(id) DO UPDATE SET
+          region_id = excluded.region_id,
+          name = excluded.name,
+          image = excluded.image,
+          dist = excluded.dist,
+          tam = excluded.tam,
+          serenity = excluded.serenity,
+          entertainment = excluded.entertainment,
+          relax = excluded.relax,
+          population = excluded.population,
+          population_value = excluded.population_value,
+          area = excluded.area,
+          area_value = excluded.area_value,
+          dailyCost = excluded.dailyCost,
+          dailyCost_value = excluded.dailyCost_value,
+          safety = excluded.safety
     `);
 
     const insertMany = db.transaction((regions: Region[]) => {
@@ -1265,6 +1344,13 @@ export function seedDatabase(initialRegions: Region[]) {
     });
 
     insertMany(initialRegions);
+    
+    // Clear caches to reflect new seed data
+    regionsCache = null;
+    regionSummaryCache = null;
+    provincesCache = null;
+    provincesByRegionCache = null;
+    provinceIndexCache = null;
     console.log('✓ Seeding process completed.');
 }
 
@@ -1332,6 +1418,29 @@ export function getDatabaseStats() {
         newEcoEntities: newEcoEntityCount.count,
         dbPath: dbPath
     };
+}
+
+export function seedPopularProvinces(data: any[]) {
+  // Always upsert seed data to ensure latest stats are used
+  const upsert = db.prepare(`
+    INSERT INTO provinces_stats (province_id, province_name, region_id, visitor_count, popularity_factors, last_updated)
+    VALUES (@province_id, @province_name, @region_id, @visitor_count, @popularity_factors, datetime('now'))
+    ON CONFLICT(province_id) DO UPDATE SET
+      province_name = excluded.province_name,
+      region_id = excluded.region_id,
+      visitor_count = excluded.visitor_count,
+      popularity_factors = excluded.popularity_factors,
+      last_updated = datetime('now')
+  `);
+
+  const doUpsert = db.transaction((records: any[]) => {
+    for (const record of records) {
+      upsert.run(record);
+    }
+  });
+
+  doUpsert(data);
+  console.log(`✅ Seeded ${data.length} popular provinces into SQLite.`);
 }
 
 // ===== Province Portal Seed Data Types & Function =====
@@ -1722,4 +1831,236 @@ export function seedProvincePortalData(data: Record<string, ProvincePortalSeedDa
 
   doSeed();
   console.log(`✓ Portal data seeded: ${seeded} provinces, ${skipped} skipped, ${enriched} enriched`);
+}
+
+// ====== Explore Places CRUD ======
+export interface ExplorePlace {
+  id: number;
+  title: string;
+  locationName: string | null;
+  category: string | null;
+  iconName: string | null;
+  regionId: string | null;
+  provinceId: string | null;
+  tags: string[] | null;
+  thumbnailUrl: string | null;
+  fullImageUrl: string | null;
+  description: string | null;
+  rating: number | null;
+  openingHours: string | null;
+  sourceUrl: string | null;
+  updatedAt: string | null;
+}
+
+interface ExplorePlaceRow {
+  id: number;
+  title: string;
+  location_name: string | null;
+  category: string | null;
+  icon_name: string | null;
+  region_id: string | null;
+  province_id: string | null;
+  tags: string | null;
+  thumbnail_url: string | null;
+  full_image_url: string | null;
+  description: string | null;
+  rating: number | null;
+  opening_hours: string | null;
+  source_url: string | null;
+  updated_at: string | null;
+}
+
+function mapExplorePlaceRow(row: ExplorePlaceRow): ExplorePlace {
+  let parsedTags: string[] | null = null;
+  if (row.tags) {
+    try { parsedTags = JSON.parse(row.tags); } catch { parsedTags = null; }
+  }
+  return {
+    id: row.id,
+    title: row.title,
+    locationName: row.location_name,
+    category: row.category,
+    iconName: row.icon_name,
+    regionId: row.region_id,
+    provinceId: row.province_id,
+    tags: parsedTags,
+    thumbnailUrl: row.thumbnail_url,
+    fullImageUrl: row.full_image_url,
+    description: row.description,
+    rating: row.rating,
+    openingHours: row.opening_hours,
+    sourceUrl: row.source_url,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function getExplorePlaces(): ExplorePlace[] {
+  const rows = db.prepare('SELECT * FROM explore_places ORDER BY category, title').all() as ExplorePlaceRow[];
+  return rows.map(mapExplorePlaceRow);
+}
+
+export function getExplorePlacesByCategory(category: string): ExplorePlace[] {
+  const rows = db.prepare('SELECT * FROM explore_places WHERE category = ? ORDER BY title').all(category) as ExplorePlaceRow[];
+  return rows.map(mapExplorePlaceRow);
+}
+
+export function getExplorePlacesByCategories(categories: string[]): ExplorePlace[] {
+  if (categories.length === 0) return [];
+  const placeholders = categories.map(() => '?').join(',');
+  const rows = db.prepare(`SELECT * FROM explore_places WHERE category IN (${placeholders}) ORDER BY category, title`).all(...categories) as ExplorePlaceRow[];
+  return rows.map(mapExplorePlaceRow);
+}
+
+export function saveExplorePlaces(places: Array<{
+  title: string;
+  locationName?: string;
+  category?: string;
+  iconName?: string;
+  regionId?: string;
+  provinceId?: string;
+  tags?: string[];
+  thumbnailUrl?: string;
+  fullImageUrl?: string;
+  description?: string;
+  rating?: number;
+  openingHours?: string;
+  sourceUrl?: string;
+}>): number {
+  const upsert = db.prepare(`
+    INSERT INTO explore_places (
+      title, location_name, category, icon_name, region_id, province_id, tags, 
+      thumbnail_url, full_image_url, description, rating, opening_hours, source_url, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(title, province_id) DO UPDATE SET
+      location_name = COALESCE(excluded.location_name, explore_places.location_name),
+      category = COALESCE(excluded.category, explore_places.category),
+      icon_name = COALESCE(excluded.icon_name, explore_places.icon_name),
+      tags = COALESCE(excluded.tags, explore_places.tags),
+      thumbnail_url = COALESCE(excluded.thumbnail_url, explore_places.thumbnail_url),
+      full_image_url = COALESCE(excluded.full_image_url, explore_places.full_image_url),
+      description = COALESCE(excluded.description, explore_places.description),
+      rating = COALESCE(excluded.rating, explore_places.rating),
+      opening_hours = COALESCE(excluded.opening_hours, explore_places.opening_hours),
+      source_url = COALESCE(excluded.source_url, explore_places.source_url),
+      updated_at = datetime('now')
+  `);
+  const doInsert = db.transaction((items: typeof places) => {
+    for (const p of items) {
+      upsert.run(
+        p.title,
+        p.locationName || null,
+        p.category || null,
+        p.iconName || null,
+        p.regionId || null,
+        p.provinceId || null,
+        p.tags ? JSON.stringify(p.tags) : null,
+        p.thumbnailUrl || null,
+        p.fullImageUrl || null,
+        p.description || null,
+        p.rating ?? null,
+        p.openingHours || null,
+        p.sourceUrl || null
+      );
+    }
+  });
+  doInsert(places);
+  return places.length;
+}
+
+export function seedExplorePlaces(places: Array<{
+  title: string;
+  locationName?: string;
+  category?: string;
+  iconName?: string;
+  regionId?: string;
+  provinceId?: string;
+  tags?: string[];
+  thumbnailUrl?: string;
+  fullImageUrl?: string;
+  description?: string;
+  rating?: number;
+  openingHours?: string;
+  sourceUrl?: string;
+}>): void {
+  const upsert = db.prepare(`
+    INSERT INTO explore_places (title, location_name, category, icon_name, region_id, province_id, tags, thumbnail_url, full_image_url, description, rating, opening_hours, source_url, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(title, province_id) DO UPDATE SET
+      location_name = COALESCE(excluded.location_name, explore_places.location_name),
+      category = COALESCE(excluded.category, explore_places.category),
+      icon_name = COALESCE(excluded.icon_name, explore_places.icon_name),
+      tags = COALESCE(excluded.tags, explore_places.tags),
+      thumbnail_url = COALESCE(excluded.thumbnail_url, explore_places.thumbnail_url),
+      full_image_url = COALESCE(excluded.full_image_url, explore_places.full_image_url),
+      description = COALESCE(excluded.description, explore_places.description),
+      rating = COALESCE(excluded.rating, explore_places.rating),
+      opening_hours = COALESCE(excluded.opening_hours, explore_places.opening_hours),
+      source_url = COALESCE(excluded.source_url, explore_places.source_url),
+      updated_at = datetime('now')
+  `);
+  const doInsert = db.transaction((items: typeof places) => {
+    for (const p of items) {
+      upsert.run(
+        p.title,
+        p.locationName || null,
+        p.category || null,
+        p.iconName || null,
+        p.regionId || null,
+        p.provinceId || null,
+        p.tags ? JSON.stringify(p.tags) : null,
+        p.thumbnailUrl || null,
+        p.fullImageUrl || null,
+        p.description || null,
+        p.rating ?? null,
+        p.openingHours || null,
+        p.sourceUrl || null
+      );
+    }
+  });
+  doInsert(places);
+  console.log(`✓ explore_places: ${places.length} places from seed`);
+}
+
+// ====== Provinces Stats CRUD ======
+export interface ProvinceStats {
+  provinceId: string;
+  provinceName: string;
+  regionId: string;
+  visitorCount: number;
+  popularityFactors?: string;
+  lastUpdated?: string;
+}
+
+export function upsertProvinceStats(stats: ProvinceStats): void {
+  const upsert = db.prepare(`
+    INSERT INTO provinces_stats (province_id, province_name, region_id, visitor_count, popularity_factors, last_updated)
+    VALUES (?, ?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(province_id) DO UPDATE SET
+      province_name = excluded.province_name,
+      region_id = excluded.region_id,
+      visitor_count = excluded.visitor_count,
+      popularity_factors = excluded.popularity_factors,
+      last_updated = datetime('now')
+  `);
+  upsert.run(stats.provinceId, stats.provinceName, stats.regionId, stats.visitorCount, stats.popularityFactors ?? null);
+}
+
+export function getPopularProvinces(regionId?: string, limit = 100): ProvinceStats[] {
+  const condition = regionId ? 'WHERE region_id = ?' : '';
+  const orderAndLimit = regionId ? 'ORDER BY visitor_count DESC LIMIT ?' : 'ORDER BY visitor_count DESC LIMIT ?';
+  const params: (string | number)[] = regionId ? [regionId, limit] : [limit];
+
+  const rows = db.prepare(`SELECT province_id, province_name, region_id, visitor_count, popularity_factors, last_updated FROM provinces_stats ${condition} ${orderAndLimit}`).all(...params) as Array<{
+    province_id: string; province_name: string; region_id: string; visitor_count: number; popularity_factors: string | null; last_updated: string;
+  }>;
+
+  return rows.map(row => ({
+    provinceId: row.province_id,
+    provinceName: row.province_name,
+    regionId: row.region_id,
+    visitorCount: row.visitor_count,
+    popularityFactors: row.popularity_factors ?? undefined,
+    lastUpdated: row.last_updated
+  }));
 }

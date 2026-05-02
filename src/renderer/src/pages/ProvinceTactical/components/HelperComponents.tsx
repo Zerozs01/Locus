@@ -166,7 +166,7 @@ export const CollapsibleSection = ({
   );
 };
 
-export const PlaceCard = ({ rank, name, type, rating, description, openHours, price, coordinates, onFlyTo }: {
+export const PlaceCard = ({ rank, name, type, rating, description, openHours, price, coordinates, sourceUrl, onFlyTo }: {
   rank: number;
   name: string;
   type: string;
@@ -175,6 +175,7 @@ export const PlaceCard = ({ rank, name, type, rating, description, openHours, pr
   openHours?: string;
   price?: string;
   coordinates?: { lat: number; lng: number };
+  sourceUrl?: string;
   onFlyTo?: FlyToHandler;
 }) => {
   const handleFlyTo = (e: React.MouseEvent) => {
@@ -202,6 +203,16 @@ export const PlaceCard = ({ rank, name, type, rating, description, openHours, pr
                 title={`Fly to ${name} on map`}
               >
                 <Crosshair size={14} />
+              </button>
+            )}
+            {/* Maps button */}
+            {sourceUrl && (
+              <button
+                onClick={(e) => { e.stopPropagation(); window.open(sourceUrl, '_blank'); }}
+                className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 hover:text-emerald-300 transition-all hover:scale-110 active:scale-95"
+                title="Open in Google Maps"
+              >
+                <ExternalLink size={14} />
               </button>
             )}
             <div className="flex items-center gap-1 text-amber-400">
@@ -322,8 +333,8 @@ export const DishCard = ({ name, description, price }: { name: string; descripti
   </div>
 );
 
-export const RestaurantCard = ({ name, cuisine, price, rating, specialty, coordinates, onFlyTo }: { 
-  name: string; cuisine: string; price: string; rating: number; specialty?: string; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
+export const RestaurantCard = ({ name, cuisine, price, rating, specialty, coordinates, sourceUrl, onFlyTo }: { 
+  name: string; cuisine: string; price: string; rating: number; specialty?: string; coordinates?: { lat: number; lng: number }; sourceUrl?: string; onFlyTo?: FlyToHandler 
 }) => {
   const handleFlyTo = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -339,8 +350,18 @@ export const RestaurantCard = ({ name, cuisine, price, rating, specialty, coordi
         <p className="text-xs text-slate-500">{cuisine} • {price}</p>
         {specialty && <p className="text-xs text-amber-400 mt-0.5">Try: {specialty}</p>}
       </div>
-      <div className="flex items-center gap-2">
-        {coordinates && onFlyTo && (
+        <div className="flex items-center gap-2">
+          {/* Maps button */}
+          {sourceUrl && (
+            <button
+              onClick={(e) => { e.stopPropagation(); window.open(sourceUrl, '_blank'); }}
+              className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 hover:text-emerald-300 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
+              title="Open in Google Maps"
+            >
+              <ExternalLink size={14} />
+            </button>
+          )}
+          {coordinates && onFlyTo && (
           <button
             onClick={handleFlyTo}
             className="p-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
@@ -358,8 +379,8 @@ export const RestaurantCard = ({ name, cuisine, price, rating, specialty, coordi
   );
 };
 
-export const CafeCard = ({ name, vibe, wifi, specialty, coordinates, onFlyTo }: { 
-  name: string; vibe: string; wifi: boolean; specialty: string; coordinates?: { lat: number; lng: number }; onFlyTo?: FlyToHandler 
+export const CafeCard = ({ name, vibe, wifi, specialty, coordinates, sourceUrl, onFlyTo }: { 
+  name: string; vibe: string; wifi: boolean; specialty: string; coordinates?: { lat: number; lng: number }; sourceUrl?: string; onFlyTo?: FlyToHandler 
 }) => {
   const handleFlyTo = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -373,6 +394,16 @@ export const CafeCard = ({ name, vibe, wifi, specialty, coordinates, onFlyTo }: 
       <div className="flex items-center justify-between">
         <h4 className="font-medium text-white text-sm">{name}</h4>
         <div className="flex items-center gap-2">
+          {/* Maps button */}
+          {sourceUrl && (
+            <button
+              onClick={(e) => { e.stopPropagation(); window.open(sourceUrl, '_blank'); }}
+              className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 hover:text-emerald-300 transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
+              title="Open in Google Maps"
+            >
+              <ExternalLink size={14} />
+            </button>
+          )}
           {coordinates && onFlyTo && (
             <button
               onClick={handleFlyTo}

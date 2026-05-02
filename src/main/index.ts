@@ -1,8 +1,10 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid, getExplorePlaces, getExplorePlacesByCategories, seedExplorePlaces, getPopularProvinces, upsertProvinceStats, seedPopularProvinces } from './database/db'
 import { initialRegions } from './database/initialData'
+import { EXPLORE_PLACES_SEED } from './database/explorePlacesSeed'
+import { POPULAR_PROVINCES_SEED } from './database/popularProvincesSeed'
 import { isanUpper1 } from './database/portalSeed_isanUpper1'
 import { isanUpper2 } from './database/portalSeed_isanUpper2'
 import { isanLower1 } from './database/portalSeed_isanLower1'
@@ -423,6 +425,27 @@ const registerImageProtocol = async () => {
   protocol.handle('locus', async (request) => {
     try {
       const url = new URL(request.url)
+      
+      // Handle Local Files (e.g., locus://local?path=/src/Image/...)
+      if (url.hostname === 'local') {
+        const relativePath = url.searchParams.get('path')
+        if (!relativePath) return buildFallbackResponse()
+        
+        // Ensure path is safe and within the project (basic check)
+        const projectRoot = app.getAppPath()
+        const fullPath = path.resolve(projectRoot, relativePath.startsWith('/') ? relativePath.substring(1) : relativePath)
+        
+        try {
+          const data = await fs.readFile(fullPath)
+          const ext = path.extname(fullPath).toLowerCase()
+          const mime = imageMimeByExt[ext] || 'image/png'
+          return new Response(data, { headers: { 'content-type': mime } })
+        } catch (err) {
+          console.error(`Failed to load local image: ${fullPath}`, err)
+          return buildFallbackResponse()
+        }
+      }
+
       if (url.hostname !== 'image') {
         return buildFallbackResponse()
       }
@@ -579,6 +602,8 @@ app.whenReady().then(async () => {
   initDatabase()
   seedDatabase(initialRegions)
   seedProvincePortalData({ ...isanUpper1, ...isanUpper2, ...isanLower1, ...isanLower2, ...eastWest1, ...eastWest2, ...eastWest3, ...southPart1, ...southPart2, ...southPart3, ...centralPart1, ...centralPart2, ...centralPart3, ...northPart1, ...northPart2, ...northPart3 })
+  seedExplorePlaces(EXPLORE_PLACES_SEED)
+  seedPopularProvinces(POPULAR_PROVINCES_SEED)
   await registerImageProtocol().catch((error) => console.error('Failed to register image protocol:', error))
 
   // Default open or close DevTools by F12 in development
@@ -660,6 +685,18 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('db:isFuelPricesValid', (_, maxAgeHours = 6) => {
      return isFuelPricesValid(maxAgeHours);
+  })
+
+  ipcMain.handle('db:getExplorePlaces', () => {
+     return getExplorePlaces();
+  })
+
+  ipcMain.handle('db:getExplorePlacesByCategories', (_, categories: string[]) => {
+     return getExplorePlacesByCategories(categories);
+  })
+
+  ipcMain.handle('db:getPopularProvinces', (_, regionId?: string, limit?: number) => {
+     return getPopularProvinces(regionId, limit);
   })
 
   ipcMain.handle('assets:getImageCacheStats', () => {

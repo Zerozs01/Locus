@@ -5,7 +5,8 @@ import { RegionDashboard } from '../components/RegionDashboard';
 import { Region, Province, regionsData } from '../data/regions';
 import { regionTheme, type RegionId } from '../data/regionTheme';
 import { searchProvince, getThaiProvinceName } from '../data/thaiProvinceNames';
-import { Search, Users, Maximize, Building, MapPin } from 'lucide-react';
+import { Search, Users, Maximize, Building, MapPin, TrendingUp } from 'lucide-react';
+import { PopularProvincePopup } from '../components/PopularProvincePopup';
 import { measureAsync } from '../utils/perf';
 import { mixHex, toRgba } from '../utils/color';
 
@@ -81,6 +82,7 @@ export const ThreatRadarPage = () => {
     geojson?: unknown;
   }>>([]);
   const [isRemoteSearching, setIsRemoteSearching] = useState(false);
+  const [showPopularProvinces, setShowPopularProvinces] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const loadedRegionIdsRef = useRef<Set<string>>(new Set());
@@ -514,8 +516,12 @@ export const ThreatRadarPage = () => {
     setSelectedProvince(null);
   }, []);
 
-    const handleSelectProvinceByName = useCallback((name: string) => {
-    const normalizedName = normalizeSearchText(name);
+  const handleSelectProvinceByName = useCallback((name: string) => {
+    // Map GeoJSON names to UI names if they differ
+    const uiName = name === 'Bangkok Metropolis' ? 'Bangkok' : 
+                   (name === 'Phra Nakhon Si Ayutthaya' ? 'Ayutthaya' : name);
+    
+    const normalizedName = normalizeSearchText(uiName);
     const provInfo = normalizedProvinceCache.find(p =>
       p.normalizedName === normalizedName || p.normalizedThaiName === normalizedName
     );
@@ -587,6 +593,10 @@ export const ThreatRadarPage = () => {
             )}
           </div>
         )}
+
+        {/* POPULAR PROVINCES BUTTON (Moved to RegionDashboard) */}
+
+
 
         {/* SEARCH BAR WITH UPWARD SUGGESTIONS */}
         <div className="absolute bottom-6 left-6 right-6 z-30">
@@ -665,7 +675,20 @@ export const ThreatRadarPage = () => {
         onSelectProvince={handleProvinceSelect}
         onViewProvinceDetail={handleViewProvinceDetail}
         loadingProvinceRegionId={loadingProvinceRegionId}
+        onOpenPopularProvinces={() => setShowPopularProvinces(true)}
       />
+      {/* POPULAR PROVINCES POPUP */}
+      {showPopularProvinces && selectedRegionId && (
+        <PopularProvincePopup
+          regionId={selectedRegionId}
+          regionName={selectedRegionId.charAt(0).toUpperCase() + selectedRegionId.slice(1)}
+          onClose={() => setShowPopularProvinces(false)}
+          onSelectProvince={(provinceName) => {
+            handleSelectProvinceByName(provinceName);
+            setMapMode('province');
+          }}
+        />
+      )}
     </>
   );
 };
