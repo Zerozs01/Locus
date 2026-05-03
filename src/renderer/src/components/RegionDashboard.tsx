@@ -9,7 +9,8 @@ import {
   Route,
   Sun,
   Wallet,
-  Wind
+  Wind,
+  Info
 } from 'lucide-react';
 import { Region, Province, regionsData } from '../data/regions';
 import { regionTheme, type RegionId } from '../data/regionTheme';
@@ -17,10 +18,16 @@ import { CachedImage } from './CachedImage';
 import { DetailCard } from './DetailCard';
 import { RegionalIntelBar, ClimateStatProps, MobilityStatProps, StabilityStatProps } from './RegionalIntelBar';
 import { mixHex, toRgba } from '../utils/color';
-import { pm25ToAqi, getAqiLevel, getAqiLevelSub, AQI_SYNC_TIMESTAMP_KEY, AQI_SYNC_COOLDOWN_MS, saveSyncTimestamp, AQI_SYNC_EVENT } from '../utils/aqi';
+import { pm25ToAqi, getAqiLevelSub, AQI_SYNC_TIMESTAMP_KEY, AQI_SYNC_COOLDOWN_MS, saveSyncTimestamp, AQI_SYNC_EVENT } from '../utils/aqi';
 import { AQIModal } from './AQIModal';
 import { WeatherHistoryModal } from './WeatherHistoryModal';
 import { getRecords, saveRecord } from '../utils/csvDb';
+import { calculateRegionSafety, type SafetyResult } from '../utils/safetyLevel';
+import { evaluateBestSeason } from '../utils/bestSeason';
+import { TacticalSeasonPopup } from './TacticalSeasonPopup';
+import { ThreatMatrixModal } from './ThreatMatrixModal';
+import ProvinceReconPopup from './ProvinceReconPopup';
+import { provinceEmergencyData, provinceEssentialData } from '../pages/ProvinceTactical/data';
 
 // ─── FORECAST SYNC CONSTANTS (separate from AQI) ───────────────────────────────
 const WEATHER_FORECAST_SYNC_KEY = 'locus_weather_forecast_last_sync_timestamp';
@@ -35,8 +42,7 @@ const saveForecastSyncTimestamp = () => {
   localStorage.setItem(WEATHER_FORECAST_SYNC_LABEL_KEY, new Date().toLocaleString('th-TH'));
   localStorage.setItem(WEATHER_FORECAST_SYNC_KEY, String(Date.now()));
 };
-const getForecastLastSyncLabel = (): string =>
-  localStorage.getItem(WEATHER_FORECAST_SYNC_LABEL_KEY) || 'Never';
+
 const getLocalDateKey = (d = new Date()): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
@@ -263,17 +269,7 @@ const getTopPopularProvince = (
   return `${data.provinceName} (${formatVisitorCount(data.visitorCount)})`;
 };
 
-const getBestSeason = (regionId: string) => {
-  const data: Record<string, string> = {
-    north: 'Nov - Feb (Winter)',
-    northeast: 'Nov - Jan (Cool)',
-    central: 'Nov - Feb (Cool)',
-    south: 'All Year Round',
-    west: 'Nov - Feb (Nature)',
-    east: 'Dec - May (Beach)'
-  };
-  return data[regionId] || 'All Year';
-};
+
 
 export interface RegionDashboardProps {
   regions: Region[];
@@ -288,6 +284,7 @@ export interface RegionDashboardProps {
   onOpenChat?: (context: { type: 'region' | 'province'; name: string; data: any }) => void;
   loadingProvinceRegionId?: string | null;
   onOpenPopularProvinces?: () => void;
+  onSafetyDataChange?: (safetyByRegion: Map<string, SafetyResult>) => void;
 }
 
 export const RegionDashboard = memo(({
@@ -302,7 +299,8 @@ export const RegionDashboard = memo(({
   onViewProvinceDetail,
   onOpenChat,
   loadingProvinceRegionId,
-  onOpenPopularProvinces
+  onOpenPopularProvinces,
+  onSafetyDataChange
 }: RegionDashboardProps) => {
   const navigate = useNavigate();
   const provinceListRef = useRef<HTMLDivElement | null>(null);
@@ -313,6 +311,12 @@ export const RegionDashboard = memo(({
   const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
     const [selectedRegionForWeather, setSelectedRegionForWeather] = useState<Region | null>(null);
   const [weatherRows, setWeatherRows] = useState<WeatherAqiRow[]>([]);
+  const [isSeasonPopupOpen, setIsSeasonPopupOpen] = useState(false);
+  const [selectedRegionForSeason, setSelectedRegionForSeason] = useState<Region | null>(null);
+  const [isThreatMatrixOpen, setIsThreatMatrixOpen] = useState(false);
+  const [selectedRegionForThreatMatrix, setSelectedRegionForThreatMatrix] = useState<Region | null>(null);
+  const [reconProvince, setReconProvince] = useState<Province | null>(null);
+  const [isReconOpen, setIsReconOpen] = useState(false);
   const [popularProvincesByRegion, setPopularProvincesByRegion] = useState<Record<string, { provinceName: string; visitorCount: number } | null>>({});
   const hasBootAutoSyncChecked = useRef(false);
   const isBootAutoSyncRunning = useRef(false);
@@ -524,6 +528,45 @@ export const RegionDashboard = memo(({
       const isLikelyTruncated = expectedCount > 0 && provs.length > 0 && provs.length < expectedCount;
       if (provs.length === 0 || isLikelyTruncated) {
         provs = staticProvs.length > 0 ? staticProvs : provs;
+      } else if (staticProvs.length > 0) {
+        // Force sync images from static data to ensure updated assets are used even if DB has stale data
+        provs = provs.map(p => {
+          const staticProv = staticProvs.find(sp => sp.id === p.id);
+          const pName = p.name;
+          const sName = staticProv?.name || '';
+          
+          // Pull from Tactical Data if available
+          const emergency = provinceEmergencyData[pName] || provinceEmergencyData[sName];
+          const essential = provinceEssentialData[pName] || provinceEssentialData[sName];
+          
+          // Extract Medical Hubs (count hospitals)
+          const medicalCount = emergency?.filter(a => a.agency.includes('รพ.') || a.agency.toLowerCase().includes('hospital')).length || 0;
+          
+          // Extract Transport Nodes
+          const transportCount = essential?.transportHubs ? Object.keys(essential.transportHubs).length : 0;
+          
+          // Extract Emergency Contact (first one)
+          const primaryContact = emergency?.[0]?.phone || '191';
+
+          // Determine Terrain based on region
+          let estimatedTerrain: 'Urban' | 'River Basin' | 'Mountainous' | 'Coastal' = 'Urban';
+          if (reg.id === 'north') estimatedTerrain = 'Mountainous';
+          else if (reg.id === 'central') estimatedTerrain = 'River Basin';
+          else if (reg.id === 'south' || reg.id === 'east') estimatedTerrain = 'Coastal';
+
+          return { 
+            ...p, 
+            image: staticProv?.image || p.image,
+            terrain: staticProv?.terrain || estimatedTerrain,
+            infrastructure: {
+              medicalHubs: staticProv?.infrastructure?.medicalHubs || (medicalCount > 0 ? medicalCount : 2),
+              transportNodes: staticProv?.infrastructure?.transportNodes || (transportCount > 0 ? transportCount : 1)
+            },
+            emergencyContact: staticProv?.emergencyContact || primaryContact,
+            tacticalTags: staticProv?.tacticalTags || (reg.id === 'central' ? ['URBAN CENTER'] : ['REGIONAL HUB']),
+            activeThreat: staticProv?.activeThreat || 'CLEAR'
+          };
+        });
       }
 
       map.set(reg.id, [...provs].sort((a, b) => a.name.localeCompare(b.name)));
@@ -942,21 +985,56 @@ export const RegionDashboard = memo(({
     });
   }, [mapMode, selectedProvince?.id, selectedRegionId, regions]);
 
+  // ─── Dynamic Safety Scores per Region ─────────────────────────────────────────
+  const safetyByRegion = useMemo(() => {
+    const map = new Map<string, SafetyResult>();
+    for (const reg of orderedRegions) {
+      let provinces = reg.subProvinces || [];
+      if (provinces.length === 0) {
+        provinces = regionsData.find((r) => r.id === reg.id)?.subProvinces || [];
+      }
+
+      const provIds = provinces.map((p) => normalizeWeatherProvinceId(p.id));
+      const liveAqi: Record<string, number> = {};
+      const liveTemp: Record<string, number> = {};
+
+      provIds.forEach((id) => {
+        const aqiVal = latestAqiByProvince[id];
+        if (typeof aqiVal === 'number' && Number.isFinite(aqiVal)) liveAqi[id] = aqiVal;
+        const tempState = latestTemperatureByProvince.get(id);
+        if (tempState) liveTemp[id] = tempState.latest;
+      });
+
+      const result = calculateRegionSafety(provinces, liveAqi, liveTemp, provIds);
+      map.set(reg.id, result);
+    }
+    return map;
+  }, [orderedRegions, latestAqiByProvince, latestTemperatureByProvince]);
+
+  useEffect(() => {
+    if (onSafetyDataChange) {
+      onSafetyDataChange(safetyByRegion);
+    }
+  }, [safetyByRegion, onSafetyDataChange]);
+
   return (
     <section className="relative flex flex-[3] flex-col overflow-hidden bg-[#0c1014]">
       {orderedRegions.map((reg) => {
         const isActive = selectedRegionId === reg.id;
         const climate = climateByRegionDynamic.get(reg.id) || climateByRegion[reg.id] || climateByRegion.central;
         const mobility = mobilityByRegion[reg.id] || mobilityByRegion.central;
-        const stability = getStabilityProps(reg.safety);
+        const dynamicSafety = safetyByRegion.get(reg.id);
+        const stability = getStabilityProps(dynamicSafety?.score ?? reg.safety);
         const theme = getRegionTheme(reg.id);
+        const regTheme = theme;
         const accentHex = getRegionAccent(theme);
         const pm25 = pm25ByRegion.get(reg.id) || getFallbackPM25Stat(reg.id);
+        const seasonEval = evaluateBestSeason(reg.id);
         const detailCards = [
           { key: 'cost', icon: <Wallet />, label: 'Avg Daily Cost', value: reg.stats.dailyCost, sub: 'Expenses/Day', emphasis: 0.34 },
           { key: 'air', icon: <Wind />, label: 'Air Quality (PM2.5)', value: pm25.value, sub: pm25.sub, emphasis: 0.3, isAqi: true },
           { key: 'provinces', icon: <MapPin />, label: 'Popular Provinces', value: getTopPopularProvince(reg.id, popularProvincesByRegion), sub: 'Top Destinations', emphasis: 0.4, valueClass: 'text-[0.8rem]', isPopularProvinces: true },
-          { key: 'season', icon: <Sun />, label: 'Best Season', value: getBestSeason(reg.id), sub: 'Recommended', emphasis: 0.18, valueClass: 'text-[0.8rem]' }
+          { key: 'season', icon: <Sun />, label: 'Best Season', value: seasonEval.seasonLabel, sub: seasonEval.seasonLabelTh, emphasis: 0.18, valueClass: 'text-[0.8rem]', isSeason: true }
         ];
 
         return (
@@ -1051,6 +1129,10 @@ export const RegionDashboard = memo(({
                           } : item.isPopularProvinces ? (e) => {
                             e.stopPropagation();
                             if (onOpenPopularProvinces) onOpenPopularProvinces();
+                          } : (item as any).isSeason ? (e: React.MouseEvent<HTMLDivElement>) => {
+                            e.stopPropagation();
+                            setSelectedRegionForSeason(reg);
+                            setIsSeasonPopupOpen(true);
                           } : undefined}
                         />
                       ))}
@@ -1073,6 +1155,7 @@ export const RegionDashboard = memo(({
                           <Route size={16} /> Travel Guide
                         </span>
                       </button>
+                      
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1127,6 +1210,10 @@ export const RegionDashboard = memo(({
                       accentHex={accentHex} 
                       dimHex={theme.mapDimmed} 
                       toneRamp={theme.toneRamp} 
+                      onOpenThreatMatrix={() => {
+                        setSelectedRegionForThreatMatrix(reg);
+                        setIsThreatMatrixOpen(true);
+                      }}
                     />
                   </div>
                 </div>
@@ -1159,7 +1246,7 @@ export const RegionDashboard = memo(({
                               e.stopPropagation();
                               onSelectProvince(prov);
                             }}
-                            className="group cursor-pointer overflow-hidden rounded-[1.15rem] border backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:brightness-110"
+                            className="group/prov relative cursor-pointer overflow-hidden rounded-[1.15rem] border backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:brightness-110"
                             style={getProvinceCardStyle(theme, isSelected)}
                           >
                             <div className="relative h-28 overflow-hidden">
@@ -1171,6 +1258,20 @@ export const RegionDashboard = memo(({
                                 alt={getDisplayName(prov.name)}
                               />
                               <div className="absolute inset-0 bg-black/40 transition-colors group-hover:bg-black/15" />
+                              
+                              {/* Quick Recon Icon */}
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setReconProvince(prov);
+                                  setIsReconOpen(true);
+                                }}
+                                className="absolute top-2 right-2 z-30 p-1.5 rounded-lg bg-black/50 text-white/70 hover:text-white hover:bg-cyan-600/80 backdrop-blur-md border border-white/10 transition-all opacity-0 group-hover:opacity-100 flex items-center justify-center"
+                                title="Quick Recon"
+                              >
+                                <Info size={14} />
+                              </button>
+
                               <div className="absolute bottom-2 left-2 right-2">
                                 <h3 className="text-lg font-bold text-white drop-shadow-md">{getDisplayName(prov.name)}</h3>
                               </div>
@@ -1184,7 +1285,16 @@ export const RegionDashboard = memo(({
                                   <Grid size={10} /> {prov.tam} ตำบล
                                 </span>
                                 <span className="flex items-center gap-1">💰 {prov.dailyCost || '300 ฿'}</span>
-                                <span className="flex items-center gap-1">🛡️ {prov.safety || 80}%</span>
+                                <span className="flex items-center gap-1">
+                                  <span
+                                    className="inline-block h-1.5 w-1.5 rounded-full"
+                                    style={{
+                                      backgroundColor: (dynamicSafety?.provinceResults?.find(pr => pr.name === prov.name)?.score ?? prov.safety ?? 80) >= 80 ? '#22c55e' : (dynamicSafety?.provinceResults?.find(pr => pr.name === prov.name)?.score ?? prov.safety ?? 80) >= 50 ? '#f59e0b' : '#ef4444',
+                                      boxShadow: `0 0 4px ${(dynamicSafety?.provinceResults?.find(pr => pr.name === prov.name)?.score ?? prov.safety ?? 80) >= 80 ? '#22c55e' : (dynamicSafety?.provinceResults?.find(pr => pr.name === prov.name)?.score ?? prov.safety ?? 80) >= 50 ? '#f59e0b' : '#ef4444'}80`,
+                                    }}
+                                  />
+                                  {dynamicSafety?.provinceResults?.find(pr => pr.name === prov.name)?.score ?? prov.safety ?? 80}%
+                                </span>
                               </div>
                               {isSelected && (
                                 <div className="animate-in slide-in-from-top-2 border-t pt-2" style={{ borderColor: toRgba(accentHex, 0.12) }}>
@@ -1198,7 +1308,7 @@ export const RegionDashboard = memo(({
                                     className="group flex w-full items-center justify-center gap-1 rounded-lg border py-1.5 text-xs font-bold text-white transition-all"
                                     style={getProvinceActionStyle(theme)}
                                   >
-                                    View province detail
+                                    View province Map
                                     <ExternalLink size={12} className="transition-transform group-hover:translate-x-0.5" />
                                   </button>
                                 </div>
@@ -1233,6 +1343,42 @@ export const RegionDashboard = memo(({
           provinceName={`${selectedRegionForWeather.name} Region`}
           regionId={selectedRegionForWeather.id}
           provinces={sortedProvincesByRegion.get(selectedRegionForWeather.id) || selectedRegionForWeather.subProvinces}
+        />
+      )}
+
+      {/* Tactical Season Popup */}
+      {selectedRegionForSeason && (
+        <TacticalSeasonPopup
+          isOpen={isSeasonPopupOpen}
+          onClose={() => setIsSeasonPopupOpen(false)}
+          regionId={selectedRegionForSeason.id}
+          regionName={selectedRegionForSeason.name}
+          accentHex={getRegionAccent(getRegionTheme(selectedRegionForSeason.id))}
+        />
+      )}
+
+      {/* Threat Matrix Modal */}
+      {selectedRegionForThreatMatrix && (
+        <ThreatMatrixModal
+          isOpen={isThreatMatrixOpen}
+          onClose={() => setIsThreatMatrixOpen(false)}
+          regionName={selectedRegionForThreatMatrix.name}
+          safetyData={safetyByRegion.get(selectedRegionForThreatMatrix.id)}
+          accentHex={getRegionAccent(getRegionTheme(selectedRegionForThreatMatrix.id))}
+        />
+      )}
+
+      {/* Quick Recon Popup */}
+      {isReconOpen && reconProvince && (
+        <ProvinceReconPopup 
+          province={reconProvince}
+          onClose={() => setIsReconOpen(false)}
+          onEnterDetail={(id) => {
+            setIsReconOpen(false);
+            if (onViewProvinceDetail && selectedRegionId) {
+              onViewProvinceDetail(selectedRegionId, id);
+            }
+          }}
         />
       )}
     </section>

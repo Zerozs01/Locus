@@ -1,7 +1,21 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
-// Custom APIs for renderer
+// ─── Daily Cache for Trending Places ──────────────────────────────────────
+let trendingPlacesCache: any = null;
+let trendingPlacesCacheDate: string | null = null;
+
+const getDayKey = (): string => {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+};
+
+const isTrendingCacheValid = (): boolean => {
+  const today = getDayKey();
+  return trendingPlacesCacheDate === today && trendingPlacesCache !== null;
+};
+
+// ─── Custom APIs for renderer ──────────────────────────────────────────────
 const api = {
   ping: (): void => ipcRenderer.send('ping'),
   db: {
@@ -24,8 +38,27 @@ const api = {
       ipcRenderer.invoke('db:getExplorePlaces', category, regionId),
     getExplorePlacesByCategories: (categories: string[]) =>
       ipcRenderer.invoke('db:getExplorePlacesByCategories', categories),
+    getTrendingPlaces: async (limit?: number) => {
+      // Use daily cache: check once per calendar day
+      if (isTrendingCacheValid()) {
+        console.log('💾 getTrendingPlaces: Using cache from', trendingPlacesCacheDate);
+        return trendingPlacesCache;
+      }
+      
+      console.log('🔄 getTrendingPlaces: Cache expired or first load, fetching from IPC');
+      const result = await ipcRenderer.invoke('get-trending-places', limit);
+      
+      // Update cache
+      trendingPlacesCache = result;
+      trendingPlacesCacheDate = getDayKey();
+      console.log('💾 getTrendingPlaces: Cached for', trendingPlacesCacheDate);
+      
+      return result;
+    },
     getPopularProvinces: (regionId?: string, limit?: number) =>
-      ipcRenderer.invoke('db:getPopularProvinces', regionId, limit)
+      ipcRenderer.invoke('db:getPopularProvinces', regionId, limit),
+    populateTestTrendingData: () =>
+      ipcRenderer.invoke('db:populate-test-trending')
   },
   floodCache: {
     save: (provinceId: string, geoJsonData: object) =>

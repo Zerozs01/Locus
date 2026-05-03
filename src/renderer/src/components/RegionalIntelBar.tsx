@@ -1,4 +1,5 @@
-import { Compass, Shield, Thermometer } from 'lucide-react';
+import { Compass, Info, Shield, Thermometer, X } from 'lucide-react';
+import { useState } from 'react';
 import { mixHex, toRgba } from '../utils/color';
 
 type ClimateTone = 'cool' | 'warm' | 'hot';
@@ -39,6 +40,7 @@ export interface StabilityStatProps {
   value: string;
   label: string;
   tone: StabilityTone;
+  onClick?: () => void;
 }
 
 export interface MobilityStatProps {
@@ -54,6 +56,7 @@ export interface RegionalIntelBarProps {
   accentHex?: string;
   dimHex?: string;
   toneRamp?: readonly [string, string, string];
+  onOpenThreatMatrix?: () => void;
 }
 
 interface RegionSurfaceProps {
@@ -118,19 +121,31 @@ const ClimateStat = ({ value, trend, tone, toneRamp, onClick }: ClimateStatProps
   );
 };
 
-const StabilityStat = ({ value, label, tone, toneRamp }: StabilityStatProps & RegionSurfaceProps) => {
+const StabilityStat = ({ value, label, tone, toneRamp, onClick }: StabilityStatProps & RegionSurfaceProps) => {
   const lift = stabilityLift[tone];
   const toneColor = toneRamp[1];
   const accent = getAccentText(toneColor, 0.12);
 
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={getTileStyle(toneColor, lift)}>
+    <div className="flex items-center gap-3 relative group/stability">
+      <div 
+        onClick={onClick}
+        className="flex h-10 w-10 items-center justify-center rounded-xl border cursor-pointer hover:bg-white/5 transition-colors" 
+        style={getTileStyle(toneColor, lift)}
+      >
         <Shield size={18} />
       </div>
       <div className="flex flex-col">
-        <div className="text-lg font-semibold leading-none" style={getValueStyle(toneColor, lift)}>
-          {value}
+        <div className="flex items-center gap-1.5">
+          <div className="text-lg font-semibold leading-none" style={getValueStyle(toneColor, lift)}>
+            {value}
+          </div>
+          <button 
+            onClick={onClick}
+            className="text-white/20 hover:text-white/60 transition-colors"
+          >
+            <Info size={10} />
+          </button>
         </div>
         <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
           ระดับความปลอดภัย
@@ -178,7 +193,8 @@ export const RegionalIntelBar = ({
   mobility,
   accentHex = DEFAULT_ACCENT,
   dimHex = DEFAULT_DIM,
-  toneRamp = DEFAULT_TONE_RAMP
+  toneRamp = DEFAULT_TONE_RAMP,
+  onOpenThreatMatrix
 }: RegionalIntelBarProps) => {
   return (
     <div
@@ -196,7 +212,7 @@ export const RegionalIntelBar = ({
     >
       <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <ClimateStat {...climate} accentHex={accentHex} dimHex={dimHex} toneRamp={toneRamp} />
-        <StabilityStat {...stability} accentHex={accentHex} dimHex={dimHex} toneRamp={toneRamp} />
+        <StabilityStat {...stability} onClick={onOpenThreatMatrix} accentHex={accentHex} dimHex={dimHex} toneRamp={toneRamp} />
         <MobilityStat {...mobility} accentHex={accentHex} dimHex={dimHex} toneRamp={toneRamp} />
       </div>
     </div>

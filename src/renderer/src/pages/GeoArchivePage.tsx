@@ -4,6 +4,7 @@ import { getFuelPricesWithRefresh, refreshFuelPrices } from '../services/fuelPri
 import { getRecords } from '../utils/csvDb';
 import { AQI_SYNC_EVENT } from '../utils/aqi';
 import { CachedImage } from '../components/CachedImage';
+import { TrendingPlacesCard } from '../components/TrendingPlacesCard';
 import {
   MapPin,
   Compass,
@@ -40,7 +41,7 @@ import {
   Thermometer,
   Wind
 } from 'lucide-react';
-import KohKradan from '../../../Image/เกาะกระดาน.png';
+import KohKradan from '../../../Image/koh_kradan.png';
 
 // ─── Types ──────────────────────────────────────────
 type IntentMode = null | 'help' | 'explore';
@@ -752,13 +753,8 @@ export const GeoArchivePage = () => {
 
   // ─── Intent Selection (Home) ──────────────────────
   if (mode === null) {
-    // Mock data for widgets
-    const trendingLocations = [
-      { name: 'แม่กำปอง', province: 'เชียงใหม่', temp: 18, status: 'กำลังฮิต', image: 'https://images.unsplash.com/photo-1528181304800-2f190854b798?auto=format&fit=crop&q=80&w=200' },
-      { name: 'เกาะกูด', province: 'ตราด', temp: 28, status: 'สงบ', image: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&q=80&w=200' },
-      { name: 'เขาค้อ', province: 'เพชรบูรณ์', temp: 22, status: 'มีหมอก', image: 'https://images.unsplash.com/photo-1510797215324-95aa89f43c33?auto=format&fit=crop&q=80&w=200' },
-      { name: 'บ้านนา', province: 'นครนายก', temp: 26, status: 'ใกล้กรุง', image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=200' },
-    ];
+    // Trending places are now fetched from database in TrendingPlacesCard component
+    // No longer need mock data
 
     const visibleGas = showAllFuelPrices ? gasPrices : gasPrices.slice(0, 3);
     const displayStats = regionStats
@@ -844,46 +840,19 @@ export const GeoArchivePage = () => {
 
             {/* Top Row - Right: Trending (5 cols) */}
             <div className="col-span-5">
-              <div className="h-full rounded-2xl border border-white/20 bg-black/20 backdrop-blur-xl overflow-hidden flex flex-col shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
-                <div className="flex items-center justify-between border-b border-white/10 bg-black/40 px-5 py-2.5">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <TrendingUp size={16} className="text-cyan-400" />
-                    กำลังฮิตในสัปดาห์นี้
-                  </h3>
-                  <button className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors uppercase tracking-wider">ดูเพิ่มเติม</button>
-                </div>
-                <div className="p-3 space-y-2 flex-1">
-                  {trendingLocations.map((loc, i) => (
-                    <div
-                      key={i}
-                      className="group flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-all hover:bg-white/5"
-                      onClick={() => navigate('/map', { state: { searchQuery: loc.name } })}
-                    >
-                      <div className="relative">
-                        <img
-                          src={loc.image}
-                          alt={loc.name}
-                          className="h-14 w-14 rounded-lg object-cover"
-                        />
-                        <div className="absolute -top-1 -left-1 flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500 text-[10px] font-bold text-black">
-                          {i + 1}
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-white group-hover:text-cyan-300 transition-colors">
-                          {loc.name}
-                        </div>
-                        <div className="text-xs text-slate-500">{loc.province}</div>
-                        <div className="mt-1 flex items-center gap-2">
-                          <span className="text-xs text-slate-400">{loc.temp}°C</span>
-                          <span className="text-xs text-cyan-400/70">• {loc.status}</span>
-                        </div>
-                      </div>
-                      <ChevronRight size={16} className="text-slate-600 group-hover:text-cyan-400 transition-colors" />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <TrendingPlacesCard 
+                limit={4}
+                onClick={(place) => navigate(`/province/${place.regionId}/${place.provinceId}`, { 
+                  state: { 
+                    focusPlace: {
+                      title: place.title,
+                      lat: (place as any).lat,
+                      lng: (place as any).lng,
+                      autoFocus: true
+                    }
+                  } 
+                })}
+              />
             </div>
 
               {/* Bottom Row - Left: Regional Histogram (7 cols) */}

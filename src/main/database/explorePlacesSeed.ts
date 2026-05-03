@@ -13,7 +13,8 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "chiang-mai",
     description: "ยอดเขาที่สูงที่สุดในประเทศไทย โดดเด่นด้วยเส้นทางศึกษาธรรมชาติกิ่วแม่ปาน ปรากฏการณ์ทะเลหมอก",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ดอยอินทนนท์"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ดอยอินทนนท์",
+    thumbnailUrl: "https://images.unsplash.com/photo-1586884542514-f4bc9317b9b1?w=600&q=80"
   },
   {
     title: "วัดร่องขุ่น",
@@ -24,7 +25,8 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "chiang-rai",
     description: "สถาปัตยกรรมพุทธศิลป์ร่วมสมัยสีขาวบริสุทธิ์ ผลงานการออกแบบระดับโลก",
-    sourceUrl: "https://goo.gl/maps/F6htP7BP1YAajeNc6"
+    sourceUrl: "https://goo.gl/maps/F6htP7BP1YAajeNc6",
+    thumbnailUrl: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&q=80"
   },
   {
     title: "กว๊านพะเยา",
@@ -35,7 +37,8 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "phayao",
     description: "ทะเลสาบน้ำจืดขนาดใหญ่ที่สุดในภาคเหนือ มอบทัศนียภาพอันงดงามยามดวงอาทิตย์ตกดิน",
-    sourceUrl: "https://maps.app.goo.gl/qFUb7zpE7aAAqQVc8"
+    sourceUrl: "https://maps.app.goo.gl/qFUb7zpE7aAAqQVc8",
+    thumbnailUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80"
   },
   {
     title: "เฮือนม่วนใจ๋",
@@ -46,7 +49,8 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "chiang-mai",
     description: "ร้านอาหารพื้นเมืองต้นตำรับล้านนา การันตีความอร่อยด้วยรางวัลระดับมิชลินไกด์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เฮือนม่วนใจ๋"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เฮือนม่วนใจ๋",
+    thumbnailUrl: "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600&q=80"
   },
   {
     title: "น้ำตกภูซาง",
@@ -57,7 +61,8 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "phayao",
     description: "น้ำตกกระแสน้ำอุ่นแห่งเดียวในประเทศไทยที่มีอุณหภูมิเฉลี่ย 35 องศาเซลเซียส",
-    sourceUrl: "https://maps.app.goo.gl/y38Xx7XfWM2NeNwQ8"
+    sourceUrl: "https://maps.app.goo.gl/y38Xx7XfWM2NeNwQ8",
+    thumbnailUrl: "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=600&q=80"
   },
   {
     title: "Magic Mountain Cafe",
@@ -289,7 +294,35 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "loei",
     description: "ยอดภูที่หนาวเย็นตลอดปี มีจุดชมทะเลหมอกและทิวทัศน์ภูเขาสลับซับซ้อนที่สวยงามตระการตา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติภูเรือ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติภูเรือ",
+    lat: 17.5113,
+    lng: 101.3533
+  },
+  {
+    title: "น้ำตกทีลอซู",
+    locationName: "ตาก",
+    category: "ธรรมชาติ",
+    iconName: "TreePine",
+    tags: ["น้ำตก","ธรรมชาติ","เดินป่า"],
+    regionId: "west",
+    provinceId: "tak",
+    description: "น้ำตกที่ใหญ่และสวยที่สุดในเมืองไทย ตั้งอยู่ในเขตรักษาพันธุ์สัตว์ป่าอุ้มผาง",
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกทีลอซู",
+    lat: 15.9272,
+    lng: 98.7533
+  },
+  {
+    title: "ละลุ",
+    locationName: "สระแก้ว",
+    category: "ธรรมชาติ",
+    iconName: "TreePine",
+    tags: ["แก่งหิน","ธรรมชาติ","ถ่ายรูป"],
+    regionId: "east",
+    provinceId: "sa-kaeo",
+    description: "ละลุ เป็นภาษาเขมร แปลว่า ทะลุ เป็นปรากฏการณ์ทางธรรมชาติจากการกัดเซาะของน้ำและลมจนเกิดเป็นประติมากรรมหินทรายสวยงาม",
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ละลุ",
+    lat: 14.0418,
+    lng: 102.5645
   },
   {
     title: "อุทยานแห่งชาติผาแต้ม",
@@ -344,7 +377,9 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "loei",
     description: "หุบเขาสีชมพูที่เต็มไปด้วยต้นนางพญาเสือโคร่งบานสะพรั่งตระการตาสร้างความประทับใจในช่วงต้นปี",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ภูลมโล"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ภูลมโล",
+    lat: 16.9455,
+    lng: 101.0715
   },
   {
     title: "อุทยานแห่งชาติเขาใหญ่",
@@ -1558,6 +1593,19 @@ export const EXPLORE_PLACES_SEED = [
     provinceId: "ranong",
     description: "คาเฟ่ใจกลางเมืองที่ตกแต่งในสไตล์โมเดิร์นทรอปิคอลที่ให้ความรู้สึกผ่อนคลายและหรูหรา",
     sourceUrl: "https://www.google.com/maps/search/?api=1&query=168+Cafe+Ranong"
+  },
+  {
+    title: "ดินแดงดอย",
+    locationName: "กระบี่",
+    category: "ธรรมชาติ",
+    iconName: "TreePine",
+    tags: ["จุดชมวิว", "ธรรมชาติ", "ภูเขา"],
+    regionId: "south",
+    provinceId: "krabi",
+    description: "จุดชมวิวพาโนรามาที่มองเห็นเทือกเขาและทะเลหมอกในตอนเช้า มีบรรยากาศที่เงียบสงบและสวยงาม",
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ดินแดงดอย",
+    lat: 8.1345,
+    lng: 98.8523
   },
 
   // ── ภาคตะวันตก (WEST - 40 Places) ──

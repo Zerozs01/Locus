@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid, getExplorePlaces, getExplorePlacesByCategories, seedExplorePlaces, getPopularProvinces, upsertProvinceStats, seedPopularProvinces } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid, getExplorePlaces, getExplorePlacesByCategories, seedExplorePlaces, getPopularProvinces, upsertProvinceStats, seedPopularProvinces, getTrendingPlaces, populateTestTrendingData } from './database/db'
 import { initialRegions } from './database/initialData'
 import { EXPLORE_PLACES_SEED } from './database/explorePlacesSeed'
 import { POPULAR_PROVINCES_SEED } from './database/popularProvincesSeed'
@@ -473,7 +473,7 @@ const registerImageProtocol = async () => {
           const mime = imageMimeByExt[finalExt] || 'image/png'
           return new Response(data, { headers: { 'content-type': mime } })
         } catch (err) {
-          console.error(`Failed to load local image: ${fullPath} (resolved to: ${finalPath})`, err)
+          console.error(`Failed to load local image: ${fullPath}`, err)
           return buildFallbackResponse()
         }
       }
@@ -642,6 +642,14 @@ app.whenReady().then(async () => {
   // Default open or close DevTools by F12 in development
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+    
+    // Add DevTools shortcut (Ctrl+Shift+I)
+    window.webContents.on('before-input-event', (event, input) => {
+      if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+        window.webContents.toggleDevTools()
+        event.preventDefault()
+      }
+    })
   })
 
   // IPC handlers
@@ -726,6 +734,25 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('db:getExplorePlacesByCategories', (_, categories: string[]) => {
      return getExplorePlacesByCategories(categories);
+  })
+
+    ipcMain.handle('get-trending-places', (_, limit = 5, timeframe: 'today' | 'week' | 'month' = 'week') => {
+      try {
+        console.log(`🔍 IPC Handler: get-trending-places called (limit=${limit}, timeframe=${timeframe})`);
+        const result = getTrendingPlaces(limit, timeframe);
+        console.log(`✅ IPC Handler: getTrendingPlaces returned ${result.length} places`);
+        return result;
+      } catch (error) {
+        console.error('❌ IPC Handler: getTrendingPlaces error:', error);
+        throw error;
+      }
+    })
+
+  ipcMain.handle('db:populate-test-trending', () => {
+    console.log('🧪 IPC Handler: populate-test-trending called');
+    const result = populateTestTrendingData();
+    console.log('✅ IPC Handler: populateTestTrendingData returned', result.updated, 'updated');
+    return result;
   })
 
   ipcMain.handle('db:getPopularProvinces', (_, regionId?: string, limit?: number) => {

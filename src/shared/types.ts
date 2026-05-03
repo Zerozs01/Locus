@@ -54,6 +54,15 @@ export interface Province {
   populationValue?: number;
   areaValue?: number;
   dailyCostValue?: number;
+  // Tactical Recon Fields
+  terrain?: 'Urban' | 'River Basin' | 'Mountainous' | 'Coastal';
+  infrastructure?: {
+    medicalHubs: number;
+    transportNodes: number;
+  };
+  emergencyContact?: string;
+  tacticalTags?: string[];
+  activeThreat?: string;
 }
 
 export interface RegionStats {
@@ -88,4 +97,32 @@ export interface Region {
   desc: string;
   subProvinces: Province[];
   safety: number;
+}
+
+export interface ExplorePlace {
+  id: number;
+  title: string;
+  locationName: string | null;
+  category: string | null;
+  iconName: string | null;
+  regionId: string | null;
+  provinceId: string | null;
+  tags: string[] | null;
+  thumbnailUrl: string | null;
+  fullImageUrl: string | null;
+  description: string | null;
+  rating: number | null;
+  reviewCount: number | null;
+  reviewCountWeek: number | null;
+  lastReviewAt: string | null;
+  checkinCount: number | null;
+  openingHours: string | null;
+  sourceUrl: string | null;
+  updatedAt: string | null;
+}
+
+export interface TrendingPlace extends ExplorePlace {
+  trendingScore: number;
+  recencyGrowth: number;
+  isTrending: boolean;
 }
