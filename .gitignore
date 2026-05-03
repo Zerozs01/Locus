@@ -55,6 +55,21 @@ coverage/
 # TypeScript cache
 *.tsbuildinfo
 
+# Large Assets
+src/image/nouse/
+
+# Temporary and Debug files
+tmp/
+.dist/
+/*.js
+!/electron.vite.config.ts
+!/postcss.config.js
+!/tailwind.config.js
+/*.txt
+/*.png
+!/resources/**
+
+# Storybook
 *storybook.log
 storybook-static/
 .chromatic/
