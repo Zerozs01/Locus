@@ -56,8 +56,10 @@ coverage/
 *.tsbuildinfo
 
 # Large Assets
-src/image/nouse/
-src/image/Province_pic/
+src/Image/nouse/
+src/Image/Province_pic/
+src/Image/*.png
+!src/Image/Locus_logo.png
 
 # Temporary and Debug files
 tmp/
