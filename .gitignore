@@ -57,6 +57,7 @@ coverage/
 
 # Large Assets
 src/image/nouse/
+src/image/Province_pic/
 
 # Temporary and Debug files
 tmp/
