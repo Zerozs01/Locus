@@ -175,6 +175,7 @@ locus/
 - ✅ Intent-driven decision flow (Known Destination, Guided Discovery, Interest-based)
 - ✅ 5-step interactive questionnaire for Guided Discovery with theme-based colors
 - ✅ Editable summary page with direct AI handoff feature
+- ✅ **Multi-Region Filter (Explore Mode):** Toggleable selection of multiple regions simultaneously with visual feedback (checkmarks/glow) and dynamic result aggregation.
 - ✅ Seamless navigation to Map and Intelligence features with pre-filled context
 
 #### 🗺️ Province Tactical View (`/province/:regionId/:provinceId`)

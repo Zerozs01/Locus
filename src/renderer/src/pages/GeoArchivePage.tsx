@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getFuelPricesWithRefresh, refreshFuelPrices } from '../services/fuelPricesService';
 import { getRecords } from '../utils/csvDb';
 import { AQI_SYNC_EVENT } from '../utils/aqi';
+import { CachedImage } from '../components/CachedImage';
 import {
   MapPin,
   Compass,
@@ -33,8 +34,13 @@ import {
   TrendingUp,
   BarChart3,
   Filter,
-  Info
+  Info,
+  ArrowDownNarrowWide,
+  ArrowUpNarrowWide,
+  Thermometer,
+  Wind
 } from 'lucide-react';
+import KohKradan from '../../../Image/เกาะกระดาน.png';
 
 // ─── Types ──────────────────────────────────────────
 type IntentMode = null | 'help' | 'explore';
@@ -54,11 +60,28 @@ interface RegionStats {
   dataPoints: number;
 }
 
+interface ExploreResultItem {
+  title: string;
+  location: string;
+  category: string;
+  iconName: string | null;
+  tags?: string[];
+  regionId?: string;
+  provinceId?: string;
+  rating?: number | null;
+  description?: string | null;
+  thumbnailUrl?: string | null;
+  sourceUrl?: string | null;
+  openingHours?: string | null;
+}
+
 // ─── Data ───────────────────────────────────────────
 const DISCOVERY_CHIPS: DiscoveryChip[] = [
-  { label: 'ป่าไม้', icon: <TreePine size={14} />, keywords: ['nature', 'forest'] },
+  { label: 'ธรรมชาติ', icon: <TreePine size={14} />, keywords: ['nature', 'forest', 'mountain'] },
   { label: 'ทะเล', icon: <Waves size={14} />, keywords: ['beach', 'sea'] },
-  { label: 'ของกิน', icon: <UtensilsCrossed size={14} />, keywords: ['food', 'restaurant'] },
+  { label: 'อาหาร', icon: <UtensilsCrossed size={14} />, keywords: ['food', 'restaurant'] },
+  { label: 'คาเฟ่', icon: <Coffee size={14} />, keywords: ['cafe', 'coffee'] },
+  { label: 'วัฒนธรรม', icon: <Landmark size={14} />, keywords: ['culture', 'temple', 'history'] },
   { label: 'สถานบันเทิง', icon: <PartyPopper size={14} />, keywords: ['nightlife', 'party'] },
 ];
 
@@ -215,7 +238,12 @@ export const GeoArchivePage = () => {
   });
   const [finalSuggestion, setFinalSuggestion] = useState('');
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
+  const [exploreResults, setExploreResults] = useState<ExploreResultItem[]>([]);
+
   const [showRegionFilter, setShowRegionFilter] = useState(false);
+  const [selectedRegionFilters, setSelectedRegionFilters] = useState<string[]>([]);
+  const [showRatingFilter, setShowRatingFilter] = useState(false);
+  const [ratingSort, setRatingSort] = useState<'desc' | 'asc' | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
   const [showAllFuelPrices, setShowAllFuelPrices] = useState(false);
   const [openFuelType, setOpenFuelType] = useState<string | null>(null);
@@ -233,6 +261,7 @@ export const GeoArchivePage = () => {
   ]);
   const [regionStats, setRegionStats] = useState<RegionStats[]>([]);
   const [statsViewMode, setStatsViewMode] = useState<'temp' | 'aqi'>('temp');
+  const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
 
   // Load fuel prices from database on mount
   useEffect(() => {
@@ -263,6 +292,92 @@ export const GeoArchivePage = () => {
       isMounted = false;
     };
   }, []);
+
+  // ─── Icon Name → React Component mapping ──────────
+  const ICON_MAP: Record<string, React.ReactNode> = {
+    Mountain: <Mountain size={16} />,
+    TreePine: <TreePine size={16} />,
+    Waves: <Waves size={16} />,
+    UtensilsCrossed: <UtensilsCrossed size={16} />,
+    Coffee: <Coffee size={16} />,
+    Landmark: <Landmark size={16} />,
+    Car: <Car size={16} />,
+    Users: <Users size={16} />,
+    Camera: <Camera size={16} />,
+    Bed: <Bed size={16} />,
+    CalendarDays: <CalendarDays size={16} />,
+    Heart: <Heart size={16} />,
+    MapPin: <MapPin size={16} />,
+    Compass: <Compass size={16} />,
+    PartyPopper: <PartyPopper size={16} />,
+  };
+
+  // ─── Chip → category mapping for DB lookup ──────────
+  const CHIP_TO_CATEGORIES: Record<string, string[]> = {
+    'ธรรมชาติ': ['ธรรมชาติ', 'ป่าไม้'],
+    'ทะเล': ['ทะเล'],
+    'อาหาร': ['อาหาร', 'ของกิน'],
+    'คาเฟ่': ['คาเฟ่'],
+    'วัฒนธรรม': ['วัฒนธรรม'],
+    'สถานบันเทิง': ['สถานบันเทิง'],
+  };
+
+  // Fetch explore results from SQLite when chips change
+  useEffect(() => {
+    if (selectedChips.length === 0) {
+      setExploreResults([]);
+      return;
+    }
+    let isMounted = true;
+    const fetchPlaces = async () => {
+      try {
+        const api = (window as any).api;
+        // Map chip labels to DB category names
+        const categories = selectedChips.flatMap(chip => CHIP_TO_CATEGORIES[chip] || [chip]);
+        const uniqueCategories = [...new Set(categories)];
+        const places = api?.explorePlaces?.getByCategories
+          ? await api.explorePlaces.getByCategories(uniqueCategories)
+          : [];
+        if (!isMounted) return;
+        if (places && places.length > 0) {
+          let filtered = places.map((p: any) => ({
+            title: p.title,
+            location: p.locationName || '',
+            category: p.category || '',
+            iconName: p.iconName || null,
+            tags: p.tags || undefined,
+            regionId: p.regionId || undefined,
+            provinceId: p.provinceId || undefined,
+            rating: p.rating,
+            description: p.description,
+            thumbnailUrl: p.thumbnailUrl,
+            sourceUrl: p.sourceUrl,
+            openingHours: p.openingHours,
+          }));
+
+          // Apply region filter
+          if (selectedRegionFilters.length > 0) {
+            filtered = filtered.filter((p: ExploreResultItem) => p.regionId && selectedRegionFilters.includes(p.regionId));
+          }
+
+          // Apply rating sort
+          if (ratingSort === 'desc') {
+            filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          } else if (ratingSort === 'asc') {
+            filtered.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+          }
+
+    setExploreResults(filtered);
+        } else {
+          setExploreResults([]);
+        }
+      } catch (err) {
+        console.error('[GeoArchive] Failed to fetch explore places:', err);
+      }
+    };
+    fetchPlaces();
+    return () => { isMounted = false; };
+  }, [selectedChips, selectedRegionFilters, ratingSort]);
 
   // Manual refresh fuel prices
   const handleRefreshFuelPrices = async () => {
@@ -661,8 +776,18 @@ export const GeoArchivePage = () => {
 
 
     return (
-      <div className="flex-1 bg-[#050608] overflow-y-auto">
-        <div className="mx-auto max-w-6xl px-8 py-10">
+      <div className="flex-1 overflow-y-auto relative bg-[#050608]">
+        {/* Background Image with Overlay */}
+        <div 
+          className="fixed inset-0 z-0 pointer-events-none"
+          style={{ 
+            backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.75)), url(${KohKradan})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        
+        <div className="relative z-10 mx-auto max-w-6xl px-8 py-10">
           {/* ─── Main Grid Layout ─── */}
           <div className="grid grid-cols-12 gap-x-6 gap-y-4">
             {/* Top Row - Left: Intent Cards (7 cols) */}
@@ -678,7 +803,7 @@ export const GeoArchivePage = () => {
                 onClick={() => navigate('/map', { state: { focusSearch: true } })}
               />
               <IntentCard
-                icon={<Compass size={32} />}
+                icon={<Compass size={30} />}
                 title="สำรวจตามความสนใจ"
                 subtitle="เลือกหมวดหมู่ที่ชอบ — ป่าไม้, ทะเล, ของกิน หรือ สถานบันเทิง"
                 gradient="from-amber-500/20 to-orange-600/10"
@@ -719,13 +844,13 @@ export const GeoArchivePage = () => {
 
             {/* Top Row - Right: Trending (5 cols) */}
             <div className="col-span-5">
-              <div className="h-full rounded-2xl border border-white/10 bg-[#0a0c10] overflow-hidden flex flex-col">
-                <div className="flex items-center justify-between border-b border-white/5 px-5 py-1">
-                  <h3 className="text-sm  text-white flex items-center gap-2">
+              <div className="h-full rounded-2xl border border-white/20 bg-black/20 backdrop-blur-xl overflow-hidden flex flex-col shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+                <div className="flex items-center justify-between border-b border-white/10 bg-black/40 px-5 py-2.5">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <TrendingUp size={16} className="text-cyan-400" />
                     กำลังฮิตในสัปดาห์นี้
                   </h3>
-                  <button className="text-xs text-cyan-400 hover:underline">ดูเพิ่มเติม</button>
+                  <button className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors uppercase tracking-wider">ดูเพิ่มเติม</button>
                 </div>
                 <div className="p-3 space-y-2 flex-1">
                   {trendingLocations.map((loc, i) => (
@@ -763,34 +888,35 @@ export const GeoArchivePage = () => {
 
               {/* Bottom Row - Left: Regional Histogram (7 cols) */}
               <div className="col-span-7">
-                <div className="h-full rounded-2xl border border-white/10 bg-[#0a0c10] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col">
-                  <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2.5">
-                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                      <BarChart3 size={16} className="text-white" />
-                      เปรียบเทียบภูมิภาค
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setStatsViewMode('temp')}
-                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                          statsViewMode === 'temp'
-                            ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-300'
-                            : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'
-                        }`}
-                      >
-                        อุณหภูมิ
-                      </button>
-                      <button
-                        onClick={() => setStatsViewMode('aqi')}
-                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                          statsViewMode === 'aqi'
-                            ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-300'
-                            : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'
-                        }`}
-                      >
-                        AQI
-                      </button>
-                    </div>
+                <div className="h-fit self-start rounded-2xl border border-white/20 bg-black/20 backdrop-blur-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col">
+                  <div className="relative flex w-full mb-5 rounded-2xl bg-black/60 border border-white/10 p-1 backdrop-blur-md shadow-inner overflow-hidden">
+                    {/* Sliding Indicator */}
+                    <div 
+                      className="absolute top-1 bottom-1 transition-all duration-500 ease-out bg-white rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.45)]"
+                      style={{ 
+                        left: statsViewMode === 'temp' ? '4px' : 'calc(50% + 2px)', 
+                        width: 'calc(50% - 6px)' 
+                      }}
+                    />
+
+                    <button
+                      onClick={() => setStatsViewMode('temp')}
+                      className={`relative z-10 flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 ${
+                        statsViewMode === 'temp' ? 'text-black' : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      <Thermometer size={14} className={`transition-transform duration-500 ${statsViewMode === 'temp' ? 'scale-110 text-cyan-600' : 'text-slate-600'}`} />
+                      AVG อุณหภูมิ
+                    </button>
+                    <button
+                      onClick={() => setStatsViewMode('aqi')}
+                      className={`relative z-10 flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 ${
+                        statsViewMode === 'aqi' ? 'text-black' : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      <Wind size={14} className={`transition-transform duration-500 ${statsViewMode === 'aqi' ? 'scale-110 text-cyan-600' : 'text-slate-600'}`} />
+                      AVG AQI
+                    </button>
                   </div>
 
                   {regionStats.length > 0 ? (
@@ -840,7 +966,7 @@ export const GeoArchivePage = () => {
 
             {/* Bottom Row - Right: Gas Price (5 cols) */}
             <div className="col-span-5">
-              <div className="h-full rounded-2xl border border-white/10 bg-[#0a0c10] p-5 shadow-xl relative overflow-hidden flex flex-col">
+              <div className="h-full rounded-2xl border border-white/20 bg-white/[0.03] backdrop-blur-xl p-5 shadow-xl relative overflow-hidden flex flex-col">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
                 <div className="flex items-center justify-between mb-4 relative z-10">
                   <div className="flex flex-col">
@@ -849,7 +975,7 @@ export const GeoArchivePage = () => {
                       href="https://oil-price.bangchak.co.th/BcpOilPrice2/th" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-[10px] text-teal-400 uppercase tracking-tighter hover:underline"
+                      className="text-[10px] text-teal-500 uppercase tracking-tighter hover:underline"
                     >
                       From: Bangchak Corporation
                     </a>
@@ -881,6 +1007,19 @@ export const GeoArchivePage = () => {
                 
                 <div className="grid grid-cols-3 gap-2 relative z-10">
                   {(() => {
+                    // Explicit class mapping to ensure Tailwind JIT includes them
+                    const FUEL_THEMES: Record<string, { text: string; border: string; glow: string }> = {
+                      'bg-blue-500':    { text: 'text-blue-500',    border: 'border-blue-500',    glow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)]' },
+                      'bg-teal-500':    { text: 'text-teal-500',    border: 'border-teal-500',    glow: 'shadow-[0_0_15px_rgba(20,184,166,0.3)]' },
+                      'bg-emerald-500': { text: 'text-emerald-500', border: 'border-emerald-500', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]' },
+                      'bg-rose-500':    { text: 'text-rose-500',    border: 'border-rose-500',    glow: 'shadow-[0_0_15px_rgba(244,63,94,0.3)]' },
+                      'bg-amber-500':   { text: 'text-amber-500',   border: 'border-amber-500',   glow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' },
+                      'bg-orange-500':  { text: 'text-orange-500',  border: 'border-orange-500',  glow: 'shadow-[0_0_15px_rgba(249,115,22,0.3)]' },
+                      'bg-slate-500':   { text: 'text-slate-500',   border: 'border-slate-500',   glow: 'shadow-[0_0_15px_rgba(100,116,139,0.3)]' },
+                      'bg-purple-600':  { text: 'text-purple-600',  border: 'border-purple-600',  glow: 'shadow-[0_0_15px_rgba(147,51,234,0.3)]' },
+                      'bg-red-600':     { text: 'text-red-600',     border: 'border-red-600',     glow: 'shadow-[0_0_15px_rgba(220,38,38,0.3)]' },
+                    };
+
                     const chunks = [];
                     for (let i = 0; i < visibleGas.length; i += 3) {
                       chunks.push(visibleGas.slice(i, i + 3));
@@ -892,9 +1031,19 @@ export const GeoArchivePage = () => {
                           {chunk.map((gas) => {
                             const details = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
                             const isOpen = openFuelType === gas.type;
+                            const fuelTheme = FUEL_THEMES[gas.color] || { 
+                              text: 'text-slate-400', 
+                              border: 'border-white/20', 
+                              glow: 'shadow-none' 
+                            };
+
                             return (
                               <div key={gas.type} className="flex flex-col gap-2">
-                                <div className="bg-white/[0.03] p-2.5 rounded-xl border border-white/5 hover:bg-white/[0.06] transition-all h-full">
+                                <div className={`p-2.5 rounded-xl border transition-all h-full ${
+                                  isOpen 
+                                    ? `bg-white/[0.08] ${fuelTheme.border}/50 ${fuelTheme.glow}` 
+                                    : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06]'
+                                }`}>
                                   <div className="flex items-start justify-between mb-1">
                                     <div className="flex items-center gap-1.5">
                                       <div className={`w-1.5 h-1.5 rounded-full ${gas.color} shadow-[0_0_8px_rgba(255,255,255,0.2)]`}></div>
@@ -904,7 +1053,7 @@ export const GeoArchivePage = () => {
                                       onClick={() => setOpenFuelType(isOpen ? null : gas.type)}
                                       className={`p-1 rounded-md border transition-all ${
                                         isOpen
-                                          ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300'
+                                          ? `bg-slate-800 border-slate-700 ${fuelTheme.text}`
                                           : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
                                       }`}
                                       title={isOpen ? 'ซ่อนข้อมูลคำนวณ' : 'ดูข้อมูลคำนวณ'}
@@ -921,8 +1070,10 @@ export const GeoArchivePage = () => {
                             );
                           })}
                           {openInThisChunk && (
-                            <div className="col-span-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] text-slate-400 mt-1 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                            <div className="col-span-3 rounded-xl border border-white/10 bg-slate-950/60 backdrop-blur-xl p-4 text-[11px] text-white mt-1 mb-2 animate-in fade-in slide-in-from-top-2 duration-200 shadow-2xl">
+                              <div className={`mb-3 text-[10px] font-bold uppercase tracking-widest ${
+                                FUEL_THEMES[openInThisChunk.color]?.text || 'text-cyan-400'
+                              } border-b border-white/10 pb-2`}>
                                 {FUEL_TYPE_DETAILS[openInThisChunk.type]?.label || openInThisChunk.type} — คำนวณโดยประมาณ
                               </div>
                               <div className="grid grid-cols-2 gap-3">
@@ -933,26 +1084,26 @@ export const GeoArchivePage = () => {
                                   const carCostKm = gas.price / FUEL_EFFICIENCY.car;
                                   return (
                                     <>
-                                      <div className="rounded-md border border-white/10 bg-white/[0.03] p-2">
-                                        <div className="text-[9px] font-semibold text-slate-300">รถจักรยานยนต์</div>
+                                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">รถจักรยานยนต์</div>
                                         {details.motorcycle ? (
                                           <>
-                                            <div className="text-[12px] font-semibold text-white">{motoCostKm.toFixed(2)} บ./กม</div>
-                                            <div className="text-[10px] text-slate-400">{(motoCostKm * 10).toFixed(1)} บ./10กม</div>
+                                            <div className="text-sm font-black text-white">{motoCostKm.toFixed(2)} บ./กม</div>
+                                            <div className="text-[10px] text-slate-500">{(motoCostKm * 10).toFixed(1)} บ./10กม</div>
                                           </>
                                         ) : (
-                                          <div className="text-[10px] text-slate-500">ไม่แนะนำ</div>
+                                          <div className="text-[10px] text-slate-600">ไม่แนะนำ</div>
                                         )}
                                       </div>
-                                      <div className="rounded-md border border-white/10 bg-white/[0.03] p-2">
-                                        <div className="text-[9px] font-semibold text-slate-300">รถยนต์</div>
+                                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">รถยนต์</div>
                                         {details.car ? (
                                           <>
-                                            <div className="text-[12px] font-semibold text-white">{carCostKm.toFixed(2)} บ./กม</div>
-                                            <div className="text-[10px] text-slate-400">{(carCostKm * 10).toFixed(1)} บ./10กม</div>
+                                            <div className="text-sm font-black text-white">{carCostKm.toFixed(2)} บ./กม</div>
+                                            <div className="text-[10px] text-slate-500">{(carCostKm * 10).toFixed(1)} บ./10กม</div>
                                           </>
                                         ) : (
-                                          <div className="text-[10px] text-slate-500">ไม่แนะนำ</div>
+                                          <div className="text-[10px] text-slate-600">ไม่แนะนำ</div>
                                         )}
                                       </div>
                                     </>
@@ -1432,47 +1583,156 @@ export const GeoArchivePage = () => {
             </div>
 
             {/* Region Filter Dropdown */}
-            <div className="relative pt-2">
-              <button
-                onClick={() => setShowRegionFilter(!showRegionFilter)}
-                className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all ${
-                  showRegionFilter
-                    ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
-                    : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
-                }`}
-              >
-                <Filter size={16} />
-                <span className="text-xs font-bold">กรองตามภูมิภาค</span>
-              </button>
+            <div className="flex items-center gap-2 pt-2">
+              <div className="relative">
+                <button
+                  onClick={() => setShowRatingFilter(!showRatingFilter)}
+                  className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all ${
+                    showRatingFilter
+                      ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
+                      : ratingSort
+                        ? 'border-yellow-500/50 bg-yellow-500/15 text-yellow-300'
+                        : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
+                  }`}
+                >
+                  {ratingSort === 'desc' ? <ArrowDownNarrowWide size={14} className="text-yellow-400" /> : 
+                   ratingSort === 'asc' ? <ArrowUpNarrowWide size={14} className="text-yellow-400" /> : 
+                   <span className="text-yellow-400">★</span>}
+                  <span className="text-xs font-bold">
+                    {ratingSort === 'desc' ? 'Rating: มาก → น้อย' : 
+                     ratingSort === 'asc' ? 'Rating: น้อย → มาก' : 'เรียงตาม rating'}
+                  </span>
+                </button>
 
-              {showRegionFilter && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowRegionFilter(false)}
-                  />
-                  <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c10] p-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="space-y-1">
-                      {REGIONS.map((r) => (
+                {showRatingFilter && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowRatingFilter(false)} />
+                    <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c10] p-3 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                        การเรียงลำดับ
+                      </div>
+                      <div className="space-y-1">
                         <button
-                          key={r.id}
                           onClick={() => {
-                            navigate('/map', { state: { regionId: r.id } });
-                            setShowRegionFilter(false);
+                            setRatingSort('desc');
+                            setShowRatingFilter(false);
                           }}
-                          className="flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+                          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                            ratingSort === 'desc'
+                              ? 'bg-cyan-500/15 text-cyan-300'
+                              : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                          }`}
                         >
-                          <div
-                            className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: r.color, boxShadow: `0 0 8px ${r.color}60` }}
-                          />
-                          {r.name}
+                          <ArrowDownNarrowWide size={14} />
+                          เรียงจาก Rating มากไปน้อย
                         </button>
-                      ))}
+                        <button
+                          onClick={() => {
+                            setRatingSort('asc');
+                            setShowRatingFilter(false);
+                          }}
+                          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                            ratingSort === 'asc'
+                              ? 'bg-cyan-500/15 text-cyan-300'
+                              : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                          }`}
+                        >
+                          <ArrowUpNarrowWide size={14} />
+                          เรียงจาก Rating น้อยไปมาก
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRatingSort(null);
+                            setShowRatingFilter(false);
+                          }}
+                          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                            ratingSort === null
+                              ? 'bg-white/10 text-white'
+                              : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
+                          }`}
+                        >
+                          ล้างการเรียงลำดับ
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
+
+              <div className="relative">
+                <button
+                  onClick={() => setShowRegionFilter(!showRegionFilter)}
+                  className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all ${
+                    showRegionFilter
+                      ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
+                      : selectedRegionFilters.length > 0
+                        ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300'
+                        : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
+                  }`}
+                >
+                  <Filter size={16} />
+                  <span className="text-xs font-bold">
+                    {selectedRegionFilters.length > 0
+                      ? selectedRegionFilters.length === 1 
+                        ? REGIONS.find(r => r.id === selectedRegionFilters[0])?.name
+                        : `เลือกแล้ว ${selectedRegionFilters.length} ภูมิภาค`
+                      : 'กรองตามภูมิภาค'}
+                  </span>
+                </button>
+
+                {showRegionFilter && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowRegionFilter(false)} />
+                    <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c10] p-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="space-y-1">
+                        <button
+                          onClick={() => {
+                            setSelectedRegionFilters([]);
+                            // Keep open for multi-select convenience or close if user prefers
+                            // setShowRegionFilter(false); 
+                          }}
+                          className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium transition-colors ${
+                            selectedRegionFilters.length === 0 ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                          }`}
+                        >
+                          <div className="h-2 w-2 rounded-full bg-slate-400" />
+                          ทั้งหมด
+                        </button>
+                        {REGIONS.map((r) => {
+                          const isSelected = selectedRegionFilters.includes(r.id);
+                          return (
+                            <button
+                              key={r.id}
+                              onClick={() => {
+                                setSelectedRegionFilters(prev => 
+                                  prev.includes(r.id) 
+                                    ? prev.filter(id => id !== r.id)
+                                    : [...prev, r.id]
+                                );
+                              }}
+                              className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium transition-colors ${
+                                isSelected ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                              }`}
+                            >
+                              <div
+                                className="h-2 w-2 rounded-full"
+                                style={{ 
+                                  backgroundColor: r.color, 
+                                  boxShadow: isSelected ? `0 0 8px ${r.color}80` : `0 0 8px ${r.color}30` 
+                                }}
+                              />
+                              <div className="flex-1">{r.name}</div>
+                              {isSelected && (
+                                <div className="text-[10px] text-cyan-400 font-bold">✓</div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1502,41 +1762,83 @@ export const GeoArchivePage = () => {
           {/* Explore Results */}
           {selectedChips.length > 0 ? (
             <div>
-              <h3 className="mb-4 text-sm font-bold text-white">
-                ผลลัพธ์สำหรับ: {selectedChips.join(', ')}
-              </h3>
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white">
+                  ผลลัพธ์สำหรับ: {selectedChips.join(', ')}
+                </h3>
+                {(selectedRegionFilters.length > 0 || ratingSort) && (
+                  <div className="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+                    {selectedRegionFilters.map(regionId => (
+                      <span key={regionId} className="flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-emerald-300">
+                        <span className="text-[8px]">●</span>
+                        {REGIONS.find(r => r.id === regionId)?.name}
+                      </span>
+                    ))}
+                    {ratingSort && (
+                      <span className="flex items-center gap-1 rounded-md bg-yellow-500/10 border border-yellow-500/20 px-2 py-1 text-yellow-300">
+                        {ratingSort === 'desc' ? 'Rating: มาก → น้อย' : 'Rating: น้อย → มาก'}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {getExploreResults(selectedChips).map((item, i) => (
+                {exploreResults.map((item, i) => (
                   <div
                     key={i}
-                    className="group cursor-pointer rounded-2xl border border-white/10 bg-[#0a0c10] p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/5"
-                    onClick={() => {
-                      if (item.regionId && item.provinceId) {
-                        navigate(`/province/${item.regionId}/${item.provinceId}`);
-                      }
-                    }}
+                    className="group cursor-pointer rounded-2xl border border-white/10 bg-[#0a0c10] overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/5 flex flex-col"
+                    onClick={() => setSelectedPlace(item)}
                   >
-                    <div className="mb-3 flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-slate-400">
-                        {item.icon}
+                    {/* Thumbnail Section */}
+                    <div className="relative h-32 w-full bg-slate-900 overflow-hidden shrink-0">
+                      {item.thumbnailUrl && (
+                        <CachedImage
+                          src={item.thumbnailUrl}
+                          alt={item.title}
+                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      )}
+                      {/* Fallback Icon */}
+                      <div className={`fallback-icon absolute inset-0 flex items-center justify-center bg-slate-800 ${item.thumbnailUrl ? 'hidden' : ''}`}>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-slate-400 shadow-inner">
+                          {item.iconName ? (ICON_MAP[item.iconName] || <MapPin size={24} />) : <MapPin size={24} />}
+                        </div>
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                        {item.category}
-                      </span>
-                    </div>
-                    <div className="mb-1 text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
-                      {item.title}
-                    </div>
-                    <div className="text-xs text-slate-500">{item.location}</div>
-                    {item.tags && (
-                      <div className="mt-3 flex flex-wrap gap-1">
-                        {item.tags.map((tag) => (
-                          <span key={tag} className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-slate-500">
-                            {tag}
-                          </span>
-                        ))}
+                      
+                      {/* Category Badge */}
+                      <div className="absolute top-2 right-2 rounded-lg bg-black/60 backdrop-blur-md px-2.5 py-1 border border-white/10 shadow-lg">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-300">
+                          {item.category}
+                        </span>
                       </div>
-                    )}
+                    </div>
+                    
+                    {/* Content Section */}
+                    <div className="p-4 flex-1 flex flex-col">
+                      <div className="mb-1 text-sm font-bold text-white group-hover:text-cyan-300 transition-colors line-clamp-1" title={item.title}>
+                        {item.title}
+                      </div>
+                      <div className="text-xs text-slate-500 line-clamp-1 mb-2">{item.location || 'ไม่ระบุตำแหน่ง'}</div>
+                      
+                      <div className="mt-auto flex items-center justify-between">
+                        {item.rating ? (
+                          <div className="flex items-center gap-1 rounded-md bg-yellow-500/10 px-1.5 py-0.5 border border-yellow-500/20">
+                            <span className="text-[10px] text-yellow-400 leading-none">★</span>
+                            <span className="text-[10px] font-bold text-yellow-400 leading-none">{item.rating.toFixed(1)}</span>
+                          </div>
+                        ) : (
+                          <div></div>
+                        )}
+                        
+                        {item.tags && item.tags.length > 0 && (
+                          <div className="flex items-center gap-1 overflow-hidden">
+                            <span className="truncate text-[9px] text-slate-500">
+                              {item.tags.slice(0, 2).join(' • ')}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1562,6 +1864,98 @@ export const GeoArchivePage = () => {
               <p className="text-sm text-slate-500">เลือกหมวดด้านบนเพื่อเริ่มสำรวจ</p>
             </div>
           )}
+
+          {/* Place Detail Popup */}
+          {selectedPlace && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0a0c10] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+                <div className="relative h-56 bg-slate-900 shrink-0">
+                  {selectedPlace.thumbnailUrl ? (
+                    <CachedImage src={selectedPlace.thumbnailUrl} alt={selectedPlace.title} className="absolute inset-0 h-full w-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/5 text-slate-400">
+                        {selectedPlace.iconName ? ICON_MAP[selectedPlace.iconName] || <MapPin size={32} /> : <MapPin size={32} />}
+                      </div>
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => setSelectedPlace(null)}
+                    className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors backdrop-blur-md"
+                  >
+                    ✕
+                  </button>
+                  <div className="absolute bottom-4 left-4 flex gap-2">
+                    <span className="rounded-lg bg-black/60 backdrop-blur-md px-2.5 py-1 text-xs font-bold text-white border border-white/10 shadow-lg">
+                      {selectedPlace.category}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-6 overflow-y-auto">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-2xl font-bold text-white leading-tight">{selectedPlace.title}</h3>
+                    {selectedPlace.rating && (
+                      <div className="flex items-center gap-1 rounded-md bg-yellow-500/10 px-1.5 py-1 text-[11px] font-bold text-yellow-400 border border-yellow-500/20 shrink-0">
+                        ★ {selectedPlace.rating.toFixed(1)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm text-slate-400 mb-6 flex items-center gap-1.5">
+                    <MapPin size={14} className="text-slate-500" />
+                    {selectedPlace.location || 'ไม่ระบุตำแหน่ง'}
+                  </div>
+                  
+                  {selectedPlace.description ? (
+                    <p className="text-sm text-slate-300 leading-relaxed mb-8">
+                      {selectedPlace.description}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-500 italic leading-relaxed mb-8">
+                      ไม่มีรายละเอียดเพิ่มเติม
+                    </p>
+                  )}
+                  
+                  <div className="flex flex-col gap-3 mt-auto">
+                    {/* Primary Actions */}
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => {
+                          if (selectedPlace.regionId && selectedPlace.provinceId) {
+                            const cleanId = selectedPlace.provinceId.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                            navigate(`/province/${selectedPlace.regionId}/${cleanId}`, {
+                              state: {
+                                focusPlace: {
+                                  title: selectedPlace.title,
+                                  autoFocus: true
+                                }
+                              }
+                            });
+                          }
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-cyan-600 py-3.5 text-sm font-bold text-white transition-all hover:bg-cyan-500 hover:shadow-[0_0_20px_rgba(8,145,178,0.4)]"
+                      >
+                        <MapPin size={18} />
+                        เปิดแผนที่ Locus
+                      </button>
+                    </div>
+
+                    {/* Secondary Actions */}
+                    {selectedPlace.sourceUrl && (
+                      <a 
+                        href={selectedPlace.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+                      >
+                        <Map size={14} />
+                        Open with Google Maps
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1579,8 +1973,11 @@ interface IntentCardProps {
   subtitle: string;
   gradient: string;
   border: string;
+  iconBg: string;
   iconColor: string;
   onClick: () => void;
+  isAi?: boolean;
+  children?: React.ReactNode;
 }
 
 const IntentCard = ({ icon, title, subtitle, gradient, border, iconBg, iconColor, onClick, isAi, children }: any) => (
@@ -1621,79 +2018,5 @@ const BackButton = ({ onClick }: { onClick: () => void }) => (
   </button>
 );
 
-// ─── Mock Explore Results ───────────────────────────
-interface ExploreResult {
-  title: string;
-  location: string;
-  category: string;
-  icon: React.ReactNode;
-  tags?: string[];
-  regionId?: string;
-  provinceId?: string;
-}
-
-function getExploreResults(chips: string[]): ExploreResult[] {
-  const allResults: Record<string, ExploreResult[]> = {
-    'ธรรมชาติ': [
-      { title: 'ดอยอินทนนท์', location: 'เชียงใหม่', category: 'ธรรมชาติ', icon: <Mountain size={16} />, tags: ['ภูเขา', 'ป่าดิบ'], regionId: 'north', provinceId: 'chiang-mai' },
-      { title: 'เขาสก', location: 'สุราษฎร์ธานี', category: 'ธรรมชาติ', icon: <TreePine size={16} />, tags: ['ทะเลสาบ', 'ป่าดึกดำบรรพ์'], regionId: 'south', provinceId: 'surat-thani' },
-      { title: 'อุทยานแห่งชาติเขาใหญ่', location: 'นครราชสีมา', category: 'ธรรมชาติ', icon: <TreePine size={16} />, tags: ['นํ้าตก', 'สัตว์ป่า'], regionId: 'northeast', provinceId: 'nakhon-ratchasima' },
-    ],
-    'อาหาร': [
-      { title: 'ย่านเยาวราช', location: 'กรุงเทพฯ', category: 'อาหาร', icon: <UtensilsCrossed size={16} />, tags: ['Street Food', 'จีน'], regionId: 'central', provinceId: 'bangkok' },
-      { title: 'ตลาดโต้รุ่ง', location: 'เชียงใหม่', category: 'อาหาร', icon: <UtensilsCrossed size={16} />, tags: ['ข้าวซอย', 'ไส้อั่ว'], regionId: 'north', provinceId: 'chiang-mai' },
-      { title: 'ตลาดน้ำ 4 ภาค', location: 'พัทยา', category: 'อาหาร', icon: <UtensilsCrossed size={16} />, tags: ['ตลาดน้ำ', 'ของกิน'], regionId: 'east', provinceId: 'chon-buri' },
-    ],
-    'ทะเล': [
-      { title: 'เกาะพีพี', location: 'กระบี่', category: 'ทะเล', icon: <Waves size={16} />, tags: ['ดำน้ำ', 'หาดทราย'], regionId: 'south', provinceId: 'krabi' },
-      { title: 'เกาะเสม็ด', location: 'ระยอง', category: 'ทะเล', icon: <Waves size={16} />, tags: ['ใกล้กรุงเทพ', 'Weekend'], regionId: 'east', provinceId: 'rayong' },
-      { title: 'เกาะสมุย', location: 'สุราษฎร์ธานี', category: 'ทะเล', icon: <Waves size={16} />, tags: ['รีสอร์ท', 'พาร์ตี้'], regionId: 'south', provinceId: 'surat-thani' },
-    ],
-    'คาเฟ่': [
-      { title: 'คาเฟ่ม่อนแจ่ม', location: 'เชียงใหม่', category: 'คาเฟ่', icon: <Coffee size={16} />, tags: ['วิว', 'ภูเขา'], regionId: 'north', provinceId: 'chiang-mai' },
-      { title: 'คาเฟ่พระนครศรีอยุธยา', location: 'อยุธยา', category: 'คาเฟ่', icon: <Coffee size={16} />, tags: ['โบราณ', 'ริมน้ำ'], regionId: 'central', provinceId: 'ayutthaya' },
-    ],
-    'วัฒนธรรม': [
-      { title: 'วัดพระแก้ว', location: 'กรุงเทพฯ', category: 'วัฒนธรรม', icon: <Landmark size={16} />, tags: ['UNESCO', 'Temple'], regionId: 'central', provinceId: 'bangkok' },
-      { title: 'อุทยานประวัติศาสตร์สุโขทัย', location: 'สุโขทัย', category: 'วัฒนธรรม', icon: <Landmark size={16} />, tags: ['มรดกโลก'], regionId: 'north', provinceId: 'sukhothai' },
-    ],
-    'Road Trip': [
-      { title: 'เส้นทาง 1095 แม่ฮ่องสอน', location: 'แม่ฮ่องสอน', category: 'Road Trip', icon: <Car size={16} />, tags: ['762 โค้ง', 'ทิวทัศน์'], regionId: 'north', provinceId: 'mae-hong-son' },
-      { title: 'Scenic route เขาค้อ', location: 'เพชรบูรณ์', category: 'Road Trip', icon: <Car size={16} />, tags: ['ภูเขา', 'ทะเลหมอก'], regionId: 'north', provinceId: 'phetchabun' },
-    ],
-    'ครอบครัว': [
-      { title: 'ซาฟารีเวิลด์', location: 'กรุงเทพฯ', category: 'ครอบครัว', icon: <Users size={16} />, tags: ['เด็ก', 'สัตว์'], regionId: 'central', provinceId: 'bangkok' },
-      { title: 'สวนนงนุช', location: 'พัทยา', category: 'ครอบครัว', icon: <Users size={16} />, tags: ['สวนสวย', 'โชว์'], regionId: 'east', provinceId: 'chon-buri' },
-    ],
-    'ภูเขา': [
-      { title: 'ดอยอ่างขาง', location: 'เชียงใหม่', category: 'ภูเขา', icon: <Mountain size={16} />, tags: ['ดอกไม้', 'อากาศเย็น'], regionId: 'north', provinceId: 'chiang-mai' },
-      { title: 'ภูชี้ฟ้า', location: 'เชียงราย', category: 'ภูเขา', icon: <Mountain size={16} />, tags: ['ทะเลหมอก', 'พระอาทิตย์ขึ้น'], regionId: 'north', provinceId: 'chiang-rai' },
-    ],
-    'ถ่ายรูป': [
-      { title: 'วัดร่องขุ่น', location: 'เชียงราย', category: 'ถ่ายรูป', icon: <Camera size={16} />, tags: ['Iconic', 'สถาปัตยกรรม'], regionId: 'north', provinceId: 'chiang-rai' },
-      { title: 'ปาย', location: 'แม่ฮ่องสอน', category: 'ถ่ายรูป', icon: <Camera size={16} />, tags: ['IG Famous', 'Chill'], regionId: 'north', provinceId: 'mae-hong-son' },
-    ],
-    'พักผ่อน': [
-      { title: 'หัวหิน', location: 'ประจวบฯ', category: 'พักผ่อน', icon: <Bed size={16} />, tags: ['ทะเล', 'รีสอร์ท'], regionId: 'west', provinceId: 'prachuap-khiri-khan' },
-    ],
-    '2D1N': [
-      { title: 'เขาใหญ่ Weekend', location: 'นครราชสีมา', category: '2D1N', icon: <CalendarDays size={16} />, tags: ['ใกล้กรุงเทพ', 'ธรรมชาติ'], regionId: 'northeast', provinceId: 'nakhon-ratchasima' },
-    ],
-    'Hidden Gems': [
-      { title: 'เกาะขาม', location: 'ชลบุรี', category: 'Hidden Gems', icon: <Heart size={16} />, tags: ['ทะเลใส', 'คนน้อย'], regionId: 'east', provinceId: 'chon-buri' },
-      { title: 'ผาเดียวดาย', location: 'ชัยภูมิ', category: 'Hidden Gems', icon: <Heart size={16} />, tags: ['ทุ่งดอกไม้', 'ลับ'], regionId: 'northeast', provinceId: 'chaiyaphum' },
-    ],
-  };
-
-  const results: ExploreResult[] = [];
-  chips.forEach((chip) => {
-    if (allResults[chip]) results.push(...allResults[chip]);
-  });
-
-  const seen = new Set<string>();
-  return results.filter((r) => {
-    if (seen.has(r.title)) return false;
-    seen.add(r.title);
-    return true;
-  });
-}
+// ─── Icon mapping helper (iconName → lucide component) ───
+// Icon mapping is now done inline via ICON_MAP in the component

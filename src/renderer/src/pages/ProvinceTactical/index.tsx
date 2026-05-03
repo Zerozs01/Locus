@@ -223,9 +223,27 @@ export const ProvinceTacticalPage = () => {
     };
   }, [normalizeWeatherProvinceId, selectedWeatherKeyCandidates]);
 
+  const [dbPlaces, setDbPlaces] = useState<any[]>([]);
+
+  // Fetch real places from DB
+  useEffect(() => {
+    if (!provinceId) return;
+    const fetchDbPlaces = async () => {
+      try {
+        const places = await (window as any).api.explorePlaces.getAll();
+        // Filter by provinceId (normalized)
+        const filtered = places.filter((p: any) => p.provinceId === provinceId);
+        setDbPlaces(filtered);
+      } catch (err) {
+        console.error('[ProvinceTactical] Failed to fetch DB places:', err);
+      }
+    };
+    fetchDbPlaces();
+  }, [provinceId]);
+
   const provinceData = useMemo(() => {
     if (!region || !province) return null;
-    const baseData = generateProvinceData(province, region);
+    const baseData = generateProvinceData(province, region, dbPlaces);
     if (liveWeather) {
        baseData.weather.temp = `${liveWeather.temp.toFixed(1)}°`;
        baseData.weather.aqi = Math.round(liveWeather.aqi);
@@ -234,7 +252,7 @@ export const ProvinceTacticalPage = () => {
        baseData.weather.aqi = undefined;
     }
     return baseData;
-  }, [province, region, liveWeather]);
+  }, [province, region, liveWeather, dbPlaces]);
 
   const activeDataLayers = useMemo(
     () => (Object.entries(mapDataLayers)
@@ -361,13 +379,14 @@ export const ProvinceTacticalPage = () => {
         });
       } else {
         // Fallback: run search flow first, then guaranteed area highlight around original target.
+        const hasCoords = typeof state.focusPlace!.lat === 'number' && typeof state.focusPlace!.lng === 'number';
         mapRef.current?.searchAndFocus(
           state.focusPlace!.title || `${state.focusPlace!.lat},${state.focusPlace!.lng}`,
-          {
+          hasCoords ? {
             lat: state.focusPlace!.lat,
             lng: state.focusPlace!.lng,
             radiusMeters: 700,
-          },
+          } : undefined,
           { autoFocus: state.focusPlace!.autoFocus !== false }
         );
       }
@@ -491,6 +510,7 @@ export const ProvinceTacticalPage = () => {
             <ExploreTab
               data={provinceData}
               onFlyTo={handleFlyToLocation}
+              provinceImage={province.image}
               provinceInfo={{
                 displayName: displayProvinceName,
                 thaiName: provinceData.thaiName,

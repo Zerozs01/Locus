@@ -570,13 +570,51 @@ const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
 
 
 
-export function generateProvinceData(province: Province, region: Region): ProvinceData {
+export function generateProvinceData(province: Province, region: Region, dbPlaces: any[] = []): ProvinceData {
   const coords = getProvinceCoords(province.name);
   const dataKey = normalizeProvinceDataKey(province.name);
   const isBangkokProfile = dataKey === 'Bangkok' || dataKey === 'Bangkok Metropolis';
   
   // Get Real Essential Contacts
   const essentialData = provinceEssentialData[dataKey] || {};
+
+  // Map DB places to ProvinceData structures
+  const dbAttractions = dbPlaces
+    .filter(p => p.category === 'nature' || p.category === 'culture' || p.category === 'landmark')
+    .map(p => ({
+      name: p.title,
+      type: p.category || 'Landmark',
+      rating: p.rating || 0,
+      description: p.description || '',
+      openHours: p.openingHours || 'All day',
+      price: 'Check on site',
+      coordinates: p.locationName ? undefined : { lat: coords.lat, lng: coords.lng }, // Use coords if locationName is just a string
+      sourceUrl: p.sourceUrl,
+      image: p.thumbnailUrl
+    }));
+
+  const dbRestaurants = dbPlaces
+    .filter(p => p.category === 'food')
+    .map(p => ({
+      name: p.title,
+      cuisine: 'Local Food',
+      price: '$$',
+      rating: p.rating || 0,
+      specialty: p.description || '',
+      coordinates: undefined,
+      sourceUrl: p.sourceUrl
+    }));
+
+  const dbCafes = dbPlaces
+    .filter(p => p.category === 'cafe')
+    .map(p => ({
+      name: p.title,
+      vibe: 'Local Vibe',
+      wifi: true,
+      specialty: p.description || 'Coffee & Tea',
+      coordinates: undefined,
+      sourceUrl: p.sourceUrl
+    }));
 
   const data: any = {
     thaiName: thaiProvinceNames[province.name] || province.name,
@@ -589,21 +627,24 @@ export function generateProvinceData(province: Province, region: Region): Provin
     immigration: essentialData.immigration,
     tatOffice: essentialData.tatOffice,
     touristPolice: essentialData.touristPolice,
+    touristPoliceDetails: essentialData.touristPolice, // Alias
     transportHubs: essentialData.transportHubs,
 
-    attractions: isBangkokProfile
-      ? [
-          { name: 'สยามพารากอน', type: 'Landmark', rating: 4.8, description: 'โหนดเชิงพาณิชย์หลักใจกลางสยาม', openHours: '10:00 - 22:00', price: 'Free entry', coordinates: { lat: 13.7466, lng: 100.5347 } },
-          { name: 'สยามสแควร์', type: 'Landmark District', rating: 4.7, description: 'พื้นที่กิจกรรมเมืองและจุดเชื่อมการเดินเท้า', openHours: 'All day', price: 'Free', coordinates: { lat: 13.7449, lng: 100.5335 } },
-          { name: 'เซ็นทรัลเวิลด์', type: 'Landmark', rating: 4.6, description: 'แลนด์มาร์กเชิงพาณิชย์และจุดรวมเส้นทางหลัก', openHours: '10:00 - 22:00', price: 'Free entry', coordinates: { lat: 13.7467, lng: 100.5393 } },
-          { name: 'เยาวราช', type: 'Landmark District', rating: 4.5, description: 'โซนเมืองเก่าความหนาแน่นสูง ใช้ประเมิน crowd/route', openHours: 'All day', price: 'Free', coordinates: { lat: 13.7396, lng: 100.5104 } },
-        ]
-      : [
-          { name: `${province.name} Old City`, type: 'Landmark', rating: 4.8, description: 'แลนด์มาร์กหลักสำหรับอ้างอิงตำแหน่งและรวมพลในเขตเมืองเก่า', openHours: '6:00 - 18:00', price: 'Free', coordinates: { lat: coords.lat + 0.0050, lng: coords.lng + 0.0030 } },
-          { name: `Wat ${province.name}`, type: 'Temple', rating: 4.7, description: 'จุดสูงหรือพื้นที่เปิดโล่งที่ใช้เป็น orientation node ได้ดี', openHours: '5:00 - 17:00', price: '30 ฿', coordinates: { lat: coords.lat + 0.0100, lng: coords.lng + 0.0050 } },
-          { name: `${province.name} Night Market`, type: 'Market Hub', rating: 4.5, description: 'คลัสเตอร์อาหารและของใช้พื้นฐาน ใช้ประเมิน supply density ได้', openHours: '17:00 - 23:00', price: 'Free', coordinates: { lat: coords.lat - 0.0080, lng: coords.lng + 0.0120 } },
-          { name: `${province.name} National Park`, type: 'Nature Edge', rating: 4.6, description: 'พื้นที่ธรรมชาติสำหรับ day trip และใช้เป็น fallback edge นอกเมือง', openHours: '8:00 - 16:30', price: '200 ฿', coordinates: { lat: coords.lat + 0.0250, lng: coords.lng - 0.0150 } },
-        ],
+    attractions: dbAttractions.length > 0 
+      ? dbAttractions 
+      : (isBangkokProfile
+        ? [
+            { name: 'สยามพารากอน', type: 'Landmark', rating: 4.8, description: 'โหนดเชิงพาณิชย์หลักใจกลางสยาม', openHours: '10:00 - 22:00', price: 'Free entry', coordinates: { lat: 13.7466, lng: 100.5347 }, image: 'https://images.unsplash.com/photo-1620313133642-f2549298418f?q=80&w=400' },
+            { name: 'สยามสแควร์', type: 'Landmark District', rating: 4.7, description: 'พื้นที่กิจกรรมเมืองและจุดเชื่อมการเดินเท้า', openHours: 'All day', price: 'Free', coordinates: { lat: 13.7449, lng: 100.5335 }, image: 'https://images.unsplash.com/photo-1510074377623-8cf13fb86c08?q=80&w=400' },
+            { name: 'เซ็นทรัลเวิลด์', type: 'Landmark', rating: 4.6, description: 'แลนด์มาร์กเชิงพาณิชย์และจุดรวมเส้นทางหลัก', openHours: '10:00 - 22:00', price: 'Free entry', coordinates: { lat: 13.7467, lng: 100.5393 }, image: 'https://images.unsplash.com/photo-1614713568397-b32b775472d1?q=80&w=400' },
+            { name: 'เยาวราช', type: 'Landmark District', rating: 4.5, description: 'โซนเมืองเก่าความหนาแน่นสูง ใช้ประเมิน crowd/route', openHours: 'All day', price: 'Free', coordinates: { lat: 13.7396, lng: 100.5104 }, image: 'https://images.unsplash.com/photo-1555400038-63f5ba517a47?q=80&w=400' },
+          ]
+        : [
+            { name: `${province.name} Old City`, type: 'Landmark', rating: 4.8, description: 'แลนด์มาร์กหลักสำหรับอ้างอิงตำแหน่งและรวมพลในเขตเมืองเก่า', openHours: '6:00 - 18:00', price: 'Free', coordinates: { lat: coords.lat + 0.0050, lng: coords.lng + 0.0030 } },
+            { name: `Wat ${province.name}`, type: 'Temple', rating: 4.7, description: 'จุดสูงหรือพื้นที่เปิดโล่งที่ใช้เป็น orientation node ได้ดี', openHours: '5:00 - 17:00', price: '30 ฿', coordinates: { lat: coords.lat + 0.0100, lng: coords.lng + 0.0050 } },
+            { name: `${province.name} Night Market`, type: 'Market Hub', rating: 4.5, description: 'คลัสเตอร์อาหารและของใช้พื้นฐาน ใช้ประเมิน supply density ได้', openHours: '17:00 - 23:00', price: 'Free', coordinates: { lat: coords.lat - 0.0080, lng: coords.lng + 0.0120 } },
+            { name: `${province.name} National Park`, type: 'Nature Edge', rating: 4.6, description: 'พื้นที่ธรรมชาติสำหรับ day trip และใช้เป็น fallback edge นอกเมือง', openHours: '8:00 - 16:30', price: '200 ฿', coordinates: { lat: coords.lat + 0.0250, lng: coords.lng - 0.0150 } },
+          ]),
     
     activities: [
       { name: 'Landmark scan', icon: '🧭' },
@@ -648,17 +689,21 @@ export function generateProvinceData(province: Province, region: Region): Provin
       { name: getLocalDish(region.id, 3), description: 'ของหวานหรือ snack สำหรับพัก route ระยะสั้น', price: '20-40 ฿' },
     ],
     
-    restaurants: [
-      { name: `The ${province.name} Kitchen`, cuisine: 'Local Thai', price: '$$', rating: 4.6, specialty: 'Reliable hot meals', coordinates: { lat: coords.lat + 0.004, lng: coords.lng - 0.002 } },
-      { name: 'River View Terrace', cuisine: 'Thai-International', price: '$$$', rating: 4.5, specialty: 'Comfort stop / longer break', coordinates: { lat: coords.lat - 0.006, lng: coords.lng - 0.009 } },
-      { name: 'Local Flavors', cuisine: 'Street Food Style', price: '$', rating: 4.4, specialty: 'Fast meal turnaround', coordinates: { lat: coords.lat + 0.001, lng: coords.lng + 0.005 } },
-    ],
+    restaurants: dbRestaurants.length > 0 
+      ? dbRestaurants 
+      : [
+          { name: `The ${province.name} Kitchen`, cuisine: 'Local Thai', price: '$$', rating: 4.6, specialty: 'Reliable hot meals', coordinates: { lat: coords.lat + 0.004, lng: coords.lng - 0.002 } },
+          { name: 'River View Terrace', cuisine: 'Thai-International', price: '$$$', rating: 4.5, specialty: 'Comfort stop / longer break', coordinates: { lat: coords.lat - 0.006, lng: coords.lng - 0.009 } },
+          { name: 'Local Flavors', cuisine: 'Street Food Style', price: '$', rating: 4.4, specialty: 'Fast meal turnaround', coordinates: { lat: coords.lat + 0.001, lng: coords.lng + 0.005 } },
+        ],
     
-    cafes: [
-      { name: 'Coffee Mountain', vibe: 'Quiet rest stop', wifi: true, specialty: 'Thai drip coffee', coordinates: { lat: coords.lat + 0.008, lng: coords.lng - 0.003 } },
-      { name: 'Art House Cafe', vibe: 'Workspace + charging', wifi: true, specialty: 'Pour over', coordinates: { lat: coords.lat + 0.002, lng: coords.lng + 0.006 } },
-      { name: 'Garden Brew', vibe: 'Outdoor short break', wifi: true, specialty: 'Cold brew', coordinates: { lat: coords.lat - 0.003, lng: coords.lng + 0.004 } },
-    ],
+    cafes: dbCafes.length > 0
+      ? dbCafes
+      : [
+          { name: 'Coffee Mountain', vibe: 'Quiet rest stop', wifi: true, specialty: 'Thai drip coffee', coordinates: { lat: coords.lat + 0.008, lng: coords.lng - 0.003 } },
+          { name: 'Art House Cafe', vibe: 'Workspace + charging', wifi: true, specialty: 'Pour over', coordinates: { lat: coords.lat + 0.002, lng: coords.lng + 0.006 } },
+          { name: 'Garden Brew', vibe: 'Outdoor short break', wifi: true, specialty: 'Cold brew', coordinates: { lat: coords.lat - 0.003, lng: coords.lng + 0.004 } },
+        ],
     
     nightMarkets: [
       { name: `${province.name} Walking Street`, openHours: 'Sun 16:00-22:00', bestFor: 'Street food + light resupply', coordinates: { lat: coords.lat - 0.001, lng: coords.lng + 0.002 } },

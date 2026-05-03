@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Compass, Map, Newspaper, Settings, MessageSquare, Package, Navigation } from 'lucide-react';
 import { ResourceInventory } from './ResourceInventory';
+import logo from '../../../../src/Image/Locus_logo.png';
 
 interface SidebarBtnProps {
   icon: React.ReactNode;
@@ -38,10 +39,10 @@ export const Sidebar = () => {
         {/* Logo */}
         <div 
           onClick={() => navigate('/')}
-          className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.4)] mb-8 cursor-pointer hover:scale-110 transition-transform"
+          className="w-14 h-10  flex items-center justify-center mb-7 cursor-pointer hover:scale-110 transition-transform"
           title="Locus Home"
         >
-          <Compass className="w-5 h-5 text-white" />
+          <img src={logo} className="w-13 h-13 object-contain" alt="Locus Logo" />
         </div>
 
         {/* Navigation */}

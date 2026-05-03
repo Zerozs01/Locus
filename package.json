@@ -11,6 +11,10 @@
     "build:win": "npm run build && electron-builder --win",
     "postinstall": "electron-builder install-app-deps",
     "lint": "eslint . --ext .ts,.tsx",
+    "scrape:explore": "set ELECTRON_RUN_AS_NODE=1 && electron node_modules/tsx/dist/cli.cjs scripts/scrapeExplorePlaces.ts",
+    "scrape:explore:electron": "set ELECTRON_RUN_AS_NODE=1 && electron node_modules/tsx/dist/cli.cjs scripts/scrapeExplorePlaces.ts",
+    "scrape:enrichment": "set ELECTRON_RUN_AS_NODE=1 && electron node_modules/tsx/dist/cli.cjs scripts/scrapers/enrichment-scraper.ts",
+    "scrape:all": "npm run scrape:enrichment && npm run scrape:explore",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -20,17 +24,17 @@
     "@types/leaflet": "^1.9.21",
     "@types/topojson-client": "^3.1.5",
     "axios": "^1.7.9",
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.9.0",
     "firebase": "^11.1.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.469.0",
     "prop-types": "^15.8.1",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^7.13.0",
-    "react-simple-maps": "^3.0.0"
+    "react-simple-maps": "^3.0.0",
+    "sql.js": "^1.8.0"
   },
   "devDependencies": {
-    "@typescript-eslint/parser": "^8.26.0",
     "@chromatic-com/storybook": "^5.0.0",
     "@storybook/addon-a11y": "^10.2.1",
     "@storybook/addon-docs": "^10.2.1",
@@ -41,6 +45,7 @@
     "@types/node": "^22.10.5",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@typescript-eslint/parser": "^8.26.0",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/browser-playwright": "^4.0.18",
     "@vitest/coverage-v8": "^4.0.18",
@@ -56,6 +61,7 @@
     "react-dom": "^18.3.1",
     "storybook": "^10.2.1",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.5",
     "typescript": "^5.7.3",
     "vite": "^6.0.7",
     "vitest": "^4.0.18"

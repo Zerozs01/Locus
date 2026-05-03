@@ -8,7 +8,7 @@ export interface ProvinceData {
   weather: { temp: string; condition: string; humidity: string; aqi?: number };
   safetyIndex: number;
   dailyCost: string;
-  attractions: Array<{ name: string; type: string; rating: number; description?: string; openHours?: string; price?: string; coordinates?: { lat: number; lng: number } }>;
+  attractions: Array<{ name: string; type: string; rating: number; description?: string; openHours?: string; price?: string; coordinates?: { lat: number; lng: number }; image?: string }>;
   activities: Array<{ name: string; icon: string }>;
   seasons: Array<{ name: string; months: string; rating: 'best' | 'good' | 'avoid'; description: string }>;
   accommodation: {

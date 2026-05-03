@@ -150,7 +150,12 @@ export const ThailandMap = memo(({
   const { center, zoom } = getZoomCenter();
   const handleGeographyClick = (regionId: string, provinceName: string) => {
     if (viewMode === 'province') {
-      if (selectedProvince && selectedProvince.name === provinceName) {
+      const isSelected = selectedProvince && 
+        (selectedProvince.name === provinceName || 
+         (selectedProvince.name === 'Bangkok' && provinceName === 'Bangkok Metropolis') ||
+         (selectedProvince.name === 'Ayutthaya' && provinceName === 'Phra Nakhon Si Ayutthaya'));
+
+      if (isSelected) {
         onClearProvince?.();
         return;
       }
@@ -198,7 +203,14 @@ export const ThailandMap = memo(({
                 };
                 
                 // Province highlight logic
-                const isSelectedProvince = selectedProvince && provinceName === selectedProvince.name;
+                const normalizedProvinceName = (name: string) => {
+                  if (name === 'Bangkok') return 'Bangkok Metropolis';
+                  if (name === 'Ayutthaya') return 'Phra Nakhon Si Ayutthaya';
+                  return name;
+                };
+
+                const isSelectedProvince = selectedProvince && 
+                  (provinceName === selectedProvince.name || provinceName === normalizedProvinceName(selectedProvince.name));
                 const isSameRegionAsSelected = selectedProvince && regionId === activeId;
                 
                 // Determine fill color

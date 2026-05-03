@@ -19,7 +19,13 @@ const api = {
     saveWeatherAqi: (records: { provinceId: string; date: string; temperature: number; aqi: number }[]) =>
       ipcRenderer.invoke('db:saveWeatherAqi', records),
     getWeatherAqi: (provinceId?: string, date?: string) =>
-      ipcRenderer.invoke('db:getWeatherAqi', provinceId, date)
+      ipcRenderer.invoke('db:getWeatherAqi', provinceId, date),
+    getExplorePlaces: (category?: string, regionId?: string) =>
+      ipcRenderer.invoke('db:getExplorePlaces', category, regionId),
+    getExplorePlacesByCategories: (categories: string[]) =>
+      ipcRenderer.invoke('db:getExplorePlacesByCategories', categories),
+    getPopularProvinces: (regionId?: string, limit?: number) =>
+      ipcRenderer.invoke('db:getPopularProvinces', regionId, limit)
   },
   floodCache: {
     save: (provinceId: string, geoJsonData: object) =>
@@ -36,6 +42,12 @@ const api = {
       ipcRenderer.invoke('db:getFuelPrices'),
     isValid: (maxAgeHours?: number) =>
       ipcRenderer.invoke('db:isFuelPricesValid', maxAgeHours)
+  },
+  explorePlaces: {
+    getAll: () =>
+      ipcRenderer.invoke('db:getExplorePlaces'),
+    getByCategories: (categories: string[]) =>
+      ipcRenderer.invoke('db:getExplorePlacesByCategories', categories)
   },
   fetchBangchak: () =>
     ipcRenderer.invoke('fuel:getBangchakPrices'),
