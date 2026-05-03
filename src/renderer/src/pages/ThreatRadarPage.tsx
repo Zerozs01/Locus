@@ -9,6 +9,7 @@ import { Search, Users, Maximize, Building, MapPin, TrendingUp } from 'lucide-re
 import { PopularProvincePopup } from '../components/PopularProvincePopup';
 import { measureAsync } from '../utils/perf';
 import { mixHex, toRgba } from '../utils/color';
+import { SafetyResult } from '../utils/safetyLevel';
 
 const normalizeSearchText = (text: string) =>
   text
@@ -88,6 +89,7 @@ export const ThreatRadarPage = () => {
   const loadedRegionIdsRef = useRef<Set<string>>(new Set());
   const regionsRef = useRef<Region[]>([]);
   const [searchHighlight, setSearchHighlight] = useState(false);
+  const [dynamicSafetyByRegion, setDynamicSafetyByRegion] = useState<Map<string, SafetyResult>>(new Map());
 
   // ─── OPTIMIZED SEARCH HELPERS ───────────────────────────────────────────────
   // Pre-compute normalized province data once
@@ -193,7 +195,19 @@ export const ThreatRadarPage = () => {
   // Handle focusSearch state from Explore page navigation
   const location = useLocation();
   useEffect(() => {
-    const state = location.state as { focusSearch?: boolean; regionId?: string } | null;
+    const state = location.state as { 
+      focusSearch?: boolean; 
+      regionId?: string;
+      searchQuery?: string;
+      focusProvinceId?: string;
+      focusRegionId?: string;
+      autoOpenDetail?: boolean;
+    } | null;
+
+    if (state?.searchQuery) {
+      setSearchQuery(state.searchQuery);
+    }
+
     if (state?.focusSearch) {
       // Delay focus slightly to let mount complete
       setTimeout(() => {
@@ -205,11 +219,24 @@ export const ThreatRadarPage = () => {
       // Clear the state so refresh doesn't re-trigger
       window.history.replaceState({}, document.title);
     }
-    if (state?.regionId) {
+
+    if (state?.autoOpenDetail && state.focusProvinceId && state.focusRegionId) {
+      console.log('🚀 ThreatRadarPage: Auto-opening detail for', state.focusProvinceId);
+      setSelectedRegionId(state.focusRegionId);
+      setMapMode('province');
+      
+      // Select the province if it exists in the index
+      const found = provinceIndex.find(p => p.id === state.focusProvinceId);
+      if (found) {
+        handleSelectProvinceByName(found.name);
+      }
+      
+      window.history.replaceState({}, document.title);
+    } else if (state?.regionId) {
       setSelectedRegionId(state.regionId);
       window.history.replaceState({}, document.title);
     }
-  }, [location.state]);
+  }, [location.state, provinceIndex]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -269,6 +296,27 @@ export const ThreatRadarPage = () => {
   const activeTheme = selectedRegionId ? regionTheme[selectedRegionId as RegionId] || regionTheme.central : regionTheme.central;
   const summaryToneRamp = activeTheme.toneRamp;
   const isProvinceFocus = mapMode === 'province' && !!selectedProvince;
+
+  // Build safety overlay from static province data for the map
+  const safetyByProvince = useMemo(() => {
+    const map: Record<string, number> = {};
+    const allRegions = regions.length > 0 ? regions : regionsData;
+    allRegions.forEach((reg) => {
+      const regionSafety = dynamicSafetyByRegion.get(reg.id);
+      (reg.subProvinces || []).forEach((prov) => {
+        // Map province names to GeoJSON names
+        let geoName = prov.name;
+        if (prov.name === 'Bangkok') geoName = 'Bangkok Metropolis';
+        if (prov.id === 'ayutthaya') geoName = 'Phra Nakhon Si Ayutthaya';
+        
+        // Use dynamic score if available, otherwise static fallback
+        const provResult = regionSafety?.provinceResults?.find(pr => pr.name === prov.name);
+        map[geoName] = provResult ? provResult.score : (prov.safety ?? 80);
+      });
+    });
+    return map;
+  }, [regions, dynamicSafetyByRegion]);
+
   const getProvincePopulation = (prov: Province | null) => {
     if (!prov) return null;
     if (prov.population) return prov.population;
@@ -473,6 +521,7 @@ export const ThreatRadarPage = () => {
     setMapMode('province');
     const provinces = await loadRegionProvinces(suggestion.regionId);
     const fullProvince = provinces.find((p) => p.id === suggestion.id) || provinces.find((p) => p.name === suggestion.name) || null;
+    
     setSelectedProvince(fullProvince);
     setSearchQuery('');
     setShowSuggestions(false);
@@ -516,25 +565,14 @@ export const ThreatRadarPage = () => {
     setSelectedProvince(null);
   }, []);
 
-  const handleSelectProvinceByName = useCallback((name: string) => {
-    // Map GeoJSON names to UI names if they differ
-    const uiName = name === 'Bangkok Metropolis' ? 'Bangkok' : 
-                   (name === 'Phra Nakhon Si Ayutthaya' ? 'Ayutthaya' : name);
-    
-    const normalizedName = normalizeSearchText(uiName);
-    const provInfo = normalizedProvinceCache.find(p =>
-      p.normalizedName === normalizedName || p.normalizedThaiName === normalizedName
-    );
-    if (provInfo) {
-      handleSearchSelect({
-        kind: 'province',
-        id: provInfo.id,
-        name: provInfo.name,
-        regionId: provInfo.regionId,
-        regionName: provInfo.regionName,
-      });
-    }
-  }, [normalizedProvinceCache, handleSearchSelect]);
+  const handleSelectProvinceByName = useCallback(async (name: string) => {
+    const regionId = provinceToRegion[name] || 'central';
+    setSelectedRegionId(regionId);
+    setMapMode('province');
+    const provinces = await loadRegionProvinces(regionId);
+    const prov = provinces.find((p) => p.name === name || (name === 'Bangkok Metropolis' && p.name === 'Bangkok') || (name === 'Phra Nakhon Si Ayutthaya' && p.name === 'Ayutthaya'));
+    if (prov) setSelectedProvince(prov);
+  }, [loadRegionProvinces]);
 
   useEffect(() => {
     if (mapMode === 'province' && selectedRegionId) {
@@ -565,6 +603,7 @@ export const ThreatRadarPage = () => {
             onSelectProvince={handleProvinceSelect} 
             onClearProvince={handleClearProvince}
             onSelectProvinceByName={handleSelectProvinceByName}
+            safetyByProvince={safetyByProvince}
           />
         </div>
 
@@ -676,6 +715,7 @@ export const ThreatRadarPage = () => {
         onViewProvinceDetail={handleViewProvinceDetail}
         loadingProvinceRegionId={loadingProvinceRegionId}
         onOpenPopularProvinces={() => setShowPopularProvinces(true)}
+        onSafetyDataChange={setDynamicSafetyByRegion}
       />
       {/* POPULAR PROVINCES POPUP */}
       {showPopularProvinces && selectedRegionId && (

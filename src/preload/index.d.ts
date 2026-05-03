@@ -20,9 +20,19 @@ interface ExplorePlace {
   fullImageUrl: string | null
   description: string | null
   rating: number | null
+  reviewCount: number | null
+  reviewCountWeek: number | null
+  lastReviewAt: string | null
+  checkinCount: number | null
   openingHours: string | null
   sourceUrl: string | null
   updatedAt: string | null
+}
+
+interface TrendingPlace extends ExplorePlace {
+  trendingScore: number
+  recencyGrowth: number
+  isTrending: boolean
 }
 
 declare global {
@@ -45,6 +55,7 @@ declare global {
         getWeatherAqi: (provinceId?: string, date?: string) => Promise<Array<{ provinceId: string; date: string; temperature: number; aqi: number }>>
         getExplorePlaces: (category?: string, regionId?: string) => Promise<ExplorePlace[]>
         getExplorePlacesByCategories: (categories: string[]) => Promise<ExplorePlace[]>
+        getTrendingPlaces: (limit?: number) => Promise<TrendingPlace[]>
         getPopularProvinces: (regionId?: string, limit?: number) => Promise<Array<{ provinceId: string; provinceName: string; regionId: string; visitorCount: number; popularityFactors?: string; lastUpdated?: string }>>
       }
       floodCache: {

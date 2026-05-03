@@ -22,7 +22,7 @@ const provinceSlogans: Record<string, string> = {
 };
 
 // Province-specific emergency contacts with real phone numbers
-const provinceEmergencyData: Record<string, Array<{ agency: string; phone: string; description?: string }>> = {
+export const provinceEmergencyData: Record<string, Array<{ agency: string; phone: string; description?: string }>> = {
   'Chiang Mai': [
     { agency: 'สภ.เมืองเชียงใหม่', phone: '053-276-458', description: 'Mueang Chiang Mai Police Station' },
     { agency: 'ตำรวจท่องเที่ยวเชียงใหม่', phone: '053-248-974', description: 'Tourist Police Division' },
@@ -226,7 +226,7 @@ function getProvinceEmergencyContacts(provinceName: string): Array<{ agency: str
 }
 
 // Placeholder for provinceEssentialData, assuming it will be defined elsewhere
-const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
+export const provinceEssentialData: Record<string, Partial<ProvinceData>> = {
   'Chiang Mai': {
     immigration: { name: 'Chiang Mai Immigration Office', address: '71 Moo 3, Suthep, Mueang Chiang Mai', phone: '053-201-755', coordinates: { lat: 18.767, lng: 98.975 } },
     tatOffice: { name: 'TAT Chiang Mai Office', phone: '053-248-604', coordinates: { lat: 18.788, lng: 99.003 } },

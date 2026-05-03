@@ -12,6 +12,8 @@ export interface ThailandMapProps {
   onSelectProvince: (prov: Province) => void;
   onClearProvince?: () => void;
   onSelectProvinceByName?: (name: string) => void;
+  /** Optional safety scores by province name (GeoJSON name → 0-100 score) for threat overlay */
+  safetyByProvince?: Record<string, number>;
 }
 
 // Map provinces to their regions
@@ -116,13 +118,23 @@ const regionLabelPositions: Record<string, [number, number]> = {
   south: [99.4, 8.4],
 };
 
+/** Map safety score (0-100) to a fill color for threat overlay */
+const getSafetyFillColor = (score: number): string => {
+  if (score >= 85) return '#166534'; // dark green
+  if (score >= 75) return '#15803d'; // green
+  if (score >= 65) return '#a16207'; // dark amber
+  if (score >= 50) return '#b45309'; // amber-orange
+  return '#991b1b';                  // dark red
+};
+
 export const ThailandMap = memo(({ 
   activeId, 
   onSelectRegion, 
   viewMode,
   selectedProvince,
   onClearProvince,
-  onSelectProvinceByName
+  onSelectProvinceByName,
+  safetyByProvince,
 }: ThailandMapProps) => {
 
   const getZoomCenter = (): { center: [number, number]; zoom: number } => {
@@ -231,12 +243,23 @@ export const ThailandMap = memo(({
                     fillColor = colors.active;
                     opacity = 1;
                   } else if (isOtherRegion) {
-                    // Other regions - gray out
-                    fillColor = '#1e293b';
+                    // Other regions - use default gray instead of dark slate
+                    fillColor = colors.default;
                     opacity = 0.4;
                   }
                 } else if (isRegionActive) {
+                  // Standard region mode - highlight active region
                   fillColor = colors.active;
+                  opacity = 1;
+                } else if (activeId) {
+                  // Region is selected, but this province is not in it. 
+                  // Use default gray (colors.default) instead of dark slate to keep it bright.
+                  fillColor = colors.default;
+                  opacity = 0.7; 
+                } else if (safetyByProvince && safetyByProvince[provinceName] !== undefined) {
+                  // Safety overlay: only show when NO region is selected (prevents green flash)
+                  fillColor = getSafetyFillColor(safetyByProvince[provinceName]);
+                  opacity = 0.85;
                 }
 
                 return (

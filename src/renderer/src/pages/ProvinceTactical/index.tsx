@@ -11,7 +11,7 @@ import {
   Shield,
   GripVertical
 } from 'lucide-react';
-import { Province, Region } from '../../data/regions';
+import { Province, Region, regionsData } from '../../data/regions';
 import { regionTheme, RegionId } from '../../data/regionTheme';
 import { getThaiProvinceName } from '../../data/thaiProvinceNames';
 import ProvinceMap, { ProvinceMapHandle } from '../../components/ProvinceMap';
@@ -48,9 +48,9 @@ const getLocalDateKey = (date = new Date()) => {
  * Province Tactical Detail Page - REDESIGNED
  * เน้นสิ่งที่ผู้ใช้ต้องการจริงๆ พร้อมแผนที่ Interactive
  */
-const MIN_SIDEBAR_WIDTH = 280;
+const MIN_SIDEBAR_WIDTH = 350;
 const MAX_SIDEBAR_WIDTH = 600;
-const DEFAULT_SIDEBAR_WIDTH = 420;
+const DEFAULT_SIDEBAR_WIDTH = 500;
 
 export const ProvinceTacticalPage = () => {
   const { regionId, provinceId } = useParams();
@@ -134,7 +134,12 @@ export const ProvinceTacticalPage = () => {
               ])
             );
             if (regionData) setRegion(regionData);
-            if (provinceData) setProvince(provinceData);
+            if (provinceData) {
+              // Force sync image from static data
+              const staticProv = regionsData.find(r => r.id === regionId)?.subProvinces?.find(p => p.id === provinceId);
+              const updatedProvince = staticProv ? { ...provinceData, image: staticProv.image } : provinceData;
+              setProvince(updatedProvince);
+            }
           } else {
             const regions = await measureAsync('db:getRegions@ProvinceTacticalPage', () => window.api.db.getRegions());
             const foundRegion = regions.find((r: Region) => r.id === regionId);
@@ -142,7 +147,10 @@ export const ProvinceTacticalPage = () => {
               setRegion(foundRegion);
               const foundProvince = foundRegion.subProvinces?.find((p: Province) => p.id === provinceId);
               if (foundProvince) {
-                setProvince(foundProvince);
+                // Force sync image from static data
+                const staticProv = regionsData.find(r => r.id === regionId)?.subProvinces?.find(p => p.id === provinceId);
+                const updatedProvince = staticProv ? { ...foundProvince, image: staticProv.image } : foundProvince;
+                setProvince(updatedProvince);
               }
             }
           }

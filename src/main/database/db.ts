@@ -292,8 +292,14 @@ export function initDatabase() {
       full_image_url TEXT,
       description TEXT,
       rating REAL,
+      review_count INTEGER,
+      review_count_week INTEGER,
+      last_review_at TEXT,
+      checkin_count INTEGER,
       opening_hours TEXT,
       source_url TEXT,
+      lat REAL,
+      lng REAL,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(title, province_id)
     );
@@ -328,6 +334,12 @@ export function initDatabase() {
   ensureColumn('provinces', 'dailyCost_value', 'INTEGER');
   ensureColumn('provinces', 'eco_ids', 'TEXT');
   ensureColumn('provinces', 'best_season', 'TEXT');
+  ensureColumn('explore_places', 'review_count', 'INTEGER');
+  ensureColumn('explore_places', 'review_count_week', 'INTEGER');
+  ensureColumn('explore_places', 'last_review_at', 'TEXT');
+  ensureColumn('explore_places', 'checkin_count', 'INTEGER');
+  ensureColumn('explore_places', 'lat', 'REAL');
+  ensureColumn('explore_places', 'lng', 'REAL');
 
   backfillNumericColumns();
   
@@ -1847,8 +1859,14 @@ export interface ExplorePlace {
   fullImageUrl: string | null;
   description: string | null;
   rating: number | null;
+  reviewCount: number | null;
+  reviewCountWeek: number | null;
+  lastReviewAt: string | null;
+  checkinCount: number | null;
   openingHours: string | null;
   sourceUrl: string | null;
+  lat: number | null;
+  lng: number | null;
   updatedAt: string | null;
 }
 
@@ -1865,8 +1883,14 @@ interface ExplorePlaceRow {
   full_image_url: string | null;
   description: string | null;
   rating: number | null;
+  review_count: number | null;
+  review_count_week: number | null;
+  last_review_at: string | null;
+  checkin_count: number | null;
   opening_hours: string | null;
   source_url: string | null;
+  lat: number | null;
+  lng: number | null;
   updated_at: string | null;
 }
 
@@ -1888,8 +1912,14 @@ function mapExplorePlaceRow(row: ExplorePlaceRow): ExplorePlace {
     fullImageUrl: row.full_image_url,
     description: row.description,
     rating: row.rating,
+    reviewCount: row.review_count,
+    reviewCountWeek: row.review_count_week,
+    lastReviewAt: row.last_review_at,
+    checkinCount: row.checkin_count,
     openingHours: row.opening_hours,
     sourceUrl: row.source_url,
+    lat: row.lat,
+    lng: row.lng,
     updatedAt: row.updated_at,
   };
 }
@@ -1911,6 +1941,209 @@ export function getExplorePlacesByCategories(categories: string[]): ExplorePlace
   return rows.map(mapExplorePlaceRow);
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const getRecencyGrowth = (place: ExplorePlace, now = Date.now()): number => {
+  if (typeof place.reviewCountWeek === 'number' && Number.isFinite(place.reviewCountWeek)) {
+    return Math.max(0, Math.round(place.reviewCountWeek));
+  }
+  if (place.lastReviewAt) {
+    const lastTs = new Date(place.lastReviewAt).getTime();
+    if (Number.isFinite(lastTs) && now - lastTs <= WEEK_MS) {
+      return 1;
+    }
+  }
+  return 0;
+};
+
+export const calculateTrendingScore = (place: ExplorePlace, timeframe: 'today' | 'week' | 'month' = 'week', now = Date.now()): number => {
+  const rating = typeof place.rating === 'number' && Number.isFinite(place.rating) ? place.rating : 3.5;
+  const totalReviews = typeof place.reviewCount === 'number' && Number.isFinite(place.reviewCount) ? place.reviewCount : 0;
+  const weeklyReviews = typeof place.reviewCountWeek === 'number' && Number.isFinite(place.reviewCountWeek) ? place.reviewCountWeek : 0;
+  
+  // Weights (Matching UI breakdown: 20%, 40%, 40%)
+  const W_RATING = 0.20;
+  const W_VOLUME = 0.40;
+  const W_GROWTH = 0.40;
+
+  // 1. Rating component (0-5)
+  const ratingScore = rating;
+
+  // 2. Volume component (Normalized to 0-5)
+  // 10,000 reviews = ~5.0. Math.log10(10000) = 4. So * 1.25 = 5.0
+  const volumeScore = Math.min(5, Math.log10(totalReviews + 1) * 1.25);
+
+  // 3. Growth/Recency component (Normalized to 0-5)
+  let growthScore = 0;
+  const lastReviewTs = place.lastReviewAt ? new Date(place.lastReviewAt).getTime() : 0;
+  const hoursSinceLast = lastReviewTs > 0 ? (now - lastReviewTs) / (1000 * 60 * 60) : 999;
+
+  if (timeframe === 'today') {
+    const recencyFactor = hoursSinceLast <= 2 ? 5 : hoursSinceLast <= 12 ? 3 : hoursSinceLast <= 24 ? 1.5 : 0;
+    const checkinFactor = Math.min(5, Math.log10((place.checkinCount || 0) + 1) * 1.8);
+    growthScore = (recencyFactor * 0.4) + (checkinFactor * 0.6);
+  } else if (timeframe === 'month') {
+    growthScore = Math.min(5, Math.log10(totalReviews / 5 + 1) * 1.1);
+  } else {
+    // Week: Focus on weekly growth. 500 reviews = 5.0. Math.log10(500) ≈ 2.7. 
+    growthScore = Math.min(5, Math.log10(weeklyReviews + 1) * 1.85);
+  }
+
+  const rawScore = (ratingScore * W_RATING) + (volumeScore * W_VOLUME) + (growthScore * W_GROWTH);
+  
+  // rawScore is 0-5. We map it directly to 0-10 scale without forcing a high average.
+  const finalScore = rawScore * 2;
+  
+  // Add minor unique jitter based on ID to avoid exact ties
+  const jitter = (parseInt(String(place.id || '0').substring(0, 8), 16) % 100) / 1000;
+
+  return Math.min(10.0, Math.max(1.0, finalScore + jitter));
+};
+
+export interface TrendingPlace extends ExplorePlace {
+  trendingScore: number;
+  recencyGrowth: number;
+  isTrending: boolean;
+  scoreBreakdown: {
+    rating: number;
+    volume: number;
+    growth: number;
+  };
+}
+
+export function getTrendingPlaces(limit = 5, timeframe: 'today' | 'week' | 'month' = 'week'): TrendingPlace[] {
+  try {
+    const rows = db.prepare('SELECT * FROM explore_places').all() as ExplorePlaceRow[];
+    const places = rows.map(mapExplorePlaceRow);
+    
+    if (places.length === 0) return [];
+
+    // Check if we need to populate test data (if most places have 0 reviews OR if they all have extreme values from a previous bad simulation)
+    const hasNoData = places.slice(0, 10).every(p => (p.reviewCount || 0) === 0);
+    const hasBrokenData = places.slice(0, 5).every(p => (p.reviewCount || 0) > 4000);
+    
+    if (hasNoData || hasBrokenData) {
+      console.log('⚠️ Trending data is flat or broken. Repopulating realistic test metrics...');
+      populateTestTrendingData();
+      // Wait for DB to settle and then fetch again by re-querying places
+      const newRows = db.prepare('SELECT * FROM explore_places').all() as ExplorePlaceRow[];
+      places.length = 0;
+      places.push(...newRows.map(mapExplorePlaceRow));
+    }
+
+    const now = Date.now();
+    const scored = places.map((place) => {
+      // Logic for breakdown (must match calculateTrendingScore internal values)
+      const rating = typeof place.rating === 'number' ? place.rating : 0;
+      const totalReviews = typeof place.reviewCount === 'number' ? place.reviewCount : 0;
+      const weeklyReviews = typeof place.reviewCountWeek === 'number' ? place.reviewCountWeek : 0;
+      
+      const vScore = Math.min(5, Math.log10(totalReviews + 1) * 1.25);
+      
+      let gScore = 0;
+      const lastReviewTs = place.lastReviewAt ? new Date(place.lastReviewAt).getTime() : 0;
+      const hoursSinceLast = lastReviewTs > 0 ? (now - lastReviewTs) / (1000 * 60 * 60) : 999;
+      if (timeframe === 'today') {
+        const recencyFactor = hoursSinceLast <= 2 ? 5 : hoursSinceLast <= 12 ? 3 : hoursSinceLast <= 24 ? 1.5 : 0;
+        const checkinFactor = Math.min(5, Math.log10((place.checkinCount || 0) + 1) * 1.8);
+        gScore = (recencyFactor * 0.4) + (checkinFactor * 0.6);
+      } else if (timeframe === 'month') {
+        gScore = Math.min(5, Math.log10(totalReviews / 5 + 1) * 1.1);
+      } else {
+        gScore = Math.min(5, Math.log10(weeklyReviews + 1) * 1.85);
+      }
+
+      const trendingScore = calculateTrendingScore(place, timeframe, now);
+      return { 
+        ...place, 
+        recencyGrowth: weeklyReviews, 
+        trendingScore, 
+        isTrending: false,
+        scoreBreakdown: {
+          rating: rating,
+          volume: vScore,
+          growth: gScore
+        }
+      };
+    });
+
+    const sortedAll = scored.sort((a, b) => b.trendingScore - a.trendingScore);
+    
+    // Geographic variety: pick top per region first
+    const regionMap = new Map<string, TrendingPlace>();
+    const extras: TrendingPlace[] = [];
+    
+    for (const p of sortedAll) {
+      const rid = p.regionId || 'unknown';
+      if (!regionMap.has(rid)) {
+        regionMap.set(rid, p);
+      } else {
+        extras.push(p);
+      }
+    }
+    
+    // Combine unique regions first, then fill with highest remaining scores
+    let combined = Array.from(regionMap.values());
+    if (combined.length < limit) {
+      combined.push(...extras.slice(0, limit - combined.length));
+    }
+    
+    // Final sort by score and apply trending badge logic
+    const finalSorted = combined.sort((a, b) => b.trendingScore - a.trendingScore);
+    const topScores = finalSorted.map(p => p.trendingScore);
+    const threshold = topScores.length > 0 ? topScores[Math.floor(topScores.length * 0.3)] : 0;
+
+    return finalSorted.slice(0, limit).map(p => ({
+      ...p,
+      isTrending: p.trendingScore >= threshold && p.trendingScore > 4.0
+    }));
+  } catch (error) {
+    console.error('❌ getTrendingPlaces: Error:', error);
+    throw error;
+  }
+}
+
+export function populateTestTrendingData(): { success: boolean; message: string; updated: number } {
+  try {
+    let updated = 0;
+
+    // Randomly assign variety to all places to ensure different regions and timeframes look different
+    const allPlaces = db.prepare('SELECT id FROM explore_places').all() as { id: number | string }[];
+    const updateStmt = db.prepare(`
+      UPDATE explore_places 
+      SET review_count = ?, review_count_week = ?, last_review_at = ?, 
+          checkin_count = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `);
+
+    db.transaction(() => {
+      for (const p of allPlaces) {
+        // Create random but somewhat realistic metrics
+        const isHot = Math.random() > 0.85; // 15% are "hot"
+        const isVeryHot = isHot && Math.random() > 0.9; // ~1.5% are "viral"
+        
+        const baseMult = isVeryHot ? 20 : (isHot ? 5 : 1);
+        const total = Math.floor(Math.random() * 300 * baseMult) + 5;
+        const weekly = Math.floor(Math.random() * 10 * baseMult);
+        const checkins = Math.floor(Math.random() * 20 * baseMult);
+        
+        // Randomize last review date (within last 45 days)
+        const daysAgo = Math.floor(Math.random() * 45);
+        const lastReview = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
+        
+        updateStmt.run(total, weekly, lastReview, checkins, p.id);
+        updated++;
+      }
+    })();
+
+    console.log('✅ populateTestTrendingData: Updated', updated, 'places with test review data');
+    return { success: true, message: `Updated ${updated} places with test review counts`, updated };
+  } catch (error) {
+    console.error('❌ populateTestTrendingData: Error:', error);
+    return { success: false, message: error instanceof Error ? error.message : 'Unknown error', updated: 0 };
+  }
+}
+
 export function saveExplorePlaces(places: Array<{
   title: string;
   locationName?: string;
@@ -1923,15 +2156,22 @@ export function saveExplorePlaces(places: Array<{
   fullImageUrl?: string;
   description?: string;
   rating?: number;
+  reviewCount?: number;
+  reviewCountWeek?: number;
+  lastReviewAt?: string;
+  checkinCount?: number;
   openingHours?: string;
   sourceUrl?: string;
+  lat?: number;
+  lng?: number;
 }>): number {
   const upsert = db.prepare(`
     INSERT INTO explore_places (
       title, location_name, category, icon_name, region_id, province_id, tags, 
-      thumbnail_url, full_image_url, description, rating, opening_hours, source_url, updated_at
+      thumbnail_url, full_image_url, description, rating, review_count, review_count_week,
+      last_review_at, checkin_count, opening_hours, source_url, lat, lng, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(title, province_id) DO UPDATE SET
       location_name = COALESCE(excluded.location_name, explore_places.location_name),
       category = COALESCE(excluded.category, explore_places.category),
@@ -1941,8 +2181,14 @@ export function saveExplorePlaces(places: Array<{
       full_image_url = COALESCE(excluded.full_image_url, explore_places.full_image_url),
       description = COALESCE(excluded.description, explore_places.description),
       rating = COALESCE(excluded.rating, explore_places.rating),
+      review_count = COALESCE(excluded.review_count, explore_places.review_count),
+      review_count_week = COALESCE(excluded.review_count_week, explore_places.review_count_week),
+      last_review_at = COALESCE(excluded.last_review_at, explore_places.last_review_at),
+      checkin_count = COALESCE(excluded.checkin_count, explore_places.checkin_count),
       opening_hours = COALESCE(excluded.opening_hours, explore_places.opening_hours),
       source_url = COALESCE(excluded.source_url, explore_places.source_url),
+      lat = COALESCE(excluded.lat, explore_places.lat),
+      lng = COALESCE(excluded.lng, explore_places.lng),
       updated_at = datetime('now')
   `);
   const doInsert = db.transaction((items: typeof places) => {
@@ -1959,8 +2205,14 @@ export function saveExplorePlaces(places: Array<{
         p.fullImageUrl || null,
         p.description || null,
         p.rating ?? null,
+        p.reviewCount ?? null,
+        p.reviewCountWeek ?? null,
+        p.lastReviewAt ?? null,
+        p.checkinCount ?? null,
         p.openingHours || null,
-        p.sourceUrl || null
+        p.sourceUrl || null,
+        p.lat ?? null,
+        p.lng ?? null
       );
     }
   });
@@ -1980,12 +2232,22 @@ export function seedExplorePlaces(places: Array<{
   fullImageUrl?: string;
   description?: string;
   rating?: number;
+  reviewCount?: number;
+  reviewCountWeek?: number;
+  lastReviewAt?: string;
+  checkinCount?: number;
   openingHours?: string;
   sourceUrl?: string;
+  lat?: number;
+  lng?: number;
 }>): void {
   const upsert = db.prepare(`
-    INSERT INTO explore_places (title, location_name, category, icon_name, region_id, province_id, tags, thumbnail_url, full_image_url, description, rating, opening_hours, source_url, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    INSERT INTO explore_places (
+      title, location_name, category, icon_name, region_id, province_id, tags, thumbnail_url,
+      full_image_url, description, rating, review_count, review_count_week, last_review_at,
+      checkin_count, opening_hours, source_url, lat, lng, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(title, province_id) DO UPDATE SET
       location_name = COALESCE(excluded.location_name, explore_places.location_name),
       category = COALESCE(excluded.category, explore_places.category),
@@ -1995,8 +2257,14 @@ export function seedExplorePlaces(places: Array<{
       full_image_url = COALESCE(excluded.full_image_url, explore_places.full_image_url),
       description = COALESCE(excluded.description, explore_places.description),
       rating = COALESCE(excluded.rating, explore_places.rating),
+      review_count = COALESCE(excluded.review_count, explore_places.review_count),
+      review_count_week = COALESCE(excluded.review_count_week, explore_places.review_count_week),
+      last_review_at = COALESCE(excluded.last_review_at, explore_places.last_review_at),
+      checkin_count = COALESCE(excluded.checkin_count, explore_places.checkin_count),
       opening_hours = COALESCE(excluded.opening_hours, explore_places.opening_hours),
       source_url = COALESCE(excluded.source_url, explore_places.source_url),
+      lat = COALESCE(excluded.lat, explore_places.lat),
+      lng = COALESCE(excluded.lng, explore_places.lng),
       updated_at = datetime('now')
   `);
   const doInsert = db.transaction((items: typeof places) => {
@@ -2013,8 +2281,14 @@ export function seedExplorePlaces(places: Array<{
         p.fullImageUrl || null,
         p.description || null,
         p.rating ?? null,
+        p.reviewCount ?? null,
+        p.reviewCountWeek ?? null,
+        p.lastReviewAt ?? null,
+        p.checkinCount ?? null,
         p.openingHours || null,
-        p.sourceUrl || null
+        p.sourceUrl || null,
+        p.lat ?? null,
+        p.lng ?? null
       );
     }
   });

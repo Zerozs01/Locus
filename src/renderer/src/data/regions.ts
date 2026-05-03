@@ -7,6 +7,20 @@ import RegionWest from '../../../Image/nouse/RegionCard_West.webp';
 import RegionEast from '../../../Image/nouse/RegionCard_East.webp';
 import { regionTheme } from './regionTheme';
 
+// Central Province Images
+const imgAngThong = '/src/Image/Province_pic/Central_pic/ang_thong.jpg';
+const imgBangkok = '/src/Image/Province_pic/Central_pic/Bangkok.png';
+const imgChaiNat = '/src/Image/Province_pic/Central_pic/chai_nat.png';
+const imgLopBuri = '/src/Image/Province_pic/Central_pic/lop_buri.png';
+const imgNakhonPathom = '/src/Image/Province_pic/Central_pic/nakhon_pathom.png';
+const imgPathumThani = '/src/Image/Province_pic/Central_pic/pathum_thani.png';
+const imgSuphanBuri = '/src/Image/Province_pic/Central_pic/suphan_buri.png';
+const imgKamphaengPhet = '/src/Image/Province_pic/Central_pic/kamphaeng_phet.png';
+const imgNakhonNayok = '/src/Image/Province_pic/Central_pic/nakhon_nayok.png';
+const imgNakhonSawan = '/src/Image/Province_pic/Central_pic/nakhon_sawan.png';
+const imgAyutthaya = '/src/Image/Province_pic/Central_pic/ayutthaya_thai.png';
+const imgSaraburi = '/src/Image/Province_pic/Central_pic/saraburi_thai.png';
+
 export interface Province {
   name: string;
   id: string;
@@ -23,6 +37,15 @@ export interface Province {
   populationValue?: number;
   areaValue?: number;
   dailyCostValue?: number;
+  // Tactical Recon Fields
+  terrain?: 'Urban' | 'River Basin' | 'Mountainous' | 'Coastal';
+  infrastructure?: {
+    medicalHubs: number;
+    transportNodes: number;
+  };
+  emergencyContact?: string;
+  tacticalTags?: string[];
+  activeThreat?: string;
 }
 
 export interface RegionStats {
@@ -153,27 +176,27 @@ export const regionsData: Region[] = [
     },
     desc: "หัวใจของเศรษฐกิจไทย แหล่งรวมความทันสมัยและประวัติศาสตร์",
     subProvinces: [
-      { name: "Ang Thong", id: "angthong", dist: 7, tam: 73, serenity: 8, entertainment: 3, relax: 8, image: "/src/Image/Province_pic/Central_pic/ang_thong.jpg", population: "278K", area: "968", dailyCost: "280 ฿", safety: 88 },
-      { name: "Bangkok", id: "bangkok", dist: 50, tam: 180, serenity: 3, entertainment: 10, relax: 5, image: "/src/Image/Province_pic/Central_pic/Bangkok.png", population: "5.68M", area: "1,569", dailyCost: "600 ฿", safety: 75 },
-      { name: "Chai Nat", id: "chainat", dist: 8, tam: 53, serenity: 8, entertainment: 3, relax: 8, image: "/src/Image/Province_pic/Central_pic/chai_nat.png", population: "325K", area: "2,470", dailyCost: "250 ฿", safety: 90 },
-      { name: "Kamphaeng Phet", id: "kamphaengphet", dist: 11, tam: 78, serenity: 8, entertainment: 4, relax: 8, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "725K", area: "8,608", dailyCost: "260 ฿", safety: 87 },
-      { name: "Lop Buri", id: "lopburi", dist: 11, tam: 124, serenity: 7, entertainment: 4, relax: 7, image: "/src/Image/Province_pic/Central_pic/lop_buri.png", population: "751K", area: "6,200", dailyCost: "280 ฿", safety: 84 },
-      { name: "Nakhon Nayok", id: "nakhonnayok", dist: 4, tam: 41, serenity: 9, entertainment: 3, relax: 9, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "257K", area: "2,122", dailyCost: "320 ฿", safety: 86 },
-      { name: "Nakhon Pathom", id: "nakhonpathom", dist: 7, tam: 106, serenity: 6, entertainment: 5, relax: 6, image: "/src/Image/Province_pic/Central_pic/nakhon_pathom.png", population: "919K", area: "2,168", dailyCost: "350 ฿", safety: 85 },
-      { name: "Nakhon Sawan", id: "nakhonsawan", dist: 15, tam: 130, serenity: 7, entertainment: 5, relax: 7, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "1.05M", area: "9,598", dailyCost: "280 ฿", safety: 86 },
+      { name: "Ang Thong", id: "angthong", dist: 7, tam: 73, serenity: 8, entertainment: 3, relax: 8, image: imgAngThong, population: "278K", area: "968", dailyCost: "280 ฿", safety: 88, terrain: 'River Basin', infrastructure: { medicalHubs: 3, transportNodes: 1 }, emergencyContact: '035-611-222', tacticalTags: ['FLOOD PRONE', 'AGRICULTURAL'], activeThreat: 'Flash Flood' },
+      { name: "Bangkok", id: "bangkok", dist: 50, tam: 180, serenity: 3, entertainment: 10, relax: 5, image: imgBangkok, population: "5.68M", area: "1,569", dailyCost: "600 ฿", safety: 75, terrain: 'Urban', infrastructure: { medicalHubs: 50, transportNodes: 12 }, emergencyContact: '191, 1669', tacticalTags: ['URBAN DENSE', 'STRATEGIC HUB', 'SAFE HAVEN'], activeThreat: 'PM2.5 (High)' },
+      { name: "Chai Nat", id: "chainat", dist: 8, tam: 53, serenity: 8, entertainment: 3, relax: 8, image: imgChaiNat, population: "325K", area: "2,470", dailyCost: "250 ฿", safety: 90, terrain: 'River Basin', infrastructure: { medicalHubs: 2, transportNodes: 1 }, emergencyContact: '056-411-111', tacticalTags: ['LOW THREAT'], activeThreat: 'CLEAR' },
+      { name: "Kamphaeng Phet", id: "kamphaengphet", dist: 11, tam: 78, serenity: 8, entertainment: 4, relax: 8, image: imgKamphaengPhet, population: "725K", area: "8,608", dailyCost: "260 ฿", safety: 87 },
+      { name: "Lop Buri", id: "lopburi", dist: 11, tam: 124, serenity: 7, entertainment: 4, relax: 7, image: imgLopBuri, population: "751K", area: "6,200", dailyCost: "280 ฿", safety: 84 },
+      { name: "Nakhon Nayok", id: "nakhonnayok", dist: 4, tam: 41, serenity: 9, entertainment: 3, relax: 9, image: imgNakhonNayok, population: "257K", area: "2,122", dailyCost: "320 ฿", safety: 86 },
+      { name: "Nakhon Pathom", id: "nakhonpathom", dist: 7, tam: 106, serenity: 6, entertainment: 5, relax: 6, image: imgNakhonPathom, population: "919K", area: "2,168", dailyCost: "350 ฿", safety: 85 },
+      { name: "Nakhon Sawan", id: "nakhonsawan", dist: 15, tam: 130, serenity: 7, entertainment: 5, relax: 7, image: imgNakhonSawan, population: "1.05M", area: "9,598", dailyCost: "280 ฿", safety: 86 },
       { name: "Nonthaburi", id: "nonthaburi", dist: 6, tam: 52, serenity: 5, entertainment: 6, relax: 5, image: "https://images.unsplash.com/photo-1621533722026-626a57565362?q=80&w=600", population: "1.27M", area: "622", dailyCost: "450 ฿", safety: 80 },
-      { name: "Pathum Thani", id: "pathumthani", dist: 7, tam: 60, serenity: 6, entertainment: 5, relax: 5, image: "/src/Image/Province_pic/Central_pic/pathum_thani.png", population: "1.15M", area: "1,526", dailyCost: "400 ฿", safety: 82 },
+      { name: "Pathum Thani", id: "pathumthani", dist: 7, tam: 60, serenity: 6, entertainment: 5, relax: 5, image: imgPathumThani, population: "1.15M", area: "1,526", dailyCost: "400 ฿", safety: 82 },
       { name: "Phetchabun", id: "phetchabun", dist: 11, tam: 117, serenity: 9, entertainment: 4, relax: 9, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "986K", area: "12,668", dailyCost: "280 ฿", safety: 85 },
       { name: "Phichit", id: "phichit", dist: 12, tam: 89, serenity: 8, entertainment: 3, relax: 8, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "531K", area: "4,531", dailyCost: "240 ฿", safety: 89 },
       { name: "Phitsanulok", id: "phitsanulok", dist: 9, tam: 93, serenity: 8, entertainment: 5, relax: 8, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "853K", area: "10,816", dailyCost: "300 ฿", safety: 84 },
-      { name: "Phra Nakhon Si Ayutthaya", id: "ayutthaya", dist: 16, tam: 209, serenity: 8, entertainment: 4, relax: 8, image: "/src/Image/Province_pic/Central_pic/ayutthaya.png", population: "815K", area: "2,557", dailyCost: "350 ฿", safety: 83 },
+      { name: "Phra Nakhon Si Ayutthaya", id: "ayutthaya", dist: 16, tam: 209, serenity: 8, entertainment: 4, relax: 8, image: imgAyutthaya, population: "815K", area: "2,557", dailyCost: "350 ฿", safety: 83 },
       { name: "Samut Prakan", id: "samutprakan", dist: 6, tam: 50, serenity: 4, entertainment: 7, relax: 4, image: "https://images.unsplash.com/photo-1621533722026-626a57565362?q=80&w=600", population: "1.34M", area: "1,004", dailyCost: "400 ฿", safety: 78 },
       { name: "Samut Sakhon", id: "samutsakhon", dist: 3, tam: 40, serenity: 5, entertainment: 5, relax: 5, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "569K", area: "872", dailyCost: "350 ฿", safety: 79 },
       { name: "Samut Songkhram", id: "samutsongkhram", dist: 3, tam: 38, serenity: 8, entertainment: 4, relax: 8, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "189K", area: "417", dailyCost: "300 ฿", safety: 88 },
-      { name: "Saraburi", id: "saraburi", dist: 13, tam: 111, serenity: 7, entertainment: 4, relax: 7, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "644K", area: "3,576", dailyCost: "320 ฿", safety: 84 },
+      { name: "Saraburi", id: "saraburi", dist: 13, tam: 111, serenity: 7, entertainment: 4, relax: 7, image: imgSaraburi, population: "644K", area: "3,576", dailyCost: "320 ฿", safety: 84 },
       { name: "Sing Buri", id: "singburi", dist: 6, tam: 43, serenity: 8, entertainment: 3, relax: 8, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "208K", area: "822", dailyCost: "240 ฿", safety: 91 },
       { name: "Sukhothai", id: "sukhothai", dist: 9, tam: 86, serenity: 9, entertainment: 4, relax: 9, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "593K", area: "6,596", dailyCost: "260 ฿", safety: 88 },
-      { name: "Suphan Buri", id: "suphanburi", dist: 10, tam: 110, serenity: 7, entertainment: 4, relax: 7, image: "/src/Image/Province_pic/Central_pic/suphan_buri.png", population: "840K", area: "5,358", dailyCost: "270 ฿", safety: 87 },
+      { name: "Suphan Buri", id: "suphanburi", dist: 10, tam: 110, serenity: 7, entertainment: 4, relax: 7, image: imgSuphanBuri, population: "840K", area: "5,358", dailyCost: "270 ฿", safety: 87 },
       { name: "Uthai Thani", id: "uthaithani", dist: 8, tam: 66, serenity: 9, entertainment: 3, relax: 9, image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?q=80&w=600", population: "326K", area: "6,730", dailyCost: "250 ฿", safety: 89 },
     ],
   },

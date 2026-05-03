@@ -271,6 +271,9 @@ export function TravelGuidePage() {
   const [activeTransportTab, setActiveTransportTab] = useState('');
   const [originText, setOriginText] = useState('');
   const [destText, setDestText] = useState('');
+  const [activePlannerField, setActivePlannerField] = useState<'origin' | 'destination'>('origin');
+  const originInputRef = useRef<HTMLInputElement>(null);
+  const destInputRef = useRef<HTMLInputElement>(null);
   const [tripDate, setTripDate] = useState(getLocalDateKey());
   const [activeSupplyType, setActiveSupplyType] = useState<SupplyType>('bank');
   const [originSearchOptions, setOriginSearchOptions] = useState<string[]>([]);
@@ -734,7 +737,6 @@ export function TravelGuidePage() {
         }
       }
     } catch {
-      // Ignore and return null below.
       return null;
     }
 
@@ -756,6 +758,9 @@ export function TravelGuidePage() {
       const label = await reverseGeocodeCurrentLocation(approx.lat, approx.lng);
       setFieldText(label);
       setFieldHint('ใช้ตำแหน่งโดยประมาณจากเครือข่าย (IP Location)');
+      if (target === 'origin' && !destText) {
+        setActivePlannerField('destination');
+      }
       return true;
     };
 
@@ -778,6 +783,9 @@ export function TravelGuidePage() {
       const label = await reverseGeocodeCurrentLocation(position.coords.latitude, position.coords.longitude);
       setFieldText(label);
       setFieldHint('');
+      if (target === 'origin' && !destText) {
+        setActivePlannerField('destination');
+      }
     } catch (error: any) {
       const rawMessage = String(error?.message || '').toLowerCase();
       const shouldTryApproxFallback = error?.code !== 1 || rawMessage.includes('googleapis') || rawMessage.includes('403');
@@ -799,7 +807,7 @@ export function TravelGuidePage() {
     } finally {
       setFieldLocating(false);
     }
-  }, [fetchApproxLocationFromIp, reverseGeocodeCurrentLocation]);
+  }, [fetchApproxLocationFromIp, reverseGeocodeCurrentLocation, destText]);
 
   const handleUseCurrentOriginLocation = useCallback(async () => {
     await applyCurrentLocationToField('origin');
@@ -813,12 +821,20 @@ export function TravelGuidePage() {
     setOriginText(value);
     if (originLocationHint) setOriginLocationHint('');
     if (originLocationError) setOriginLocationError('');
-  }, [originLocationError, originLocationHint]);
+    
+    // Auto-advance focus if a valid option is selected (exact match)
+    if (plannerOriginOptions.includes(value) && !destText) {
+      setActivePlannerField('destination');
+    }
+  }, [originLocationError, originLocationHint, plannerOriginOptions, destText]);
 
   const handleDestinationInputChange = useCallback((value: string) => {
     setDestText(value);
     if (destinationLocationHint) setDestinationLocationHint('');
     if (destinationLocationError) setDestinationLocationError('');
+    
+    // If we've selected a destination and origin is empty, maybe remind the user?
+    // For now, just setting the text is enough.
   }, [destinationLocationError, destinationLocationHint]);
 
   const switchToRegion = useCallback((regionId: string, province?: string) => {
@@ -835,6 +851,18 @@ export function TravelGuidePage() {
 
   const handleMapSelectRegion = useCallback((id: string) => switchToRegion(id), [switchToRegion]);
   const handleMapSelectProvince = useCallback((name: string) => {
+    const thaiName = provinceThaiNames[name] || name;
+    
+    // Sequential selection logic for Origin -> Destination
+    if (activePlannerField === 'origin') {
+      setOriginText(thaiName);
+      setActivePlannerField('destination');
+      // Auto-focus the next field
+      setTimeout(() => destInputRef.current?.focus(), 10);
+    } else {
+      setDestText(thaiName);
+    }
+
     const provRegion = provinceToRegion[name];
     if (provRegion && provRegion !== activeRegion) {
       switchToRegion(provRegion, name);
@@ -847,7 +875,7 @@ export function TravelGuidePage() {
       setDestinationLocationError('');
       setIsNewsPanelOpen(false);
     }
-  }, [activeRegion, switchToRegion]);
+  }, [activeRegion, switchToRegion, activePlannerField, destText]);
 
   useEffect(() => {
     setHasLoadedNewsBriefings(false);
@@ -1464,7 +1492,12 @@ export function TravelGuidePage() {
         <select title="เลือกภูมิภาค" value={activeRegion} onChange={(e) => switchToRegion(e.target.value)} className="bg-black/40 backdrop-blur border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-w-[120px] cursor-pointer ml-1">
           {Object.entries(regionTheme).map(([id, r]) => (<option key={id} value={id} className="bg-[#0f1115] text-white">{r.label}</option>))}
         </select>
-        <select title="เลือกจังหวัด" value={selectedProvinceName} onChange={(e) => setSelectedProvinceName(e.target.value)} className="bg-black/40 backdrop-blur border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-w-[150px] cursor-pointer">
+        <select 
+          title="เลือกจังหวัด" 
+          value={selectedProvinceName} 
+          onChange={(e) => handleMapSelectProvince(e.target.value)} 
+          className="bg-black/40 backdrop-blur border border-white/10 rounded-lg px-3 py-2 text-sm text-white min-w-[150px] cursor-pointer"
+        >
           {currentProvinces.map(p => (<option key={p} value={p} className="bg-[#0f1115] text-white">{provinceThaiNames[p] || p}</option>))}
         </select>
         <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur border border-white/20 text-sm text-white/90 flex-1 max-w-[340px] justify-start shadow-sm">
@@ -1484,7 +1517,23 @@ export function TravelGuidePage() {
 
       <div className="flex-1 flex overflow-hidden">
         <div className="w-[300px] shrink-0 border-r flex flex-col relative" style={{ borderColor: toRgba(accent, 0.1), background: '#050608' }}>
-          <ThailandMap activeId={activeRegion} onSelectRegion={handleMapSelectRegion} viewMode="province" selectedProvince={{ name: selectedProvinceName, id: selectedProvinceName } as any} onSelectProvince={() => {}} onSelectProvinceByName={handleMapSelectProvince} />
+          <div className="absolute top-3 left-3 z-10 px-2 py-1 rounded bg-black/60 border border-white/10 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${activePlannerField === 'origin' ? 'bg-emerald-400' : 'bg-sky-400'}`} />
+              <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                {activePlannerField === 'origin' ? 'เลือกต้นทางบนแผนที่' : 'เลือกปลายทางบนแผนที่'}
+              </span>
+            </div>
+          </div>
+          <ThailandMap 
+            activeId={activeRegion} 
+            onSelectRegion={handleMapSelectRegion} 
+            viewMode="province" 
+            selectedProvince={{ name: selectedProvinceName, id: selectedProvinceName } as any} 
+            onSelectProvince={() => {}} 
+            onSelectProvinceByName={handleMapSelectProvince} 
+            onClearProvince={() => handleMapSelectProvince(selectedProvinceName)}
+          />
         </div>
 
         <div className="flex-1 overflow-hidden p-4 flex flex-col gap-3">
@@ -1816,9 +1865,14 @@ export function TravelGuidePage() {
                     <input
                       list="trip-origin-options"
                       value={originText}
+                      onFocus={() => setActivePlannerField('origin')}
                       onChange={e => handleOriginInputChange(e.target.value)}
                       placeholder="ต้นทาง เช่น บางนา, เชียงใหม่"
-                      className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none"
+                      className={`flex-1 bg-black/40 border rounded-lg px-3 py-2 text-xs text-white outline-none transition-all duration-300 ${
+                        activePlannerField === 'origin' 
+                          ? 'border-cyan-500/60 ring-1 ring-cyan-500/30 bg-cyan-500/5' 
+                          : 'border-white/10'
+                      }`}
                     />
                     <button
                       type="button"
@@ -1837,9 +1891,14 @@ export function TravelGuidePage() {
                     <input
                       list="trip-destination-options"
                       value={destText}
+                      onFocus={() => setActivePlannerField('destination')}
                       onChange={e => handleDestinationInputChange(e.target.value)}
                       placeholder="ปลายทาง เช่น วัดอรุณ, BTS สยาม"
-                      className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none"
+                      className={`flex-1 bg-black/40 border rounded-lg px-3 py-2 text-xs text-white outline-none transition-all duration-300 ${
+                        activePlannerField === 'destination' 
+                          ? 'border-cyan-500/60 ring-1 ring-cyan-500/30 bg-cyan-500/5' 
+                          : 'border-white/10'
+                      }`}
                     />
                     <button
                       type="button"

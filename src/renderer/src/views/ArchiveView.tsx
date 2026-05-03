@@ -393,8 +393,14 @@ export function ArchiveView(): JSX.Element {
                         <span>{province.dailyCost || '300 ฿'}</span>
                       </div>
                       <div className="flex items-center gap-1 text-slate-400">
-                        <Shield size={10} className="text-blue-400" />
-                        <span>{province.safety || 80}%</span>
+                        <span
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{
+                            backgroundColor: (province.safety ?? 80) >= 80 ? '#22c55e' : (province.safety ?? 80) >= 50 ? '#f59e0b' : '#ef4444',
+                            boxShadow: `0 0 4px ${(province.safety ?? 80) >= 80 ? '#22c55e' : (province.safety ?? 80) >= 50 ? '#f59e0b' : '#ef4444'}80`,
+                          }}
+                        />
+                        <span>{province.safety ?? 80}%</span>
                       </div>
                       <div className="flex items-center gap-1 text-slate-400">
                         <Users size={10} className="text-yellow-400" />
@@ -451,7 +457,16 @@ export function ArchiveView(): JSX.Element {
                       <div className="text-[11px] text-slate-500">ค่าครองชีพ</div>
                     </div>
                     <div className="text-center min-w-[80px]">
-                      <div className="text-blue-400 font-bold text-lg">{province.safety || 80}%</div>
+                      <div className="font-bold text-lg flex items-center justify-center gap-1.5" style={{ color: (province.safety ?? 80) >= 80 ? '#22c55e' : (province.safety ?? 80) >= 50 ? '#f59e0b' : '#ef4444' }}>
+                        <span
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{
+                            backgroundColor: (province.safety ?? 80) >= 80 ? '#22c55e' : (province.safety ?? 80) >= 50 ? '#f59e0b' : '#ef4444',
+                            boxShadow: `0 0 4px ${(province.safety ?? 80) >= 80 ? '#22c55e' : (province.safety ?? 80) >= 50 ? '#f59e0b' : '#ef4444'}80`,
+                          }}
+                        />
+                        {province.safety ?? 80}%
+                      </div>
                       <div className="text-[11px] text-slate-500">ความปลอดภัย</div>
                     </div>
                   </div>
@@ -540,8 +555,17 @@ export function ArchiveView(): JSX.Element {
                           <span className="text-white font-bold">{province.dailyCost || '300 ฿'}</span>
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-white/5">
-                          <span className="text-slate-400 text-sm flex items-center gap-2"><Shield size={14} className="text-blue-400" /> ความปลอดภัย</span>
-                          <span className="text-white font-bold">{province.safety || 80}%</span>
+                          <span className="text-slate-400 text-sm flex items-center gap-2">
+                            <span
+                              className="inline-block h-2.5 w-2.5 rounded-full"
+                              style={{
+                                backgroundColor: (province.safety ?? 80) >= 80 ? '#22c55e' : (province.safety ?? 80) >= 50 ? '#f59e0b' : '#ef4444',
+                                boxShadow: `0 0 6px ${(province.safety ?? 80) >= 80 ? '#22c55e' : (province.safety ?? 80) >= 50 ? '#f59e0b' : '#ef4444'}60`,
+                              }}
+                            />
+                            ความปลอดภัย
+                          </span>
+                          <span className="text-white font-bold">{province.safety ?? 80}%</span>
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-white/5">
                           <span className="text-slate-400 text-sm flex items-center gap-2"><Users size={14} className="text-yellow-400" /> ประชากร</span>

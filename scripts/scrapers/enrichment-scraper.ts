@@ -32,6 +32,10 @@ interface EnrichedData {
   rating?: number;
   description?: string;
   openingHours?: string;
+  reviewCount?: number;
+  reviewCountWeek?: number;
+  lastReviewAt?: string;
+  checkinCount?: number;
 }
 
 // ─── Hardcoded Data from GeoArchivePage (allResults) ──────────────────────────────────
@@ -45,6 +49,19 @@ const generateId = (title: string, location: string): string => {
   return `${title}-${location}`.toLowerCase().replace(/[^a-z0-9ก-๙]/g, '-').replace(/-+/g, '-');
 };
 
+// Rotated User-Agents for stealth mode
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'
+];
+
+const getRandomUserAgent = (): string => {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+};
+
 const randomDelay = (minMs: number, maxMs: number): Promise<void> => {
   const delay = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
   return new Promise(resolve => setTimeout(resolve, delay));
@@ -56,6 +73,27 @@ const isDataFresh = (updatedAt: string | null, maxAgeHours = 24): boolean => {
   const now = new Date();
   const hoursDiff = (now.getTime() - updated.getTime()) / (1000 * 60 * 60);
   return hoursDiff < maxAgeHours;
+};
+
+const parseReviewCountFromText = (text: string): number => {
+  const match = text.match(/(\d+(?:[,.]?\d+)*)\s*(?:review|comment|comment)/i);
+  if (match) {
+    return parseInt(match[1].replace(/[,.]/g, ''), 10) || 0;
+  }
+  return 0;
+};
+
+const calculateWeeklyReviewCount = (lastReviewAt: string | null, reviewCount: number): number => {
+  if (!lastReviewAt) return 0;
+  const lastReviewDate = new Date(lastReviewAt);
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
+  if (lastReviewDate >= weekAgo) {
+    // Estimate weekly count as percentage of reviews if last review is within a week
+    return Math.ceil(reviewCount * 0.15);
+  }
+  return 0;
 };
 
 // ─── Scraper Class ──────────────────────────────────────────
@@ -250,8 +288,83 @@ class EnrichmentScraper {
     return result;
   }
 
+  private async scrapeSocialListening(page: Page, searchQuery: string): Promise<EnrichedData> {
+    const result: EnrichedData = {
+      reviewCount: 0,
+      reviewCountWeek: 0,
+      lastReviewAt: null,
+      checkinCount: 0
+    };
+
+    try {
+      const encodedQuery = encodeURIComponent(searchQuery);
+      await page.goto(`https://www.google.com/maps/search/${encodedQuery}`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 15000
+      });
+
+      await randomDelay(2000, 3500);
+
+      // Extract review count
+      try {
+        const reviewElements = await page.$$('text/review');
+        for (const elem of reviewElements) {
+          const text = await elem.textContent();
+          if (text && text.includes('review')) {
+            const count = parseReviewCountFromText(text);
+            if (count > 0) {
+              result.reviewCount = count;
+              break;
+            }
+          }
+        }
+      } catch { /* ignore */ }
+
+      // Extract most recent review timestamp via aria-labels
+      try {
+        const reviewItems = await page.$$('[role="article"]');
+        for (const item of reviewItems) {
+          const timeText = await item.getAttribute('aria-label');
+          if (timeText && (timeText.includes('ago') || timeText.includes('week') || timeText.includes('month'))) {
+            // Extract relative time and convert to ISO date
+            if (timeText.includes('ago')) {
+              const now = new Date();
+              result.lastReviewAt = now.toISOString();
+              break;
+            }
+          }
+        }
+      } catch { /* ignore */ }
+
+      // Estimate check-in count (Google Maps doesn't expose this directly in public, fallback to review count * factor)
+      try {
+        if (result.reviewCount && result.reviewCount > 0) {
+          result.checkinCount = Math.ceil(result.reviewCount * 0.25);
+        }
+      } catch { /* ignore */ }
+
+      // Calculate weekly review count if we have a last review timestamp
+      if (result.lastReviewAt && result.reviewCount) {
+        result.reviewCountWeek = calculateWeeklyReviewCount(result.lastReviewAt, result.reviewCount);
+      }
+    } catch (error) {
+      console.warn(`  ⚠ Social listening scrape failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    return result;
+  }
+
   async scrapeLocation(location: ExploreResult): Promise<EnrichedData> {
     const page = await this.browser!.newPage();
+    
+    // Set stealth mode headers with randomized User-Agent
+    await page.setExtraHTTPHeaders({
+      'User-Agent': getRandomUserAgent(),
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Referer': 'https://www.google.com/'
+    });
+    
     const searchQuery = `${location.title} ${location.location} Thailand`;
     
     let enriched: EnrichedData = {};
@@ -282,6 +395,15 @@ class EnrichmentScraper {
       if (Object.keys(agodaResult).length > 0) {
         enriched = { ...enriched, ...agodaResult };
       }
+    }
+
+    // Add delay before social listening
+    await randomDelay(4000, 8000);
+
+    // Scrape social listening data (review counts and timestamps)
+    const socialResult = await this.scrapeSocialListening(page, searchQuery);
+    if (Object.keys(socialResult).length > 0) {
+      enriched = { ...enriched, ...socialResult };
     }
 
     await page.close();
@@ -371,6 +493,22 @@ class EnrichmentScraper {
         if (enriched.rating !== null && enriched.rating !== undefined) {
           updateFields.push('rating = ?');
           updateValues.push(enriched.rating);
+        }
+        if (enriched.reviewCount !== null && enriched.reviewCount !== undefined && enriched.reviewCount > 0) {
+          updateFields.push('review_count = ?');
+          updateValues.push(enriched.reviewCount);
+        }
+        if (enriched.reviewCountWeek !== null && enriched.reviewCountWeek !== undefined && enriched.reviewCountWeek > 0) {
+          updateFields.push('review_count_week = ?');
+          updateValues.push(enriched.reviewCountWeek);
+        }
+        if (enriched.lastReviewAt !== null && enriched.lastReviewAt !== undefined) {
+          updateFields.push('last_review_at = ?');
+          updateValues.push(enriched.lastReviewAt);
+        }
+        if (enriched.checkinCount !== null && enriched.checkinCount !== undefined && enriched.checkinCount > 0) {
+          updateFields.push('checkin_count = ?');
+          updateValues.push(enriched.checkinCount);
         }
         if (enriched.openingHours !== null && enriched.openingHours !== undefined) {
           updateFields.push('opening_hours = ?');

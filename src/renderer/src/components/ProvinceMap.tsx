@@ -2005,14 +2005,21 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       setMapContextMenu(null);
 
       if (!isRoutingMode) {
-        // One click should immediately set a target point instead of only dragging the map.
         setIsRoutingMode(true);
-        applyCustomRoutePoint('end', event.latlng.lat, event.latlng.lng);
+        // First click is ALWAYS the start point
+        applyCustomRoutePoint('start', event.latlng.lat, event.latlng.lng);
+        setActiveRouteField('end'); // Next click will be the destination
         return;
       }
 
-      const targetField = activeRouteField === 'start' ? 'start' : 'end';
+      // If already in routing mode, use current active field or default to end
+      const targetField = activeRouteField || 'end';
       applyCustomRoutePoint(targetField, event.latlng.lat, event.latlng.lng);
+      
+      // If we just set the start, auto-toggle to end for the next click
+      if (targetField === 'start') {
+        setActiveRouteField('end');
+      }
     };
 
     map.on('contextmenu', handleMapContextMenu);
