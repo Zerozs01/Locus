@@ -1,6 +1,7 @@
 import { 
   Camera,
   Image as ImageIcon,
+  PinIcon,
   Thermometer,
   Wallet,
   Wind
@@ -154,8 +155,8 @@ export const ExploreTab = ({
       )}
 
       <Helpers.ContentCard 
-        title="Key Landmarks & Civic Nodes" 
-        icon={<Camera size={18} />}
+        title="Landmarks" 
+        icon={<PinIcon size={18} />}
         color="teal"
         borderColor="teal"
       >
@@ -173,6 +174,7 @@ export const ExploreTab = ({
               coordinates={item.coordinates}
               sourceUrl={item.sourceUrl}
               onFlyTo={onFlyTo}
+              image={item.image}
             />
           ))}
         </div>

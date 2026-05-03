@@ -436,12 +436,44 @@ const registerImageProtocol = async () => {
         const fullPath = path.resolve(projectRoot, relativePath.startsWith('/') ? relativePath.substring(1) : relativePath)
         
         try {
-          const data = await fs.readFile(fullPath)
-          const ext = path.extname(fullPath).toLowerCase()
-          const mime = imageMimeByExt[ext] || 'image/png'
+          // Fallback mapping for Thai filenames if database is stale
+          const thaiToEngMap: Record<string, string> = {
+            'ปทุมธานี': 'pathum_thani',
+            'นครปฐม': 'nakhon_pathom',
+            'ชัยนาท': 'chai_nat',
+            'พระนครศรีอยุธยา': 'ayutthaya',
+            'ลพบุรี': 'lop_buri',
+            'สุพรรณบุรี': 'suphan_buri',
+            'อ่างทอง': 'ang_thong'
+          };
+
+          let finalPath = fullPath;
+          const fileName = path.basename(fullPath, path.extname(fullPath));
+          const dirName = path.dirname(fullPath);
+          const ext = path.extname(fullPath);
+
+          // Try to fix Thai name if file doesn't exist
+          try {
+            await fs.access(finalPath);
+          } catch {
+            const engName = thaiToEngMap[fileName];
+            if (engName) {
+              const alternativePath = path.join(dirName, `${engName}${ext}`);
+              try {
+                await fs.access(alternativePath);
+                finalPath = alternativePath;
+              } catch {
+                // Keep original if fallback also fails
+              }
+            }
+          }
+
+          const data = await fs.readFile(finalPath)
+          const finalExt = path.extname(finalPath).toLowerCase()
+          const mime = imageMimeByExt[finalExt] || 'image/png'
           return new Response(data, { headers: { 'content-type': mime } })
         } catch (err) {
-          console.error(`Failed to load local image: ${fullPath}`, err)
+          console.error(`Failed to load local image: ${fullPath} (resolved to: ${finalPath})`, err)
           return buildFallbackResponse()
         }
       }
@@ -599,6 +631,7 @@ app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.locus.app')
 
   // Initialize and Seed Database
+  console.log('--- Locus Main Process Starting (Updated Protocol Handler) ---');
   initDatabase()
   seedDatabase(initialRegions)
   seedProvincePortalData({ ...isanUpper1, ...isanUpper2, ...isanLower1, ...isanLower2, ...eastWest1, ...eastWest2, ...eastWest3, ...southPart1, ...southPart2, ...southPart3, ...centralPart1, ...centralPart2, ...centralPart3, ...northPart1, ...northPart2, ...northPart3 })

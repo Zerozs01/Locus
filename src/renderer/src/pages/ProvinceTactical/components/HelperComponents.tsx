@@ -166,7 +166,7 @@ export const CollapsibleSection = ({
   );
 };
 
-export const PlaceCard = ({ rank, name, type, rating, description, openHours, price, coordinates, sourceUrl, onFlyTo }: {
+export const PlaceCard = ({ rank, name, type, rating, description, openHours, price, coordinates, sourceUrl, onFlyTo, image }: {
   rank: number;
   name: string;
   type: string;
@@ -177,23 +177,36 @@ export const PlaceCard = ({ rank, name, type, rating, description, openHours, pr
   coordinates?: { lat: number; lng: number };
   sourceUrl?: string;
   onFlyTo?: FlyToHandler;
+  image?: string;
 }) => {
   const handleFlyTo = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (coordinates && onFlyTo) {
-      console.log(`[PlaceCard] Fly to: ${name} (${coordinates.lat}, ${coordinates.lng})`);
       onFlyTo(coordinates.lat, coordinates.lng, name);
     }
   };
 
   return (
     <div className="flex gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
-      <div className="w-8 h-8 rounded-lg bg-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-sm flex-shrink-0">
-        {rank}
+      {/* Image / Rank Placeholder */}
+      <div className="relative w-16 h-16 rounded-lg bg-teal-500/10 flex items-center justify-center overflow-hidden flex-shrink-0 border border-teal-500/20">
+        {image ? (
+          <>
+            <img src={image} alt={name} className="w-full h-full object-cover" />
+            <div className="absolute top-1 left-1 w-5 h-5 rounded bg-black/60 backdrop-blur-md flex items-center justify-center text-[10px] text-teal-400 font-black border border-teal-500/30">
+              {rank}
+            </div>
+          </>
+        ) : (
+          <div className="text-teal-400 font-black text-xl opacity-40">
+            {rank}
+          </div>
+        )}
       </div>
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-white truncate">{name}</h4>
+          <h4 className="font-bold text-white truncate text-sm">{name}</h4>
           <div className="flex items-center gap-2">
             {/* Fly-to button */}
             {coordinates && onFlyTo && (
@@ -217,18 +230,17 @@ export const PlaceCard = ({ rank, name, type, rating, description, openHours, pr
             )}
             <div className="flex items-center gap-1 text-amber-400">
               <Star size={12} fill="currentColor" />
-              <span className="text-xs font-medium">{rating}</span>
+              <span className="text-xs font-bold">{rating}</span>
             </div>
           </div>
         </div>
-        <p className="text-xs text-slate-500">{type}</p>
-        {description && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{description}</p>}
-        <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
-          {openHours && <span className="flex items-center gap-1"><Clock size={10} /> {openHours}</span>}
-          {price && <span className="text-emerald-400">{price}</span>}
+        <p className="text-[11px] font-medium text-teal-400/80 leading-none mb-1.5">{type}</p>
+        {description && <p className="text-[11px] text-slate-400 line-clamp-1 italic">{description}</p>}
+        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-slate-500 font-medium">
+          {openHours && <span className="flex items-center gap-1"><Clock size={10} className="text-slate-400" /> {openHours}</span>}
+          {price && <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{price}</span>}
         </div>
       </div>
-      <ChevronRight size={16} className="text-slate-600 group-hover:text-teal-400 transition-colors self-center" />
     </div>
   );
 };

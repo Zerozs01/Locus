@@ -2623,6 +2623,20 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
                   className="bg-transparent border-none outline-none focus:outline-none text-sm text-cyan-300 caret-cyan-300 w-full placeholder:text-slate-500 font-medium"
                 />
                 <div className="flex items-center gap-1 shrink-0 mr-1">
+                  {/* Locate Me inside Search */}
+                  <button 
+                    onClick={handleLocateMe}
+                    disabled={isLocating}
+                    className="p-1.5 text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-md transition-all group/locate"
+                    title="My Current Location"
+                  >
+                    {isLocating ? (
+                      <Loader2 size={16} className="animate-spin text-cyan-400" />
+                    ) : (
+                      <LocateFixed size={16} className="group-hover/locate:scale-110 transition-transform" />
+                    )}
+                  </button>
+
                   {searchQuery && (
                     <button
                       onClick={() => {
@@ -2636,69 +2650,13 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
                       ✕
                     </button>
                   )}
-                  <div className="w-px h-5 bg-white/10 mx-1"></div>
-                  <button 
-                    className="p-1.5 text-cyan-400 hover:bg-cyan-500/20 rounded-md transition-colors flex items-center gap-1.5 bg-cyan-500/10 shadow-sm"
-                    title="Get Directions"
-                    onClick={async () => {
-                       setIsRoutingMode(true);
-                       
-                       let destination = null;
-                       if (searchQuery) {
-                         destination = cachedSearchAreasRef.current.get(normalizeSearchText(searchQuery)) || pendingFallbackRef.current;
-                         if (destination) {
-                           setRouteEnd({ lat: destination.lat, lng: destination.lng, title: searchQuery });
-                         }
-                       }
-                       setSearchQuery('');
-                       setActiveRouteField('start');
-                       
-                       // Automatically find user location if start isn't set
-                       let startObj = routeStart;
-                       if (!startObj) {
-                          const point = await locateUserPromise();
-                          if (point) {
-                             startObj = { lat: point.lat, lng: point.lng, title: 'ตำแหน่งปัจจุบันของคุณ' };
-                             setRouteStart(startObj);
-                             setActiveRouteField(null); // Clear active field since we got it
-                          }
-                       }
-                       
-                       // Find route if both are ready
-                       if (startObj && destination) {
-                          calculateRoute(startObj.lat, startObj.lng, destination.lat, destination.lng, travelMode);
-                       }
-                    }}
-                  >
-                    <span className="relative inline-flex h-5 w-5 items-center justify-center">
-                      <span className="absolute inset-0 rounded-full border border-cyan-300/55 bg-cyan-500/15" />
-                      <span className="relative -translate-x-[0.5px] text-[11px] font-black leading-none text-cyan-100">➤</span>
-                    </span>
-                  </button>
                 </div>
               </div>
               </div>
             )}
            </div>
 
-            {/* Quick Map Controls (Locate Me) */}
-            {!isRoutingMode && (
-              <div className="flex flex-col gap-2 shrink-0 shadow-2xl h-[46px]">
-                <button 
-                  className={locateButtonClass}
-                  title="My Current Location"
-                  onClick={handleLocateMe}
-                  disabled={isLocating}
-                >
-                  {isLocating ? (
-                    <Loader2 size={18} className="animate-spin text-cyan-400" />
-                  ) : (
-                    <LocateFixed size={18} className={locateIconClass} />
-                  )}
-                </button>
-              </div>
-            )}
-                </div>
+            </div>
 
       {/* Vertical Map Settings Menu */}
       <div className="absolute bottom-[180px] right-4 z-[1000] flex flex-col gap-2">
@@ -2779,6 +2737,20 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
           >
             <LayersIcon size={22} />
             <span className="text-[9px] font-bold">ชั้น</span>
+          </button>
+          <div className="h-px bg-white/5 mx-2" />
+          <button
+            onClick={() => {
+              setIsRoutingMode(true);
+              setActiveRouteField('start');
+            }}
+            className={`w-12 h-14 flex flex-col items-center justify-center gap-1 rounded-xl transition-all ${isRoutingMode ? 'bg-blue-600/30 text-blue-400' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+          >
+            <div className="relative">
+              <Car size={22} />
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+            </div>
+            <span className="text-[9px] font-bold">เส้นทาง</span>
           </button>
         </div>
       </div>

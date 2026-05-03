@@ -781,7 +781,7 @@ export const GeoArchivePage = () => {
         <div 
           className="fixed inset-0 z-0 pointer-events-none"
           style={{ 
-            backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${KohKradan})`,
+            backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.75)), url(${KohKradan})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
@@ -844,13 +844,13 @@ export const GeoArchivePage = () => {
 
             {/* Top Row - Right: Trending (5 cols) */}
             <div className="col-span-5">
-              <div className="h-full rounded-2xl border border-white/10 bg-[#0a0c10] overflow-hidden flex flex-col">
-                <div className="flex items-center justify-between border-b border-white/5 px-5 py-1">
-                  <h3 className="text-sm  text-white flex items-center gap-2">
+              <div className="h-full rounded-2xl border border-white/20 bg-black/20 backdrop-blur-xl overflow-hidden flex flex-col shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+                <div className="flex items-center justify-between border-b border-white/10 bg-black/40 px-5 py-2.5">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <TrendingUp size={16} className="text-cyan-400" />
                     กำลังฮิตในสัปดาห์นี้
                   </h3>
-                  <button className="text-xs text-cyan-400 hover:underline">ดูเพิ่มเติม</button>
+                  <button className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors uppercase tracking-wider">ดูเพิ่มเติม</button>
                 </div>
                 <div className="p-3 space-y-2 flex-1">
                   {trendingLocations.map((loc, i) => (
@@ -888,28 +888,33 @@ export const GeoArchivePage = () => {
 
               {/* Bottom Row - Left: Regional Histogram (7 cols) */}
               <div className="col-span-7">
-                <div className="h-full rounded-2xl border border-white/10 bg-[#0a0c10] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col">
-                  <div className="flex w-full mb-5 rounded-2xl overflow-hidden bg-black/40 border border-white/5 p-1 backdrop-blur-md shadow-inner">
+                <div className="h-fit self-start rounded-2xl border border-white/20 bg-black/20 backdrop-blur-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col">
+                  <div className="relative flex w-full mb-5 rounded-2xl bg-black/60 border border-white/10 p-1 backdrop-blur-md shadow-inner overflow-hidden">
+                    {/* Sliding Indicator */}
+                    <div 
+                      className="absolute top-1 bottom-1 transition-all duration-500 ease-out bg-white rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.45)]"
+                      style={{ 
+                        left: statsViewMode === 'temp' ? '4px' : 'calc(50% + 2px)', 
+                        width: 'calc(50% - 6px)' 
+                      }}
+                    />
+
                     <button
                       onClick={() => setStatsViewMode('temp')}
-                      className={`flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 ease-out ${
-                        statsViewMode === 'temp'
-                          ? 'bg-gradient-to-r from-cyan-600/30 to-cyan-400/20 text-cyan-300 shadow-[0_2px_10px_rgba(6,182,212,0.15)] border border-white/10'
-                          : 'text-slate-500 hover:text-slate-300'
+                      className={`relative z-10 flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 ${
+                        statsViewMode === 'temp' ? 'text-black' : 'text-slate-500 hover:text-slate-300'
                       }`}
                     >
-                      <Thermometer size={14} className={`transition-transform duration-500 ${statsViewMode === 'temp' ? 'scale-110 text-cyan-300' : 'text-slate-600'}`} />
+                      <Thermometer size={14} className={`transition-transform duration-500 ${statsViewMode === 'temp' ? 'scale-110 text-cyan-600' : 'text-slate-600'}`} />
                       AVG อุณหภูมิ
                     </button>
                     <button
                       onClick={() => setStatsViewMode('aqi')}
-                      className={`flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all duration-500 ease-out ${
-                        statsViewMode === 'aqi'
-                          ? 'bg-gradient-to-r from-cyan-600/30 to-cyan-400/20 text-cyan-300 shadow-[0_2px_10px_rgba(6,182,212,0.15)] border border-white/10'
-                          : 'text-slate-500 hover:text-slate-300'
+                      className={`relative z-10 flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 ${
+                        statsViewMode === 'aqi' ? 'text-black' : 'text-slate-500 hover:text-slate-300'
                       }`}
                     >
-                      <Wind size={14} className={`transition-transform duration-500 ${statsViewMode === 'aqi' ? 'scale-110 text-cyan-300' : 'text-slate-600'}`} />
+                      <Wind size={14} className={`transition-transform duration-500 ${statsViewMode === 'aqi' ? 'scale-110 text-cyan-600' : 'text-slate-600'}`} />
                       AVG AQI
                     </button>
                   </div>
@@ -961,7 +966,7 @@ export const GeoArchivePage = () => {
 
             {/* Bottom Row - Right: Gas Price (5 cols) */}
             <div className="col-span-5">
-              <div className="h-full rounded-2xl border border-white/10 bg-[#0a0c10] p-5 shadow-xl relative overflow-hidden flex flex-col">
+              <div className="h-full rounded-2xl border border-white/20 bg-white/[0.03] backdrop-blur-xl p-5 shadow-xl relative overflow-hidden flex flex-col">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
                 <div className="flex items-center justify-between mb-4 relative z-10">
                   <div className="flex flex-col">
@@ -970,7 +975,7 @@ export const GeoArchivePage = () => {
                       href="https://oil-price.bangchak.co.th/BcpOilPrice2/th" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-[10px] text-teal-400 uppercase tracking-tighter hover:underline"
+                      className="text-[10px] text-teal-500 uppercase tracking-tighter hover:underline"
                     >
                       From: Bangchak Corporation
                     </a>
@@ -1002,6 +1007,19 @@ export const GeoArchivePage = () => {
                 
                 <div className="grid grid-cols-3 gap-2 relative z-10">
                   {(() => {
+                    // Explicit class mapping to ensure Tailwind JIT includes them
+                    const FUEL_THEMES: Record<string, { text: string; border: string; glow: string }> = {
+                      'bg-blue-500':    { text: 'text-blue-500',    border: 'border-blue-500',    glow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)]' },
+                      'bg-teal-500':    { text: 'text-teal-500',    border: 'border-teal-500',    glow: 'shadow-[0_0_15px_rgba(20,184,166,0.3)]' },
+                      'bg-emerald-500': { text: 'text-emerald-500', border: 'border-emerald-500', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]' },
+                      'bg-rose-500':    { text: 'text-rose-500',    border: 'border-rose-500',    glow: 'shadow-[0_0_15px_rgba(244,63,94,0.3)]' },
+                      'bg-amber-500':   { text: 'text-amber-500',   border: 'border-amber-500',   glow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' },
+                      'bg-orange-500':  { text: 'text-orange-500',  border: 'border-orange-500',  glow: 'shadow-[0_0_15px_rgba(249,115,22,0.3)]' },
+                      'bg-slate-500':   { text: 'text-slate-500',   border: 'border-slate-500',   glow: 'shadow-[0_0_15px_rgba(100,116,139,0.3)]' },
+                      'bg-purple-600':  { text: 'text-purple-600',  border: 'border-purple-600',  glow: 'shadow-[0_0_15px_rgba(147,51,234,0.3)]' },
+                      'bg-red-600':     { text: 'text-red-600',     border: 'border-red-600',     glow: 'shadow-[0_0_15px_rgba(220,38,38,0.3)]' },
+                    };
+
                     const chunks = [];
                     for (let i = 0; i < visibleGas.length; i += 3) {
                       chunks.push(visibleGas.slice(i, i + 3));
@@ -1013,9 +1031,19 @@ export const GeoArchivePage = () => {
                           {chunk.map((gas) => {
                             const details = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
                             const isOpen = openFuelType === gas.type;
+                            const fuelTheme = FUEL_THEMES[gas.color] || { 
+                              text: 'text-slate-400', 
+                              border: 'border-white/20', 
+                              glow: 'shadow-none' 
+                            };
+
                             return (
                               <div key={gas.type} className="flex flex-col gap-2">
-                                <div className="bg-white/[0.03] p-2.5 rounded-xl border border-white/5 hover:bg-white/[0.06] transition-all h-full">
+                                <div className={`p-2.5 rounded-xl border transition-all h-full ${
+                                  isOpen 
+                                    ? `bg-white/[0.08] ${fuelTheme.border}/50 ${fuelTheme.glow}` 
+                                    : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06]'
+                                }`}>
                                   <div className="flex items-start justify-between mb-1">
                                     <div className="flex items-center gap-1.5">
                                       <div className={`w-1.5 h-1.5 rounded-full ${gas.color} shadow-[0_0_8px_rgba(255,255,255,0.2)]`}></div>
@@ -1025,7 +1053,7 @@ export const GeoArchivePage = () => {
                                       onClick={() => setOpenFuelType(isOpen ? null : gas.type)}
                                       className={`p-1 rounded-md border transition-all ${
                                         isOpen
-                                          ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300'
+                                          ? `bg-slate-800 border-slate-700 ${fuelTheme.text}`
                                           : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
                                       }`}
                                       title={isOpen ? 'ซ่อนข้อมูลคำนวณ' : 'ดูข้อมูลคำนวณ'}
@@ -1042,8 +1070,10 @@ export const GeoArchivePage = () => {
                             );
                           })}
                           {openInThisChunk && (
-                            <div className="col-span-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[11px] text-slate-400 mt-1 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                            <div className="col-span-3 rounded-xl border border-white/10 bg-slate-950/60 backdrop-blur-xl p-4 text-[11px] text-white mt-1 mb-2 animate-in fade-in slide-in-from-top-2 duration-200 shadow-2xl">
+                              <div className={`mb-3 text-[10px] font-bold uppercase tracking-widest ${
+                                FUEL_THEMES[openInThisChunk.color]?.text || 'text-cyan-400'
+                              } border-b border-white/10 pb-2`}>
                                 {FUEL_TYPE_DETAILS[openInThisChunk.type]?.label || openInThisChunk.type} — คำนวณโดยประมาณ
                               </div>
                               <div className="grid grid-cols-2 gap-3">
@@ -1054,26 +1084,26 @@ export const GeoArchivePage = () => {
                                   const carCostKm = gas.price / FUEL_EFFICIENCY.car;
                                   return (
                                     <>
-                                      <div className="rounded-md border border-white/10 bg-white/[0.03] p-2">
-                                        <div className="text-[9px] font-semibold text-slate-300">รถจักรยานยนต์</div>
+                                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">รถจักรยานยนต์</div>
                                         {details.motorcycle ? (
                                           <>
-                                            <div className="text-[12px] font-semibold text-white">{motoCostKm.toFixed(2)} บ./กม</div>
-                                            <div className="text-[10px] text-slate-400">{(motoCostKm * 10).toFixed(1)} บ./10กม</div>
+                                            <div className="text-sm font-black text-white">{motoCostKm.toFixed(2)} บ./กม</div>
+                                            <div className="text-[10px] text-slate-500">{(motoCostKm * 10).toFixed(1)} บ./10กม</div>
                                           </>
                                         ) : (
-                                          <div className="text-[10px] text-slate-500">ไม่แนะนำ</div>
+                                          <div className="text-[10px] text-slate-600">ไม่แนะนำ</div>
                                         )}
                                       </div>
-                                      <div className="rounded-md border border-white/10 bg-white/[0.03] p-2">
-                                        <div className="text-[9px] font-semibold text-slate-300">รถยนต์</div>
+                                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">รถยนต์</div>
                                         {details.car ? (
                                           <>
-                                            <div className="text-[12px] font-semibold text-white">{carCostKm.toFixed(2)} บ./กม</div>
-                                            <div className="text-[10px] text-slate-400">{(carCostKm * 10).toFixed(1)} บ./10กม</div>
+                                            <div className="text-sm font-black text-white">{carCostKm.toFixed(2)} บ./กม</div>
+                                            <div className="text-[10px] text-slate-500">{(carCostKm * 10).toFixed(1)} บ./10กม</div>
                                           </>
                                         ) : (
-                                          <div className="text-[10px] text-slate-500">ไม่แนะนำ</div>
+                                          <div className="text-[10px] text-slate-600">ไม่แนะนำ</div>
                                         )}
                                       </div>
                                     </>

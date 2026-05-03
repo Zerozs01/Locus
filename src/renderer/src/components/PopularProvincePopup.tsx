@@ -27,26 +27,26 @@ export const PopularProvincePopup: React.FC<PopularProvincePopupProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchPopularProvinces = async () => {
+    if (!window.api?.db?.getPopularProvinces) {
+      setError('API not available');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await window.api.db.getPopularProvinces(regionId, 100);
+      setProvinces(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPopularProvinces = async () => {
-      if (!window.api?.db?.getPopularProvinces) {
-        setError('API not available');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await window.api.db.getPopularProvinces(regionId, 100);
-        setProvinces(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPopularProvinces();
   }, [regionId]);
 
@@ -93,17 +93,6 @@ export const PopularProvincePopup: React.FC<PopularProvincePopupProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={() => {
-                const fetchPopularProvinces = async () => {
-                  try {
-                    setLoading(true);
-                    const result = await window.api.db.getPopularProvinces(regionId, 100);
-                    setProvinces(result);
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : 'Failed to refresh');
-                  } finally {
-                    setLoading(false);
-                  }
-                };
                 fetchPopularProvinces();
               }}
               className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white"

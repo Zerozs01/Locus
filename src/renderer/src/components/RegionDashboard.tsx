@@ -244,6 +244,25 @@ const getFallbackPM25Stat = (regionId: string) => {
   return fallbackPm25ByRegion[regionId] || fallbackPm25ByRegion.central;
 };
 
+const formatVisitorCount = (count: number): string => {
+  if (count >= 1000000) {
+    return `${(count / 1000000).toFixed(1)}M`;
+  }
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}K`;
+  }
+  return count.toLocaleString();
+};
+
+const getTopPopularProvince = (
+  regionId: string,
+  popularProvincesByRegion: Record<string, { provinceName: string; visitorCount: number } | null>
+): string => {
+  const data = popularProvincesByRegion[regionId];
+  if (!data) return 'N/A';
+  return `${data.provinceName} (${formatVisitorCount(data.visitorCount)})`;
+};
+
 const getBestSeason = (regionId: string) => {
   const data: Record<string, string> = {
     north: 'Nov - Feb (Winter)',
@@ -254,18 +273,6 @@ const getBestSeason = (regionId: string) => {
     east: 'Dec - May (Beach)'
   };
   return data[regionId] || 'All Year';
-};
-
-const getPopularProvinces = (reg: Region) => {
-  const data: Record<string, string> = {
-    north: 'Chiang Mai, Chiang Rai',
-    northeast: 'Khon Kaen, Korat',
-    central: 'Bangkok, Ayutthaya',
-    south: 'Phuket, Krabi',
-    west: 'Kanchanaburi',
-    east: 'Chon Buri, Rayong'
-  };
-  return data[reg.id] || reg.subProvinces.slice(0, 2).map(p => getDisplayName(p.name)).join(', ') || 'N/A';
 };
 
 export interface RegionDashboardProps {
@@ -306,6 +313,7 @@ export const RegionDashboard = memo(({
   const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
     const [selectedRegionForWeather, setSelectedRegionForWeather] = useState<Region | null>(null);
   const [weatherRows, setWeatherRows] = useState<WeatherAqiRow[]>([]);
+  const [popularProvincesByRegion, setPopularProvincesByRegion] = useState<Record<string, { provinceName: string; visitorCount: number } | null>>({});
   const hasBootAutoSyncChecked = useRef(false);
   const isBootAutoSyncRunning = useRef(false);
   const autoSyncScheduled = useRef(false);
@@ -363,6 +371,46 @@ export const RegionDashboard = memo(({
       window.removeEventListener(AQI_SYNC_EVENT, onWeatherUpdated as EventListener);
     };
     }, [isAQIModalOpen, isWeatherModalOpen]);
+
+  // Fetch top popular province for each region on mount
+  useEffect(() => {
+    const fetchPopularProvinces = async () => {
+      const api = (window as any).api;
+      if (!api?.db?.getPopularProvinces) return;
+
+      const results: Record<string, { provinceName: string; visitorCount: number } | null> = {};
+      const regionIds = ['north', 'northeast', 'central', 'west', 'east', 'south'];
+
+      await Promise.all(
+        regionIds.map(async (regionId) => {
+          try {
+            const provinces = await api.db.getPopularProvinces(regionId, 1);
+            if (provinces && provinces.length > 0) {
+              results[regionId] = {
+                provinceName: provinces[0].provinceName,
+                visitorCount: provinces[0].visitorCount
+              };
+            } else {
+              results[regionId] = null;
+            }
+          } catch {
+            results[regionId] = null;
+          }
+        })
+      );
+
+      if (!cancelled) {
+        setPopularProvincesByRegion(results);
+      }
+    };
+
+    let cancelled = false;
+    fetchPopularProvinces();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const latestAqiByProvince = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -907,7 +955,7 @@ export const RegionDashboard = memo(({
         const detailCards = [
           { key: 'cost', icon: <Wallet />, label: 'Avg Daily Cost', value: reg.stats.dailyCost, sub: 'Expenses/Day', emphasis: 0.34 },
           { key: 'air', icon: <Wind />, label: 'Air Quality (PM2.5)', value: pm25.value, sub: pm25.sub, emphasis: 0.3, isAqi: true },
-          { key: 'provinces', icon: <MapPin />, label: 'Popular Provinces', value: getPopularProvinces(reg), sub: 'Top Destinations', emphasis: 0.4, valueClass: 'text-[0.8rem]', isPopularProvinces: true },
+          { key: 'provinces', icon: <MapPin />, label: 'Popular Provinces', value: getTopPopularProvince(reg.id, popularProvincesByRegion), sub: 'Top Destinations', emphasis: 0.4, valueClass: 'text-[0.8rem]', isPopularProvinces: true },
           { key: 'season', icon: <Sun />, label: 'Best Season', value: getBestSeason(reg.id), sub: 'Recommended', emphasis: 0.18, valueClass: 'text-[0.8rem]' }
         ];
 

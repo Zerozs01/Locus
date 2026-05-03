@@ -589,7 +589,8 @@ export function generateProvinceData(province: Province, region: Region, dbPlace
       openHours: p.openingHours || 'All day',
       price: 'Check on site',
       coordinates: p.locationName ? undefined : { lat: coords.lat, lng: coords.lng }, // Use coords if locationName is just a string
-      sourceUrl: p.sourceUrl
+      sourceUrl: p.sourceUrl,
+      image: p.thumbnailUrl
     }));
 
   const dbRestaurants = dbPlaces
@@ -633,10 +634,10 @@ export function generateProvinceData(province: Province, region: Region, dbPlace
       ? dbAttractions 
       : (isBangkokProfile
         ? [
-            { name: 'สยามพารากอน', type: 'Landmark', rating: 4.8, description: 'โหนดเชิงพาณิชย์หลักใจกลางสยาม', openHours: '10:00 - 22:00', price: 'Free entry', coordinates: { lat: 13.7466, lng: 100.5347 } },
-            { name: 'สยามสแควร์', type: 'Landmark District', rating: 4.7, description: 'พื้นที่กิจกรรมเมืองและจุดเชื่อมการเดินเท้า', openHours: 'All day', price: 'Free', coordinates: { lat: 13.7449, lng: 100.5335 } },
-            { name: 'เซ็นทรัลเวิลด์', type: 'Landmark', rating: 4.6, description: 'แลนด์มาร์กเชิงพาณิชย์และจุดรวมเส้นทางหลัก', openHours: '10:00 - 22:00', price: 'Free entry', coordinates: { lat: 13.7467, lng: 100.5393 } },
-            { name: 'เยาวราช', type: 'Landmark District', rating: 4.5, description: 'โซนเมืองเก่าความหนาแน่นสูง ใช้ประเมิน crowd/route', openHours: 'All day', price: 'Free', coordinates: { lat: 13.7396, lng: 100.5104 } },
+            { name: 'สยามพารากอน', type: 'Landmark', rating: 4.8, description: 'โหนดเชิงพาณิชย์หลักใจกลางสยาม', openHours: '10:00 - 22:00', price: 'Free entry', coordinates: { lat: 13.7466, lng: 100.5347 }, image: 'https://images.unsplash.com/photo-1620313133642-f2549298418f?q=80&w=400' },
+            { name: 'สยามสแควร์', type: 'Landmark District', rating: 4.7, description: 'พื้นที่กิจกรรมเมืองและจุดเชื่อมการเดินเท้า', openHours: 'All day', price: 'Free', coordinates: { lat: 13.7449, lng: 100.5335 }, image: 'https://images.unsplash.com/photo-1510074377623-8cf13fb86c08?q=80&w=400' },
+            { name: 'เซ็นทรัลเวิลด์', type: 'Landmark', rating: 4.6, description: 'แลนด์มาร์กเชิงพาณิชย์และจุดรวมเส้นทางหลัก', openHours: '10:00 - 22:00', price: 'Free entry', coordinates: { lat: 13.7467, lng: 100.5393 }, image: 'https://images.unsplash.com/photo-1614713568397-b32b775472d1?q=80&w=400' },
+            { name: 'เยาวราช', type: 'Landmark District', rating: 4.5, description: 'โซนเมืองเก่าความหนาแน่นสูง ใช้ประเมิน crowd/route', openHours: 'All day', price: 'Free', coordinates: { lat: 13.7396, lng: 100.5104 }, image: 'https://images.unsplash.com/photo-1555400038-63f5ba517a47?q=80&w=400' },
           ]
         : [
             { name: `${province.name} Old City`, type: 'Landmark', rating: 4.8, description: 'แลนด์มาร์กหลักสำหรับอ้างอิงตำแหน่งและรวมพลในเขตเมืองเก่า', openHours: '6:00 - 18:00', price: 'Free', coordinates: { lat: coords.lat + 0.0050, lng: coords.lng + 0.0030 } },

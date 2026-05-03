@@ -13,7 +13,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "chiang-mai",
     description: "ยอดเขาที่สูงที่สุดในประเทศไทย โดดเด่นด้วยเส้นทางศึกษาธรรมชาติกิ่วแม่ปาน ปรากฏการณ์ทะเลหมอก",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ดอยอ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ดอยอินทนนท์"
   },
   {
     title: "วัดร่องขุ่น",
@@ -46,7 +46,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "chiang-mai",
     description: "ร้านอาหารพื้นเมืองต้นตำรับล้านนา การันตีความอร่อยด้วยรางวัลระดับมิชลินไกด์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เฮ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เฮือนม่วนใจ๋"
   },
   {
     title: "น้ำตกภูซาง",
@@ -68,7 +68,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "phayao",
     description: "คาเฟ่เรือนไม้คลาสสิกบนจุดชมวิวผาช้างน้อย นำเสนอบรรยากาศทัศนียภาพทะเลหมอก",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Magic+Mountain+Cafe+พะเยา"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Magic+Mountain+Cafe"
   },
   {
     title: "วัดพระธาตุลำปางหลวง",
@@ -101,7 +101,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "chiang-mai",
     description: "ร้านข้าวซอยระดับตำนานที่เรียบง่ายแต่นำเสนอน้ำแกงรสชาติเข้มข้นจัดจ้าน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ข"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ข้าวซอยคุณยาย"
   },
   {
     title: "The Library ChiangRai",
@@ -145,7 +145,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "nan",
     description: "ปูชนียสถานเก่าแก่บนยอดเขา โดดเด่นด้วยองค์พระพุทธรูปปางลีลาและจุดชมวิวพาโนรามา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดพระธาตุเขาน้อย"
   },
   {
     title: "So Good Phayao",
@@ -178,7 +178,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "lamphun",
     description: "อ่างเก็บน้ำขนาดใหญ่ที่โอบล้อมด้วยขุนเขาเขียวขจี เหมาะสำหรับการมาสูดอากาศบริสุทธิ์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ่างเก็บน้ำแม่ธิ"
   },
   {
     title: "สวนทูนอิน",
@@ -200,7 +200,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "lamphun",
     description: "วัดใจกลางเมืองที่มีความวิจิตรตระการตา โดดเด่นด้วยวิหารพระโขงเขียวและการแกะสลักลวดลาย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดสันป่ายางหลวง"
   },
   {
     title: "paper plane",
@@ -222,7 +222,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "lamphun",
     description: "น้ำตกหินปูนที่ตั้งอยู่ในอุทยานแห่งชาติแม่ปิง ไหลลดหลั่นผ่านหน้าผาลงสู่แอ่งน้ำสีฟ้าเขียวมรกต",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกก้อหลวง"
   },
   {
     title: "วัดจอมสวรรค์",
@@ -277,7 +277,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "north",
     provinceId: "lampang",
     description: "วัดสวยอันซีนสไตล์ล้านนาดั้งเดิม ประดิษฐานพระใหญ่ไดบุตสึบนยอดเขาสูง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดพระธาตุดอยพระฌาน"
   },
   // ── ภาคอีสาน (NORTHEAST - 40 Places) ──
   {
@@ -289,7 +289,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "loei",
     description: "ยอดภูที่หนาวเย็นตลอดปี มีจุดชมทะเลหมอกและทิวทัศน์ภูเขาสลับซับซ้อนที่สวยงามตระการตา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติภูเรือ"
   },
   {
     title: "อุทยานแห่งชาติผาแต้ม",
@@ -300,7 +300,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "ubon-ratchathani",
     description: "จุดชมแสงแรกของสยาม พร้อมภาพเขียนสีประวัติศาสตร์และวิวแม่น้ำโขงระดับตระการตา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติผาแต้ม"
   },
   {
     title: "สามพันโบก",
@@ -311,7 +311,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "ubon-ratchathani",
     description: "ประติมากรรมทางธรรมชาติหรือแกรนด์แคนยอนเมืองไทยที่มีแอ่งหินกว่าสามพันแอ่งริมแม่น้ำโขง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สามพ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สามพันโบก"
   },
   {
     title: "หินสามวาฬ",
@@ -322,7 +322,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "bueng-kan",
     description: "โขดหินอายุ 75 ล้านปีรูปทรงวาฬสามพ่อแม่ลูกยื่นออกไปหน้าผา เป็นจุดชมวิวที่อลังการและแปลกตา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ห"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หินสามวาฬ"
   },
   {
     title: "ทะเลบัวแดง",
@@ -333,7 +333,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "udon-thani",
     description: "บึงน้ำกว้างใหญ่ที่เต็มไปด้วยดอกบัวสายสีชมพูบานสะพรั่งสุดลูกหูลูกตาในช่วงเช้าตรู่ของฤดูหนาว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทะเลบ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทะเลบัวแดง"
   },
   {
     title: "ภูลมโล",
@@ -344,7 +344,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "loei",
     description: "หุบเขาสีชมพูที่เต็มไปด้วยต้นนางพญาเสือโคร่งบานสะพรั่งตระการตาสร้างความประทับใจในช่วงต้นปี",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ภ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ภูลมโล"
   },
   {
     title: "อุทยานแห่งชาติเขาใหญ่",
@@ -355,7 +355,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "nakhon-ratchasima",
     description: "มรดกโลกทางธรรมชาติที่มีป่าอุดมสมบูรณ์ น้ำตกสวยงาม และเส้นทางศึกษาธรรมชาติที่สมบูรณ์แบบ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติเขาใหญ่"
   },
   {
     title: "ภูผาม่าน",
@@ -366,7 +366,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "khon-kaen",
     description: "ภูเขาหินปูนสูงตระหง่านที่มีถ้ำและสภาพแวดล้อมทางธรรมชาติอันเงียบสงบเหมาะแก่การแคมป์ปิ้ง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ภ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ภูผาม่าน"
   },
   {
     title: "ถ้ำนาคา",
@@ -377,7 +377,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "bueng-kan",
     description: "ถ้ำลึกลับที่มีหินรูปร่างคล้ายเกล็ดพญานาคยักษ์ เป็นสถานที่ศักดิ์สิทธิ์และเส้นทางเดินป่าที่ท้าทาย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ้ำนาคา"
   },
   {
     title: "ทุ่งดอกกระเจียว",
@@ -388,7 +388,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "chaiyaphum",
     description: "ทุ่งดอกไม้สีชมพูอมม่วงที่เบ่งบานต้อนรับความชุ่มฉ่ำท่ามกลางสายหมอกในฤดูฝนของทุกปี",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ท"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทุ่งดอกกระเจียว"
   },
   {
     title: "น้ำตกเจ็ดสี",
@@ -399,7 +399,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "bueng-kan",
     description: "น้ำตกที่สวยงามตระการตาซ่อนตัวอยู่ในผืนป่าอันอุดมสมบูรณ์ เหมาะสำหรับการท่องเที่ยวในฤดูฝน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกเจ็ดสี"
   },
   {
     title: "อุทยานแห่งชาติภูจองนายอย",
@@ -410,7 +410,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "ubon-ratchathani",
     description: "ผืนป่าอันสมบูรณ์ที่มีทุ่งดอกไม้บนลานหินและน้ำตกขนาดใหญ่ที่สวยงามตระการตาในช่วงปลายฝนต้นหนาว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติภูจองนายอย"
   },
   {
     title: "ถนนคนเดินเชียงคาน",
@@ -421,7 +421,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "loei",
     description: "เมืองสโลว์ไลฟ์ริมแม่น้ำโขงที่มีบ้านไม้เก่าแก่และวัฒนธรรมท้องถิ่นอันเป็นเอกลักษณ์ดั้งเดิม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถนนคนเด"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถนนคนเดินเชียงคาน"
   },
   {
     title: "อุทยานประวัติศาสตร์พนมรุ้ง",
@@ -432,7 +432,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "buriram",
     description: "ปราสาทหินทรายสีชมพูบนยอดภูเขาไฟที่ดับแล้ว สถาปัตยกรรมขอมที่ยิ่งใหญ่และน่าเกรงขาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานประวัติศาสตร์พนมรุ้ง"
   },
   {
     title: "วัดป่าถ้ำบูชา",
@@ -443,7 +443,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "bueng-kan",
     description: "สถานที่ปฏิบัติธรรมอันเงียบสงบและร่มรื่น ท่ามกลางสภาพแวดล้อมทางธรรมชาติของป่าเขา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดป่าถ้ำบูชา"
   },
   {
     title: "วัดผาตากเสื้อ",
@@ -454,7 +454,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "nong-khai",
     description: "วัดที่มีสกายวอล์คกระจกใสยื่นออกไปหน้าผา เพื่อชมวิวแม่น้ำโขงและฝั่งประเทศลาวแบบพาโนรามา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดผาตากเสื้อ"
   },
   {
     title: "วัดป่าภูก้อน",
@@ -465,7 +465,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "udon-thani",
     description: "พระวิหารงดงามบนยอดเขาสูง ภายในประดิษฐานพระพุทธไสยาสน์ที่ทำจากหินอ่อนสีขาวอันวิจิตร",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดป่าภูก้อน"
   },
   {
     title: "วัดสิรินธรวรารามภูพร้าว",
@@ -476,7 +476,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "ubon-ratchathani",
     description: "วัดเรืองแสงที่มีตัวอุโบสถลวดลายต้นกัลปพฤกษ์ส่องประกายสว่างไสวอย่างน่าอัศจรรย์ในยามค่ำคืน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดสิรินธรวรารามภูพร้าว"
   },
   {
     title: "อุทยานประวัติศาสตร์พิมาย",
@@ -487,7 +487,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "nakhon-ratchasima",
     description: "ปราสาทหินสถาปัตยกรรมขอมที่ใหญ่ที่สุดในประเทศไทย เต็มไปด้วยเรื่องราวทางประวัติศาสตร์โบราณ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานประวัติศาสตร์พิมาย"
   },
   {
     title: "พุทธอุทยานพระมงคลมิ่งเมือง",
@@ -498,7 +498,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "amnat-charoen",
     description: "แลนด์มาร์คศักดิ์สิทธิ์ประจำเมืองที่มีพระพุทธรูปปางมารวิชัยองค์ใหญ่กลางป่าที่ร่มรื่นและเงียบสงบ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พุทธอุทยานพระมงคลมิ่งเมือง"
   },
   {
     title: "พิพิธภัณฑ์สิรินธร",
@@ -509,7 +509,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "kalasin",
     description: "ศูนย์วิจัยและจัดแสดงซากฟอสซิลไดโนเสาร์ที่มีความสมบูรณ์และใหญ่ที่สุดในเอเชียตะวันออกเฉียงใต้",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พิพิธภัณฑ์สิรินธร"
   },
   {
     title: "พระธาตุพนม",
@@ -520,7 +520,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "nakhon-phanom",
     description: "ปูชนียสถานศักดิ์สิทธิ์คู่บ้านคู่เมืองริมแม่น้ำโขง ศูนย์รวมจิตใจและแรงศรัทธาของชาวอีสาน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พระธาต"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พระธาตุพนม"
   },
   {
     title: "พระบรมธาตุนาดูน",
@@ -531,7 +531,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "maha-sarakham",
     description: "พุทธมณฑลแห่งอีสาน โบราณสถานสำคัญที่เก็บรักษาสิ่งศักดิ์สิทธิ์และร่องรอยอารยธรรมจำปาศรี",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พระบรมธาต"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พระบรมธาตุนาดูน"
   },
   {
     title: "วัดถ้ำแสงเพชร",
@@ -542,7 +542,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "amnat-charoen",
     description: "วัดป่าที่มีถ้ำหินประกายระยิบระยับคล้ายเพชรเมื่อต้องแสงแดด เหมาะสำหรับการปฏิบัติธรรมอย่างยิ่ง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดถ้ำแสงเพชร"
   },
   {
     title: "หาดคำสมบูรณ์",
@@ -553,7 +553,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "bueng-kan",
     description: "ทะเลน้ำจืดริมบึงโขงหลงที่ได้รับฉายาว่าบางแสนอีสาน สามารถเล่นน้ำและพักผ่อนหย่อนใจได้อย่างดี",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดคำสมบ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดคำสมบูรณ์"
   },
   {
     title: "หาดสวนหิน",
@@ -564,7 +564,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "sakon-nakhon",
     description: "ทะเลเทียมอันซีนของภาคอีสานที่มีหาดทราย น้ำใส และโขดหินสวยงามให้บรรยากาศเหมือนอยู่ทะเลจริง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดสวนห"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดสวนหิน"
   },
   {
     title: "บางแสน 2 เขื่อนอุบลรัตน์",
@@ -575,7 +575,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "khon-kaen",
     description: "ชายหาดริมเขื่อนอุบลรัตน์ที่ชาวอีสานนิยมมาเล่นน้ำและรับประทานอาหารริมหาดในวันหยุดพักผ่อน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บางแสน+2+เข"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บางแสน+2+เขื่อนอุบลรัตน์"
   },
   {
     title: "บึงเกลือ",
@@ -586,7 +586,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "roi-et",
     description: "แหล่งน้ำขนาดใหญ่ที่มีหาดทรายขาวกว้างขวาง พร้อมกิจกรรมทางน้ำและเครื่องเล่นบานาน่าโบ๊ทมากมาย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บึงเกลือ"
   },
   {
     title: "พัทยาน้อย เขื่อนสิรินธร",
@@ -597,7 +597,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "ubon-ratchathani",
     description: "แพร้านอาหารริมหาดทรายเขื่อนสิรินธร ให้ความรู้สึกผ่อนคลายเสมือนไปเที่ยวหาดพัทยาของจริง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พัทยาน้อย+เขื่อนสิรินธร"
   },
   {
     title: "หาดสลึง",
@@ -608,7 +608,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "ubon-ratchathani",
     description: "หาดทรายริมฝั่งแม่น้ำโขงที่สวยงามในฤดูแล้ง และเป็นจุดตั้งต้นในการล่องเรือชมวิวธรรมชาติที่ยิ่งใหญ่",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดสล"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดสลึง"
   },
   {
     title: "หาดสีกาย",
@@ -619,7 +619,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "nong-khai",
     description: "หาดทรายลับริมแม่น้ำโขงที่น้ำเย็นสบาย บรรยากาศเงียบสงบเหมาะแก่การนั่งชิลและหลบร้อนในฤดูร้อน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดส"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดสีกาย"
   },
   {
     title: "ทะเลสาบทุ่งกุลาร้องไห้",
@@ -630,7 +630,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "surin",
     description: "ทะเลสาบน้ำจืดกว้างใหญ่ที่ปรับปรุงพื้นที่ให้กลายเป็นสถานที่เล่นน้ำและจุดชมวิวพระอาทิตย์ตกที่สวยงาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทะเลสาบท"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทะเลสาบทุ่งกุลาร้องไห้"
   },
   {
     title: "มองโขง cafe' and camping",
@@ -641,7 +641,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "ubon-ratchathani",
     description: "คาเฟ่ฟีลทะเลริมแม่น้ำโขงสองสี มีลมพัดเย็นสบาย ให้บริการทั้งเครื่องดื่ม อาหาร และลานแคมป์ปิ้ง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=มองโขง+cafe+and+camping"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=มองโขง+cafe'+and+camping"
   },
   {
     title: "KIN Matcha",
@@ -685,7 +685,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "khon-kaen",
     description: "ร้านอาหารเช้าชื่อดังที่การันตีความอร่อยด้วยมิชลินไกด์ เสิร์ฟไข่กระทะและขนมปังปิ้งรสเลิศคู่กับกาแฟ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บ้านเฮง"
   },
   {
     title: "เป้ง ก๋วยเตี๋ยวเป็ด",
@@ -696,7 +696,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "udon-thani",
     description: "ร้านสตรีทฟู้ดก๋วยเตี๋ยวเป็ดตุ๋นต้นตำรับรสชาติเข้มข้น การันตีคุณภาพความอร่อยด้วยรางวัลมิชลินไกด์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เป"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เป้ง+ก๋วยเตี๋ยวเป็ด"
   },
   {
     title: "ตลาดเซฟวัน",
@@ -707,7 +707,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "nakhon-ratchasima",
     description: "ตลาดกลางคืนที่กว้างใหญ่ที่สุดในภาคอีสาน แหล่งรวมสตรีทฟู้ดชั้นยอด เสื้อผ้า และสินค้าแฟชั่นมากมาย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดเซฟว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดเซฟวัน"
   },
   {
     title: "ถนนคนเดินขอนแก่น",
@@ -718,7 +718,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "northeast",
     provinceId: "khon-kaen",
     description: "แหล่งช้อปปิ้งและศูนย์รวมของกินพื้นเมืองยามค่ำคืนวันเสาร์ที่คึกคักและมีชีวิตชีวาที่สุดในตัวเมือง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถนนคนเด"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถนนคนเดินขอนแก่น"
   },
   // ── ภาคกลาง (CENTRAL - 38 Places) ──
   {
@@ -730,7 +730,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "bangkok",
     description: "อดีตศูนย์กลางการปกครองและที่ประทับของพระมหากษัตริย์ โดดเด่นด้วยสถาปัตยกรรมไทยวิจิตรตระการตา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พระบรมมหาราชว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พระบรมมหาราชวัง"
   },
   {
     title: "ถนนข้าวสาร",
@@ -741,7 +741,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "bangkok",
     description: "แหล่งแฮงก์เอาต์ยามค่ำคืนระดับโลก ศูนย์รวมนักเดินทาง บาร์ และสตรีทฟู้ดที่คึกคักตลอดคืน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถนนข"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถนนข้าวสาร"
   },
   {
     title: "ตลาดนัดจตุจักร",
@@ -752,7 +752,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "bangkok",
     description: "ตลาดนัดสุดสัปดาห์ที่ใหญ่ที่สุดในโลก แหล่งรวมอาหารหลากหลายและสินค้าทุกประเภท",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดนัดจตุจักร"
   },
   {
     title: "JODD FAIRS พระราม 9",
@@ -763,7 +763,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "bangkok",
     description: "ตลาดกลางคืนใจกลางเมืองที่โดดเด่นด้วยอาหารสตรีทฟู้ดชื่อดังและบรรยากาศการเดินเล่นสุดชิล",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=JODD+FAIRS+พระราม+9+กร"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=JODD+FAIRS+พระราม+9"
   },
   {
     title: "สวนสยาม",
@@ -774,7 +774,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "bangkok",
     description: "สวนสนุกและสวนน้ำระดับตำนานของไทย มีเครื่องเล่นหลากหลายเหมาะสำหรับการพักผ่อนแบบครอบครัว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สวนสยาม+กร"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สวนสยาม"
   },
   {
     title: "Chocolate Ville",
@@ -785,7 +785,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "bangkok",
     description: "สถานที่พักผ่อนและร้านอาหารสไตล์หมู่บ้านยุโรป มีมุมถ่ายรูปและแสงสียามค่ำคืนที่สวยงาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Chocolate+Ville+กร"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Chocolate+Ville"
   },
   {
     title: "เกาะเกร็ด",
@@ -796,7 +796,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "nonthaburi",
     description: "ชุมชนคนมอญบนเกาะกลางน้ำเจ้าพระยา มีชื่อเสียงเรื่องเครื่องปั้นดินเผาและขนมไทยโบราณ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะเกร"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะเกร็ด"
   },
   {
     title: "อาลมดี Cafe",
@@ -807,18 +807,19 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "nonthaburi",
     description: "คาเฟ่ริมแม่น้ำเจ้าพระยา บรรยากาศร่มรื่น นำเสนอเมนูเครื่องดื่มและอาหารในสไตล์ชิคๆ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อาลมด"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อาลมดี+Cafe"
   },
   {
     title: "บ้าน ๑,๐๐๐ ไม้ cafe & farm",
+    thumbnailUrl: "https://images.unsplash.com/photo-1501183638710-841dd1904471?q=80&w=600",
     locationName: "ปทุมธานี",
     category: "คาเฟ่",
     iconName: "Coffee",
     tags: ["ธรรมชาติ","ครอบครัว","ฟาร์ม"],
     regionId: "central",
-    provinceId: "pathum-thani",
+    provinceId: "pathumthani",
     description: "คาเฟ่เชิงเกษตรที่ร่มรื่นด้วยแมกไม้ ให้เด็กๆ และครอบครัวได้สัมผัสธรรมชาติอย่างใกล้ชิด",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บ้าน+๑,๐๐๐+ไม้+cafe+&+farm"
   },
   {
     title: "ตลาดแบล็คมาร์เก็ต",
@@ -829,7 +830,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "samut-prakan",
     description: "ตลาดนัดกลางคืนยอดฮิตติดรถไฟฟ้า แหล่งรวมของกินฟีลกู้ดและจุดแฮงก์เอาต์ยามเย็น",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดแบล"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดแบล็คมาร์เก็ต"
   },
   {
     title: "ตลาดมหาชัย",
@@ -840,7 +841,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "samut-sakhon",
     description: "แหล่งรวมอาหารทะเลสดและแปรรูปที่ใหญ่และมีชื่อเสียงที่สุดแห่งหนึ่งของประเทศไทย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดมหาช"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดมหาชัย"
   },
   {
     title: "วัดนักบุญอันนา",
@@ -851,7 +852,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "samut-sakhon",
     description: "โบสถ์คริสต์ที่มีรูปปั้นนักบุญอันนาขนาดใหญ่ที่สุดในเอเชีย หมุนได้ 360 องศา หันหน้าออกสู่แม่น้ำ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดนักบุญอันนา"
   },
   {
     title: "ตลาดน้ำอัมพวา",
@@ -862,7 +863,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "samut-songkhram",
     description: "ตลาดน้ำยามเย็นสุดคลาสสิก อิ่มอร่อยกับอาหารริมคลองและกิจกรรมล่องเรือชมหิ่งห้อย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน้ำอัมพวา"
   },
   {
     title: "ตลาดน้ำทุ่งบัวแดง",
@@ -873,7 +874,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "nakhon-pathom",
     description: "ตลาดน้ำเชิงเกษตรที่ให้นักท่องเที่ยวล่องเรือชมทุ่งดอกบัวแดงบานสะพรั่ง พร้อมเมนูจากสายบัว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน้ำทุ่งบัวแดง"
   },
   {
     title: "Whispering Cafe",
@@ -884,7 +885,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "nakhon-pathom",
     description: "คาเฟ่สไตล์วินเทจในสวนร่มรื่น มอบความอบอุ่นและเงียบสงบ เหมาะกับการหลีกหนีความวุ่นวาย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Whispering+Cafe+นครปฐม"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Whispering+Cafe"
   },
   {
     title: "O2 Kaffee & Bistro",
@@ -895,7 +896,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "nakhon-pathom",
     description: "คาเฟ่สุดชิลท่ามกลางร่องน้ำในสวนมะพร้าว ให้บรรยากาศการพักผ่อนอย่างแท้จริงใกล้กรุงเทพ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=O2+Kaffee+Bistro+นครปฐม"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=O2+Kaffee+&+Bistro"
   },
   {
     title: "วัดใหญ่ชัยมงคล",
@@ -906,7 +907,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "phra-nakhon-sri-ayutthaya",
     description: "วัดสำคัญทางประวัติศาสตร์ โดดเด่นด้วยเจดีย์ชัยมงคลอันยิ่งใหญ่และพระพุทธไสยาสน์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดใหญ่ชัยมงคล"
   },
   {
     title: "ต้นมะม่วงคาเฟ่",
@@ -917,7 +918,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "phra-nakhon-sri-ayutthaya",
     description: "ร้านกาแฟริมแม่น้ำเจ้าพระยา ตกแต่งด้วยต้นไม้สุดร่มรื่น มีมุมให้ถ่ายรูปเช็คอินสวยงาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ต"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ต้นมะม่วงคาเฟ่"
   },
   {
     title: "สวนบิ๊กเต้",
@@ -928,7 +929,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "saraburi",
     description: "แหล่งปลูกดอกเบญจมาศที่ใหญ่ที่สุดแห่งหนึ่ง มีดอกไม้หลากสีสันนับล้านดอกเบ่งบานต้อนรับนักท่องเที่ยว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สวนบ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สวนบิ๊กเต้"
   },
   {
     title: "อ่างเก็บน้ำมวกเหล็ก",
@@ -939,7 +940,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "saraburi",
     description: "จุดชมวิวพาโนรามาเหนืออ่างเก็บน้ำที่โอบล้อมด้วยภูเขา บรรยากาศร่มรื่นเหมาะแก่การพักผ่อน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ่างเก็บน้ำมวกเหล็ก"
   },
   {
     title: "วัดพระนอนจักรสีห์วรวิหาร",
@@ -950,7 +951,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "sing-buri",
     description: "พระอารามหลวงชั้นตรี เป็นที่ประดิษฐานพระพุทธไสยาสน์ขนาดใหญ่ที่มีพุทธลักษณะงดงาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดพระนอนจักรสีห์วรวิหาร"
   },
   {
     title: "ตลาดไทยย้อนยุคบ้านระจัน",
@@ -961,7 +962,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "sing-buri",
     description: "ตลาดย้อนยุคที่พ่อค้าแม่ค้าแต่งกายชุดไทยโบราณ เต็มไปด้วยอาหารพื้นบ้านและการแสดงอิงประวัติศาสตร์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดไทยย"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดไทยย้อนยุคบ้านระจัน"
   },
   {
     title: "วัดม่วง",
@@ -972,7 +973,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "ang-thong",
     description: "ศาสนสถานที่มีพระพุทธรูปองค์ใหญ่ที่สุดในโลก เป็นแลนด์มาร์คสำคัญที่ผู้คนนิยมมาขอพรที่ปลายพระหัตถ์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดม่วง"
   },
   {
     title: "สวนนกชัยนาท",
@@ -983,7 +984,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "chai-nat",
     description: "แหล่งเรียนรู้ธรรมชาติที่มีกรงนกขนาดใหญ่ที่สุดในเอเชีย พร้อมจัดแสดงพันธุ์ปลาลุ่มแม่น้ำเจ้าพระยา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สวนนกช"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สวนนกชัยนาท"
   },
   {
     title: "อุทยานมังกรสวรรค์",
@@ -994,7 +995,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "suphan-buri",
     description: "พิพิธภัณฑ์รูปร่างมังกรขนาดมหึมา จัดแสดงประวัติศาสตร์อารยธรรมจีนที่น่าตื่นตาตื่นใจ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานมังกรสวรรค์"
   },
   {
     title: "ตลาดสามชุก",
@@ -1005,7 +1006,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "suphan-buri",
     description: "ตลาดห้องแถวไม้เก่าแก่อายุกว่า 100 ปี เสน่ห์แห่งวิถีชีวิตดั้งเดิมที่เต็มไปด้วยของอร่อยหาทานยาก",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดสามช"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดสามชุก"
   },
   {
     title: "อุทยานแห่งชาติเอราวัณ",
@@ -1016,7 +1017,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "kanchanaburi",
     description: "น้ำตกชื่อดังที่มีความสวยงามถึง 7 ชั้น น้ำใสสีฟ้าอมเขียวมรกตท่ามกลางป่าที่อุดมสมบูรณ์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติเอราวัณ"
   },
   {
     title: "ทางรถไฟสายมรณะ",
@@ -1027,7 +1028,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "kanchanaburi",
     description: "เส้นทางรถไฟสายประวัติศาสตร์สมัยสงครามโลกครั้งที่ 2 เลียบหน้าผาสูงชันเหนือแม่น้ำแควน้อย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทางรถไฟสายมรณะ+กาญจนบ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทางรถไฟสายมรณะ"
   },
   {
     title: "ตลาดน้ำดำเนินสะดวก",
@@ -1038,7 +1039,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "ratchaburi",
     description: "ตลาดน้ำแห่งแรกและมีชื่อเสียงที่สุดของไทย คลาคล่ำด้วยเรือพายขายผลไม้และอาหารนานาชนิด",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน้ำดำเนินสะดวก"
   },
   {
     title: "ถ้ำเขาบิน",
@@ -1049,7 +1050,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "ratchaburi",
     description: "ถ้ำที่สวยงามประดับประดาด้วยหินงอกหินย้อยตระการตา แบ่งเป็นห้องต่างๆ ที่ประดับไฟอย่างงดงาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ้ำเขาบิน"
   },
   {
     title: "วนอุทยานเขานางพันธุรัต",
@@ -1060,7 +1061,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "phetchaburi",
     description: "ภูเขาหินปูนรูปทรงแปลกตา มีเส้นทางศึกษาธรรมชาติและจุดชมวิวที่เชื่อมโยงกับวรรณคดีไทย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วนอ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วนอุทยานเขานางพันธุรัต"
   },
   {
     title: "หาดหัวหิน",
@@ -1071,7 +1072,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "prachuap-khiri-khan",
     description: "ชายหาดตากอากาศคลาสสิก มีเอกลักษณ์ด้วยการขี่ม้าเลียบชายหาด ทรายขาวสะอาดและคลื่นสงบ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดห"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดหัวหิน"
   },
   {
     title: "หาดทับสะแก",
@@ -1082,7 +1083,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "prachuap-khiri-khan",
     description: "ทะเลที่เงียบสงบ น้ำทะเลไล่สีสวยงาม เหมาะสำหรับผู้ที่ต้องการเดินเล่นซึมซับธรรมชาติแบบส่วนตัว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดท"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดทับสะแก"
   },
   {
     title: "หาดบ้านกรูด",
@@ -1093,7 +1094,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "prachuap-khiri-khan",
     description: "ชายหาดทอดยาวสีขาวอมครีม บรรยากาศบริสุทธิ์ มีที่พักและร้านอาหารให้บริการริมถนนเลียบหาด",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดบ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดบ้านกรูด"
   },
   {
     title: "อ่าวบ่อทองหลาง",
@@ -1104,7 +1105,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "prachuap-khiri-khan",
     description: "เวิ้งอ่าวขนาดเล็กรูปร่างครึ่งวงกลม น้ำทะเลสีฟ้าใส มีทะเลแหวกให้เดินไปเกาะเล็กๆ ยามน้ำลด",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ่าวบ่อทองหลาง"
   },
   {
     title: "หาดทรายน้อย",
@@ -1115,7 +1116,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "prachuap-khiri-khan",
     description: "ชายหาดเล็กๆ ขนาบด้วยหน้าผาสูงชัน น้ำทะเลสีเขียวใส ทรายขาวละเอียดคล้ายทะเลฝั่งอันดามัน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดทรายน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดทรายน้อย"
   },
   {
     title: "ตลาดน้ำสามพันนาม",
@@ -1126,7 +1127,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "prachuap-khiri-khan",
     description: "ตลาดน้ำย้อนยุคในบรรยากาศร่มรื่น มีของกินอร่อยและการแสดงไทย พร้อมบริการนั่งรถไฟจิ๋วชมวิว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน้ำสามพันนาม"
   },
   {
     title: "อุโมงค์ไม้ไผ่ วัดจุฬาภรณ์วนาราม",
@@ -1137,7 +1138,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "central",
     provinceId: "nakhon-nayok",
     description: "เส้นทางเดินประดับด้วยซุ้มไม้ไผ่ที่โค้งเข้าหากันอย่างสวยงาม ให้บรรยากาศคล้ายป่าไผ่ในญี่ปุ่น",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุโมงค์ไม้ไผ่+วัดจุฬาภรณ์วนาราม"
   },
   // ── ภาคใต้ (SOUTH - 38 Places) ──
   {
@@ -1149,7 +1150,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "phuket",
     description: "ร้านอาหารใต้พื้นเมืองรสจัดจ้านระดับมิชลินบิบกูร์มองด์ที่ตั้งอยู่ท่ามกลางป่าชายเลนอันร่มรื่น",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หมอม"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หมอมูดง"
   },
   {
     title: "ครัวโอม",
@@ -1160,7 +1161,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "phuket",
     description: "ร้านอาหารบรรยากาศอบอุ่นที่เชฟพิถีพิถันในการเลือกวัตถุดิบ โดดเด่นด้วยเมนูเอี่ยมต้อคั่วเกลือ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=คร"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ครัวโอม"
   },
   {
     title: "สมุทร (Samut)",
@@ -1171,7 +1172,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "phuket",
     description: "ไฟน์ไดนิงอาหารใต้ที่ยกระดับวัตถุดิบจากชาวประมงพื้นบ้านให้มีความร่วมสมัยและสร้างสรรค์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สม"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สมุทร+(Samut)"
   },
   {
     title: "Torry's Ice Cream",
@@ -1182,7 +1183,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "phuket",
     description: "คาเฟ่ไอศกรีมโฮมเมดในอาคารเก่าสไตล์ชิโนโปรตุกีสที่ผสานรสชาติขนมพื้นเมืองภูเก็ตได้อย่างลงตัว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Torrys+Ice+Cream+ภ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Torry's+Ice+Cream"
   },
   {
     title: "ดินแดงดอย",
@@ -1193,7 +1194,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "krabi",
     description: "จุดชมวิวพระอาทิตย์ขึ้นและทะเลหมอกยามเช้าที่สวยงามตระการตาในจังหวัดกระบี่",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ด"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ดินแดงดอย"
   },
   {
     title: "หาดอ่าวนาง",
@@ -1204,7 +1205,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "krabi",
     description: "ชายหาดชื่อดังที่มีทิวทัศน์ภูเขาหินปูนโดดเด่นและเป็นจุดศูนย์กลางการท่องเที่ยวทางทะเลที่สำคัญ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดอ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดอ่าวนาง"
   },
   {
     title: "Into The Forest",
@@ -1215,7 +1216,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "krabi",
     description: "คาเฟ่บรรยากาศสวนยางที่โอบล้อมด้วยหน้าผาและภูเขาหินปูนสุดอลังการ เหมาะแก่การถ่ายภาพ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Into+The+Forest+กระบ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Into+The+Forest"
   },
   {
     title: "Oasis Homemade Café",
@@ -1226,7 +1227,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "phang-nga",
     description: "คาเฟ่ร่มรื่นในสวนต้นไม้ที่สามารถมองเห็นวิวภูเขาสูงตระหง่านของเมืองพังงาได้อย่างชัดเจน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Oasis+Homemade+Cafe+พ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Oasis+Homemade+Café"
   },
   {
     title: "THE EIGHTH ROOM CAFE'",
@@ -1237,7 +1238,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "phang-nga",
     description: "จุดเช็คอินสไตล์ลอฟต์ยอดฮิตในเขาหลักที่เสิร์ฟกาแฟสดและเค้กอบใหม่ทุกวัน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=THE+EIGHTH+ROOM+CAFE+เขาหล"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=THE+EIGHTH+ROOM+CAFE'"
   },
   {
     title: "DAY & NIGHT of Surat Thani",
@@ -1248,7 +1249,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "surat-thani",
     description: "ร้านสไตล์ฮิปที่ช่วงกลางวันเปิดเป็นคาเฟ่และแปลงโฉมเป็นบาร์ดนตรีสดยามค่ำคืน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=DAY+AND+NIGHT+of+Surat+Thani"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=DAY+&+NIGHT+of+Surat+Thani"
   },
   {
     title: "Cafe De Pier",
@@ -1259,7 +1260,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "surat-thani",
     description: "ร้านกาแฟริมทะเลบรรยากาศชิลพร้อมสะพานไม้ทอดยาวให้เดินรับลมชมวิวอ่าวไทย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Cafe+De+Pier+ส"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Cafe+De+Pier"
   },
   {
     title: "หาดหินงาม",
@@ -1270,7 +1271,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "nakhon-si-thammarat",
     description: "ชายหาดที่โดดเด่นด้วยโขดหินสวยงามและเริ่มเป็นที่นิยมสำหรับกิจกรรมทางน้ำอย่างเซิร์ฟบอร์ด",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดห"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดหินงาม"
   },
   {
     title: "Blue Surf by Sichon Cabana",
@@ -1292,7 +1293,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "nakhon-si-thammarat",
     description: "ร้านอาหารระดับตำนานของเมืองคอนที่ขึ้นชื่อเรื่องบะกุ๊ดเต๋และกาแฟโบราณรสชาติดั้งเดิม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=โกป"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=โกปี๊+1942"
   },
   {
     title: "ถ้ำมรกต",
@@ -1303,7 +1304,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "trang",
     description: "สิ่งมหัศจรรย์ทางธรรมชาติที่นักท่องเที่ยวต้องลอยตัวผ่านความมืดเพื่อพบกับหาดทรายที่ซ่อนอยู่ภายใน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ้ำมรกต"
   },
   {
     title: "เกาะกระดาน",
@@ -1314,7 +1315,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "trang",
     description: "เกาะที่ขึ้นชื่อว่ามีชายหาดที่สวยที่สุดในโลกพร้อมน้ำทะเลใสและแนวปะการังที่อุดมสมบูรณ์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะกระดาน+ตร"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะกระดาน"
   },
   {
     title: "GRAY 18 CAFE",
@@ -1325,7 +1326,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "trang",
     description: "คาเฟ่สไตล์เอิร์ธโทนสุดเท่ที่คัดสรรและคั่วเมล็ดกาแฟเองเพื่อสร้างรสชาติที่เป็นเอกลักษณ์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=GRAY+18+CAFE+ตร"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=GRAY+18+CAFE"
   },
   {
     title: "เกาะหลีเป๊ะ",
@@ -1336,7 +1337,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "satun",
     description: "เกาะสวรรค์แห่งอันดามันใต้ที่โดดเด่นด้วยทรายขาวละเอียดและจุดดำน้ำตื้นระดับโลก",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะหล"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะหลีเป๊ะ"
   },
   {
     title: "MaBara Cafe",
@@ -1347,7 +1348,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "satun",
     description: "คาเฟ่ติดชายหาดบริเวณปากบาราที่เป็นจุดชมพระอาทิตย์ตกที่สวยงามที่สุดแห่งหนึ่งของจังหวัด",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=MaBara+Cafe+สต"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=MaBara+Cafe"
   },
   {
     title: "บิ้งนา คาเฟ่",
@@ -1358,7 +1359,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "phatthalung",
     description: "ร้านกาแฟกลางทุ่งนาที่ให้คุณได้สัมผัสธรรมชาติอย่างใกล้ชิดผ่านการเดินบนสะพานไม้ทอดยาว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บิ้งนา+คาเฟ่"
   },
   {
     title: "Rong Khua Kafae Suan Phai",
@@ -1369,7 +1370,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "phatthalung",
     description: "โรงคั่วกาแฟกลางสวนไผ่ที่ให้ลูกค้าได้ทดลองคั่วและบดเมล็ดกาแฟด้วยตัวเองในบรรยากาศร่มรื่น",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=โรงค"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Rong+Khua+Kafae+Suan+Phai"
   },
   {
     title: "Alive ชีวิตชีวา",
@@ -1380,7 +1381,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "songkhla",
     description: "คาเฟ่รูปแบบบ้านต้นไม้ที่รายล้อมด้วยธรรมชาติและมีมุมพักผ่อนบนเปลตาข่ายสุดชิล",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Alive+ช"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Alive+ชีวิตชีวา"
   },
   {
     title: "Post Laser Disc Pub",
@@ -1391,7 +1392,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "songkhla",
     description: "ผับและบาร์ระดับตำนานใจกลางหาดใหญ่ที่โดดเด่นด้วยดนตรีสดและบรรยากาศการดื่มสุดคลาสสิก",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Post+Laser+Disc+Pub+หาดใหญ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Post+Laser+Disc+Pub"
   },
   {
     title: "Pattern Cozy Bar",
@@ -1402,7 +1403,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "songkhla",
     description: "บาร์ลับนั่งชิลย่านราษฎร์ยินดีที่เหมาะสำหรับการแฮงเอาท์ในบรรยากาศเป็นกันเองและผ่อนคลาย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Pattern+Cozy+Bar+หาดใหญ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Pattern+Cozy+Bar"
   },
   {
     title: "มัสยิดกรือเซะ",
@@ -1413,7 +1414,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "pattani",
     description: "โบราณสถานทางประวัติศาสตร์ที่สำคัญซึ่งมีสถาปัตยกรรมอิสลามผสมผสานอันทรงคุณค่า",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ม"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=มัสยิดกรือเซะ"
   },
   {
     title: "ศาลเจ้าแม่ลิ้มกอเหนี่ยว",
@@ -1424,7 +1425,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "pattani",
     description: "ศูนย์รวมจิตใจของชาวไทยเชื้อสายจีนในปัตตานีที่มีสถาปัตยกรรมศาลเจ้าที่งดงาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ศาลเจ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ศาลเจ้าแม่ลิ้มกอเหนี่ยว"
   },
   {
     title: "Once Upon A Time Café",
@@ -1435,7 +1436,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "pattani",
     description: "คาเฟ่ที่นำตู้คอนเทนเนอร์มาตกแต่งใหม่ในโทนสีละมุนพร้อมมุมถ่ายรูปเก๋ไก๋มากมาย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=กาลคร"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Once+Upon+A+Time+Café"
   },
   {
     title: "CLOVE Cafe",
@@ -1446,7 +1447,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "yala",
     description: "คาเฟ่สองชั้นที่ผสมผสานสไตล์มินิมอลคลีนๆ เข้ากับความเป็นเกาหลีสีชมพูหวานสดใส",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=CLOVE+Cafe+ยะลา"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=CLOVE+Cafe"
   },
   {
     title: "ทะเลหมอกอัยเยอร์เวง",
@@ -1457,7 +1458,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "yala",
     description: "จุดชมวิวยอดฮิตบนสกายวอล์คในอำเภอเบตงที่สามารถมองเห็นทะเลหมอกหนาทึบปกคลุมขุนเขา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทะเลหมอกอ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทะเลหมอกอัยเยอร์เวง"
   },
   {
     title: "ทะเลหมอกสุคิริน",
@@ -1468,7 +1469,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "narathiwat",
     description: "จุดสัมผัสความหนาวเย็นและทะเลหมอกอลังการในพื้นที่ป่าอุดมสมบูรณ์ของชายแดนใต้",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทะเลหมอกส"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทะเลหมอกสุคิริน"
   },
   {
     title: "หาดนราทัศน์",
@@ -1479,7 +1480,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "narathiwat",
     description: "ชายหาดที่ทอดยาวขนานกับทิวสนเขียวขจี เหมาะแก่การพักผ่อนและปิกนิกริมทะเลกับครอบครัว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดนราท"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดนราทัศน์"
   },
   {
     title: "มัสยิดวาดีลฮูเซ็น",
@@ -1490,7 +1491,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "narathiwat",
     description: "มัสยิดเก่าแก่อายุ 300 ปีที่สร้างด้วยไม้ตะเคียนแบบสถาปัตยกรรมพื้นถิ่นมลายูโดยไม่ใช้ตะปู",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ม"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=มัสยิดวาดีลฮูเซ็น"
   },
   {
     title: "Thamsing Cafe",
@@ -1501,7 +1502,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "chumphon",
     description: "คาเฟ่บนจุดชมวิวเขามัทรีที่เปิดโอกาสให้ลูกค้ามองเห็นทิวทัศน์ทะเลและภูเขาแบบพาโนรามา 360 องศา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Thamsing+Cafe+ช"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Thamsing+Cafe"
   },
   {
     title: "คลองหินดำ",
@@ -1512,7 +1513,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "chumphon",
     description: "แกรนด์แคนยอนเมืองไทยที่เกิดจากรอยเลื่อนของเปลือกโลก มีกระแสน้ำใสไหลผ่านช่องหิน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=คลองห"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=คลองหินดำ"
   },
   {
     title: "ปากน้ำตะโก",
@@ -1523,7 +1524,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "chumphon",
     description: "หมู่บ้านชาวประมงพื้นบ้านที่ยังคงรักษาวิถีชีวิตดั้งเดิมและสถาปัตยกรรมผสมผสานไทย-จีน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ปากน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ปากน้ำตะโก"
   },
   {
     title: "Mata Cafe",
@@ -1534,7 +1535,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "ranong",
     description: "คาเฟ่สไตล์มินิมอลโทนสีขาวที่ดัดแปลงจากบ้านครึ่งปูนครึ่งไม้ เสิร์ฟเครื่องดื่มและขนมสูตรวีแกน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Mata+Cafe+ระนอง"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Mata+Cafe"
   },
   {
     title: "บ่อน้ำร้อนรักษะวาริน",
@@ -1545,7 +1546,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "ranong",
     description: "แหล่งน้ำพุร้อนธรรมชาติใจกลางเมืองระนองที่เหมาะสำหรับการแช่น้ำแร่เพื่อการบำบัดและสุขภาพ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บ่อน้ำร้อนรักษะวาริน"
   },
   {
     title: "168 Cafe Ranong",
@@ -1556,7 +1557,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "south",
     provinceId: "ranong",
     description: "คาเฟ่ใจกลางเมืองที่ตกแต่งในสไตล์โมเดิร์นทรอปิคอลที่ให้ความรู้สึกผ่อนคลายและหรูหรา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=168+Cafe+Ranong+ระนอง"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=168+Cafe+Ranong"
   },
 
   // ── ภาคตะวันตก (WEST - 40 Places) ──
@@ -1569,7 +1570,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "kanchanaburi",
     description: "น้ำตกหินปูนสีเขียวมรกต 7 ชั้นที่เป็นสัญลักษณ์ของความงามทางธรรมชาติในอุทยานแห่งชาติเอราวัณ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกเอราวัณ+กาญจนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกเอราวัณ"
   },
   {
     title: "สะพานมอญ",
@@ -1580,7 +1581,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "kanchanaburi",
     description: "สะพานไม้ที่ยาวที่สุดในประเทศไทย เชื่อมวิถีชีวิตชาวไทยและชาวมอญในสังขละบุรีท่ามกลางสายหมอก",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สะพานมอญ+สังขละบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สะพานมอญ"
   },
   {
     title: "Skywalk กาญจนบุรี",
@@ -1602,7 +1603,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "kanchanaburi",
     description: "จุดชมวิวเลียบหน้าผาบนเส้นทางรถไฟสายมรณะที่มีความสวยงามและประวัติศาสตร์ที่น่าจดจำ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ้ำกระแซ+กาญจนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ้ำกระแซ"
   },
   {
     title: "น้ำตกห้วยแม่ขมิ้น",
@@ -1613,7 +1614,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "kanchanaburi",
     description: "น้ำตกหินปูนที่สวยงามราวกับภาพวาดในอุทยานแห่งชาติเขื่อนศรีนครินทร์ เดินทางเข้าถึงง่าย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกห้วยแม่ขมิ้น+กาญจนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกห้วยแม่ขมิ้น"
   },
   {
     title: "วัดถ้ำเสือ",
@@ -1624,7 +1625,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "kanchanaburi",
     description: "วัดบนยอดเขาที่มีพระพุทธรูปองค์ใหญ่ที่สุดในจังหวัดกาญจนบุรีและวิวทุ่งนาที่กว้างไกล",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดถ้ำเสือ+กาญจนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดถ้ำเสือ"
   },
   {
     title: "คีรีธารา",
@@ -1635,7 +1636,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "kanchanaburi",
     description: "ร้านอาหารริมแม่น้ำแควที่มีบรรยากาศโรแมนติกและรสชาติอาหารไทยพื้นบ้านที่ได้รับรางวัล",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=คีรีธารา+กาญจนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=คีรีธารา"
   },
   {
     title: "Kan Machi Cafe",
@@ -1646,7 +1647,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "kanchanaburi",
     description: "คาเฟ่ธีมญี่ปุ่นที่จำลองบรรยากาศสวนและเสาโทริอิสีแดงมาไว้อย่างประณีต",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Kan+Machi+Cafe+กาญจนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Kan+Machi+Cafe"
   },
   {
     title: "สวนสัตว์เปิด ซาฟารี ปาร์ค",
@@ -1657,7 +1658,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "kanchanaburi",
     description: "สวนสัตว์เปิดที่ให้นักท่องเที่ยวได้สัมผัสสัตว์ป่าอย่างใกล้ชิดและถ่ายภาพกับยีราฟบนรถ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ซาฟารีปาร์ค+กาญจนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สวนสัตว์เปิด+ซาฟารี+ปาร์ค"
   },
   {
     title: "ต้นจามจุรียักษ์",
@@ -1668,7 +1669,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "kanchanaburi",
     description: "ต้นไม้ขนาดใหญ่อายุกกว่าร้อยปีที่มีพุ่มแผ่กว้างให้ร่มเงาครอบคลุมพื้นที่กว้างขวาง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ต้นจามจุรียักษ์+กาญจนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ต้นจามจุรียักษ์"
   },
   {
     title: "น้ำตกทีลอซู",
@@ -1679,7 +1680,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "tak",
     description: "มหาศาลแห่งสายน้ำที่ยิ่งใหญ่ที่สุดในประเทศไทย ตั้งอยู่ในเขตรักษาพันธุ์สัตว์ป่าอุ้มผาง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกทีลอซู+ตาก"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกทีลอซู"
   },
   {
     title: "วัดไทยวัฒนาราม",
@@ -1690,7 +1691,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "tak",
     description: "วัดที่งดงามด้วยสถาปัตยกรรมแบบพม่าสีทองอร่ามและพระพุทธมหามุนีจำลองที่ศักดิ์สิทธิ์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดไทยวัฒนาราม+ตาก"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดไทยวัฒนาราม"
   },
   {
     title: "เถียงนา คอฟฟี่",
@@ -1701,7 +1702,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "tak",
     description: "คาเฟ่ที่โด่งดังระดับประเทศด้วยครัวซองต์รสชาติพรีเมียมและบรรยากาศร้านที่ร่มรื่น",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เถียงนา+คอฟฟี่+ตาก"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เถียงนา+คอฟฟี่"
   },
   {
     title: "น้ำตกปิตุ๊โกร",
@@ -1712,7 +1713,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "tak",
     description: "น้ำตกรูปหัวใจบนดอยมะม่วงสามหมื่น เป็นเส้นทางเดินป่าที่ท้าทายและมีความสวยงามสูง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกปิตุ๊โกร+ตาก"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกปิตุ๊โกร"
   },
   {
     title: "ศาลสมเด็จพระเจ้าตากสินมหาราช",
@@ -1723,7 +1724,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "tak",
     description: "สถานที่สำคัญคู่บ้านคู่เมืองตากเพื่อกราบไหว้ขอพรและรำลึกถึงพระมหากรุณาธิคุณ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ศาลสมเด็จพระเจ้าตากสินมหาราช+ตาก"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ศาลสมเด็จพระเจ้าตากสินมหาราช"
   },
   {
     title: "ร้านชิดชล",
@@ -1734,7 +1735,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "tak",
     description: "ร้านอาหารริมแม่น้ำปิงบรรยากาศดีที่มีเมนูอาหารไทยรสชาติดั้งเดิมที่เปิดมานาน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ร้านชิดชล+ตาก"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ร้านชิดชล"
   },
   {
     title: "สะพานแขวนสมโภช 200 ปี",
@@ -1745,7 +1746,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "tak",
     description: "สะพานแขวนไม้ข้ามแม่น้ำปิงที่เป็นจุดพักผ่อนและชมวิวพระอาทิตย์ตกกลางเมืองตาก",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สะพานแขวนสมโภช200ปี+ตาก"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สะพานแขวนสมโภช+200+ปี"
   },
   {
     title: "ตลาดน้ำดำเนินสะดวก",
@@ -1756,7 +1757,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "ratchaburi",
     description: "ตลาดน้ำที่มีชีวิตชีวาและสะท้อนภาพการค้าขายทางเรือที่เป็นเอกลักษณ์ของไทยมาอย่างยาวนาน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน้ำดำเนินสะดวก+ราชบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตลาดน้ำดำเนินสะดวก"
   },
   {
     title: "อุทยานหินเขางู",
@@ -1767,7 +1768,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "ratchaburi",
     description: "แหล่งท่องเที่ยวเชิงธรณีวิทยาที่เปลี่ยนจากเหมืองหินเก่าเป็นสวนสาธารณะที่มีวิวภูเขาสวยงาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานหินเขางู+ราชบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานหินเขางู"
   },
   {
     title: "Coro Field",
@@ -1778,7 +1779,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "ratchaburi",
     description: "ฟาร์มท่องเที่ยวสไตล์ญี่ปุ่นในสวนผึ้งที่โดดเด่นด้วยเมล่อนสายพันธุ์พิเศษและบรรยากาศมินิมอล",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Coro+Field+ราชบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Coro+Field"
   },
   {
     title: "Alpaca Hill",
@@ -1789,7 +1790,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "ratchaburi",
     description: "สวนสัตว์เปิดแนวฟาร์มที่ให้นักท่องเที่ยวได้สัมผัสและให้อาหารอัลปาก้าท่ามกลางธรรมชาติขุนเขา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Alpaca+Hill+ราชบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Alpaca+Hill"
   },
   {
     title: "ครัวม่อนไข่",
@@ -1800,7 +1801,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "ratchaburi",
     description: "ร้านอาหารชื่อดังในสวนผึ้งที่ขึ้นชื่อเรื่องยำผักกูดและเมนูอาหารไทยจากวัตถุดิบท้องถิ่น",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ครัวม่อนไข่+ราชบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ครัวม่อนไข่"
   },
   {
     title: "พิพิธภัณฑสถานแห่งชาติราชบุรี",
@@ -1811,7 +1812,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "ratchaburi",
     description: "อาคารเก่าแก่สีชมพูที่จัดแสดงเรื่องราวประวัติศาสตร์และศิลปะพื้นบ้านของเมืองราชบุรี",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พิพิธภัณฑสถานแห่งชาติ+ราชบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พิพิธภัณฑสถานแห่งชาติราชบุรี"
   },
   {
     title: "Oliva View De'Cafe",
@@ -1822,7 +1823,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "ratchaburi",
     description: "คาเฟ่สวนผึ้งวิวภูเขาที่ตกแต่งด้วยต้นมะกอกอายุกกว่าร้อยปี ให้บรรยากาศเหมือนอยู่ยุโรป",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Oliva+View+De+Cafe+ราชบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Oliva+View+De'Cafe"
   },
   {
     title: "อุทยานแห่งชาติแก่งกระจาน",
@@ -1833,7 +1834,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "phetchaburi",
     description: "ป่ามรดกโลกที่มีความอุดมสมบูรณ์ทางชีวภาพและมีจุดชมวิวทะเลหมอกพะเนินทุ่งที่งดงาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติแก่งกระจาน+เพชรบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติแก่งกระจาน"
   },
   {
     title: "พระนครคีรี (เขาวัง)",
@@ -1844,7 +1845,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "phetchaburi",
     description: "พระราชวังบนยอดเขาที่เป็นสถาปัตยกรรมผสมผสานไทย-ยุโรป-จีน แลนด์มาร์คสำคัญของจังหวัด",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เขาวัง+เพชรบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=พระนครคีรี+(เขาวัง)"
   },
   {
     title: "หาดชะอำ",
@@ -1855,7 +1856,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "phetchaburi",
     description: "ชายหาดยอดนิยมที่มีกิจกรรมทางน้ำหลากหลายและร้านอาหารทะเลสดๆ เรียงรายริมชายหาด",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดชะอำ+เพชรบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดชะอำ"
   },
   {
     title: "ถ้ำเขาหลวง",
@@ -1866,7 +1867,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "phetchaburi",
     description: "ถ้ำหินปูนที่ประดิษฐานพระพุทธรูปสำคัญ มีแสงธรรมชาติลอดปล่องถ้ำลงมาอย่างงดงาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ้ำเขาหลวง+เพชรบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ้ำเขาหลวง"
   },
   {
     title: "Camel Republic",
@@ -1877,7 +1878,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "phetchaburi",
     description: "สวนสัตว์และสวนสนุกธีมโมร็อกโกที่ตกแต่งด้วยอาคารสีส้มสดใสและกิจกรรมขี่อูฐ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Camel+Republic+ชะอำ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Camel+Republic"
   },
   {
     title: "ร้านสังเวียนซีฟู้ด",
@@ -1888,7 +1889,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "phetchaburi",
     description: "ร้านอาหารทะเลเจ้าดังริมชายหาดชะอำที่เสิร์ฟอาหารทะเลสดใหม่ในราคาที่คุ้มค่า",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สังเวียนซีฟู้ด+ชะอำ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ร้านสังเวียนซีฟู้ด"
   },
   {
     title: "หาดปึกเตียน",
@@ -1899,7 +1900,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "phetchaburi",
     description: "ชายหาดที่มีเอกลักษณ์ด้วยรูปปั้นตัวละครจากวรรณคดีพระอภัยมณีขนาดใหญ่ริมทะเล",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดปึกเตียน+เพชรบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดปึกเตียน"
   },
   {
     title: "หาดหัวหิน",
@@ -1910,7 +1911,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "prachuap-khiri-khan",
     description: "ชายหาดยอดนิยมระดับโลกที่ยังคงบรรยากาศคลาสสิกและเหมาะสำหรับการพักผ่อนแบบครอบครัว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดหัวหิน+ประจวบคีรีขันธ์"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดหัวหิน"
   },
   {
     title: "วัดห้วยมงคล",
@@ -1921,7 +1922,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "prachuap-khiri-khan",
     description: "ที่ประดิษฐานรูปเหมือนหลวงพ่อทวดองค์ใหญ่ที่สุดในโลก เป็นศูนย์รวมจิตใจของนักท่องเที่ยว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดห้วยมงคล+หัวหิน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดห้วยมงคล"
   },
   {
     title: "Cicada Market",
@@ -1932,7 +1933,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "prachuap-khiri-khan",
     description: "ตลาดนัดยามค่ำคืนในสวนที่เน้นงานศิลปะ สินค้าทำมือ และการแสดงดนตรีสดที่มีสไตล์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Cicada+Market+หัวหิน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Cicada+Market"
   },
   {
     title: "Vana Nava Water Jungle",
@@ -1943,7 +1944,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "prachuap-khiri-khan",
     description: "สวนน้ำขนาดใหญ่ระดับโลกที่รวบรวมเครื่องเล่นสุดตื่นเต้นไว้ในบรรยากาศป่าเขตร้อน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Vana+Nava+หัวหิน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Vana+Nava+Water+Jungle"
   },
   {
     title: "จุดชมวิวเขาหินเหล็กไฟ",
@@ -1954,7 +1955,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "prachuap-khiri-khan",
     description: "จุดชมวิวพาโนรามาที่สวยที่สุดในหัวหิน สามารถมองเห็นวิวเมืองและชายหาดได้ทั้งหมด",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เขาหินเหล็กไฟ+หัวหิน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=จุดชมวิวเขาหินเหล็กไฟ"
   },
   {
     title: "อ่าวมะนาว",
@@ -1965,7 +1966,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "prachuap-khiri-khan",
     description: "ชายหาดที่สวยงามและน้ำใสสะอาด ตั้งอยู่ภายในกองบิน 5 มีบรรยากาศที่เงียบสงบและปลอดภัย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ่าวมะนาว+ประจวบ"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อ่าวมะนาว"
   },
   {
     title: "อุดมโภชนา ปราณบุรี",
@@ -1987,7 +1988,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "prachuap-khiri-khan",
     description: "คาเฟ่ริมทะเลหัวหินที่เน้นกาแฟดริป Specialty Coffee ในบรรยากาศที่เรียบง่ายและเป็นธรรมชาติ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Drip+Rim+Lay+หัวหิน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Drip+Rim+Lay"
   },
   {
     title: "อุทยานราชภักดิ์",
@@ -1998,7 +1999,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "west",
     provinceId: "prachuap-khiri-khan",
     description: "อุทยานประวัติศาสตร์ที่ประดิษฐานพระบรมราชานุสาวรีย์ของบูรพกษัตริย์ไทย 7 พระองค์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานราชภักดิ์+หัวหิน"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานราชภักดิ์"
   },
 
   // ── ภาคตะวันออก (EAST - 37 Places) ──
@@ -2011,7 +2012,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chon-buri",
     description: "สวรรค์ทะเลอ่าวไทยใกล้กรุงเทพฯ โดดเด่นด้วยน้ำทะเลใสและระบบนิเวศปะการังที่เหมาะแก่การดำน้ำตื้น",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะล้าน+ชลบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะล้าน"
   },
   {
     title: "ถนนคนเดินพัทยา",
@@ -2022,7 +2023,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chon-buri",
     description: "ศูนย์กลางความบันเทิงยามราตรีระดับโลกที่คึกคักไปด้วยแสงสีและสถานบันเทิงที่เปิดให้บริการจนถึงตีสาม",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถนนคนเดินพัทยา+ชลบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถนนคนเดินพัทยา"
   },
   {
     title: "ถ้ำบีชคลับ",
@@ -2033,7 +2034,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chon-buri",
     description: "คาเฟ่ริมหาดพัทยาสไตล์บาหลีที่ให้บรรยากาศสุดชิลพร้อมมุมถ่ายรูปที่งดงามและการออกแบบสถาปัตยกรรมที่โดดเด่น",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Cave+Beach+Club+ชลบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ถ้ำบีชคลับ"
   },
   {
     title: "สวนไดโนเสาร์พัทยา",
@@ -2044,7 +2045,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chon-buri",
     description: "อาณาจักรไดโนเสาร์เสมือนจริงที่รวบรวมสายพันธุ์ล้านปีกกว่า 100 ชนิดให้ครอบครัวได้ผจญภัยพร้อมกิจกรรมแบบอินเทอร์แอคทีฟ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Pattaya+Dinosaur+Kingdom+ชลบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=สวนไดโนเสาร์พัทยา"
   },
   {
     title: "หาดวอนนภา",
@@ -2055,7 +2056,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chon-buri",
     description: "ชายหาดที่เงียบสงบกว่าบางแสน เป็นแหล่งพักผ่อนยอดนิยมที่รายล้อมด้วยร้านอาหารและสตรีทฟู้ดริมทะเล",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดวอนนภา+ชลบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หาดวอนนภา"
   },
   {
     title: "ทุ่งโปรงทอง",
@@ -2066,7 +2067,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "rayong",
     description: "ผืนป่าชายเลนสีทองอร่ามที่มาพร้อมสะพานไม้ทอดยาวกว่า 2 กิโลเมตรให้เดินชมระบบนิเวศอันอุดมสมบูรณ์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทุ่งโปรงทอง+ระยอง"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ทุ่งโปรงทอง"
   },
   {
     title: "เกาะเสม็ด",
@@ -2077,7 +2078,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "rayong",
     description: "เกาะอ่าวไทยที่ขึ้นชื่อเรื่องหาดทรายขาวเนียนละเอียดและรีสอร์ทที่พักหลากหลายสไตล์ที่ตอบโจทย์ทุกกลุ่มนักเดินทาง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะเสม็ด+ระยอง"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะเสม็ด"
   },
   {
     title: "ร้านป้ายาซีฟู้ด",
@@ -2088,7 +2089,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "rayong",
     description: "ร้านอาหารทะเลริมหาดที่เสิร์ฟวัตถุดิบสดใหม่จากเรือประมงพร้อมรสชาติน้ำจิ้มสุดจัดจ้านที่ครองใจนักท่องเที่ยว",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ร้านป้ายาซีฟู้ด+ระยอง"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ร้านป้ายาซีฟู้ด"
   },
   {
     title: "มิราเคิล ออฟ เนเชอรัล",
@@ -2099,7 +2100,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "rayong",
     description: "โดมนิทรรศการจัดแสดงดอกทิวลิปและไม้เมืองหนาวที่ใช้นวัตกรรมความเย็นจากก๊าซธรรมชาติรักษาอุณหภูมิ 15 องศาเซลเซียส",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Miracle+of+Natural+ระยอง"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=มิราเคิล+ออฟ+เนเชอรัล"
   },
   {
     title: "เขาแหลมหญ้า",
@@ -2110,7 +2111,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "rayong",
     description: "อุทยานแห่งชาติที่มอบวิวทะเลแบบพาโนรามาและจุดกางเต็นท์รับลมทะเลที่สวยงามที่สุดแห่งหนึ่งของภาคตะวันออก",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เขาแหลมหญ้า+ระยอง"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เขาแหลมหญ้า"
   },
   {
     title: "อาสนวิหารพระนางมารีอาปฏิสนธินิรมล",
@@ -2121,7 +2122,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chanthaburi",
     description: "โบสถ์คริสต์นิกายโรมันคาทอลิกสไตล์โกธิคอายุกว่าร้อยปีที่ประดับด้วยกระจกสีและมีความงดงามระดับประเทศ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อาสนวิหารพระนางมารีอาปฏิสนธินิรมล+จันทบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อาสนวิหารพระนางมารีอาปฏิสนธินิรมล"
   },
   {
     title: "ชุมชนริมน้ำจันทบูร",
@@ -2132,7 +2133,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chanthaburi",
     description: "ชุมชนการค้าเก่าแก่ริมแม่น้ำที่อนุรักษ์สถาปัตยกรรมชิโนโปรตุกีสและวิถีชีวิตดั้งเดิมอย่างมีเสน่ห์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ชุมชนริมน้ำจันทบูร+จันทบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ชุมชนริมน้ำจันทบูร"
   },
   {
     title: "จุดชมวิวเนินนางพญา",
@@ -2143,7 +2144,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chanthaburi",
     description: "จุดชมวิวถนนเลียบชายทะเลที่โค้งเลาะผาชัน มอบทัศนียภาพของทะเลอ่าวไทยที่สวยงามที่สุดแห่งหนึ่งของไทย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=จุดชมวิวเนินนางพญา+จันทบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=จุดชมวิวเนินนางพญา"
   },
   {
     title: "น้ำตกพลิ้ว",
@@ -2154,7 +2155,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chanthaburi",
     description: "น้ำตกประวัติศาสตร์กลางป่าดิบชื้นที่ร่มรื่น เต็มไปด้วยฝูงปลาพลวงหินและอนุสรณ์สถานอลงกรณ์เจดีย์",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกพลิ้ว+จันทบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกพลิ้ว"
   },
   {
     title: "ไอศกรีมตราจรวด",
@@ -2165,7 +2166,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chanthaburi",
     description: "โรงงานผลิตไอศกรีมด้วยเครื่องจักรแห่งแรกของเมืองจันท์ เสิร์ฟความหวานเย็นในตำนานกว่า 70 ปีคู่ชุมชน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ไอศกรีมตราจรวด+จันทบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ไอศกรีมตราจรวด"
   },
   {
     title: "เกาะช้าง",
@@ -2176,7 +2177,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "trat",
     description: "เกาะขนาดใหญ่ที่ผสมผสานความอุดมสมบูรณ์ของป่าไม้ดิบชื้น น้ำตก และชายหาดที่สวยงามรวมถึงหมู่บ้านชาวประมง",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะช้าง+ตราด"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะช้าง"
   },
   {
     title: "เกาะกูด",
@@ -2187,7 +2188,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "trat",
     description: "สวรรค์แห่งการพักผ่อนที่มีหาดทรายขาวละเอียดและน้ำทะเลใสกิ๊งราวกับคริสตัล พร้อมกิจกรรมพายคายัค",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะกูด+ตราด"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เกาะกูด"
   },
   {
     title: "หมู่เกาะ r-ang",
@@ -2198,7 +2199,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "trat",
     description: "แหล่งดำน้ำตื้นที่ดีที่สุดในทะเลตราด รายล้อมไปด้วยแนวปะการังที่สมบูรณ์และฝูงปลาหลากสีสัน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หมู่เกาะรัง+ตราด"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=หมู่เกาะ+r-ang"
   },
   {
     title: "ชุมชนบ้านน้ำเชี่ยว",
@@ -2209,7 +2210,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "trat",
     description: "ชุมชนต้นแบบการท่องเที่ยวเชิงนิเวศที่หลอมรวมวิถีชีวิตชาวพุทธและมุสลิมเข้าด้วยกันอย่างกลมกลืน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ชุมชนบ้านน้ำเชี่ยว+ตราด"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ชุมชนบ้านน้ำเชี่ยว"
   },
   {
     title: "บะหมี่เกี๊ยวหนองบัว",
@@ -2220,7 +2221,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "trat",
     description: "ร้านบะหมี่โฮมเมดระดับตำนานกว่า 50 ปีที่ยกระดับเมนูท้องถิ่นด้วยการตกแต่งร้านสไตล์จีนโมเดิร์น",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บะหมี่เกี๊ยวหนองบัว+ตราด"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=บะหมี่เกี๊ยวหนองบัว"
   },
   {
     title: "วัดโสธรวรารามวรวิหาร",
@@ -2231,7 +2232,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chachoengsao",
     description: "ศูนย์รวมจิตใจของชาวแปดริ้ว ประดิษฐานหลวงพ่อโสธรในพระอุโบสถหินอ่อนที่วิจิตรตระการตา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดโสธรวรารามวรวิหาร+ฉะเชิงเทรา"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดโสธรวรารามวรวิหาร"
   },
   {
     title: "เรดแคทคาเฟ่ ตลาดบ้านใหม่",
@@ -2242,7 +2243,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chachoengsao",
     description: "คาเฟ่สุดคิวต์ริมแม่น้ำบางปะกงที่ตกแต่งด้วยธีมแมว มอบบรรยากาศสบายๆ ท่ามกลางตลาดโบราณ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Red+Cat+Cafe+ฉะเชิงเทรา"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เรดแคทคาเฟ่+ตลาดบ้านใหม่"
   },
   {
     title: "เอพริลคาเฟ่",
@@ -2253,7 +2254,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chachoengsao",
     description: "ร้านกาแฟริมน้ำดีไซน์น่ารักที่แบ่งสัดส่วนอย่างลงตัว ให้บริการทั้งเบเกอรี่และเครื่องดื่มรสละมุน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=April+Cafe+ฉะเชิงเทรา"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=เอพริลคาเฟ่"
   },
   {
     title: "มินิมูร่าห์ฟาร์ม",
@@ -2264,7 +2265,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chachoengsao",
     description: "แหล่งท่องเที่ยวเชิงเกษตรที่ให้ผู้มาเยือนได้สัมผัสและป้อนอาหารสัตว์น่ารัก พร้อมกิจกรรมทำพิซซ่า",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=มินิมูร่าห์ฟาร์ม+ฉะเชิงเทรา"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=มินิมูร่าห์ฟาร์ม"
   },
   {
     title: "วัดเขาดิน",
@@ -2275,7 +2276,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "chachoengsao",
     description: "ศาสนสถานบนเนินเขาที่เงียบสงบ เปิดโอกาสให้ผู้มาเยือนได้สักการะสิ่งศักดิ์สิทธิ์และชมวิวแม่น้ำ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดเขาดิน+ฉะเชิงเทรา"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดเขาดิน"
   },
   {
     title: "ตึกเจ้าพระยาอภัยภูเบศร",
@@ -2286,7 +2287,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "prachinburi",
     description: "อาคารสีเหลืองสไตล์ยุโรปอันทรงคุณค่าทางประวัติศาสตร์ ซึ่งเป็นศูนย์กลางการเรียนรู้ด้านแพทย์แผนไทย",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตึกเจ้าพระยาอภัยภูเบศร+ปราจีนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ตึกเจ้าพระยาอภัยภูเบศร"
   },
   {
     title: "แก่งหินเพิง",
@@ -2297,7 +2298,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "prachinburi",
     description: "สถานที่ท้าทายความกล้าด้วยเส้นทางล่องแก่งระดับ 3-5 ท่ามกลางสายน้ำเชี่ยวในช่วงฤดูฝน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=แก่งหินเพิง+ปราจีนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=แก่งหินเพิง"
   },
   {
     title: "วัดรัตนเนตรตาราม",
@@ -2308,7 +2309,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "prachinburi",
     description: "สถาปัตยกรรมทางพุทธศาสนาสุดอลังการที่สร้างสรรค์และประดับประดาด้วยเปลือกหอยนับล้านชิ้น",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดรัตนเนตรตาราม+ปราจีนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดรัตนเนตรตาราม"
   },
   {
     title: "น้ำตกธารทิพย์",
@@ -2319,7 +2320,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "prachinburi",
     description: "สายน้ำตกที่ไหลลดหลั่นผ่านลานหินกว้างท่ามกลางป่าอุดมสมบูรณ์ เหมาะแก่การมาพักผ่อนหยือนใจ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกธารทิพย์+ปราจีนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=น้ำตกธารทิพย์"
   },
   {
     title: "คาเฟ่สวนไผ่ 33",
@@ -2330,7 +2331,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "prachinburi",
     description: "คาเฟ่บรรยากาศญี่ปุ่นแบบดั้งเดิมที่ซ่อนตัวอยู่ในสวนไผ่ร่มรื่น พร้อมเสิร์ฟขนมและเครื่องดื่มมัทฉะ",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=คาเฟ่สวนไผ่+33+ปราจีนบุรี"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=คาเฟ่สวนไผ่+33"
   },
   {
     title: "ปราสาทสด๊กก๊อกธม",
@@ -2341,7 +2342,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "sa-kaeo",
     description: "โบราณสถานขอมขนาดใหญ่ที่สุดในภาคตะวันออกที่สะท้อนถึงความรุ่งเรืองของอารยธรรมพันปี",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ปราสาทสด๊กก๊อกธม+สระแก้ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ปราสาทสด๊กก๊อกธม"
   },
   {
     title: "อุทยานแห่งชาติปางสีดา",
@@ -2352,7 +2353,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "sa-kaeo",
     description: "แหล่งท่องเที่ยวเชิงนิเวศที่มีชื่อเสียงระดับประเทศในการชมผีเสื้อหลากสีสันนับแสนตัวกลางป่าลึก",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติปางสีดา+สระแก้ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=อุทยานแห่งชาติปางสีดา"
   },
   {
     title: "วู้ดเฮาส์ เขาฉกรรจ์",
@@ -2363,7 +2364,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "sa-kaeo",
     description: "คาเฟ่ริมทุ่งดอกไม้กว้างใหญ่ที่มีภูเขาหินปูนเขาฉกรรจ์ตั้งตระหง่านเป็นฉากหลังสุดตระการตา",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=Wood+House+เขาฉกรรจ์+สระแก้ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วู้ดเฮาส์+เขาฉกรรจ์"
   },
   {
     title: "วัดแม่ย่าซอม",
@@ -2374,7 +2375,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "sa-kaeo",
     description: "ศูนย์รวมความศรัทธาของนักแสวงบุญและสายมู โดดเด่นด้วยองค์พระพิฆเนศและพระราหูขนาดใหญ่",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดแม่ย่าซอม+สระแก้ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=วัดแม่ย่าซอม"
   },
   {
     title: "ละลุ",
@@ -2385,7 +2386,7 @@ export const EXPLORE_PLACES_SEED = [
     regionId: "east",
     provinceId: "sa-kaeo",
     description: "ประติมากรรมธรรมชาติที่เกิดจากการยุบตัวของดินจนกลายเป็นเสาหินทรายรูปร่างแปลกตาคล้ายแคนยอน",
-    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ละลุ+สระแก้ว"
+    sourceUrl: "https://www.google.com/maps/search/?api=1&query=ละลุ"
   },
 ];
 
