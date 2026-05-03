@@ -22,7 +22,19 @@
   - เปลี่ยนชื่อ "Locus Intelligence" → **"Locus Agent"**
   - เปลี่ยนไอคอนชีพจรในหน้าข่าว → **ไอคอน News/Newspaper**
 
-## 📂 4. โครงสร้างไฟล์หลัก (GeoArchivePage.tsx)
+## 🗺 4. ระบบ Multi-Region Filter (Explore Mode)
+- **Multi-Selection Logic:** ปรับปรุงระบบ Filter จากการเลือกได้ทีละภูมิภาค เป็นแบบเลือกได้พร้อมกันหลายอัน (Multi-select)
+- **Toggle State:** 
+  - กดภูมิภาคที่ต้องการเพื่อเพิ่มเข้าไปใน Filter
+  - กดภูมิภาคเดิมซ้ำเพื่อยกเลิกการเลือก
+  - กดปุ่ม "ทั้งหมด" เพื่อล้างการกรองข้อมูล
+- **UI & Accessibility:**
+  - เพิ่มเครื่องหมาย **✓** และเอฟเฟกต์ Glow สีตามภูมิภาคที่เลือกใน Dropdown
+  - ปรับปรุงปุ่ม Filter ให้แสดงจำนวนภูมิภาคที่ถูกเลือกอยู่ (เช่น "เลือกแล้ว 2 ภูมิภาค")
+  - ปรับส่วนสรุปผลลัพธ์ให้แสดง Chip ของทุกภูมิภาคที่เลือกพร้อมกัน
+- **Data Filtering:** ปรับปรุง `useEffect` ในการดึงข้อมูลจาก SQLite ให้รองรับการตรวจสอบ Array ของภูมิภาคโดยใช้ `.includes()`
+
+## 📂 5. โครงสร้างไฟล์หลัก (GeoArchivePage.tsx)
 ไฟล์ปัจจุบันถูกแบ่งสัดส่วน Logic ชัดเจนตาม `mode`:
 1. **`mode === null`**: หน้า Home Dashboard (Summary Widgets)
 2. **`mode === 'help'`**: ระบบ "ช่วยเลือกให้หน่อย" (Questionnaire Flow & AI Summary)

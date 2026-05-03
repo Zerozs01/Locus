@@ -177,6 +177,33 @@ User opens AQIModal
 | `src/renderer/src/pages/ProvinceTactical/index.tsx` | Use `AQI_SYNC_EVENT` from shared utility |
 | `src/renderer/src/pages/TravelGuide/index.tsx` | Use `AQI_SYNC_EVENT` from shared utility |
 
+
+---
+
+## v1.x — May 2026: GeoArchive Filter Refactoring
+
+### 1. Multi-Region Filter Implementation
+
+**Problem:** The `GeoArchivePage` region filter was limited to single-selection, forcing users to view one region at a time. This was inefficient for users interested in multiple nearby regions.
+
+**Files:** `src/renderer/src/pages/GeoArchivePage.tsx`
+
+**Fix:**
+- Refactored `selectedRegionFilter` from `string | null` to `selectedRegionFilters: string[]`.
+- Implemented toggle logic for region selection:
+  - If region ID exists in the array, remove it (deselect).
+  - If not, append it to the array (select).
+- Updated the data fetching `useEffect` to filter results using `selectedRegionFilters.includes(p.regionId)`.
+- Enhanced UI to show selection state with checkmarks and region-specific glow effects.
+- Added a dynamic counter label to the filter button when multiple regions are selected.
+
+```typescript
+// Filtering logic update
+if (selectedRegionFilters.length > 0) {
+  filtered = filtered.filter((p) => p.regionId && selectedRegionFilters.includes(p.regionId));
+}
+```
+
 ---
 
 *Generated after refactoring sessions. TypeScript compilation: ✓ No errors.*

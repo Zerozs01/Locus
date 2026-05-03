@@ -241,7 +241,7 @@ export const GeoArchivePage = () => {
   const [exploreResults, setExploreResults] = useState<ExploreResultItem[]>([]);
 
   const [showRegionFilter, setShowRegionFilter] = useState(false);
-  const [selectedRegionFilter, setSelectedRegionFilter] = useState<string | null>(null);
+  const [selectedRegionFilters, setSelectedRegionFilters] = useState<string[]>([]);
   const [showRatingFilter, setShowRatingFilter] = useState(false);
   const [ratingSort, setRatingSort] = useState<'desc' | 'asc' | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
@@ -356,8 +356,8 @@ export const GeoArchivePage = () => {
           }));
 
           // Apply region filter
-          if (selectedRegionFilter) {
-            filtered = filtered.filter((p: ExploreResultItem) => p.regionId === selectedRegionFilter);
+          if (selectedRegionFilters.length > 0) {
+            filtered = filtered.filter((p: ExploreResultItem) => p.regionId && selectedRegionFilters.includes(p.regionId));
           }
 
           // Apply rating sort
@@ -377,7 +377,7 @@ export const GeoArchivePage = () => {
     };
     fetchPlaces();
     return () => { isMounted = false; };
-  }, [selectedChips, selectedRegionFilter, ratingSort]);
+  }, [selectedChips, selectedRegionFilters, ratingSort]);
 
   // Manual refresh fuel prices
   const handleRefreshFuelPrices = async () => {
@@ -1665,15 +1665,17 @@ export const GeoArchivePage = () => {
                   className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all ${
                     showRegionFilter
                       ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
-                      : selectedRegionFilter
+                      : selectedRegionFilters.length > 0
                         ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300'
                         : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
                   }`}
                 >
                   <Filter size={16} />
                   <span className="text-xs font-bold">
-                    {selectedRegionFilter
-                      ? REGIONS.find(r => r.id === selectedRegionFilter)?.name || 'กรองตามภูมิภาค'
+                    {selectedRegionFilters.length > 0
+                      ? selectedRegionFilters.length === 1 
+                        ? REGIONS.find(r => r.id === selectedRegionFilters[0])?.name
+                        : `เลือกแล้ว ${selectedRegionFilters.length} ภูมิภาค`
                       : 'กรองตามภูมิภาค'}
                   </span>
                 </button>
@@ -1685,34 +1687,47 @@ export const GeoArchivePage = () => {
                       <div className="space-y-1">
                         <button
                           onClick={() => {
-                            setSelectedRegionFilter(null);
-                            setShowRegionFilter(false);
+                            setSelectedRegionFilters([]);
+                            // Keep open for multi-select convenience or close if user prefers
+                            // setShowRegionFilter(false); 
                           }}
                           className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium transition-colors ${
-                            selectedRegionFilter === null ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                            selectedRegionFilters.length === 0 ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:bg-white/5 hover:text-white'
                           }`}
                         >
                           <div className="h-2 w-2 rounded-full bg-slate-400" />
                           ทั้งหมด
                         </button>
-                        {REGIONS.map((r) => (
-                          <button
-                            key={r.id}
-                            onClick={() => {
-                              setSelectedRegionFilter(r.id);
-                              setShowRegionFilter(false);
-                            }}
-                            className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium transition-colors ${
-                              selectedRegionFilter === r.id ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                            }`}
-                          >
-                            <div
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: r.color, boxShadow: `0 0 8px ${r.color}60` }}
-                            />
-                            {r.name}
-                          </button>
-                        ))}
+                        {REGIONS.map((r) => {
+                          const isSelected = selectedRegionFilters.includes(r.id);
+                          return (
+                            <button
+                              key={r.id}
+                              onClick={() => {
+                                setSelectedRegionFilters(prev => 
+                                  prev.includes(r.id) 
+                                    ? prev.filter(id => id !== r.id)
+                                    : [...prev, r.id]
+                                );
+                              }}
+                              className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium transition-colors ${
+                                isSelected ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                              }`}
+                            >
+                              <div
+                                className="h-2 w-2 rounded-full"
+                                style={{ 
+                                  backgroundColor: r.color, 
+                                  boxShadow: isSelected ? `0 0 8px ${r.color}80` : `0 0 8px ${r.color}30` 
+                                }}
+                              />
+                              <div className="flex-1">{r.name}</div>
+                              {isSelected && (
+                                <div className="text-[10px] text-cyan-400 font-bold">✓</div>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </>
@@ -1751,14 +1766,14 @@ export const GeoArchivePage = () => {
                 <h3 className="text-sm font-bold text-white">
                   ผลลัพธ์สำหรับ: {selectedChips.join(', ')}
                 </h3>
-                {(selectedRegionFilter || ratingSort) && (
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    {selectedRegionFilter && (
-                      <span className="flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-emerald-300">
+                {(selectedRegionFilters.length > 0 || ratingSort) && (
+                  <div className="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+                    {selectedRegionFilters.map(regionId => (
+                      <span key={regionId} className="flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-emerald-300">
                         <span className="text-[8px]">●</span>
-                        {REGIONS.find(r => r.id === selectedRegionFilter)?.name}
+                        {REGIONS.find(r => r.id === regionId)?.name}
                       </span>
-                    )}
+                    ))}
                     {ratingSort && (
                       <span className="flex items-center gap-1 rounded-md bg-yellow-500/10 border border-yellow-500/20 px-2 py-1 text-yellow-300">
                         {ratingSort === 'desc' ? 'Rating: มาก → น้อย' : 'Rating: น้อย → มาก'}
