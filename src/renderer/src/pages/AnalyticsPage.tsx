@@ -287,12 +287,49 @@ const resolveNewsEndpoint = async (): Promise<string> => {
   if (window.api?.config?.get) {
     try {
       const config = await window.api.config.get();
-      if (config.news_api_url) return String(config.news_api_url);
+      if (config.news_api_url) {
+        const rawEndpoint = String(config.news_api_url).trim();
+        if (!rawEndpoint) return '';
+        try {
+          const endpointUrl = new URL(rawEndpoint, window.location.href);
+          if (endpointUrl.pathname === '/' || endpointUrl.pathname === '') {
+            endpointUrl.pathname = '/news';
+          }
+          return endpointUrl.toString();
+        } catch {
+          return rawEndpoint.replace(/\/?$/, '/news');
+        }
+      }
     } catch {
       return '';
     }
   }
-  return import.meta.env.VITE_NEWS_API_URL || '';
+  const fallbackEndpoint = import.meta.env.VITE_NEWS_API_URL || '';
+  if (!fallbackEndpoint) return '';
+  try {
+    const endpointUrl = new URL(fallbackEndpoint, window.location.href);
+    if (endpointUrl.pathname === '/' || endpointUrl.pathname === '') {
+      endpointUrl.pathname = '/news';
+    }
+    return endpointUrl.toString();
+  } catch {
+    return fallbackEndpoint.replace(/\/?$/, '/news');
+  }
+};
+
+const isProvinceNewsSummary = (value: unknown): value is ProvinceNewsSummary => {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.name === 'string' &&
+    typeof candidate.regionId === 'string' &&
+    typeof candidate.regionName === 'string' &&
+    typeof candidate.riskScore === 'number' &&
+    typeof candidate.sentiment === 'string' &&
+    typeof candidate.alertLevel === 'string' &&
+    Array.isArray(candidate.topStories)
+  );
 };
 
 const fetchNewsFromApi = async (): Promise<ProvinceNewsSummary[] | null> => {
@@ -302,7 +339,17 @@ const fetchNewsFromApi = async (): Promise<ProvinceNewsSummary[] | null> => {
   // Prepared for external API, fallback to mock when endpoint is missing or fails.
   const response = await fetch(endpoint, { method: 'GET' });
   if (!response.ok) throw new Error('Failed to load news');
-  return (await response.json()) as ProvinceNewsSummary[];
+  const payload = await response.json();
+
+  if (Array.isArray(payload) && payload.every(isProvinceNewsSummary)) {
+    return payload;
+  }
+
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { items?: unknown[] }).items)) {
+    return null;
+  }
+
+  return null;
 };
 
 /**

@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
+    "news:serve": "node scripts/news-server.js",
     "build": "electron-vite build",
     "build:win": "npm run build && electron-builder --win",
     "postinstall": "electron-builder install-app-deps",
@@ -34,6 +35,12 @@
     "react-simple-maps": "^3.0.0",
     "recharts": "^3.8.1",
     "sql.js": "^1.8.0"
+  },
+  "optionalDependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.1",
+    "node-fetch": "^2.7.0",
+    "rss-parser": "^3.13.0"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.0",

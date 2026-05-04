@@ -137,7 +137,12 @@ export const ProvinceTacticalPage = () => {
           if (isThai || provinceId?.toLowerCase().includes('province')) {
             const cleanName = (provinceId || '').replace(/จังหวัด|province/gi, '').trim();
             const index = await window.api.db.getProvinceIndex?.() || [];
-            const found = index.find((p: any) => p.name === cleanName || getThaiProvinceName(p.name) === cleanName);
+            const found = index.find((p: any) => 
+              p.name === cleanName || 
+              getThaiProvinceName(p.name) === cleanName ||
+              getThaiProvinceName(p.name).includes(cleanName) ||
+              cleanName.includes(getThaiProvinceName(p.name))
+            );
             if (found) {
               resolvedProvinceId = found.id;
               resolvedRegionId = found.regionId || regionId;
@@ -206,12 +211,17 @@ export const ProvinceTacticalPage = () => {
         if (!mounted || !Array.isArray(dbRows) || dbRows.length === 0) return;
 
         const todayStr = getLocalDateKey();
-        const groupedByProvince = new Map<string, { date: string; aqi: number; temperature: number }[]>();
+        const groupedByProvince = new Map<string, { date: string; aqi: number; temperature: number; updatedAt?: string }[]>();
 
         dbRows.forEach((row) => {
           const nid = normalizeWeatherProvinceId(row.provinceId);
           const list = groupedByProvince.get(nid) || [];
-          list.push({ date: row.date, aqi: row.aqi, temperature: row.temperature });
+          list.push({ 
+            date: row.date, 
+            aqi: row.aqi, 
+            temperature: row.temperature,
+            updatedAt: row.updatedAt 
+          });
           groupedByProvince.set(nid, list);
         });
 
@@ -219,11 +229,30 @@ export const ProvinceTacticalPage = () => {
           const list = groupedByProvince.get(key);
           if (!Array.isArray(list) || list.length === 0) continue;
 
-          const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date));
-          const today = sorted.find((v) => v.date === todayStr);
-          const latestPast = sorted.find((v) => v.date <= todayStr);
+          const sorted = [...list].sort((a, b) => {
+            const dateDiff = b.date.localeCompare(a.date);
+            if (dateDiff !== 0) return dateDiff;
+            return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+          });
+
+          // PERSISTENCE LOGIC:
+          // 1. Find the absolute latest record (could be today with default 50)
           const latest = sorted[0];
-          const resolved = today || latestPast || latest;
+          
+          // 2. Find the latest record that is NOT exactly 50 (unless that's the only one we have)
+          const latestNonDefault = sorted.find(v => v.aqi !== 50);
+          
+          // 3. Resolve:
+          let resolved = latest;
+          if (latest.aqi === 50 && latestNonDefault) {
+            const lastUpdate = latestNonDefault.updatedAt ? new Date(latestNonDefault.updatedAt).getTime() : 0;
+            const now = Date.now();
+            const isRecentEnough = (now - lastUpdate) < 24 * 60 * 60 * 1000;
+            
+            if (isRecentEnough || latestNonDefault.date === todayStr) {
+              resolved = latestNonDefault;
+            }
+          }
 
           if (!resolved) continue;
           if (!Number.isFinite(resolved.temperature) || !Number.isFinite(resolved.aqi)) continue;

@@ -800,6 +800,9 @@ export const RegionDashboard = memo(({
                 resolvedTemp = aqicnTemp;
               }
               success = true;
+            } else {
+              // If API returns error, do not mark as success to avoid saving default 50
+              success = false;
             }
           } else {
             const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cleanName)},th&limit=1&appid=${apiKey}`);
@@ -817,8 +820,10 @@ export const RegionDashboard = memo(({
               const pm25 = aqiData.list[0].components.pm2_5;
               if (pm25 != null) {
                 aqiVal = pm25ToAqi(pm25);
+                success = true;
               }
-              success = true;
+            } else {
+              success = false;
             }
 
             if (!Number.isFinite(resolvedTemp)) {
@@ -848,7 +853,11 @@ export const RegionDashboard = memo(({
       }
 
             if (syncedRows.length > 0) {
-                if (api?.db?.saveWeatherAqi) {
+        // Filter out rows that are just default fallbacks (AQI 50) IF we already have valid data in the DB
+        // However, saveWeatherAqi uses ON CONFLICT UPDATE, so it's better to just not include them in the syncedRows 
+        // if they don't represent a fresh successful fetch.
+        
+        if (api?.db?.saveWeatherAqi) {
           await api.db.saveWeatherAqi(syncedRows);
         }
         saveSyncTimestamp();
@@ -945,9 +954,18 @@ export const RegionDashboard = memo(({
           const existingAqi = aqiByProvinceDate.get(`${provinceKey}|${dateStr}`);
           const fallbackAqi = latestAqiByProvince.get(provinceKey) ?? 50;
           const aqiVal = todayAqi ?? existingAqi ?? fallbackAqi;
-          const row = { provinceId: province.id, date: dateStr, temperature: avgTemp, aqi: aqiVal };
-          syncedRows.push(row);
-          saveRecord({ id: row.provinceId, date: row.date, temperature: row.temperature, aqi: row.aqi });
+          
+          // Only save forecast if we have a valid AQI or if we want to preserve old one.
+          // CRITICAL: If aqiVal is 50 (default) and we are creating a future record, 
+          // it might overshadow tomorrow's real sync. 
+          // We only save if we have a legitimate source or if it's today's record.
+          const isDefault = aqiVal === 50 && !todayAqi && !existingAqi;
+          
+          if (!isDefault || dateStr === todayStr) {
+            const row = { provinceId: province.id, date: dateStr, temperature: avgTemp, aqi: aqiVal };
+            syncedRows.push(row);
+            saveRecord({ id: row.provinceId, date: row.date, temperature: row.temperature, aqi: row.aqi });
+          }
         });
       } catch { /* skip province */ }
       await new Promise(r => setTimeout(r, 300)); // rate limit

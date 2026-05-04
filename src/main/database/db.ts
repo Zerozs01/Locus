@@ -383,7 +383,10 @@ export function saveWeatherAqi(records: { provinceId: string; date: string; temp
     VALUES (?, ?, ?, ?, datetime('now'))
     ON CONFLICT(province_id, date) DO UPDATE SET
       temperature = excluded.temperature,
-      aqi = excluded.aqi,
+      aqi = CASE 
+        WHEN excluded.aqi = 50 AND weather_aqi.aqi != 50 THEN weather_aqi.aqi 
+        ELSE excluded.aqi 
+      END,
       updated_at = datetime('now')
   `);
   const doUpsert = db.transaction(() => {
@@ -395,8 +398,8 @@ export function saveWeatherAqi(records: { provinceId: string; date: string; temp
   return records.length;
 }
 
-export function getWeatherAqi(provinceId?: string, date?: string): { provinceId: string; date: string; temperature: number; aqi: number }[] {
-  let sql = 'SELECT province_id, date, temperature, aqi FROM weather_aqi';
+export function getWeatherAqi(provinceId?: string, date?: string): { provinceId: string; date: string; temperature: number; aqi: number; updatedAt?: string }[] {
+  let sql = 'SELECT province_id, date, temperature, aqi, updated_at FROM weather_aqi';
   const params: string[] = [];
   const conditions: string[] = [];
   if (provinceId) { conditions.push('province_id = ?'); params.push(provinceId); }
@@ -404,8 +407,14 @@ export function getWeatherAqi(provinceId?: string, date?: string): { provinceId:
   if (conditions.length > 0) sql += ' WHERE ' + conditions.join(' AND ');
   sql += ' ORDER BY date DESC';
   
-  const rows = db.prepare(sql).all(...params) as { province_id: string; date: string; temperature: number; aqi: number }[];
-  return rows.map(r => ({ provinceId: r.province_id, date: r.date, temperature: r.temperature, aqi: r.aqi }));
+  const rows = db.prepare(sql).all(...params) as { province_id: string; date: string; temperature: number; aqi: number; updated_at: string }[];
+  return rows.map(r => ({ 
+    provinceId: r.province_id, 
+    date: r.date, 
+    temperature: r.temperature, 
+    aqi: r.aqi,
+    updatedAt: r.updated_at 
+  }));
 }
 
 // ====== Flood Data Cache ======
@@ -891,7 +900,7 @@ export function getRegion(id: string): Region | undefined {
 }
 
 export function getProvince(id: string): Province | undefined {
-    if (provincesCache) return provincesCache.get(id);
+    if (provincesCache && provincesCache.has(id)) return provincesCache.get(id);
 
     const row = db.prepare('SELECT * FROM provinces WHERE id = ?').get(id) as ProvinceRow | undefined;
     if (!row) return undefined;

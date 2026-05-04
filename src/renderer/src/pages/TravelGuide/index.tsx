@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Navigation2, Search, ExternalLink, MapPin,
@@ -82,12 +82,34 @@ const resolveNewsEndpoint = async (): Promise<string> => {
   if (window.api?.config?.get) {
     try {
       const config = await window.api.config.get();
-      if (config.news_api_url) return String(config.news_api_url);
+      if (config.news_api_url) {
+        const rawEndpoint = String(config.news_api_url).trim();
+        if (!rawEndpoint) return '';
+        try {
+          const endpointUrl = new URL(rawEndpoint, window.location.href);
+          if (endpointUrl.pathname === '/' || endpointUrl.pathname === '') {
+            endpointUrl.pathname = '/news';
+          }
+          return endpointUrl.toString();
+        } catch {
+          return rawEndpoint.replace(/\/?$/, '/news');
+        }
+      }
     } catch {
       return '';
     }
   }
-  return import.meta.env.VITE_NEWS_API_URL || '';
+  const fallbackEndpoint = import.meta.env.VITE_NEWS_API_URL || '';
+  if (!fallbackEndpoint) return '';
+  try {
+    const endpointUrl = new URL(fallbackEndpoint, window.location.href);
+    if (endpointUrl.pathname === '/' || endpointUrl.pathname === '') {
+      endpointUrl.pathname = '/news';
+    }
+    return endpointUrl.toString();
+  } catch {
+    return fallbackEndpoint.replace(/\/?$/, '/news');
+  }
 };
 
 const transportTypeOrder = ['rail', 'bus', 'van', 'plane', 'boat', 'songthaew', 'tuk_tuk', 'bike', 'other'];
@@ -688,13 +710,23 @@ export function TravelGuidePage() {
   const plannerOriginOptions = useMemo(() => {
     const set = new Set<string>(plannerEndpointOptions);
     originSearchOptions.forEach((option) => set.add(option));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    const arr = Array.from(set).sort((a, b) => a.localeCompare(b));
+    const q = (originText || '').trim().toLowerCase();
+    if (q.length >= 2) {
+      return arr.filter((o) => o.toLowerCase().includes(q)).slice(0, 8);
+    }
+    return arr.slice(0, 24);
   }, [originSearchOptions, plannerEndpointOptions]);
 
   const plannerDestinationOptions = useMemo(() => {
     const set = new Set<string>(plannerEndpointOptions);
     destSearchOptions.forEach((option) => set.add(option));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    const arr = Array.from(set).sort((a, b) => a.localeCompare(b));
+    const q = (destText || '').trim().toLowerCase();
+    if (q.length >= 2) {
+      return arr.filter((o) => o.toLowerCase().includes(q)).slice(0, 8);
+    }
+    return arr.slice(0, 24);
   }, [destSearchOptions, plannerEndpointOptions]);
 
   const reverseGeocodeCurrentLocation = useCallback(async (lat: number, lng: number) => {

@@ -76,13 +76,13 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
   ];
 
   return (
-    <div className="bg-tactical-card border border-zinc-800 rounded-2xl p-5 shadow-xl card-hover h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <div className="p-1.5 bg-zinc-800 rounded-md text-zinc-400">
-            <TrendingUp size={16} />
+    <div className="bg-tactical-card border border-zinc-800 rounded-2xl p-4 shadow-xl card-hover flex flex-col h-full">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-zinc-800 rounded-lg text-zinc-400">
+            <TrendingUp size={20} />
           </div>
-          <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-500 uppercase">
+          <h3 className="text-xs font-black tracking-[0.2em] text-zinc-500 uppercase">
             Trending {timeframe}
           </h3>
         </div>
@@ -93,7 +93,7 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
             <button
               key={tf.id}
               onClick={() => setTimeframe(tf.id)}
-              className={`px-2 py-1 text-[9px] font-bold rounded-md transition-all ${
+              className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${
                 timeframe === tf.id 
                   ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]' 
                   : 'text-zinc-600 hover:text-zinc-400'
@@ -120,18 +120,18 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
             <span className="text-[10px] text-zinc-600 italic">No activity detected for this period</span>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1">
             {places.map((place, idx) => (
-              <div key={place.id} className="flex flex-col gap-1">
+              <div key={place.id} className="flex flex-col gap-0.5">
                 <div
                   onClick={() => onClick?.(place)}
-                  className="group flex items-center gap-3 p-3 rounded-xl bg-zinc-900/40 hover:bg-zinc-800/60 border border-zinc-800/50 hover:border-cyan-500/30 transition-all cursor-pointer relative overflow-hidden"
+                  className="group flex items-center gap-2 p-1.5 rounded-xl bg-zinc-900/40 hover:bg-zinc-800/60 border border-zinc-800/50 hover:border-cyan-500/30 transition-all cursor-pointer relative overflow-hidden"
                 >
                   {/* Glow Effect on Hover */}
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/0 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                   {/* Rank Badge */}
-                  <div className="flex items-center justify-center w-6 h-6 shrink-0 rounded-lg bg-zinc-800 border border-zinc-700 text-[10px] font-black text-zinc-400 group-hover:text-cyan-400 group-hover:border-cyan-500/40 transition-colors">
+                  <div className="flex items-center justify-center w-7 h-7 shrink-0 rounded-lg bg-zinc-800 border border-zinc-700 text-[10px] font-black text-zinc-400 group-hover:text-cyan-400 group-hover:border-cyan-500/40 transition-colors">
                     {idx + 1}
                   </div>
 
@@ -152,8 +152,8 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
 
                   {/* Info */}
                   <div className="flex-1 min-w-0 z-10">
-                    <div className="flex items-start justify-between gap-2 mb-0.5">
-                      <h4 className="text-[11px] font-bold text-zinc-100 truncate group-hover:text-white transition-colors">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h4 className="text-base font-bold text-zinc-100 truncate group-hover:text-white transition-colors">
                         {place.title}
                       </h4>
                       {place.isTrending && (
@@ -162,7 +162,7 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
                         </div>
                       )}
                     </div>
-                    <p className="text-[9px] text-zinc-500 truncate mb-1.5 font-medium">{place.locationName || 'Unknown Location'}</p>
+                    <p className="text-[10px] text-zinc-500 truncate mb-1 font-medium">{place.locationName || 'Unknown Location'}</p>
                     
                     <div className="flex items-center gap-2.5">
                       {typeof place.rating === 'number' && place.rating > 0 && (
@@ -204,9 +204,9 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
                       e.stopPropagation();
                       setExpandedPlaceId(expandedPlaceId === place.id ? null : place.id);
                     }}
-                    className="flex flex-col items-end shrink-0 z-10 bg-zinc-900/60 px-2 py-1 rounded-lg border border-zinc-800/80 group-hover:border-cyan-500/20 group-hover:bg-cyan-500/5 transition-all cursor-help"
+                    className="flex flex-col items-center justify-center shrink-0 z-10 bg-zinc-900/60 w-12 h-12 rounded-lg border border-zinc-800/80 group-hover:border-cyan-500/20 group-hover:bg-cyan-500/5 transition-all cursor-help"
                   >
-                    <div className={`text-[13px] font-black leading-none ${getScoreColor(place.trendingScore)}`}>
+                    <div className={`text-base font-black leading-none ${getScoreColor(place.trendingScore)}`}>
                       {formatScore(place.trendingScore)}
                     </div>
                     <span className="text-[7px] font-black text-zinc-600 uppercase tracking-tighter mt-1">Score</span>

@@ -52,6 +52,21 @@ const regionImageMap: Record<string, string> = regionsData.reduce((acc, r) => {
   return acc;
 }, {} as Record<string, string>);
 
+// Map provinces to their regions for map interactions
+const provinceToRegion: Record<string, string> = {};
+regionsData.forEach((region) => {
+  (region.subProvinces || []).forEach((prov) => {
+    provinceToRegion[prov.name] = region.id;
+    provinceToRegion[prov.name.toLowerCase()] = region.id;
+    // Add GeoJSON aliases
+    if (prov.name === 'Bangkok') provinceToRegion['Bangkok Metropolis'] = region.id;
+    if (prov.name === 'Phra Nakhon Si Ayutthaya') {
+      provinceToRegion['Ayutthaya'] = region.id;
+      provinceToRegion['ayutthaya'] = region.id;
+    }
+  });
+});
+
 /**
  * Threat Radar Page - Survival Mode
  * แสดงแผนที่ประเทศไทย + Region Dashboard (Threat Assessment)
@@ -597,13 +612,37 @@ export const ThreatRadarPage = () => {
     setSelectedProvince(null);
   }, []);
 
-  const handleSelectProvinceByName = useCallback(async (name: string) => {
-    const regionId = provinceToRegion[name] || 'central';
-    setSelectedRegionId(regionId);
-    setMapMode('province');
-    const provinces = await loadRegionProvinces(regionId);
-    const prov = provinces.find((p) => p.name === name || (name === 'Bangkok Metropolis' && p.name === 'Bangkok') || (name === 'Phra Nakhon Si Ayutthaya' && p.name === 'Ayutthaya'));
-    if (prov) setSelectedProvince(prov);
+  const handleSelectProvinceByName = useCallback((name: string) => {
+    // 1. Find the target region and province synchronously from local data for instant feedback
+    const searchName = name.toLowerCase();
+    const regionId = provinceToRegion[name] || provinceToRegion[searchName] || 'central';
+    
+    const targetRegion = regionsData.find(r => r.id === regionId);
+    if (!targetRegion) return;
+
+    const prov = (targetRegion.subProvinces || []).find(p => {
+      const pName = p.name.toLowerCase();
+      return (
+        pName === searchName ||
+        pName.includes(searchName) ||
+        searchName.includes(pName) ||
+        (searchName === 'bangkok metropolis' && pName === 'bangkok') ||
+        (searchName === 'ayutthaya' && pName === 'phra nakhon si ayutthaya') ||
+        (searchName === 'phra nakhon si ayutthaya' && pName === 'ayutthaya')
+      );
+    });
+
+    if (prov) {
+      // 2. Update all UI states at once (React will batch these)
+      setSelectedRegionId(regionId);
+      setMapMode('province');
+      setSelectedProvince(prov);
+      
+      // 3. Trigger background load of "official" DB data if needed
+      loadRegionProvinces(regionId);
+    } else {
+      console.warn('❌ Province Not Found:', name, 'in region', regionId);
+    }
   }, [loadRegionProvinces]);
 
   useEffect(() => {

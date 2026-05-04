@@ -783,7 +783,7 @@ export const GeoArchivePage = () => {
     // Trending places are now fetched from database in TrendingPlacesCard component
     // No longer need mock data
 
-    const visibleGas = showAllFuelPrices ? gasPrices : gasPrices.slice(0, 3);
+    const visibleGas = gasPrices; // Show all 3 rows (9 types) by default
     const displayStats = regionStats
       .slice()
       .sort((a, b) => (statsViewMode === 'temp' ? b.avgTemp - a.avgTemp : b.avgAqi - a.avgAqi));
@@ -800,7 +800,8 @@ export const GeoArchivePage = () => {
 
     return (
       <div className="flex-1 overflow-y-auto relative bg-[#050608]">
-        {/* Background Image with Overlay */}
+        {/* Background Image disabled as requested */}
+        {/* 
         <div 
           className="fixed inset-0 z-0 pointer-events-none"
           style={{ 
@@ -809,18 +810,19 @@ export const GeoArchivePage = () => {
             backgroundPosition: 'center'
           }}
         />
+        */}
         
-        <div className="relative z-10 mx-auto max-w-6xl px-8 py-10">
+        <div className="relative z-10 mx-auto max-w-[1500px] px-10 py-10">
           {/* ─── Main Grid Layout ─── */}
-          <div className="grid grid-cols-12 gap-x-6 gap-y-4">
-            {/* Top Row - Left: Intent Cards (7 cols) */}
-            <div className="col-span-7 space-y-3">
+          <div className="grid grid-cols-12 gap-x-6 gap-y-4 items-start">
+            {/* Top Row - Left: Intent Cards (6 cols) */}
+            <div className="col-span-6 space-y-3">
               <IntentCard
                 icon={<MapPin size={32} />}
                 title="มีที่ในใจแล้ว"
                 subtitle="ระบุพิกัดที่คุณอยากไป แล้วให้เราจัดการเส้นทางให้"
-                gradient="from-emerald-500/20 to-teal-600/10"
-                border="border-emerald-500/30"
+                gradient="from-emerald-400/30 to-teal-600/20"
+                border="border-emerald-400/60 shadow-[0_0_20px_rgba(52,211,153,0.1)]"
                 iconBg="bg-emerald-500/20"
                 iconColor="text-emerald-400"
                 onClick={() => navigate('/map', { state: { focusSearch: true } })}
@@ -829,8 +831,8 @@ export const GeoArchivePage = () => {
                 icon={<Compass size={30} />}
                 title="สำรวจตามความสนใจ"
                 subtitle="เลือกหมวดหมู่ที่ชอบ — ป่าไม้, ทะเล, ของกิน หรือ สถานบันเทิง"
-                gradient="from-amber-500/20 to-orange-600/10"
-                border="border-amber-500/30"
+                gradient="from-amber-400/30 to-orange-600/20"
+                border="border-amber-400/60 shadow-[0_0_20px_rgba(251,191,36,0.1)]"
                 iconBg="bg-amber-500/20"
                 iconColor="text-amber-400"
                 onClick={() => setMode('explore')}
@@ -865,113 +867,115 @@ export const GeoArchivePage = () => {
               />
             </div>
 
-            {/* Top Row - Right: Trending (5 cols) */}
-            <div className="col-span-5">
-              <TrendingPlacesCard 
-                limit={4}
-                onClick={(place) => navigate(`/province/${place.regionId}/${place.provinceId}`, { 
-                  state: { 
-                    focusPlace: {
-                      title: place.title,
-                      lat: (place as any).lat,
-                      lng: (place as any).lng,
-                      autoFocus: true
-                    }
-                  } 
-                })}
-              />
+            {/* Top Row - Right: Regional Histogram (6 cols) - MOVED HERE */}
+            <div className="col-span-6">
+              <div className="h-[400px] self-start rounded-[2.5rem] border border-white/20 bg-black/20 backdrop-blur-xl p-8 shadow-[0_30px_60px_rgba(0,0,0,0.4)] flex flex-col">
+                <div className="relative flex w-full mb-8 rounded-[1.5rem] bg-black/60 border border-white/10 p-1.5 backdrop-blur-md shadow-inner overflow-hidden">
+                  {/* Sliding Indicator */}
+                  <div 
+                    className="absolute top-1.5 bottom-1.5 transition-all duration-500 ease-out bg-white rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.45)]"
+                    style={{ 
+                      left: statsViewMode === 'temp' ? '6px' : 'calc(50% + 3px)', 
+                      width: 'calc(50% - 9px)' 
+                    }}
+                  />
+
+                  <button
+                    onClick={() => setStatsViewMode('temp')}
+                    className={`relative z-10 flex-1 flex items-center justify-center gap-3 py-3.5 rounded-xl text-[13px] font-black tracking-[0.2em] uppercase transition-all duration-300 ${
+                      statsViewMode === 'temp' ? 'text-black' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <Thermometer size={18} className={`transition-transform duration-500 ${statsViewMode === 'temp' ? 'scale-110 text-cyan-600' : 'text-slate-600'}`} />
+                    AVG อุณหภูมิ
+                  </button>
+                  <button
+                    onClick={() => setStatsViewMode('aqi')}
+                    className={`relative z-10 flex-1 flex items-center justify-center gap-3 py-3.5 rounded-xl text-[13px] font-black tracking-[0.2em] uppercase transition-all duration-300 ${
+                      statsViewMode === 'aqi' ? 'text-black' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <Wind size={18} className={`transition-transform duration-500 ${statsViewMode === 'aqi' ? 'scale-110 text-cyan-600' : 'text-slate-600'}`} />
+                    AVG AQI
+                  </button>
+                </div>
+
+                {regionStats.length > 0 ? (
+                  <div className="flex-1 flex flex-col justify-end">
+                    <div className="grid grid-cols-6 gap-3">
+                      {displayStats.map((region) => {
+                        const regionMeta = REGIONS.find((item) => item.id === region.id);
+                        const value = statsViewMode === 'temp' ? region.avgTemp : region.avgAqi;
+                        const valueLabel = statsViewMode === 'temp'
+                          ? `${value.toFixed(1)}°C`
+                          : `${value.toFixed(0)}`;
+                        
+                        const normalized = valueRange > 0 ? (value - minValue) / valueRange : 0.5;
+                        const barHeight = 20 + normalized * (80 - 20); // Scale bar from 20px to 80px
+
+                        return (
+                          <div key={`col-${region.id}`} className="flex flex-col items-center group cursor-help">
+                            {/* Bar Container - Increased Height */}
+                            <div className="h-32 w-full flex items-end justify-center px-1 mb-5">
+                              <div 
+                                className={`w-full max-w-[28px] rounded-lg transition-all duration-700 ease-out group-hover:scale-x-110 shadow-lg shadow-black/30 ${regionMeta?.barClass || 'bg-cyan-500'}`}
+                                style={{ height: `${barHeight}px` }}
+                              />
+                            </div>
+
+                            {/* Labels - Increased Size */}
+                            <div className={`text-base font-black tracking-tight ${regionMeta?.colorClass || 'text-slate-300'}`}>
+                              {valueLabel}
+                            </div>
+                            <div className="text-xs font-bold text-slate-500 truncate w-full text-center mt-1">
+                              {region.name}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
+                    <div className="text-center">
+                      <p className="text-xs text-slate-600">ไม่พบข้อมูล</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-              {/* Bottom Row - Left: Regional Histogram (7 cols) */}
-              <div className="col-span-7">
-                <div className="h-fit self-start rounded-2xl border border-white/20 bg-black/20 backdrop-blur-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col">
-                  <div className="relative flex w-full mb-5 rounded-2xl bg-black/60 border border-white/10 p-1 backdrop-blur-md shadow-inner overflow-hidden">
-                    {/* Sliding Indicator */}
-                    <div 
-                      className="absolute top-1 bottom-1 transition-all duration-500 ease-out bg-white rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.45)]"
-                      style={{ 
-                        left: statsViewMode === 'temp' ? '4px' : 'calc(50% + 2px)', 
-                        width: 'calc(50% - 6px)' 
-                      }}
-                    />
-
-                    <button
-                      onClick={() => setStatsViewMode('temp')}
-                      className={`relative z-10 flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 ${
-                        statsViewMode === 'temp' ? 'text-black' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      <Thermometer size={14} className={`transition-transform duration-500 ${statsViewMode === 'temp' ? 'scale-110 text-cyan-600' : 'text-slate-600'}`} />
-                      AVG อุณหภูมิ
-                    </button>
-                    <button
-                      onClick={() => setStatsViewMode('aqi')}
-                      className={`relative z-10 flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 ${
-                        statsViewMode === 'aqi' ? 'text-black' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      <Wind size={14} className={`transition-transform duration-500 ${statsViewMode === 'aqi' ? 'scale-110 text-cyan-600' : 'text-slate-600'}`} />
-                      AVG AQI
-                    </button>
-                  </div>
-
-                  {regionStats.length > 0 ? (
-                    <div className="flex-1 flex flex-col justify-end">
-                      <div className="grid grid-cols-6 gap-2">
-                        {displayStats.map((region) => {
-                          const regionMeta = REGIONS.find((item) => item.id === region.id);
-                          const value = statsViewMode === 'temp' ? region.avgTemp : region.avgAqi;
-                          const valueLabel = statsViewMode === 'temp'
-                            ? `${value.toFixed(1)}°C`
-                            : `${value.toFixed(0)}`;
-                          
-                          const normalized = valueRange > 0 ? (value - minValue) / valueRange : 0.5;
-                          const barHeight = minBar + normalized * (maxBar - minBar);
-
-                          return (
-                            <div key={`col-${region.id}`} className="flex flex-col items-center group cursor-help">
-                              {/* Bar - Back at the Top */}
-                              <div className="h-14 w-full flex items-end justify-center px-1 mb-3">
-                                <div 
-                                  className={`w-full max-w-[16px] rounded-sm transition-all duration-700 ease-out group-hover:scale-x-110 shadow-lg shadow-black/20 ${regionMeta?.barClass || 'bg-cyan-500'}`}
-                                  style={{ height: `${barHeight}px` }}
-                                />
-                              </div>
-
-                              {/* Labels - At the Bottom */}
-                              <div className={`text-[11px] font-black tracking-tight ${regionMeta?.colorClass || 'text-slate-300'}`}>
-                                {valueLabel}
-                              </div>
-                              <div className="text-[10px] font-medium text-slate-500 truncate w-full text-center">
-                                {region.name}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
-                      <div className="text-center">
-                        <p className="text-xs text-slate-600">ไม่พบข้อมูล</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            {/* Bottom Row - Left: Trending week (6 cols) - MOVED HERE */}
+            <div className="col-span-6">
+              <div className="h-[400px]">
+                <TrendingPlacesCard 
+                  limit={4}
+                  onClick={(place) => navigate(`/province/${place.regionId}/${place.provinceId}`, { 
+                    state: { 
+                      focusPlace: {
+                        title: place.title,
+                        lat: (place as any).lat,
+                        lng: (place as any).lng,
+                        autoFocus: true
+                      }
+                    } 
+                  })}
+                />
               </div>
+            </div>
 
-            {/* Bottom Row - Right: Gas Price (5 cols) */}
-            <div className="col-span-5">
-              <div className="h-full rounded-2xl border border-white/20 bg-white/[0.03] backdrop-blur-xl p-5 shadow-xl relative overflow-hidden flex flex-col">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+            {/* Bottom Row - Right: Gas Price (6 cols) */}
+            <div className="col-span-6">
+              <div className="h-[400px] rounded-[2.5rem] border border-white/20 bg-white/[0.03] backdrop-blur-xl p-8 shadow-xl relative overflow-hidden flex flex-col">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl -mr-24 -mt-24"></div>
                 <div className="flex items-center justify-between mb-4 relative z-10">
                   <div className="flex flex-col">
-                    <h3 className="text-sm text-white">ราคาน้ำมันวันนี้</h3>
+                    <h3 className="text-lg font-bold text-white">ราคาน้ำมันวันนี้</h3>
                     <a 
                       href="https://oil-price.bangchak.co.th/BcpOilPrice2/th" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-[10px] text-teal-500 uppercase tracking-tighter hover:underline"
+                      className="text-xs text-teal-500 uppercase tracking-tighter hover:underline mt-1"
                     >
                       From: Bangchak Corporation
                     </a>
@@ -1043,7 +1047,7 @@ export const GeoArchivePage = () => {
                                   <div className="flex items-start justify-between mb-1">
                                     <div className="flex items-center gap-1.5">
                                       <div className={`w-1.5 h-1.5 rounded-full ${gas.color} shadow-[0_0_8px_rgba(255,255,255,0.2)]`}></div>
-                                      <span className="text-[9px] text-slate-500 font-bold tracking-tight">{details.label}</span>
+                                      <span className="text-[8px] text-slate-500 font-bold tracking-tight">{details.label}</span>
                                     </div>
                                     <button
                                       onClick={() => setOpenFuelType(isOpen ? null : gas.type)}
@@ -1058,8 +1062,8 @@ export const GeoArchivePage = () => {
                                     </button>
                                   </div>
                                   <div className="flex items-baseline gap-0.5">
-                                    <span className="text-sm font-black text-white leading-none">{gas.price.toFixed(2)}</span>
-                                    <span className="text-[8px] text-slate-600 font-bold uppercase">฿/L</span>
+                                    <span className="text-[13px] font-black text-white leading-none">{gas.price.toFixed(2)}</span>
+                                    <span className="text-[7px] text-slate-600 font-bold uppercase">฿/L</span>
                                   </div>
                                 </div>
                               </div>
@@ -1979,7 +1983,7 @@ interface IntentCardProps {
 const IntentCard = ({ icon, title, subtitle, gradient, border, iconBg, iconColor, onClick, isAi, children }: any) => (
   <button
     onClick={onClick}
-    className={`group relative w-full overflow-hidden rounded-[2rem] border ${border} bg-[#0a0c10] p-6 text-left transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] active:scale-[0.99]`}
+    className={`group relative w-full overflow-hidden rounded-[2rem] border ${border} bg-[#0a0c10] p-5 text-left transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] active:scale-[0.99]`}
   >
     <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-40 transition-opacity group-hover:opacity-60`} />
     <div className="relative z-10 flex items-center gap-6">
@@ -1987,15 +1991,15 @@ const IntentCard = ({ icon, title, subtitle, gradient, border, iconBg, iconColor
         {icon}
       </div>
       <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <h3 className="text-xl font-black tracking-tight text-white">{title}</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-2xl font-black tracking-tight text-white">{title}</h3>
           {isAi && (
             <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter text-white shadow-lg shadow-indigo-500/30">
               Guide agent
             </span>
           )}
         </div>
-        <p className="mt-1 text-sm font-medium text-slate-400">{subtitle}</p>
+        <p className="mt-2 text-base font-medium text-slate-400">{subtitle}</p>
         {children}
       </div>
       <div className="translate-x-2 text-slate-600 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100">

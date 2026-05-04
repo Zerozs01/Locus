@@ -1,6 +1,8 @@
 import { Fragment, ReactNode } from 'react'
 import { MapPin } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { regionsData } from '../data/regions'
+import { getThaiProvinceName } from '../data/thaiProvinceNames'
 
 interface MarkdownLiteProps {
   text: string
@@ -44,7 +46,7 @@ const renderInline = (text: string, inListItem = false, navigate?: ReturnType<ty
           className="font-semibold"
           style={inListItem ? LIST_STRONG_STYLE : STRONG_STYLE}
         >
-          {segment.slice(2, -2)}
+          {renderInline(segment.slice(2, -2), inListItem, navigate)}
         </strong>
       );
     }
@@ -52,7 +54,7 @@ const renderInline = (text: string, inListItem = false, navigate?: ReturnType<ty
     if (segment.startsWith('*') && segment.endsWith('*')) {
       return (
         <em key={`em-${index}`} className="italic" style={ITALIC_STYLE}>
-          {segment.slice(1, -1)}
+          {renderInline(segment.slice(1, -1), inListItem, navigate)}
         </em>
       );
     }
@@ -79,9 +81,20 @@ const renderInline = (text: string, inListItem = false, navigate?: ReturnType<ty
               try {
                 // More robust parsing for Thai characters and various formats
                 const getParam = (name: string) => {
-                  const regex = new RegExp(`[?&]${name}=([^&]*)`);
-                  const match = url.match(regex);
-                  return match ? decodeURIComponent(match[1]) : null;
+                  try {
+                    const regex = new RegExp(`[?&]${name}=([^&]*)`);
+                    const match = url.match(regex);
+                    if (!match) return null;
+                    const val = match[1];
+                    // Try to decode, but if it fails (e.g. raw Thai), just return raw
+                    try {
+                      return decodeURIComponent(val);
+                    } catch {
+                      return val;
+                    }
+                  } catch {
+                    return null;
+                  }
                 };
 
                 const latStr = getParam('lat');
@@ -101,14 +114,16 @@ const renderInline = (text: string, inListItem = false, navigate?: ReturnType<ty
                   }
 
                   // 2. Handle Province Buttons -> Warp to Province Detail Page
-                  // Intelligent matching: strip 'จังหวัด' and search in regionsData
                   const cleanTitle = title.replace(/จังหวัด/g, '').trim();
                   let provMatch: { id: string, region: string } | null = null;
                   
                   for (const r of regionsData) {
                     const p = r.subProvinces?.find(sp => 
                       sp.name.toLowerCase() === cleanTitle.toLowerCase() || 
-                      getThaiProvinceName(sp.name) === cleanTitle
+                      getThaiProvinceName(sp.name) === cleanTitle ||
+                      // Add fuzzy/partial matching for Thai names
+                      getThaiProvinceName(sp.name).includes(cleanTitle) ||
+                      cleanTitle.includes(getThaiProvinceName(sp.name))
                     );
                     if (p) {
                       provMatch = { id: p.id, region: r.id };
@@ -132,7 +147,7 @@ const renderInline = (text: string, inListItem = false, navigate?: ReturnType<ty
                   }
                 }
               } catch (e) {
-                console.error('Invalid locus link:', url);
+                console.error('Invalid locus link:', url, e);
               }
             }}
             className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded hover:bg-cyan-500/20 transition-colors font-bold text-[0.9em] align-baseline mx-1 shadow-[0_0_10px_rgba(6,182,212,0.1)]"
