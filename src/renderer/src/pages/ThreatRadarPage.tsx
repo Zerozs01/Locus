@@ -38,12 +38,12 @@ const hasPolygonGeo = (geojson: unknown): boolean => {
 };
 
 const POPULAR_PLACE_CANDIDATES = [
-  { name: 'สยามพารากอน', keywords: 'siam paragon สยามพารากอน สยามพารากอ สยามพา', provinceName: 'Bangkok Metropolis', lat: 13.7466, lng: 100.5347 },
-  { name: 'สยามสแควร์', keywords: 'siam square สยามสแควร์ สยาม', provinceName: 'Bangkok Metropolis', lat: 13.7449, lng: 100.5335 },
-  { name: 'เซ็นทรัลเวิลด์', keywords: 'central world centralworld เซ็นทรัลเวิลด์', provinceName: 'Bangkok Metropolis', lat: 13.7467, lng: 100.5393 },
-  { name: 'เยาวราช', keywords: 'yaowarat chinatown เยาวราช', provinceName: 'Bangkok Metropolis', lat: 13.7396, lng: 100.5104 },
-  { name: 'จตุจักร', keywords: 'chatuchak จตุจักร jj market', provinceName: 'Bangkok Metropolis', lat: 13.7998, lng: 100.5510 },
-  { name: 'วัดอรุณ', keywords: 'wat arun วัดอรุณ temple', provinceName: 'Bangkok Metropolis', lat: 13.7437, lng: 100.4888 },
+  { name: 'สยามพารากอน', keywords: 'siam paragon สยามพารากอน สยามพารากอ สยามพา', provinceName: 'Bangkok', lat: 13.7466, lng: 100.5347 },
+  { name: 'สยามสแควร์', keywords: 'siam square สยามสแควร์ สยาม', provinceName: 'Bangkok', lat: 13.7449, lng: 100.5335 },
+  { name: 'เซ็นทรัลเวิลด์', keywords: 'central world centralworld เซ็นทรัลเวิลด์', provinceName: 'Bangkok', lat: 13.7467, lng: 100.5393 },
+  { name: 'เยาวราช', keywords: 'yaowarat chinatown เยาวราช', provinceName: 'Bangkok', lat: 13.7396, lng: 100.5104 },
+  { name: 'จตุจักร', keywords: 'chatuchak จตุจักร jj market', provinceName: 'Bangkok', lat: 13.7998, lng: 100.5510 },
+  { name: 'วัดอรุณ', keywords: 'wat arun วัดอรุณ temple', provinceName: 'Bangkok', lat: 13.7437, lng: 100.4888 },
 ];
 
 // Local image mapping for regions (override DB URLs)
@@ -235,6 +235,13 @@ export const ThreatRadarPage = () => {
     } else if (state?.regionId) {
       setSelectedRegionId(state.regionId);
       window.history.replaceState({}, document.title);
+    }
+    if (state?.autoSearch) {
+      setSearchQuery(state.autoSearch);
+      if (state.autoSelectFirst) {
+         // We need to wait for suggestions to be populated (async Nominatim search)
+         // So we'll use a ref or another effect to watch for results
+      }
     }
   }, [location.state, provinceIndex]);
 
@@ -517,6 +524,13 @@ export const ThreatRadarPage = () => {
       return;
     }
 
+    if (suggestion.kind === 'province') {
+      navigate(`/province/${suggestion.regionId}/${suggestion.id}`);
+      setSearchQuery('');
+      setShowSuggestions(false);
+      return;
+    }
+
     setSelectedRegionId(suggestion.regionId);
     setMapMode('province');
     const provinces = await loadRegionProvinces(suggestion.regionId);
@@ -526,6 +540,24 @@ export const ThreatRadarPage = () => {
     setSearchQuery('');
     setShowSuggestions(false);
   }, [loadRegionProvinces, navigate]);
+
+  // Effect to handle auto-selection of the first search result when autoSelectFirst is true
+  useEffect(() => {
+    const state = location.state as { autoSelectFirst?: boolean; autoSearch?: string } | null;
+    if (state?.autoSelectFirst && searchSuggestions.length > 0 && !isRemoteSearching) {
+      const topResult = searchSuggestions[0];
+      // Only auto-select if the name is a very strong match
+      const queryNorm = normalizeSearchText(state.autoSearch || '');
+      const resultNorm = normalizeSearchText(topResult.name);
+      
+      if (resultNorm.includes(queryNorm) || queryNorm.includes(resultNorm)) {
+        console.log('🎯 ThreatRadarPage: Auto-selecting top match:', topResult.name);
+        handleSearchSelect(topResult);
+        // Clear state to avoid infinite loop
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [searchSuggestions, isRemoteSearching, location.state, handleSearchSelect]);
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {

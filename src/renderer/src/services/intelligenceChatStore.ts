@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import { sendChatMessage, type ChatLocationPayload } from './n8nClient'
+import { sendChatMessage, type ChatLocationPayload, type RouteContext } from './n8nClient'
+import { getFuelPricesWithRefresh } from './fuelPricesService'
 
 export interface ChatContext {
   type: 'region' | 'province'
@@ -299,6 +300,20 @@ const buildLocationPayload = (chatContext: ChatContext | null): ChatLocationPayl
   return payload
 }
 
+const getFuelPricesPayload = async (): Promise<Record<string, number>> => {
+  try {
+    const prices = await getFuelPricesWithRefresh()
+    const fuelObj: Record<string, number> = {}
+    prices.forEach((p) => {
+      fuelObj[p.fuelType] = p.price
+    })
+    return fuelObj
+  } catch (e) {
+    console.warn('[IntelligenceStore] Failed to fetch fuel prices for payload:', e)
+    return {}
+  }
+}
+
 const updateConversation = (conversationId: string, updater: (conversation: ChatConversation) => ChatConversation) => {
   setState((current) => ({
     ...current,
@@ -425,7 +440,7 @@ export const intelligenceChatStore = {
       messages: conversation.messages.filter(m => m.id !== messageId)
     }));
   },
-  resubmitMessage(messageId: string, newText: string) {
+  resubmitMessage(messageId: string, newText: string, routeContext?: RouteContext) {
     const trimmed = newText.trim();
     if (!trimmed) return;
 
@@ -473,8 +488,20 @@ export const intelligenceChatStore = {
       )
     }));
 
-    void sendChatMessage(messageWithContext, undefined, undefined, locationPayload)
-      .then((responseText) => {
+    (async () => {
+      try {
+        const fuelPrices = await getFuelPricesPayload();
+        const currentConv = getSnapshot().conversations.find(c => c.id === conversationId);
+        const locPayload = buildLocationPayload(currentConv?.chatContext || null);
+        const responseText = await sendChatMessage(
+          messageWithContext, 
+          undefined, 
+          undefined, 
+          locPayload, 
+          fuelPrices,
+          routeContext
+        );
+
         updateConversation(conversationId, (conversation) => ({
           ...conversation,
           updatedAt: new Date().toISOString(),
@@ -484,8 +511,7 @@ export const intelligenceChatStore = {
               : message
           )
         }));
-      })
-      .catch((error) => {
+      } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'ไม่สามารถเชื่อมต่อ Agent ได้';
         updateConversation(conversationId, (conversation) => ({
@@ -497,7 +523,8 @@ export const intelligenceChatStore = {
               : message
           )
         }));
-      });
+      }
+    })()
   },
   addUploadedFile(file: File) {
     let conversationId = ''
@@ -553,7 +580,7 @@ export const intelligenceChatStore = {
       }))
     }, 1000)
   },
-  sendMessage(userText: string, options?: { systemContext?: string }) {
+  sendMessage(userText: string, options?: { systemContext?: string, routeContext?: RouteContext }) {
     const trimmed = userText.trim()
     if (!trimmed) return
 
@@ -602,8 +629,22 @@ export const intelligenceChatStore = {
       }
     })
 
-    void sendChatMessage(messageWithContext, undefined, undefined, locationPayload)
-      .then((responseText) => {
+    const executeSend = async () => {
+      try {
+        // Resolve all situational data BEFORE sending
+        const fuelPrices = await getFuelPricesPayload();
+        const currentConv = getSnapshot().conversations.find(c => c.id === conversationId);
+        const locPayload = buildLocationPayload(currentConv?.chatContext || null);
+        
+        const responseText = await sendChatMessage(
+          messageWithContext, 
+          undefined, 
+          undefined, 
+          locPayload, 
+          fuelPrices,
+          options?.routeContext
+        );
+        
         updateConversation(conversationId, (conversation) => ({
           ...conversation,
           updatedAt: new Date().toISOString(),
@@ -620,8 +661,7 @@ export const intelligenceChatStore = {
               : message
           )
         }))
-      })
-      .catch((error) => {
+      } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'ไม่สามารถเชื่อมต่อ Agent ได้ กรุณาตรวจสอบการเชื่อมต่อ n8n และ Ngrok'
         updateConversation(conversationId, (conversation) => ({
@@ -637,7 +677,10 @@ export const intelligenceChatStore = {
               : message
           )
         }))
-      })
+      }
+    }
+
+    void executeSend()
   }
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getFuelPricesWithRefresh, refreshFuelPrices } from '../services/fuelPricesService';
 import { getRecords } from '../utils/csvDb';
 import { AQI_SYNC_EVENT } from '../utils/aqi';
@@ -209,6 +209,7 @@ const HELP_QUESTIONS: HelpQuestion[] = [
 // ═══════════════════════════════════════════════════════
 export const GeoArchivePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mode, setMode] = useState<IntentMode>(null);
   const [helpStep, setHelpStep] = useState(0);
   const [helpAnswers, setHelpAnswers] = useState<Record<string, string>>({});
@@ -322,6 +323,32 @@ export const GeoArchivePage = () => {
     'วัฒนธรรม': ['วัฒนธรรม'],
     'สถานบันเทิง': ['สถานบันเทิง'],
   };
+
+  // Handle focusFuel from chat deep links
+  useEffect(() => {
+    const state = location.state as { focusFuel?: string } | null;
+    if (state?.focusFuel) {
+      const title = state.focusFuel;
+      // Extract type from title (e.g., "แก๊สโซฮอล์ 95" -> "95")
+      let fuelType = '';
+      if (title.includes('95')) fuelType = '95';
+      else if (title.includes('91')) fuelType = '91';
+      else if (title.includes('E20')) fuelType = 'E20';
+      else if (title.includes('E85')) fuelType = 'E85';
+      else if (title.includes('98')) fuelType = '98+';
+      else if (title.includes('B7')) fuelType = 'B7';
+      else if (title.includes('B20')) fuelType = 'B20';
+      else if (title.includes('ดีเซล') || title.includes('Diesel')) fuelType = 'Diesel';
+      else if (title.includes('Premium')) fuelType = 'Premium';
+
+      if (fuelType) {
+        setShowAllFuelPrices(true);
+        setOpenFuelType(fuelType);
+        // Clear state to avoid re-triggering on refresh
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state]);
 
   // Fetch explore results from SQLite when chips change
   useEffect(() => {

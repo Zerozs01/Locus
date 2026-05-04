@@ -1,11 +1,12 @@
 import { Fragment, ReactNode } from 'react'
+import { MapPin } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 interface MarkdownLiteProps {
   text: string
   className?: string
 }
 
-const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/
 const TEXT_STYLE = { color: 'var(--chat-md-text)' }
 const MUTED_STYLE = { color: 'var(--chat-md-muted)' }
 const STRONG_STYLE = { color: 'var(--chat-md-strong)' }
@@ -30,8 +31,12 @@ const TABLE_HEADER_STYLE = {
   backgroundColor: 'rgba(255,255,255,0.03)'
 }
 
-const renderInline = (text: string, inListItem = false): ReactNode[] =>
-  text.split(INLINE_PATTERN).filter(Boolean).map((segment, index) => {
+const LINK_PATTERN = /\[([^\]]+)\]\(([^)]+)\)/;
+const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/;
+
+// navigate is passed in so hooks can stay at the component level
+const renderInline = (text: string, inListItem = false, navigate?: ReturnType<typeof useNavigate>): ReactNode[] => {
+  return text.split(INLINE_PATTERN).filter(Boolean).map((segment, index) => {
     if (segment.startsWith('**') && segment.endsWith('**')) {
       return (
         <strong
@@ -41,7 +46,7 @@ const renderInline = (text: string, inListItem = false): ReactNode[] =>
         >
           {segment.slice(2, -2)}
         </strong>
-      )
+      );
     }
 
     if (segment.startsWith('*') && segment.endsWith('*')) {
@@ -49,7 +54,7 @@ const renderInline = (text: string, inListItem = false): ReactNode[] =>
         <em key={`em-${index}`} className="italic" style={ITALIC_STYLE}>
           {segment.slice(1, -1)}
         </em>
-      )
+      );
     }
 
     if (segment.startsWith('`') && segment.endsWith('`')) {
@@ -57,11 +62,103 @@ const renderInline = (text: string, inListItem = false): ReactNode[] =>
         <code key={`code-${index}`} className="rounded px-1.5 py-0.5 font-mono text-[0.9em]" style={CODE_STYLE}>
           {segment.slice(1, -1)}
         </code>
-      )
+      );
     }
 
-    return <Fragment key={`text-${index}`}>{segment}</Fragment>
-  })
+    // Handle Links
+    const linkMatch = segment.match(LINK_PATTERN);
+    if (linkMatch) {
+      const [_, linkText, url] = linkMatch;
+      
+      // Custom Locus Deep Link - navigate to map with auto-warp + auto-search
+      if (url.startsWith('locus://location')) {
+        return (
+          <button
+            key={`locus-link-${index}`}
+            onClick={() => {
+              try {
+                // More robust parsing for Thai characters and various formats
+                const getParam = (name: string) => {
+                  const regex = new RegExp(`[?&]${name}=([^&]*)`);
+                  const match = url.match(regex);
+                  return match ? decodeURIComponent(match[1]) : null;
+                };
+
+                const latStr = getParam('lat');
+                const lngStr = getParam('lng');
+                const lat = latStr ? parseFloat(latStr) : null;
+                const lng = lngStr ? parseFloat(lngStr) : null;
+                const title = getParam('title') || getParam('q') || linkText || 'Location';
+                
+                if (navigate) {
+                  // 1. Handle Fuel Buttons -> Warp to Home (/) and Toggle Fuel
+                  const fuelKeywords = ['95', '91', 'E20', 'E85', 'B7', 'B20', 'Diesel', 'ดีเซล', 'แก๊สโซฮอล์'];
+                  const isFuel = fuelKeywords.some(k => title.includes(k));
+                  
+                  if (isFuel) {
+                    navigate('/', { state: { focusFuel: title } });
+                    return;
+                  }
+
+                  // 2. Handle Province Buttons -> Warp to Province Detail Page
+                  // Intelligent matching: strip 'จังหวัด' and search in regionsData
+                  const cleanTitle = title.replace(/จังหวัด/g, '').trim();
+                  let provMatch: { id: string, region: string } | null = null;
+                  
+                  for (const r of regionsData) {
+                    const p = r.subProvinces?.find(sp => 
+                      sp.name.toLowerCase() === cleanTitle.toLowerCase() || 
+                      getThaiProvinceName(sp.name) === cleanTitle
+                    );
+                    if (p) {
+                      provMatch = { id: p.id, region: r.id };
+                      break;
+                    }
+                  }
+                  
+                  if (provMatch) {
+                    navigate(`/province/${provMatch.region}/${provMatch.id}`, {
+                      state: { autoWarp: (lat && lng) ? { lat, lng, title } : undefined }
+                    });
+                  } else {
+                    // 3. Handle Place Buttons -> Warp to Map and Auto Search
+                    navigate('/map', {
+                      state: {
+                        autoWarp: (lat && lng) ? { lat, lng, title } : undefined,
+                        autoSearch: title,
+                        autoSelectFirst: true
+                      }
+                    });
+                  }
+                }
+              } catch (e) {
+                console.error('Invalid locus link:', url);
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded hover:bg-cyan-500/20 transition-colors font-bold text-[0.9em] align-baseline mx-1 shadow-[0_0_10px_rgba(6,182,212,0.1)]"
+          >
+            <MapPin size={12} className="text-cyan-400" />
+            {linkText}
+          </button>
+        );
+      }
+
+      return (
+        <a 
+          key={`link-${index}`} 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-cyan-400 underline underline-offset-4 decoration-cyan-500/30 hover:text-cyan-300 transition-colors"
+        >
+          {linkText}
+        </a>
+      );
+    }
+
+    return <Fragment key={`text-${index}`}>{segment}</Fragment>;
+  });
+};
 
 const normalizeMarkdown = (text: string) => text.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim()
 
@@ -76,6 +173,7 @@ const parseTableCells = (line: string) =>
     .map((cell) => cell.trim())
 
 export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
+  const navigate = useNavigate()
   const normalized = normalizeMarkdown(text)
   const lines = normalized.split('\n')
   const blocks: ReactNode[] = []
@@ -92,7 +190,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
     const paragraphText = currentParagraph.join(' ')
     blocks.push(
       <p key={`p-${blocks.length}`} className="leading-relaxed" style={TEXT_STYLE}>
-        {renderInline(paragraphText)}
+        {renderInline(paragraphText, false, navigate)}
       </p>
     )
     currentParagraph = []
@@ -108,7 +206,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
               •
             </span>
             <span className="min-w-0 flex-1" style={TEXT_STYLE}>
-              {renderInline(item, true)}
+              {renderInline(item, true, navigate)}
             </span>
           </li>
         ))}
@@ -127,7 +225,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
               {index + 1}.
             </span>
             <span className="min-w-0" style={TEXT_STYLE}>
-              {renderInline(item, true)}
+              {renderInline(item, true, navigate)}
             </span>
           </li>
         ))}
@@ -146,7 +244,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
       >
         {currentQuote.map((line, index) => (
           <p key={`quote-line-${index}`} className={index === 0 ? '' : 'mt-2'} style={TEXT_STYLE}>
-            {renderInline(line)}
+            {renderInline(line, false, navigate)}
           </p>
         ))}
       </blockquote>
@@ -177,7 +275,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
                   className="border-b px-3 py-2 text-left font-semibold"
                   style={TABLE_HEADER_STYLE}
                 >
-                  {renderInline(header)}
+                  {renderInline(header, false, navigate)}
                 </th>
               ))}
             </tr>
@@ -191,7 +289,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
                     className="border-t px-3 py-2 align-top leading-relaxed"
                     style={TABLE_CELL_STYLE}
                   >
-                    {renderInline(cell)}
+                    {renderInline(cell, false, navigate)}
                   </td>
                 ))}
               </tr>
@@ -265,7 +363,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
             : { color: 'var(--chat-md-h3)' }
       blocks.push(
         <div key={`h-${blocks.length}`} className={`${headingClass} leading-relaxed`} style={headingStyle}>
-          {renderInline(headingMatch[2])}
+          {renderInline(headingMatch[2], false, navigate)}
         </div>
       )
       return

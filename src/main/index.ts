@@ -176,6 +176,16 @@ type N8nChatPayload = {
   country?: string
   lat?: number
   lng?: number
+  fuelPrices?: Record<string, number>
+  routeContext?: {
+    originLat: number
+    originLng: number
+    destLat: number
+    destLng: number
+    estimatedDistanceKm: number
+    estimatedDurationMin: number
+    source: string
+  }
 } & N8nOverrides
 
 type MapEvSearchParams = {
@@ -290,7 +300,9 @@ const postN8nChat = async (payload: N8nChatPayload) => {
         regionName: payload.regionName,
         country: payload.country,
         lat: payload.lat,
-        lng: payload.lng
+        lng: payload.lng,
+        fuelPrices: payload.fuelPrices ?? {},
+        routeContext: payload.routeContext
       })
     })
 

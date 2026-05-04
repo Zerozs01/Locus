@@ -35,7 +35,8 @@ import {
   Flame,
   Sparkles,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Navigation
 } from 'lucide-react';
 import { ChatContext, ChatMessage as Message, RecentChatSummary, Source, useIntelligenceChatStore } from '../services/intelligenceChatStore';
 import { MarkdownLite } from '../components/MarkdownLite';
@@ -44,6 +45,7 @@ import { useChatThemeStore } from '../services/chatThemeStore';
 import { GradientProgressBar } from '../components/GradientProgressBar';
 import { Menu } from 'lucide-react';
 import { regionsData, type Region, type Province } from '../data/regions';
+import { LocationSearchModal } from '../components/LocationSearchModal';
 
 interface SuggestedQuery {
   text: string;
@@ -81,14 +83,55 @@ const buildProvinceLookup = (): { provinces: Array<{ name: string; nameLower: st
 
 const PROVINCE_LOOKUP = buildProvinceLookup();
 
+/** Thai to ID mapping for provinces to ensure detection works with Thai text */
+const THAI_PROVINCE_MAP: Record<string, string> = {
+  'กรุงเทพ': 'bangkok', 'กรุงเทพมหานคร': 'bangkok', 'กทม': 'bangkok',
+  'นนทบุรี': 'nonthaburi', 'ปทุมธานี': 'pathumthani', 'สมุทรปราการ': 'samutprakan',
+  'สมุทรสาคร': 'samutsakhon', 'สมุทรสงคราม': 'samutsongkhram', 'นครปฐม': 'nakhonpathom',
+  'อยุธยา': 'ayutthaya', 'พระนครศรีอยุธยา': 'ayutthaya', 'สระบุรี': 'saraburi',
+  'ลพบุรี': 'lopburi', 'สิงห์บุรี': 'singburi', 'ชัยนาท': 'chainat', 'อ่างทอง': 'angthong',
+  'นครสวรรค์': 'nakhonsawan', 'อุทัยธานี': 'uthaithani', 'กำแพงเพชร': 'kamphaengphet',
+  'พิจิตร': 'phichit', 'พิษณุโลก': 'phitsanulok', 'เพชรบูรณ์': 'phetchabun',
+  'สุโขทัย': 'sukhothai', 'เชียงใหม่': 'chiangmai', 'เชียงราย': 'chiangrai',
+  'ลำพูน': 'lamphun', 'ลำปาง': 'lampang', 'แพร่': 'phrae', 'น่าน': 'nan',
+  'พะเยา': 'phayao', 'แม่ฮ่องสอน': 'maehongson', 'อุตรดิตถ์': 'uttaradit',
+  'ชลบุรี': 'chonburi', 'ระยอง': 'rayong', 'จันทบุรี': 'chanthaburi', 'ตราด': 'trat',
+  'ฉะเชิงเทรา': 'chachoengsao', 'ปราจีนบุรี': 'prachinburi', 'นครนายก': 'nakhonnayok',
+  'สระแก้ว': 'sa-kaeo', 'ขอนแก้ว': 'khonkaen', 'นครราชสีมา': 'nakhonratchasima',
+  'โคราช': 'nakhonratchasima', 'อุดรธานี': 'udonthani', 'อุบลราชธานี': 'ubonratchathani',
+  'บุรีรัมย์': 'buriram', 'สุรินทร์': 'surin', 'ศรีสะเกษ': 'sisaket', 'ร้อยเอ็ด': 'roiet',
+  'ชัยภูมิ': 'chaiyaphum', 'มหาสารคาม': 'mahasarakham', 'เลย': 'loei',
+  'หนองคาย': 'nongkhai', 'บึงกาฬ': 'buengkan', 'สกลนคร': 'sakonnakhon',
+  'นครพนม': 'nakhonphanom', 'กาฬสินธุ์': 'kalasin', 'มุกดาหาร': 'mukdahan',
+  'ยโสธร': 'yasothon', 'อำนาจเจริญ': 'amnatcharoen', 'หนองบัวลำภู': 'nongbualamphu',
+  'ภูเก็ต': 'phuket', 'สุราษฎร์ธานี': 'suratthani', 'กระบี่': 'krabi', 'พังงา': 'phangnga',
+  'นครศรีธรรมราช': 'nakhonsithammarat', 'สงขลา': 'songkhla', 'หาดใหญ่': 'songkhla',
+  'สตูล': 'satun', 'ตรัง': 'trang', 'พัทลุง': 'phatthalung', 'ยะลา': 'yala',
+  'ปัตตานี': 'pattani', 'นราธิวาส': 'narathiwat', 'ระนอง': 'ranong', 'ชุมพร': 'chumphon',
+  'ประจวบคีรีขันธ์': 'prachuapkhirikhan', 'เพชรบุรี': 'phetchaburi', 'กาญจนบุรี': 'kanchanaburi',
+  'ราชบุรี': 'ratchaburi', 'ตาก': 'tak'
+};
+
 /** Scan AI response text and extract mentioned provinces */
 const extractMentionedProvinces = (text: string): DetectedProvince[] => {
-  const lowerText = text.toLowerCase();
   const found: DetectedProvince[] = [];
   const seen = new Set<string>();
 
+  // 1. Check Thai Map
+  for (const [thaiName, id] of Object.entries(THAI_PROVINCE_MAP)) {
+    if (text.includes(thaiName) && !seen.has(id)) {
+      const p = PROVINCE_LOOKUP.provinces.find(p => p.id === id);
+      if (p) {
+        seen.add(id);
+        found.push({ name: p.name, id: p.id, regionId: p.regionId, regionName: p.regionName });
+      }
+    }
+  }
+
+  // 2. Check English IDs as fallback
   for (const p of PROVINCE_LOOKUP.provinces) {
-    if (lowerText.includes(p.nameLower) && !seen.has(p.id)) {
+    const regex = new RegExp(`\\b${p.id}\\b`, 'i');
+    if (regex.test(text) && !seen.has(p.id)) {
       seen.add(p.id);
       found.push({ name: p.name, id: p.id, regionId: p.regionId, regionName: p.regionName });
     }
@@ -98,10 +141,20 @@ const extractMentionedProvinces = (text: string): DetectedProvince[] => {
 
 /** Detect if a region is mentioned */
 const extractMentionedRegions = (text: string): Array<{ id: string; name: string; engName: string }> => {
-  const lowerText = text.toLowerCase();
-  return PROVINCE_LOOKUP.regions.filter(
-    (r) => lowerText.includes(r.engName.toLowerCase()) || lowerText.includes(r.name)
-  );
+  const found: Array<{ id: string; name: string; engName: string }> = [];
+  const seen = new Set<string>();
+
+  for (const r of PROVINCE_LOOKUP.regions) {
+    const escapedName = r.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedEngName = r.engName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(\\b${r.id}\\b)|(${escapedName})|(\\b${escapedEngName}\\b)`, 'i');
+    
+    if (regex.test(text) && !seen.has(r.id)) {
+      seen.add(r.id);
+      found.push(r);
+    }
+  }
+  return found;
 };
 
 // ==================== MAIN COMPONENT ====================
@@ -138,6 +191,8 @@ export const IntelligencePage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSentRef = useRef(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [pendingRouteContext, setPendingRouteContext] = useState<any | null>(null);
 
   // Auto-resize textarea to fit content (like ChatGPT/Gemini)
   const autoResizeTextarea = useCallback(() => {
@@ -156,6 +211,7 @@ export const IntelligencePage = () => {
   useEffect(() => {
     const state = location.state as {
       context?: ChatContext;
+      routeContext?: any;
       prefillInput?: string;
       autoSendMessage?: string;
       autoSendSystemContext?: string;
@@ -167,17 +223,25 @@ export const IntelligencePage = () => {
 
     if (state?.autoSendMessage && !autoSentRef.current) {
       autoSentRef.current = true;
-      sendMessage(state.autoSendMessage, {
-        systemContext: state.autoSendSystemContext,
-      });
-      setInputText('');
+      
+      // If there is routeContext, we NEVER auto-send. We just stage it.
+      if (state.routeContext) {
+        setPendingRouteContext(state.routeContext);
+        setInputText(state.autoSendMessage || 'วิเคราะห์เส้นทางและความปลอดภัยที่ฉันเลือกให้หน่อย');
+      } else {
+        // Only auto-send if there is no route context (normal province navigation)
+        sendMessage(state.autoSendMessage, {
+          systemContext: state.autoSendSystemContext,
+          routeContext: state.routeContext,
+        });
+      }
     }
 
-    if (state?.prefillInput) {
+    if (state?.prefillInput && !state?.autoSendMessage) {
       setInputText(state.prefillInput);
     }
 
-    if (state?.context || state?.prefillInput || state?.autoSendMessage) {
+    if (state?.context || state?.prefillInput || state?.autoSendMessage || state?.routeContext) {
       window.history.replaceState({}, document.title);
     }
   }, [location.state, sendMessage, setChatContext]);
@@ -239,15 +303,39 @@ export const IntelligencePage = () => {
   };
 
     const handleSend = async () => {
-    if (!inputText.trim() || isLoading) return;
-    sendMessage(inputText);
+    if (!inputText.trim() && !pendingRouteContext) return;
+    if (isLoading) return;
+
+    const options: any = {};
+    if (chatContext) {
+      options.location = {
+        provinceName: chatContext.name,
+        regionName: chatContext.regionName,
+        lat: chatContext.lat,
+        lng: chatContext.lng
+      };
+    }
+
+    if (pendingRouteContext) {
+      options.routeContext = pendingRouteContext;
+    }
+
+    sendMessage(inputText || 'วิเคราะห์ข้อมูลเส้นทางที่แนบมาให้หน่อย', options);
     setInputText('');
+    setPendingRouteContext(null);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
 
   const handleResend = (messageText: string) => {
     if (isLoading) return;
     sendMessage(messageText);
+  };
+
+  const handleLocationSearchConfirm = (routeContext: any) => {
+    setPendingRouteContext(routeContext);
   };
 
   const handleStartEdit = (messageId: string, messageText: string) => {
@@ -288,6 +376,13 @@ export const IntelligencePage = () => {
     }
     if (e.key === 'Escape' && editingMessageId) {
       handleCancelEdit();
+    }
+    
+    // Command detection: #search
+    if (e.key === 'Enter' && !e.shiftKey && inputText.trim().toLowerCase() === '#search') {
+      e.preventDefault();
+      setInputText('');
+      setIsLocationModalOpen(true);
     }
   };
 
@@ -503,12 +598,45 @@ export const IntelligencePage = () => {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="ถามคำถาม หรือบอกให้ Locus ช่วยวางแผนให้..."
+              placeholder={pendingRouteContext ? "พิมพ์คำถามเกี่ยวกับเส้นทางที่แนบไว้..." : "ถามคำถาม หรือบอกให้ Locus ช่วยวางแผนให้..."}
               rows={1}
               style={{ maxHeight: "300px", minHeight: "32px", overflowY: "auto" }}
               className="w-full flex-1 bg-transparent border-none outline-none text-[15px] text-white placeholder:text-slate-500 resize-none py-2.5 leading-relaxed custom-scrollbar"
             />
+
+            {/* Pending Context Badge */}
+            {pendingRouteContext && (
+              <div className="absolute -top-14 left-0 right-0 flex justify-center pointer-events-none">
+                <div className="flex items-center gap-3 px-4 py-2 bg-[#0a0c10]/95 backdrop-blur-md border border-cyan-500/30 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.4)] animate-in fade-in slide-in-from-bottom-3 duration-300 pointer-events-auto">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                      <Navigation size={16} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">Route Active</span>
+                      <span className="text-[11px] font-semibold text-white">{(pendingRouteContext.estimatedDistanceKm).toFixed(1)} KM • {Math.round(pendingRouteContext.estimatedDurationMin)} Min</span>
+                    </div>
+                  </div>
+                  <div className="w-px h-6 bg-white/10 mx-1"></div>
+                  <button 
+                    onClick={() => setPendingRouteContext(null)}
+                    className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-rose-400 transition-colors"
+                    title="ลบข้อมูลเส้นทาง"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 shrink-0 pb-1">
+              <button
+                onClick={() => setIsLocationModalOpen(true)}
+                className="p-2 text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
+                title="Quick Location Search (#search)"
+              >
+                <MapPin size={18} />
+              </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -518,7 +646,7 @@ export const IntelligencePage = () => {
               </button>
               <button
                 onClick={handleSend}
-                disabled={!inputText.trim() || isLoading}
+                disabled={(!inputText.trim() && !pendingRouteContext) || isLoading}
                 className="p-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
                 title="Send message"
               >
@@ -666,6 +794,13 @@ export const IntelligencePage = () => {
           </div>
         </div>
       )}
+
+      {/* QUICK LOCATION SEARCH MODAL */}
+      <LocationSearchModal 
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        onConfirm={handleLocationSearchConfirm}
+      />
     </div>
   );
 };
@@ -919,125 +1054,79 @@ interface SmartActionBarProps {
 
 const SmartActionBar = ({ text }: SmartActionBarProps) => {
   const navigate = useNavigate();
+  const [showSelector, setShowSelector] = useState(false);
   const provinces = useMemo(() => extractMentionedProvinces(text), [text]);
   const regions = useMemo(() => extractMentionedRegions(text), [text]);
 
   // If no provinces or regions detected, show generic actions only
-  const hasContext = provinces.length > 0 || regions.length > 0;
-  if (!hasContext) return null;
+  const hasProvinces = provinces.length > 0;
+  const hasRegions = regions.length > 0;
+  
+  if (!hasProvinces && !hasRegions) return null;
 
-  // Pick first detected province for primary actions
-  const primaryProvince = provinces[0] || null;
-  const primaryRegion = regions[0] || null;
-
-  // Determine navigation targets
-  const regionIdForTravel = primaryProvince?.regionId || primaryRegion?.id || 'central';
-
-  const actionButtons: Array<{
-    label: string;
-    icon: React.ReactNode;
-    color: string;
-    bgColor: string;
-    borderColor: string;
-    onClick: () => void;
-  }> = [];
-
-  // Hot Location button
-  actionButtons.push({
-    label: 'Hot Location',
-    icon: <Flame size={13} />,
-    color: 'text-orange-300',
-    bgColor: 'bg-orange-500/10',
-    borderColor: 'border-orange-500/30',
-    onClick: () => navigate('/', { state: { focusRegion: regionIdForTravel } }),
-  });
-
-  // Travel Guide button
-  actionButtons.push({
-    label: 'Travel Guide',
-    icon: <Compass size={13} />,
-    color: 'text-teal-300',
-    bgColor: 'bg-teal-500/10',
-    borderColor: 'border-teal-500/30',
-    onClick: () => navigate(`/travel-guide/${regionIdForTravel}`),
-  });
-
-  // Province-specific buttons (only if a province was detected)
-  if (primaryProvince) {
-    actionButtons.push({
-      label: 'Open Map',
-      icon: <Map size={13} />,
-      color: 'text-sky-300',
-      bgColor: 'bg-sky-500/10',
-      borderColor: 'border-sky-500/30',
-      onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`),
-    });
-  }
-
-  // Category quick-links
-  if (primaryProvince) {
-    actionButtons.push(
-      {
-        label: 'Transit',
-        icon: <Bus size={13} />,
-        color: 'text-blue-300',
-        bgColor: 'bg-blue-500/10',
-        borderColor: 'border-blue-500/30',
-        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'travel' } }),
-      },
-      {
-        label: 'Stay',
-        icon: <Bed size={13} />,
-        color: 'text-violet-300',
-        bgColor: 'bg-violet-500/10',
-        borderColor: 'border-violet-500/30',
-        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'stay' } }),
-      },
-      {
-        label: 'Food',
-        icon: <Utensils size={13} />,
-        color: 'text-amber-300',
-        bgColor: 'bg-amber-500/10',
-        borderColor: 'border-amber-500/30',
-        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'eat' } }),
-      },
-    );
-  }
-
-  // If multiple provinces found, show secondary province chips
-  const secondaryProvinces = provinces.slice(1, 4);
+  // Primary action logic
+  const handlePrimaryAction = () => {
+    if (provinces.length === 1) {
+      const p = provinces[0];
+      navigate(`/province/${p.regionId}/${p.id}`);
+    } else if (provinces.length > 1) {
+      setShowSelector(true);
+    } else if (regions.length > 0) {
+      const r = regions[0];
+      navigate(`/travel-guide/${r.id}`);
+    }
+  };
 
   return (
-    <div className="mt-4 pt-3 border-t border-white/[0.06]">
-      {/* Action Buttons Row */}
-      <div className="flex flex-wrap gap-1.5">
-        {actionButtons.map((btn, idx) => (
-          <button
-            key={idx}
-            onClick={btn.onClick}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 hover:brightness-125 hover:scale-[1.03] active:scale-[0.97] ${btn.color} ${btn.bgColor} ${btn.borderColor}`}
-          >
-            {btn.icon}
-            {btn.label}
-          </button>
-        ))}
+    <div className="mt-4 pt-3 border-t border-white/[0.06] relative">
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={handlePrimaryAction}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-[12px] font-black text-cyan-400 hover:bg-cyan-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_4px_15px_rgba(6,182,212,0.1)]"
+        >
+          <Compass size={14} className="animate-pulse" />
+          {provinces.length > 1 
+            ? `View Mentioned Provinces (${provinces.length})` 
+            : provinces.length === 1 
+              ? `View ${provinces[0].name} Tactical Detail` 
+              : 'Explore Regional Intelligence'}
+        </button>
       </div>
 
-      {/* Secondary Province Chips */}
-      {secondaryProvinces.length > 0 && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="text-[10px] text-slate-500 mr-1">ยังเกี่ยวข้องกับ:</span>
-          {secondaryProvinces.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => navigate(`/province/${p.regionId}/${p.id}`)}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-white/10 bg-white/[0.03] text-[10px] text-slate-400 hover:text-white hover:border-cyan-500/30 hover:bg-cyan-500/10 transition-all"
-            >
-              <MapPin size={10} />
-              {p.name}
-            </button>
-          ))}
-        </div>
+      {/* Multi-Province Selector Popup */}
+      {showSelector && (
+        <>
+          <div 
+            className="fixed inset-0 z-[100]" 
+            onClick={() => setShowSelector(false)} 
+          />
+          <div className="absolute bottom-full left-0 mb-2 w-64 bg-[#0f1115] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[101] animate-in slide-in-from-bottom-2 duration-200">
+            <div className="p-3 border-b border-white/5 bg-white/[0.02]">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Select Province to View</h3>
+            </div>
+            <div className="max-h-48 overflow-y-auto p-1.5 custom-scrollbar">
+              {provinces.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    navigate(`/province/${p.regionId}/${p.id}`);
+                    setShowSelector(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-cyan-500/10 hover:text-cyan-400 text-slate-300 text-xs font-bold transition-all text-left group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-cyan-500/20">
+                    <MapPin size={14} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate">{p.name}</div>
+                    <div className="text-[9px] text-slate-500 uppercase">{p.regionName}</div>
+                  </div>
+                  <ChevronRight size={12} className="text-slate-600 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

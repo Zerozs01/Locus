@@ -110,6 +110,10 @@ export const ProvinceTacticalPage = () => {
   const handleFlyToLocation = (lat: number, lng: number, title?: string) => {
     if (mapRef.current) {
       console.log(`[ProvinceTactical] handleFlyToLocation called: ${title} (${lat}, ${lng})`);
+      
+      // เมื่อกดวาร์ป ให้ถือว่าสถานที่นั้นเป็น "ปลายทาง" (End Point) ทันที
+      mapRef.current.setRoutePoint('end', lat, lng, title);
+
       if (title && title.trim()) {
         // Prefer real geometry from search pipeline; fallback remains available if no polygon/bbox.
         mapRef.current.searchAndFocus(title, { lat, lng, radiusMeters: 600 });
@@ -125,30 +129,45 @@ export const ProvinceTacticalPage = () => {
     const fetchData = async () => {
       try {
         if (window.api && window.api.db) {
-          if (regionId && provinceId && window.api.db.getRegion) {
+          let resolvedProvinceId = provinceId;
+          let resolvedRegionId = regionId;
+
+          // Sanitization: If provinceId looks like a Thai name or contains "province"
+          const isThai = /[\u0e00-\u0e7f]/.test(provinceId || '');
+          if (isThai || provinceId?.toLowerCase().includes('province')) {
+            const cleanName = (provinceId || '').replace(/จังหวัด|province/gi, '').trim();
+            const index = await window.api.db.getProvinceIndex?.() || [];
+            const found = index.find((p: any) => p.name === cleanName || getThaiProvinceName(p.name) === cleanName);
+            if (found) {
+              resolvedProvinceId = found.id;
+              resolvedRegionId = found.regionId || regionId;
+            }
+          }
+
+          if (resolvedRegionId && resolvedProvinceId && window.api.db.getRegion) {
             const [regionData, provinceData] = await measureAsync(
               'db:getRegion+Province@ProvinceTacticalPage',
               () => Promise.all([
-                window.api.db.getRegion(regionId),
-                window.api.db.getProvince(provinceId)
+                window.api.db.getRegion(resolvedRegionId),
+                window.api.db.getProvince(resolvedProvinceId)
               ])
             );
             if (regionData) setRegion(regionData);
             if (provinceData) {
               // Force sync image from static data
-              const staticProv = regionsData.find(r => r.id === regionId)?.subProvinces?.find(p => p.id === provinceId);
+              const staticProv = regionsData.find(r => r.id === resolvedRegionId)?.subProvinces?.find(p => p.id === resolvedProvinceId);
               const updatedProvince = staticProv ? { ...provinceData, image: staticProv.image } : provinceData;
               setProvince(updatedProvince);
             }
           } else {
             const regions = await measureAsync('db:getRegions@ProvinceTacticalPage', () => window.api.db.getRegions());
-            const foundRegion = regions.find((r: Region) => r.id === regionId);
+            const foundRegion = regions.find((r: Region) => r.id === resolvedRegionId);
             if (foundRegion) {
               setRegion(foundRegion);
-              const foundProvince = foundRegion.subProvinces?.find((p: Province) => p.id === provinceId);
+              const foundProvince = foundRegion.subProvinces?.find((p: Province) => p.id === resolvedProvinceId);
               if (foundProvince) {
                 // Force sync image from static data
-                const staticProv = regionsData.find(r => r.id === regionId)?.subProvinces?.find(p => p.id === provinceId);
+                const staticProv = regionsData.find(r => r.id === resolvedRegionId)?.subProvinces?.find(p => p.id === resolvedProvinceId);
                 const updatedProvince = staticProv ? { ...foundProvince, image: staticProv.image } : foundProvince;
                 setProvince(updatedProvince);
               }

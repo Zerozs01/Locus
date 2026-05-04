@@ -38,12 +38,14 @@ export const thaiProvinceNames: Record<string, string> = {
 
   // ภาคกลาง (Central)
   'Bangkok Metropolis': 'กรุงเทพมหานคร',
+  'Bangkok': 'กรุงเทพมหานคร',
   'Nonthaburi': 'นนทบุรี',
   'Samut Prakan': 'สมุทรปราการ',
   'Pathum Thani': 'ปทุมธานี',
   'Nakhon Pathom': 'นครปฐม',
   'Samut Sakhon': 'สมุทรสาคร',
   'Phra Nakhon Si Ayutthaya': 'พระนครศรีอยุธยา',
+  'Ayutthaya': 'พระนครศรีอยุธยา',
   'Ang Thong': 'อ่างทอง',
   'Lop Buri': 'ลพบุรี',
   'Sing Buri': 'สิงห์บุรี',

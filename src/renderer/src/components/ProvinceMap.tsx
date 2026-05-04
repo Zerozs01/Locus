@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useImperativeHandle, useMemo } from 'react';
 import { provinceCoordinates, bangkokFallbackPlaces } from '../data/coordinates';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Loader2, WifiOff, RefreshCw, Search, LocateFixed, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin, Info, ChevronDown, Map as MapIcon, Layers as LayersIcon } from 'lucide-react';
+import { Loader2, WifiOff, RefreshCw, Search, LocateFixed, Car, Bike, Footprints, ChevronLeft, MoreVertical, MapPin, Info, ChevronDown, Map as MapIcon, Layers as LayersIcon, Fuel, AlertTriangle, Mountain, Bus, Train, ExternalLink, Sparkles } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { getFuelPricesWithRefresh, FuelPriceData } from '../services/fuelPricesService';
 import thailandGeo from '../data/thailand-geo.json';
 import thailandOutline from '../data/thailand-outline.json';
 
@@ -37,6 +39,8 @@ export interface ProvinceMapHandle {
   flyToWithFallback: (lat: number, lng: number, zoom: number, title?: string, fallbackRadius?: number) => void;
   // Route setter
   setRouteAndCalculate: (startLat: number, startLng: number, startTitle: string, endLat: number, endLng: number, endTitle: string) => void;
+  // Individual point setter
+  setRoutePoint: (target: 'start' | 'end', lat: number, lng: number, title?: string) => void;
 }
 
 type ProvinceMapTheme = 'voyager' | 'positron' | 'dark' | 'osm' | 'satellite' | 'terrain' | 'admin';
@@ -303,8 +307,10 @@ const buildRemoteQueryCandidates = (query: string, provinceName: string): string
     .trim();
   pushUnique(withoutThaiProvinceSuffix);
 
+  const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  
   const withoutEnglishProvince = withoutThaiProvinceSuffix
-    .replace(new RegExp(`\\b${normalizedProvinceName.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b`, 'ig'), '')
+    .replace(new RegExp(`\\b${escapeRegex(normalizedProvinceName)}\\b`, 'ig'), '')
     .replace(/\bBangkok\b/ig, '')
     .replace(/\bThailand\b/ig, '')
     .replace(/\s+/g, ' ')
@@ -314,7 +320,7 @@ const buildRemoteQueryCandidates = (query: string, provinceName: string): string
   if (/โรงพยาบาล/i.test(q)) {
     const hospitalOnly = q
       .replace(/กรุงเทพมหานคร|กรุงเทพฯ?/gi, '')
-      .replace(new RegExp(`\\b${normalizedProvinceName.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\b`, 'ig'), '')
+      .replace(new RegExp(`\\b${escapeRegex(normalizedProvinceName)}\\b`, 'ig'), '')
       .replace(/\bBangkok\b/ig, '')
       .replace(/\s+/g, ' ')
       .trim();
@@ -332,7 +338,9 @@ const buildRemoteQueryCandidates = (query: string, provinceName: string): string
   return candidates.slice(0, 5);
 };
 
-export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({ 
+function ProvinceMapComponent(props: ProvinceMapProps, ref: React.ForwardedRef<ProvinceMapHandle>) {
+  const navigate = useNavigate();
+  const {
   provinceName,
   provinceId,
   lat, 
@@ -347,7 +355,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   onChangeTheme,
   onToggleLayer,
   mapDataLayers,
-}, ref) => {
+  } = props;
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
@@ -369,6 +377,17 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   const [mapVersion, setMapVersion] = useState(0);
   const lastFetchCenter = useRef<L.LatLng | null>(null);
 
+  // Tactical Fuel Calculation State
+  const [vehicleType, setVehicleType] = useState<'car' | 'motorcycle'>('car');
+  const [fuelPrices, setFuelPrices] = useState<FuelPriceData[]>([]);
+  const [selectedFuelType, setSelectedFuelType] = useState<string>('95');
+  const [isMountainous, setIsMountainous] = useState(false);
+  const [showFuelDetails, setShowFuelDetails] = useState(false);
+
+  useEffect(() => {
+    getFuelPricesWithRefresh().then(setFuelPrices).catch(err => console.warn('[ProvinceMap] Fuel prices failed:', err));
+  }, []);
+
   // Re-fetch GISTDA GeoJSON data when map pans significantly (>5km)
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -382,6 +401,79 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     map.on('moveend', onMoveEnd);
     return () => { map.off('moveend', onMoveEnd); };
   }, []);
+
+  // Handle Internal Deep Links (Warp & Route)
+  useEffect(() => {
+    const handleCommand = (e: any) => {
+      const { lat, lng, title, action } = e.detail;
+      if (action === 'warp_and_route') {
+        executeWarpAndRoute(lat, lng, title);
+      }
+    };
+
+    window.addEventListener('locus-location-command', handleCommand);
+    return () => window.removeEventListener('locus-location-command', handleCommand);
+  }, []);
+
+  const executeWarpAndRoute = (lat: number, lng: number, title?: string) => {
+    // 1. Warp the map
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([lat, lng], 15, {
+        duration: 2,
+        easeLinearity: 0.25
+      });
+    }
+    
+    // 2. Set as destination
+    setRouteEnd({ lat, lng, title: title || 'Pinned Location' });
+    
+    // 3. Enable routing mode if not already
+    setIsRoutingMode(true);
+    setActiveRouteField(null);
+  };
+
+  const handleAskLocus = () => {
+    if (!routeData || !routeStart || !routeEnd) return;
+
+    const routeContext = {
+      originLat: routeStart.lat,
+      originLng: routeStart.lng,
+      destLat: routeEnd.lat,
+      destLng: routeEnd.lng,
+      estimatedDistanceKm: routeData.distance / 1000,
+      estimatedDurationMin: routeData.duration / 60,
+      source: 'map_page' as const
+    };
+
+    navigate('/intelligence', {
+      state: {
+        routeContext,
+        autoSendMessage: 'วิเคราะห์ความปลอดภัยและความเสี่ยงของเส้นทางนี้ให้หน่อย'
+      }
+    });
+  };
+
+  const location = useLocation();
+  useEffect(() => {
+    if (location.state?.autoWarp) {
+      const { lat, lng, title } = location.state.autoWarp;
+      const timer = setTimeout(() => {
+        // 1. Warp map + set as routing destination
+        executeWarpAndRoute(lat, lng, title);
+
+        // 2. Auto-fill search bar with location name
+        if (title) {
+          setSearchQuery(title);
+          setShowSuggestions(true);
+          // Trigger remote search via pendingAutoFocusQuery
+          setPendingAutoFocusQuery(title);
+          setPendingAutoFocusSearch(true);
+        }
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [location.state]);
 
   const [activeOverlay, setActiveOverlay] = useState<'map' | 'layers' | null>(null);
   const externalDataLayerRefs = useRef<L.Layer[]>([]);
@@ -504,16 +596,70 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
   // Routing State
   const [isRoutingMode, setIsRoutingMode] = useState(false);
   const [activeRouteField, setActiveRouteField] = useState<'start' | 'end' | null>(null);
-  const [travelMode, setTravelMode] = useState<'driving' | 'walking' | 'cycling'>('driving');
+  const [travelMode, setTravelMode] = useState<'driving' | 'walking' | 'cycling' | 'transit'>('driving');
   const [routeStart, setRouteStart] = useState<{lat: number, lng: number, title?: string} | null>(null);
   const [routeEnd, setRouteEnd] = useState<{lat: number, lng: number, title?: string} | null>(null);
   const [routeData, setRouteData] = useState<{distance: number, duration: number, geojson: any} | null>(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const routeLayerRef = useRef<L.LayerGroup | null>(null);
 
+  const openGoogleMapsTransit = (oLat: number, oLng: number, dLat: number, dLng: number) => {
+    const baseUrl = 'https://www.google.com/maps/dir/?api=1';
+    const origin = `${oLat},${oLng}`;
+    const destination = `${dLat},${dLng}`;
+    const url = `${baseUrl}&origin=${origin}&destination=${destination}&travelmode=transit`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const fuelCalc = useMemo(() => {
+    if (!routeData) return null;
+    
+    const distanceKm = routeData.distance / 1000;
+    const efficiency = vehicleType === 'car' ? 14 : 35;
+    const priceData = fuelPrices.find(p => p.fuelType === selectedFuelType);
+    const price = priceData ? priceData.price : (fuelPrices.length > 0 ? fuelPrices[0].price : 42.5);
+    
+    const terrainMultiplier = isMountainous ? 1.5 : 1.0;
+    const safetyMargin = 1.2;
+    
+    const consumptionLiters = (distanceKm / efficiency) * terrainMultiplier;
+    const consumptionWithMargin = consumptionLiters * safetyMargin;
+    const totalCost = consumptionWithMargin * price;
+    
+    return {
+      liters: consumptionLiters,
+      litersWithMargin: consumptionWithMargin,
+      totalCost: totalCost,
+      pricePerLiter: price
+    };
+  }, [routeData, vehicleType, selectedFuelType, fuelPrices, isMountainous]);
+
+  const availableFuelTypes = useMemo(() => {
+    if (vehicleType === 'motorcycle') {
+      // Gasoline only: 95, 91, E20, 98+
+      return fuelPrices.filter(p => ['95', '91', 'E20', '98+'].includes(p.fuelType));
+    }
+    return fuelPrices;
+  }, [fuelPrices, vehicleType]);
+
+  // Ensure selected fuel type is valid for motorcycle
+  useEffect(() => {
+    if (vehicleType === 'motorcycle') {
+      const isValid = ['95', '91', 'E20', '98+'].includes(selectedFuelType);
+      if (!isValid) {
+        setSelectedFuelType('95');
+      }
+    }
+  }, [vehicleType, selectedFuelType]);
+
   const calculateRoute = async (startLat: number, startLng: number, endLat: number, endLng: number, mode: string) => {
     setIsCalculatingRoute(true);
     setRouteData(null);
+    if (mode === 'transit') {
+      setIsCalculatingRoute(false);
+      return;
+    }
+
     try {
       const endpoints = [
         `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`,
@@ -573,8 +719,9 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
     }
   };
 
-  const applyCustomRoutePoint = (target: 'start' | 'end', latitude: number, longitude: number) => {
-    const pointTitle = `Pin (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
+  const applyCustomRoutePoint = (target: 'start' | 'end', latitude: number, longitude: number, title?: string) => {
+    setIsRoutingMode(true);
+    const pointTitle = title || `Pin (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
     const point = { lat: latitude, lng: longitude, title: pointTitle };
 
     if (target === 'start') {
@@ -1653,6 +1800,9 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
         ], { padding: [50, 50], animate: true, duration: 1 });
       }
     },
+    setRoutePoint: (target, lat, lng, title) => {
+      applyCustomRoutePoint(target, lat, lng, title);
+    },
   }));
 
   // Create highlight effect at a location
@@ -2345,7 +2495,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
 
       {activeDataLayerWarnings.length > 0 && !isLoading && (
 
-        <div className="absolute top-16 right-4 z-[1000] rounded-lg border border-amber-400/40 bg-black/80 px-3 py-2 text-[11px] text-amber-200 max-w-[280px] shadow-lg">
+        <div className="absolute top-16 right-4 z-[1000] rounded-lg border border-amber-400/40 bg-black/80 px-3 py-2 text-[11px] text-amber-200 max-w-[280px] shadow-lg" onClick={(e) => e.stopPropagation()}>
           <div className="font-bold mb-1">สถานะชั้นข้อมูล:</div>
           <ul className="list-disc list-inside space-y-0.5">
             {Array.from(new Set(activeDataLayerWarnings)).map((warning, idx) => (
@@ -2421,7 +2571,13 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
 
 
       {/* Place Search, Map Controls & Routing UI */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-full pointer-events-auto flex flex-col items-center px-4">
+      <div 
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-full pointer-events-auto flex flex-col items-center px-4"
+        onClick={(e) => e.stopPropagation()}
+        onContextMenu={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+      >
         {/* Map Filter Pills */}
         {!isRoutingMode && (
           <div className="flex w-max max-w-full flex-nowrap gap-2 overflow-x-auto pb-3 scrollbar-hide px-4">
@@ -2485,20 +2641,31 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
             )}
 
             {isRoutingMode ? (
-              <div className="bg-[#0b1018]/95 border border-white/10 backdrop-blur-md p-4 rounded-2xl shadow-2xl relative w-[min(420px,100%)]">
+              <div 
+                className="bg-[#0b1018]/95 border border-white/10 backdrop-blur-md p-4 rounded-2xl shadow-2xl relative w-[min(420px,100%)]"
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                  <div className="pointer-events-none absolute -inset-1 rounded-2xl bg-cyan-400/20 blur-xl z-[-1]" />
                  
                  {/* Top Header: Modes & Close */}
                  <div className="flex justify-between items-center mb-3">
                     <div className="flex gap-1.5 bg-black/40 p-1 rounded-lg border border-white/5">
-                       {(['driving', 'walking', 'cycling'] as const).map(m => (
+                       {(['driving', 'walking', 'cycling', 'transit'] as const).map(m => (
                           <button 
                              key={m} 
-                             onClick={() => setTravelMode(m)} 
-                             className={`p-2 rounded-md transition-all ${Math.round(travelMode === m ? 1 : 0) ? 'bg-cyan-500/20 text-cyan-400 shadow-sm border border-cyan-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'}`}
+                             onClick={() => {
+                                setTravelMode(m);
+                                if (m === 'transit' && routeStart && routeEnd) {
+                                   openGoogleMapsTransit(routeStart.lat, routeStart.lng, routeEnd.lat, routeEnd.lng);
+                                } else if (m !== 'transit' && routeStart && routeEnd) {
+                                   calculateRoute(routeStart.lat, routeStart.lng, routeEnd.lat, routeEnd.lng, m);
+                                }
+                             }} 
+                             className={`p-2 rounded-md transition-all ${travelMode === m ? 'bg-cyan-500/20 text-cyan-400 shadow-sm border border-cyan-500/30' : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'}`}
                              title={m.charAt(0).toUpperCase() + m.slice(1)}
                           >
-                             {m === 'driving' ? <Car size={16}/> : m === 'walking' ? <Footprints size={16}/> : <Bike size={16}/>}
+                             {m === 'driving' ? <Car size={16}/> : m === 'walking' ? <Footprints size={16}/> : m === 'cycling' ? <Bike size={16}/> : <Bus size={16}/>}
                           </button>
                        ))}
                     </div>
@@ -2552,6 +2719,13 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
                                if (pos) {
                                   const start = { lat: pos.lat, lng: pos.lng, title: 'ตำแหน่งปัจจุบันของคุณ' };
                                   setRouteStart(start);
+                                  setSearchQuery('');
+                                  setShowSuggestions(false);
+                                  setActiveRouteField('end');
+                                  // Force focus to the next field to avoid focus-trap in Electron
+                                  setTimeout(() => {
+                                     document.getElementById('route-dest-input')?.focus();
+                                  }, 100);
                                   if (routeEnd) calculateRoute(start.lat, start.lng, routeEnd.lat, routeEnd.lng, travelMode);
                                }
                             }}
@@ -2588,26 +2762,155 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
                  </div>
 
                  {/* Results / Status */}
-                 <div className="mt-3 overflow-hidden rounded-xl border border-white/5">
+                 <div className="mt-3 overflow-hidden rounded-xl border border-white/5 bg-[#080c12]">
                     {isCalculatingRoute ? (
-                       <div className="bg-black/30 p-4 flex items-center justify-center gap-3 text-cyan-400 text-sm">
+                       <div className="p-6 flex items-center justify-center gap-3 text-cyan-400 text-sm">
                           <Loader2 size={16} className="animate-spin" /> คำนวณเส้นทาง...
                        </div>
-                    ) : routeData ? (
-                       <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/10 p-4 flex justify-between items-center">
-                          <div className="flex flex-col">
-                             <span className="text-2xl font-bold text-white tracking-tight">
-                                {routeData.duration > 3600 
-                                   ? `${Math.floor(routeData.duration / 3600)} hr ${Math.round((routeData.duration % 3600) / 60)} min`
-                                   : `${Math.round(routeData.duration / 60)} min`}
-                             </span>
-                             <span className="text-slate-400 text-sm font-medium">({(routeData.distance / 1000).toFixed(1)} km) {travelMode.charAt(0).toUpperCase() + travelMode.slice(1)}</span>
+                    ) : (routeData || (travelMode === 'transit' && routeStart && routeEnd)) ? (
+                       <div className="flex flex-col">
+                          {/* Main Stats */}
+                          <div className="bg-gradient-to-r from-cyan-900/40 to-blue-900/20 p-4 flex justify-between items-center border-b border-white/5">
+                             {travelMode === 'transit' ? (
+                                <div className="flex flex-col w-full gap-3 py-1">
+                                   <div className="flex items-center gap-2 text-cyan-400">
+                                      <Bus size={18} />
+                                      <span className="text-sm font-bold uppercase tracking-tight">Public Transit Mode</span>
+                                   </div>
+                                   <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
+                                      เส้นทางรถเมล์และรถไฟฟ้าต้องใช้ข้อมูลตารางเวลาจริงและสภาพจราจรแบบ Real-time เพื่อความแม่นยำสูงสุดในการวางแผน
+                                   </p>
+                                   <button 
+                                      onClick={() => routeStart && routeEnd && openGoogleMapsTransit(routeStart.lat, routeStart.lng, routeEnd.lat, routeEnd.lng)}
+                                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-[11px] rounded-xl transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] active:scale-[0.98]"
+                                   >
+                                      <ExternalLink size={14} /> เปิดดูเส้นทางสาธารณะใน Google Maps
+                                   </button>
+                                </div>
+                             ) : (
+                                <>
+                                   <div className="flex flex-col">
+                                      <span className="text-2xl font-black text-white tracking-tight">
+                                         {routeData && (routeData.duration > 3600 
+                                            ? `${Math.floor(routeData.duration / 3600)} hr ${Math.round((routeData.duration % 3600) / 60)} min`
+                                            : `${Math.round(routeData.duration / 60)} min`)}
+                                      </span>
+                                      <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                                         {routeData && (routeData.distance / 1000).toFixed(1)} KM • {travelMode}
+                                      </span>
+                                   </div>
+
+                                   {/* Ask Locus Button */}
+                                   <button
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       handleAskLocus();
+                                     }}
+                                     className="flex items-center gap-2 px-4 py-2 bg-[#facc15] hover:bg-[#eab308] text-black font-black text-[11px] uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(250,204,21,0.3)] transition-all hover:-translate-y-0.5 active:scale-95"
+                                   >
+                                     <Sparkles size={14} />
+                                     Ask Locus
+                                   </button>
+                                    
+                                    {travelMode === 'driving' && (
+                                       <button 
+                                         onClick={() => setShowFuelDetails(!showFuelDetails)}
+                                         className={`flex flex-col items-end gap-0.5 group transition-all ${showFuelDetails ? 'text-amber-400' : 'text-slate-400 hover:text-white'}`}
+                                       >
+                                          <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/10 group-hover:border-white/20">
+                                             <Fuel size={14} />
+                                             <span className="text-sm font-bold">~{fuelCalc?.totalCost.toFixed(0)} ฿</span>
+                                             <ChevronDown size={14} className={`transition-transform ${showFuelDetails ? 'rotate-180' : ''}`} />
+                                          </div>
+                                       </button>
+                                    )}
+                                 </>
+                             )}
                           </div>
+
+                          {/* Tactical Fuel Details Expansion */}
+                          {travelMode === 'driving' && showFuelDetails && (
+                             <div className="p-4 bg-black/40 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                                {/* Vehicle & Terrain Selectors */}
+                                <div className="flex gap-4">
+                                   <div className="flex-1 space-y-2">
+                                      <label className="text-[10px] font-bold text-slate-500 uppercase">Vehicle Type</label>
+                                      <div className="flex gap-1 bg-black/60 p-1 rounded-lg border border-white/5">
+                                         <button 
+                                            onClick={() => setVehicleType('car')}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-md text-[11px] font-bold transition-all ${vehicleType === 'car' ? 'bg-white/10 text-white shadow-inner' : 'text-slate-500 hover:text-slate-300'}`}
+                                         >
+                                            <Car size={12} /> Car
+                                         </button>
+                                         <button 
+                                            onClick={() => setVehicleType('motorcycle')}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-md text-[11px] font-bold transition-all ${vehicleType === 'motorcycle' ? 'bg-white/10 text-white shadow-inner' : 'text-slate-500 hover:text-slate-300'}`}
+                                         >
+                                            <Bike size={12} /> Moto
+                                         </button>
+                                      </div>
+                                   </div>
+                                   <div className="flex-1 space-y-2">
+                                      <label className="text-[10px] font-bold text-slate-500 uppercase">Terrain</label>
+                                      <button 
+                                         onClick={() => setIsMountainous(!isMountainous)}
+                                         className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-bold transition-all border ${isMountainous ? 'bg-amber-500/20 border-amber-500/40 text-amber-400' : 'bg-black/60 border-white/5 text-slate-500 hover:text-slate-300'}`}
+                                      >
+                                         <Mountain size={12} /> {isMountainous ? 'Mountainous' : 'Normal'}
+                                      </button>
+                                   </div>
+                                </div>
+
+                                {/* Fuel Type Selector */}
+                                <div className="space-y-2">
+                                   <label className="text-[10px] font-bold text-slate-500 uppercase">Fuel Type</label>
+                                   <div className="grid grid-cols-4 gap-1.5">
+                                      {availableFuelTypes.map(p => (
+                                         <button 
+                                            key={p.fuelType}
+                                            onClick={() => setSelectedFuelType(p.fuelType)}
+                                            className={`py-1.5 rounded-md text-[10px] font-black border transition-all ${selectedFuelType === p.fuelType ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20 hover:text-white'}`}
+                                         >
+                                            {p.fuelType}
+                                         </button>
+                                      ))}
+                                   </div>
+                                </div>
+
+                                {/* Calculation Breakdown */}
+                                <div className="pt-3 border-t border-white/5 space-y-2">
+                                   <div className="flex justify-between items-center text-[11px]">
+                                      <span className="text-slate-400">Efficiency</span>
+                                      <span className="text-white font-mono">{vehicleType === 'car' ? 14 : 35} km/L</span>
+                                   </div>
+                                   <div className="flex justify-between items-center text-[11px]">
+                                      <span className="text-slate-400">Consumption (Net)</span>
+                                      <span className="text-white font-mono">{fuelCalc?.liters.toFixed(2)} L</span>
+                                   </div>
+                                   <div className="flex justify-between items-center text-[11px]">
+                                      <div className="flex items-center gap-1 text-emerald-400/80">
+                                         <Info size={10} />
+                                         <span>Incl. 20% Safety Margin</span>
+                                      </div>
+                                      <span className="text-emerald-400 font-mono font-bold">{fuelCalc?.litersWithMargin.toFixed(2)} L</span>
+                                   </div>
+                                   <div className="mt-2 bg-white/5 p-2 rounded-lg flex justify-between items-center">
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase">Est. Total Cost</span>
+                                      <span className="text-lg font-black text-white">{fuelCalc?.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿</span>
+                                   </div>
+                                </div>
+                             </div>
+                          )}
                        </div>
                     ) : (
-                       <div className="bg-black/30 p-4 flex flex-col items-center justify-center gap-1">
-                          <MapPin size={24} className="text-white/20" />
-                          <span className="text-slate-500 text-xs text-center px-4">ระบุต้นทางและปลายทางเพื่อคำนวณเส้นทาง...</span>
+                       <div className="p-8 flex flex-col items-center justify-center gap-3 text-center">
+                          <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
+                             <MapPin size={24} className="text-slate-600" />
+                          </div>
+                          <div className="space-y-1">
+                             <p className="text-white font-bold text-sm">วางแผนเส้นทางของคุณ</p>
+                             <p className="text-slate-500 text-[11px] px-6">เลือกจุดเริ่มต้นและปลายทางเพื่อคำนวณระยะทาง เวลา และประมาณการน้ำมันที่ต้องใช้</p>
+                          </div>
                        </div>
                     )}
                  </div>
@@ -2823,7 +3126,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(({
       `}</style>
     </div>
   );
-});
+}
 
 // Map Filter Pill Component
 const FilterPill = ({ color, label, icon, isActive, onToggle }: { color: string; label: string; icon: string; isActive: boolean; onToggle: () => void; type?: string }) => (
@@ -2965,6 +3268,6 @@ const LayerItem = ({ opt, isEnabled, onToggle, status }: { opt: any; isEnabled: 
       )}
     </div>
   );
-};
+}
 
-export default ProvinceMap;
+export default React.forwardRef(ProvinceMapComponent);
