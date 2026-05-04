@@ -33,13 +33,13 @@ import {
   CarTaxiFront,
   Bike,
   TrendingUp,
-  BarChart3,
   Filter,
   Info,
   ArrowDownNarrowWide,
   ArrowUpNarrowWide,
   Thermometer,
-  Wind
+  Wind,
+  RefreshCw
 } from 'lucide-react';
 import KohKradan from '../../../Image/koh_kradan.png';
 
@@ -263,6 +263,7 @@ export const GeoArchivePage = () => {
   ]);
   const [regionStats, setRegionStats] = useState<RegionStats[]>([]);
   const [statsViewMode, setStatsViewMode] = useState<'temp' | 'aqi'>('temp');
+  const [fuelSort, setFuelSort] = useState<'asc' | 'desc' | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
 
   // Load fuel prices from database on mount
@@ -488,7 +489,8 @@ export const GeoArchivePage = () => {
           return;
         }
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const groupedByProvince: Record<string, Array<{ date: string; temperature: number; aqi: number }>> = {};
         weatherRows.forEach((row: any) => {
           const normalizedId = normalizeProvinceId(String(row?.provinceId || ''));
@@ -502,43 +504,34 @@ export const GeoArchivePage = () => {
           });
         });
 
-        const resolvedRows = Object.entries(groupedByProvince).map(([provinceId, records]) => {
-          const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
-          const today = sorted.find((r) => r.date === todayStr);
-          const latestPast = sorted.find((r) => r.date <= todayStr);
-          const latest = sorted[0];
-          const resolved = today || latestPast || latest;
-          return resolved ? { provinceId, temperature: resolved.temperature, aqi: resolved.aqi } : null;
-        }).filter((row): row is { provinceId: string; temperature: number; aqi: number } => Boolean(row));
-
-        // Build province to region mapping
         const provinceToRegion: Record<string, string> = {
-          // North
           'chiangmai': 'north', 'chiangrai': 'north', 'phayao': 'north', 'nan': 'north',
           'phrae': 'north', 'uttaradit': 'north', 'sukhothai': 'north', 'tak': 'north',
-          // Northeast
           'khonkaen': 'northeast', 'korat': 'northeast', 'udonthani': 'northeast',
           'nakhonphanom': 'northeast', 'sakonakhon': 'northeast', 'yasothon': 'northeast',
           'amnatcharoen': 'northeast', 'maha': 'northeast', 'loei': 'northeast',
           'chaiyaphum': 'northeast', 'roiet': 'northeast',
-          // Central
           'bangkok': 'central', 'ayutthaya': 'central', 'lopburi': 'central',
           'sara': 'central', 'nakhonnayok': 'central', 'phetchaburi': 'central',
           'chumphon': 'central',
-          // South
           'phuket': 'south', 'krabi': 'south', 'phangnga': 'south',
           'surat': 'south', 'nakhorn': 'south', 'ranong': 'south',
-          // East
           'chachoengsao': 'east', 'chonburi': 'east', 'rayong': 'east',
           'trad': 'east',
-          // West
           'kanchanaburi': 'west', 'ratchaburi': 'west', 'prachuap': 'west'
         };
 
+        
         // Group by region
         const regionData: Record<string, { temps: number[]; aqis: number[] }> = {};
         
-        resolvedRows.forEach((row) => {
+        // 1. First, try to get ONLY today's data for a clean "Live" average
+        const todayRows = Object.entries(groupedByProvince).map(([provinceId, records]) => {
+          const today = records.find((r) => r.date === todayStr);
+          return today ? { provinceId, temperature: today.temperature, aqi: today.aqi } : null;
+        }).filter((row): row is { provinceId: string; temperature: number; aqi: number } => Boolean(row));
+
+        todayRows.forEach((row) => {
           const normalizedId = normalizeProvinceId(row.provinceId);
           const mappedRegionId = provinceIdToRegionId[normalizedId];
           const fallbackRegionId = Object.entries(provinceToRegion).find(([prov]) =>
@@ -547,12 +540,37 @@ export const GeoArchivePage = () => {
           const regionId = mappedRegionId || fallbackRegionId;
 
           if (regionId) {
-            if (!regionData[regionId]) {
-              regionData[regionId] = { temps: [], aqis: [] };
+            if (!regionData[regionId]) regionData[regionId] = { temps: [], aqis: [] };
+            if (Number.isFinite(row.temperature)) regionData[regionId].temps.push(row.temperature);
+            if (Number.isFinite(row.aqi)) regionData[regionId].aqis.push(row.aqi);
+          }
+        });
+
+        // 2. If a region has NO today data, fall back to latest past data (but mark as not live if we had the UI for it)
+        REGIONS.forEach(r => {
+          if (!regionData[r.id] || (regionData[r.id].temps.length === 0 && regionData[r.id].aqis.length === 0)) {
+            const fallbackRows = Object.entries(groupedByProvince).map(([provinceId, records]) => {
+              const normalizedId = normalizeProvinceId(provinceId);
+              const mappedRegionId = provinceIdToRegionId[normalizedId];
+              const fallbackRegionId = Object.entries(provinceToRegion).find(([prov]) =>
+                normalizedId.includes(prov) || prov.includes(normalizedId)
+              )?.[1];
+              const regId = mappedRegionId || fallbackRegionId;
+              
+              if (regId !== r.id) return null;
+              
+              const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+              const latest = sorted.find((r) => r.date <= todayStr) || sorted[0];
+              return latest ? { temperature: latest.temperature, aqi: latest.aqi } : null;
+            }).filter(Boolean);
+
+            if (fallbackRows.length > 0) {
+              regionData[r.id] = { temps: [], aqis: [] };
+              fallbackRows.forEach(row => {
+                if (row && Number.isFinite(row.temperature)) regionData[r.id].temps.push(row.temperature);
+                if (row && Number.isFinite(row.aqi)) regionData[r.id].aqis.push(row.aqi);
+              });
             }
-            const data = regionData[regionId];
-            if (Number.isFinite(row.temperature)) data.temps.push(row.temperature);
-            if (Number.isFinite(row.aqi)) data.aqis.push(row.aqi);
           }
         });
 
@@ -573,7 +591,7 @@ export const GeoArchivePage = () => {
               color: r.color,
               avgTemp,
               avgAqi,
-              dataPoints: data ? Math.min(data.temps.length, data.aqis.length) : 0,
+              dataPoints: data ? Math.max(data.temps.length, data.aqis.length) : 0,
             };
           })
           .filter(s => s.dataPoints > 0);
@@ -818,51 +836,51 @@ export const GeoArchivePage = () => {
             {/* Top Row - Left: Intent Cards (6 cols) */}
             <div className="col-span-6 space-y-3">
               <IntentCard
-                icon={<MapPin size={32} />}
+                icon={<MapPin size={36} />}
                 title="มีที่ในใจแล้ว"
                 subtitle="ระบุพิกัดที่คุณอยากไป แล้วให้เราจัดการเส้นทางให้"
-                gradient="from-emerald-400/30 to-teal-600/20"
-                border="border-emerald-400/60 shadow-[0_0_20px_rgba(52,211,153,0.1)]"
-                iconBg="bg-emerald-500/20"
-                iconColor="text-emerald-400"
+                gradient="from-blue-600/60 via-indigo-500/30 to-violet-500/10"
+                border="border-blue-400/40 shadow-[0_0_30px_rgba(37,99,235,0.2)]"
+                iconBg="bg-blue-600/40"
+                iconColor="text-blue-100"
                 onClick={() => navigate('/map', { state: { focusSearch: true } })}
               />
               <IntentCard
-                icon={<Compass size={30} />}
+                icon={<Compass size={34} />}
                 title="สำรวจตามความสนใจ"
                 subtitle="เลือกหมวดหมู่ที่ชอบ — ป่าไม้, ทะเล, ของกิน หรือ สถานบันเทิง"
-                gradient="from-amber-400/30 to-orange-600/20"
-                border="border-amber-400/60 shadow-[0_0_20px_rgba(251,191,36,0.1)]"
-                iconBg="bg-amber-500/20"
-                iconColor="text-amber-400"
+                gradient="from-purple-600/60 via-fuchsia-500/30 to-rose-400/10"
+                border="border-purple-400/40 shadow-[0_0_30px_rgba(147,51,234,0.2)]"
+                iconBg="bg-purple-600/40"
+                iconColor="text-purple-100"
                 onClick={() => setMode('explore')}
               >
                 <div className="mt-4 flex gap-2">
                   {DISCOVERY_CHIPS.map((chip) => (
                     <div 
                       key={chip.label}
-                      className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/70 transition-all hover:bg-amber-500/30 hover:text-white"
+                      className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black text-white/80 border border-white/5 transition-all hover:bg-amber-500/40 hover:text-white hover:border-amber-400/30"
                       onClick={(e) => {
                         e.stopPropagation();
                         setMode('explore');
                         setSelectedChips([chip.label]);
                       }}
                     >
-                      <span className="scale-75 opacity-70">{chip.icon}</span>
+                      <span className="scale-75 opacity-90">{chip.icon}</span>
                       {chip.label}
                     </div>
                   ))}
                 </div>
               </IntentCard>
               <IntentCard
-                icon={<Sparkles size={32} />}
+                icon={<Sparkles size={36} />}
                 title="ช่วยเลือกให้หน่อย"
                 subtitle="ตอบคำถามสั้นๆ แล้ว Locus จะค้นหาจุดหมายที่ใช่ที่สุดสำหรับคุณ"
                 isAi={true}
-                gradient="from-purple-500/20 to-indigo-600/10"
-                border="border-purple-500/30"
-                iconBg="bg-purple-500/20"
-                iconColor="text-purple-400"
+                gradient="from-red-600/60 via-orange-500/30 to-yellow-400/10"
+                border="border-red-500/40 shadow-[0_0_30px_rgba(220,38,38,0.25)]"
+                iconBg="bg-red-600/40"
+                iconColor="text-red-50"
                 onClick={() => setMode('help')}
               />
             </div>
@@ -902,7 +920,7 @@ export const GeoArchivePage = () => {
 
                 {regionStats.length > 0 ? (
                   <div className="flex-1 flex flex-col justify-end">
-                    <div className="grid grid-cols-6 gap-3">
+                    <div className="grid grid-cols-6 gap-6 items-end">
                       {displayStats.map((region) => {
                         const regionMeta = REGIONS.find((item) => item.id === region.id);
                         const value = statsViewMode === 'temp' ? region.avgTemp : region.avgAqi;
@@ -911,23 +929,26 @@ export const GeoArchivePage = () => {
                           : `${value.toFixed(0)}`;
                         
                         const normalized = valueRange > 0 ? (value - minValue) / valueRange : 0.5;
-                        const barHeight = 20 + normalized * (80 - 20); // Scale bar from 20px to 80px
+                        const barHeight = 40 + normalized * (140 - 40); // Scale bar from 40px to 140px
 
                         return (
                           <div key={`col-${region.id}`} className="flex flex-col items-center group cursor-help">
-                            {/* Bar Container - Increased Height */}
-                            <div className="h-32 w-full flex items-end justify-center px-1 mb-5">
+                            {/* Bar Container */}
+                            <div className="h-44 w-full flex items-end justify-center px-1 mb-6">
                               <div 
-                                className={`w-full max-w-[28px] rounded-lg transition-all duration-700 ease-out group-hover:scale-x-110 shadow-lg shadow-black/30 ${regionMeta?.barClass || 'bg-cyan-500'}`}
-                                style={{ height: `${barHeight}px` }}
+                                className={`w-full max-w-[42px] rounded-t-xl transition-all duration-700 ease-out group-hover:scale-x-105 group-hover:brightness-125 border-x border-t border-white/20 shadow-[0_0_20px_rgba(0,0,0,0.5)] ${regionMeta?.barClass || 'bg-cyan-500'}`}
+                                style={{ 
+                                  height: `${barHeight}px`,
+                                  boxShadow: `0 0 30px ${regionMeta?.color || '#0ea5e9'}40`
+                                }}
                               />
                             </div>
 
-                            {/* Labels - Increased Size */}
-                            <div className={`text-base font-black tracking-tight ${regionMeta?.colorClass || 'text-slate-300'}`}>
+                            {/* Labels */}
+                            <div className={`text-xl font-black tracking-tighter ${regionMeta?.colorClass || 'text-slate-300'} drop-shadow-md`}>
                               {valueLabel}
                             </div>
-                            <div className="text-xs font-bold text-slate-500 truncate w-full text-center mt-1">
+                            <div className="text-[11px] font-black uppercase tracking-widest text-slate-500 truncate w-full text-center mt-2 group-hover:text-slate-300 transition-colors">
                               {region.name}
                             </div>
                           </div>
@@ -966,153 +987,128 @@ export const GeoArchivePage = () => {
 
             {/* Bottom Row - Right: Gas Price (6 cols) */}
             <div className="col-span-6">
-              <div className="h-[400px] rounded-[2.5rem] border border-white/20 bg-white/[0.03] backdrop-blur-xl p-8 shadow-xl relative overflow-hidden flex flex-col">
+              <div className="h-[400px] rounded-[2rem] border border-white/20 bg-white/[0.03] backdrop-blur-xl p-8 shadow-xl relative overflow-hidden flex flex-col">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl -mr-24 -mt-24"></div>
-                <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="flex items-center justify-between mb-5 relative z-10">
                   <div className="flex flex-col">
-                    <h3 className="text-lg font-bold text-white">ราคาน้ำมันวันนี้</h3>
+                    <h3 className="text-l font-black text-white tracking-tight">สรุปค่าใช้จ่ายเชื้อเพลิง</h3>
                     <a 
                       href="https://oil-price.bangchak.co.th/BcpOilPrice2/th" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-xs text-teal-500 uppercase tracking-tighter hover:underline mt-1"
+                      className="text-[10px] text-slate-500 hover:text-amber-500 uppercase tracking-widest font-bold transition-colors"
                     >
-                      From: Bangchak Corporation
+                      Bangchak Market Insights ↗
                     </a>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={handleRefreshFuelPrices}
-                      disabled={isRefreshingFuel}
-                      className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50"
-                      title="รีเฟรชราคาน้ำมัน"
+                      onClick={() => setFuelSort(prev => prev === 'asc' ? 'desc' : prev === 'desc' ? null : 'asc')}
+                      className={`p-2 rounded-xl border transition-all ${
+                        fuelSort ? 'bg-amber-500/20 border-amber-500 text-amber-400' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                      }`}
+                      title="เรียงตามราคา"
                     >
-                      <svg className={`w-3.5 h-3.5 text-slate-400 ${isRefreshingFuel ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
+                      {fuelSort === 'asc' ? <ArrowDownNarrowWide size={14} /> : fuelSort === 'desc' ? <ArrowUpNarrowWide size={14} /> : <Filter size={14} />}
                     </button>
                     <button
-                      onClick={() => setShowAllFuelPrices(!showAllFuelPrices)}
-                      className={`flex items-center justify-center p-1.5 rounded-lg border transition-all ${
-                        showAllFuelPrices 
-                        ? 'bg-teal-500/20 border-teal-500/30 text-teal-400' 
-                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
-                      }`}
-                      title={showAllFuelPrices ? 'แสดงน้อยลง' : 'แสดงทั้งหมด'}
+                      onClick={handleRefreshFuelPrices}
+                      disabled={isRefreshingFuel}
+                      className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50 text-slate-400 hover:text-white"
                     >
-                      <BarChart3 size={14} className={showAllFuelPrices ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                      <RefreshCw size={14} className={isRefreshingFuel ? 'animate-spin' : ''} />
                     </button>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2 relative z-10">
+                <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 space-y-2 pr-1">
+                  <div className="grid grid-cols-12 px-4 mb-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    <div className="col-span-5">ประเภทเชื้อเพลิง</div>
+                    <div className="col-span-4 text-right">บ./กม. (เฉลี่ย)</div>
+                    <div className="col-span-3 text-right">ราคาต่อลิตร</div>
+                  </div>
+                
                   {(() => {
-                    // Explicit class mapping to ensure Tailwind JIT includes them
-                    const FUEL_THEMES: Record<string, { text: string; border: string; glow: string }> = {
-                      'bg-blue-500':    { text: 'text-blue-500',    border: 'border-blue-500',    glow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)]' },
-                      'bg-teal-500':    { text: 'text-teal-500',    border: 'border-teal-500',    glow: 'shadow-[0_0_15px_rgba(20,184,166,0.3)]' },
-                      'bg-emerald-500': { text: 'text-emerald-500', border: 'border-emerald-500', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]' },
-                      'bg-rose-500':    { text: 'text-rose-500',    border: 'border-rose-500',    glow: 'shadow-[0_0_15px_rgba(244,63,94,0.3)]' },
-                      'bg-amber-500':   { text: 'text-amber-500',   border: 'border-amber-500',   glow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' },
-                      'bg-orange-500':  { text: 'text-orange-500',  border: 'border-orange-500',  glow: 'shadow-[0_0_15px_rgba(249,115,22,0.3)]' },
-                      'bg-slate-500':   { text: 'text-slate-500',   border: 'border-slate-500',   glow: 'shadow-[0_0_15px_rgba(100,116,139,0.3)]' },
-                      'bg-purple-600':  { text: 'text-purple-600',  border: 'border-purple-600',  glow: 'shadow-[0_0_15px_rgba(147,51,234,0.3)]' },
-                      'bg-red-600':     { text: 'text-red-600',     border: 'border-red-600',     glow: 'shadow-[0_0_15px_rgba(220,38,38,0.3)]' },
-                    };
+                    const sortedGas = [...visibleGas];
+                    if (fuelSort === 'asc') sortedGas.sort((a, b) => a.price - b.price);
+                    else if (fuelSort === 'desc') sortedGas.sort((a, b) => b.price - a.price);
+                    
+                    return sortedGas.map((gas) => {
+                      const details = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
+                      const isOpen = openFuelType === gas.type;
+                      
+                      const isGasohol = gas.type.includes('9') || gas.type.includes('E');
+                      const fuelColor = isGasohol ? 'bg-emerald-500' : 'bg-amber-500';
+                      const fuelGlow = isGasohol ? 'rgba(16,185,129,0.5)' : 'rgba(245,158,11,0.5)';
+                      const fuelText = isGasohol ? 'text-emerald-400' : 'text-amber-400';
+                      const fuelBorder = isGasohol ? 'border-emerald-500' : 'border-amber-500';
+                      const fuelBg = isGasohol ? 'bg-emerald-500/10' : 'bg-amber-500/10';
 
-                    const chunks = [];
-                    for (let i = 0; i < visibleGas.length; i += 3) {
-                      chunks.push(visibleGas.slice(i, i + 3));
-                    }
-                    return chunks.map((chunk, chunkIdx) => {
-                      const openInThisChunk = chunk.find(g => g.type === openFuelType);
+                      const motoCostKm = gas.price / FUEL_EFFICIENCY.motorcycle;
+                      const carCostKm = gas.price / FUEL_EFFICIENCY.car;
+                      // Logic: If not for motorcycle, avg is just car cost. If both, average them.
+                      const avgCostKm = details.motorcycle ? (motoCostKm + carCostKm) / 2 : carCostKm;
+                      
+                      // Mock trend for UI
+                      const trend = gas.price % 2 === 0 ? 'up' : 'down';
+
                       return (
-                        <React.Fragment key={chunkIdx}>
-                          {chunk.map((gas) => {
-                            const details = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
-                            const isOpen = openFuelType === gas.type;
-                            const fuelTheme = FUEL_THEMES[gas.color] || { 
-                              text: 'text-slate-400', 
-                              border: 'border-white/20', 
-                              glow: 'shadow-none' 
-                            };
+                        <div key={gas.type} className="flex flex-col">
+                          <div 
+                            onClick={() => setOpenFuelType(isOpen ? null : gas.type)}
+                            className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl transition-all cursor-pointer border-l-2 ${
+                              isOpen 
+                                ? `${fuelBg} ${fuelBorder} shadow-lg` 
+                                : 'bg-white/[0.02] border-transparent hover:bg-white/[0.05] hover:border-white/10'
+                            }`}
+                          >
+                            <div className="col-span-5 flex items-center gap-3">
+                              <div className={`w-1.5 h-1.5 rounded-full ${fuelColor} shadow-[0_0_8px_${fuelGlow}]`}></div>
+                              <span className={`text-xs font-bold transition-colors ${isOpen ? fuelText : 'text-slate-300'}`}>
+                                {details.label}
+                              </span>
+                            </div>
+                            
+                            <div className="col-span-4 text-right">
+                              <span className="text-base font-black text-white">{avgCostKm.toFixed(2)}</span>
+                              <span className="text-[8px] text-slate-600 font-bold ml-1">฿/KM</span>
+                            </div>
 
-                            return (
-                              <div key={gas.type} className="flex flex-col gap-2">
-                                <div className={`p-2.5 rounded-xl border transition-all h-full ${
-                                  isOpen 
-                                    ? `bg-white/[0.08] ${fuelTheme.border}/50 ${fuelTheme.glow}` 
-                                    : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06]'
-                                }`}>
-                                  <div className="flex items-start justify-between mb-1">
-                                    <div className="flex items-center gap-1.5">
-                                      <div className={`w-1.5 h-1.5 rounded-full ${gas.color} shadow-[0_0_8px_rgba(255,255,255,0.2)]`}></div>
-                                      <span className="text-[8px] text-slate-500 font-bold tracking-tight">{details.label}</span>
-                                    </div>
-                                    <button
-                                      onClick={() => setOpenFuelType(isOpen ? null : gas.type)}
-                                      className={`p-1 rounded-md border transition-all ${
-                                        isOpen
-                                          ? `bg-slate-800 border-slate-700 ${fuelTheme.text}`
-                                          : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
-                                      }`}
-                                      title={isOpen ? 'ซ่อนข้อมูลคำนวณ' : 'ดูข้อมูลคำนวณ'}
-                                    >
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                                    </button>
+                            <div className="col-span-3 flex items-center justify-end gap-2">
+                              <div className="text-right">
+                                <span className="text-xs font-medium text-slate-400">{gas.price.toFixed(2)}</span>
+                                <span className="text-[8px] text-slate-600 font-bold ml-1">฿/L</span>
+                              </div>
+                              <div className={`flex items-center transition-transform ${trend === 'up' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                {trend === 'up' ? <ArrowUpNarrowWide size={12} /> : <ArrowDownNarrowWide size={12} />}
+                              </div>
+                            </div>
+                          </div>
+
+                          {isOpen && (
+                            <div className="mx-2 mt-1 mb-2 p-3 rounded-b-xl border-x border-b border-amber-500/20 bg-amber-500/[0.03] animate-in slide-in-from-top-1 duration-200">
+                              <div className="flex justify-between items-center gap-4">
+                                <div className={`flex-1 flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/5 ${!details.motorcycle ? 'opacity-30 grayscale' : ''}`}>
+                                  <div className="flex items-center gap-2">
+                                    <Bike size={14} className="text-slate-400" />
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Bike</span>
                                   </div>
-                                  <div className="flex items-baseline gap-0.5">
-                                    <span className="text-[13px] font-black text-white leading-none">{gas.price.toFixed(2)}</span>
-                                    <span className="text-[7px] text-slate-600 font-bold uppercase">฿/L</span>
-                                  </div>
+                                  <span className="text-xs font-black text-amber-200">
+                                    {details.motorcycle ? motoCostKm.toFixed(2) : 'N/A'} 
+                                    <span className="text-[8px] opacity-50 ml-1">฿/KM</span>
+                                  </span>
                                 </div>
-                              </div>
-                            );
-                          })}
-                          {openInThisChunk && (
-                            <div className="col-span-3 rounded-xl border border-white/10 bg-slate-950/60 backdrop-blur-xl p-4 text-[11px] text-white mt-1 mb-2 animate-in fade-in slide-in-from-top-2 duration-200 shadow-2xl">
-                              <div className={`mb-3 text-[10px] font-bold uppercase tracking-widest ${
-                                FUEL_THEMES[openInThisChunk.color]?.text || 'text-cyan-400'
-                              } border-b border-white/10 pb-2`}>
-                                {FUEL_TYPE_DETAILS[openInThisChunk.type]?.label || openInThisChunk.type} — คำนวณโดยประมาณ
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                {(() => {
-                                  const gas = openInThisChunk;
-                                  const details = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
-                                  const motoCostKm = gas.price / FUEL_EFFICIENCY.motorcycle;
-                                  const carCostKm = gas.price / FUEL_EFFICIENCY.car;
-                                  return (
-                                    <>
-                                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">รถจักรยานยนต์</div>
-                                        {details.motorcycle ? (
-                                          <>
-                                            <div className="text-sm font-black text-white">{motoCostKm.toFixed(2)} บ./กม</div>
-                                            <div className="text-[10px] text-slate-500">{(motoCostKm * 10).toFixed(1)} บ./10กม</div>
-                                          </>
-                                        ) : (
-                                          <div className="text-[10px] text-slate-600">ไม่แนะนำ</div>
-                                        )}
-                                      </div>
-                                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">รถยนต์</div>
-                                        {details.car ? (
-                                          <>
-                                            <div className="text-sm font-black text-white">{carCostKm.toFixed(2)} บ./กม</div>
-                                            <div className="text-[10px] text-slate-500">{(carCostKm * 10).toFixed(1)} บ./10กม</div>
-                                          </>
-                                        ) : (
-                                          <div className="text-[10px] text-slate-600">ไม่แนะนำ</div>
-                                        )}
-                                      </div>
-                                    </>
-                                  );
-                                })()}
+                                <div className="flex-1 flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/5">
+                                  <div className="flex items-center gap-2">
+                                    <Car size={14} className="text-slate-400" />
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Sedan</span>
+                                  </div>
+                                  <span className="text-xs font-black text-amber-200">{carCostKm.toFixed(2)} <span className="text-[8px] opacity-50 ml-1">฿/KM</span></span>
+                                </div>
                               </div>
                             </div>
                           )}
-                        </React.Fragment>
+                        </div>
                       );
                     });
                   })()}
@@ -1994,7 +1990,7 @@ const IntentCard = ({ icon, title, subtitle, gradient, border, iconBg, iconColor
         <div className="flex items-center gap-3">
           <h3 className="text-2xl font-black tracking-tight text-white">{title}</h3>
           {isAi && (
-            <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter text-white shadow-lg shadow-indigo-500/30">
+            <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-tighter text-red-600 shadow-lg shadow-red-500/40">
               Guide agent
             </span>
           )}

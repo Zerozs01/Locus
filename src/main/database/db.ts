@@ -322,6 +322,38 @@ export function initDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_stats_region ON provinces_stats(region_id);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_provinces_stats_visitors ON provinces_stats(visitor_count DESC);`);
 
+  // ====== 16. Chat Conversations: ประวัติการสนทนา AI ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS chat_conversations (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      chat_context TEXT, -- JSON
+      last_context_key TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_updated ON chat_conversations(updated_at DESC);`);
+
+  // ====== 17. Chat Messages: ข้อความในการสนทนา ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      text TEXT NOT NULL,
+      sender TEXT NOT NULL, -- 'user' | 'bot'
+      timestamp TEXT NOT NULL,
+      sources TEXT, -- JSON
+      context_type TEXT, -- 'text' | 'graph' | 'map' | 'table'
+      context_data TEXT, -- JSON
+      status TEXT DEFAULT 'complete', -- 'complete' | 'pending' | 'error'
+      is_system INTEGER DEFAULT 0,
+      FOREIGN KEY(conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON chat_messages(conversation_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_messages_ts ON chat_messages(timestamp);`);
+
   // Indexes creation moved after column migrations to ensure columns exist
 
   // Migrations: ensure numeric columns exist for legacy DBs
@@ -2346,4 +2378,92 @@ export function getPopularProvinces(regionId?: string, limit = 100): ProvinceSta
     popularityFactors: row.popularity_factors ?? undefined,
     lastUpdated: row.last_updated
   }));
+}
+
+// ====== Chat System Storage ======
+
+export function saveChatConversation(id: string, title: string, chatContext: any, lastContextKey: string | null) {
+  const upsert = db.prepare(`
+    INSERT INTO chat_conversations (id, title, chat_context, last_context_key, updated_at)
+    VALUES (?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(id) DO UPDATE SET
+      title = excluded.title,
+      chat_context = excluded.chat_context,
+      last_context_key = excluded.last_context_key,
+      updated_at = datetime('now')
+  `);
+  upsert.run(id, title, JSON.stringify(chatContext), lastContextKey);
+}
+
+export function getChatConversations() {
+  const rows = db.prepare('SELECT * FROM chat_conversations ORDER BY updated_at DESC').all() as any[];
+  return rows.map(r => ({
+    id: r.id,
+    title: r.title,
+    chatContext: r.chat_context ? JSON.parse(r.chat_context) : null,
+    lastContextKey: r.last_context_key,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at
+  }));
+}
+
+export function getChatConversation(id: string) {
+  const row = db.prepare('SELECT * FROM chat_conversations WHERE id = ?').get(id) as any;
+  if (!row) return null;
+  return {
+    id: row.id,
+    title: row.title,
+    chatContext: row.chat_context ? JSON.parse(row.chat_context) : null,
+    lastContextKey: row.last_context_key,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+export function deleteChatConversation(id: string) {
+  db.prepare('DELETE FROM chat_conversations WHERE id = ?').run(id);
+}
+
+export function saveChatMessage(message: any) {
+  const upsert = db.prepare(`
+    INSERT INTO chat_messages (id, conversation_id, text, sender, timestamp, sources, context_type, context_data, status, is_system)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      text = excluded.text,
+      status = excluded.status,
+      context_type = excluded.context_type,
+      context_data = excluded.context_data
+  `);
+  upsert.run(
+    message.id,
+    message.conversationId,
+    message.text,
+    message.sender,
+    message.timestamp,
+    message.sources ? JSON.stringify(message.sources) : null,
+    message.contextType || null,
+    message.contextData ? JSON.stringify(message.contextData) : null,
+    message.status || 'complete',
+    message.isSystem ? 1 : 0
+  );
+}
+
+export function getChatMessages(conversationId: string) {
+  const rows = db.prepare('SELECT * FROM chat_messages WHERE conversation_id = ? ORDER BY timestamp ASC').all() as any[];
+  return rows.map(r => ({
+    id: r.id,
+    conversationId: r.conversation_id,
+    text: r.text,
+    sender: r.sender,
+    timestamp: r.timestamp,
+    sources: r.sources ? JSON.parse(r.sources) : [],
+    contextType: r.context_type,
+    contextData: r.context_data ? JSON.parse(r.context_data) : null,
+    status: r.status,
+    isSystem: r.is_system === 1
+  }));
+}
+
+export function deleteChatMessage(messageId: string) {
+  db.prepare('DELETE FROM chat_messages WHERE id = ?').run(messageId);
 }

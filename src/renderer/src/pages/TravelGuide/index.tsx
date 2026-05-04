@@ -18,18 +18,7 @@ import { provinceCoordinates } from '../../data/coordinates';
 import { getEcoEntities, expandEcoTags, type EcoEntity, type EcoTag } from './data/ecoDb';
 import { WeatherHistoryModal } from '../../components/WeatherHistoryModal';
 import { AQI_SYNC_EVENT } from '../../utils/aqi';
-type SupplyType = 'bank' | 'gas' | 'other';
-
-type TravelGuideNewsItem = {
-  id: string;
-  title: string;
-  source: string;
-  url: string;
-  publishedAt: string;
-  tag: string;
-  impact: 'low' | 'medium' | 'high';
-  summary: string;
-};
+import { fetchNews, openNewsLink, type NewsItem as TravelGuideNewsItem } from '../../utils/news';
 
 const getLocalDateKey = (date = new Date()) => {
   const year = date.getFullYear();
@@ -78,39 +67,6 @@ const formatRouteDeparture = (route: any) => {
   return `${normalized[0]}, ${normalized[1]} +${normalized.length - 2}`;
 };
 
-const resolveNewsEndpoint = async (): Promise<string> => {
-  if (window.api?.config?.get) {
-    try {
-      const config = await window.api.config.get();
-      if (config.news_api_url) {
-        const rawEndpoint = String(config.news_api_url).trim();
-        if (!rawEndpoint) return '';
-        try {
-          const endpointUrl = new URL(rawEndpoint, window.location.href);
-          if (endpointUrl.pathname === '/' || endpointUrl.pathname === '') {
-            endpointUrl.pathname = '/news';
-          }
-          return endpointUrl.toString();
-        } catch {
-          return rawEndpoint.replace(/\/?$/, '/news');
-        }
-      }
-    } catch {
-      return '';
-    }
-  }
-  const fallbackEndpoint = import.meta.env.VITE_NEWS_API_URL || '';
-  if (!fallbackEndpoint) return '';
-  try {
-    const endpointUrl = new URL(fallbackEndpoint, window.location.href);
-    if (endpointUrl.pathname === '/' || endpointUrl.pathname === '') {
-      endpointUrl.pathname = '/news';
-    }
-    return endpointUrl.toString();
-  } catch {
-    return fallbackEndpoint.replace(/\/?$/, '/news');
-  }
-};
 
 const transportTypeOrder = ['rail', 'bus', 'van', 'plane', 'boat', 'songthaew', 'tuk_tuk', 'bike', 'other'];
 const transportTypeLabels: Record<string, string> = {
@@ -1144,7 +1100,7 @@ export function TravelGuidePage() {
         id: `${selectedProvinceId}-news-4`,
         title: `หน่วยงานท้องถิ่นปรับแผนรับนักท่องเที่ยวช่วงเทศกาล`,
         source: 'Province News',
-        url: '',
+        url: 'https://news.google.com',
         publishedAt: mkDate(47),
         tag: 'การท่องเที่ยว',
         impact: 'low',
@@ -1154,7 +1110,7 @@ export function TravelGuidePage() {
         id: `${selectedProvinceId}-news-5`,
         title: `รายงานสถิติพื้นที่เสี่ยงในช่วง 3 เดือนที่ผ่านมา`,
         source: 'Province News',
-        url: '',
+        url: 'https://news.google.com',
         publishedAt: mkDate(91),
         tag: 'สถิติ',
         impact: 'medium',
@@ -1168,73 +1124,22 @@ export function TravelGuidePage() {
     setNewsBriefingError('');
 
     try {
-      let stories: TravelGuideNewsItem[] = [];
-      const endpoint = await resolveNewsEndpoint();
-
-      if (endpoint) {
-        const response = await fetch(endpoint, {
-          method: 'GET',
-          cache: forceSync ? 'no-store' : 'default',
-          headers: { 'Accept': 'application/json' }
-        });
-
-        if (!response.ok) {
-          throw new Error(`โหลดข่าวไม่สำเร็จ (${response.status})`);
-        }
-
-        const payload = await response.json();
-        const summaries = Array.isArray(payload) ? payload : [];
-
-        const provinceCandidates = new Set([
-          normalizeProvinceNewsId(selectedProvinceId),
-          normalizeProvinceNewsId(selectedProvinceName),
-          normalizeProvinceNewsId(displayName),
-        ]);
-
-        const matched = summaries.find((summary: any) => {
-          const id = normalizeProvinceNewsId(String(summary?.id || summary?.name || ''));
-          return provinceCandidates.has(id);
-        });
-
-        const sourceStories = Array.isArray(matched?.topStories)
-          ? matched.topStories
-          : [];
-
-        stories = sourceStories.map((story: any, index: number) => ({
-          id: String(story?.id || `${selectedProvinceId}-api-${index}`),
-          title: String(story?.title || 'ไม่มีหัวข้อข่าว'),
-          source: String(story?.source || 'News API'),
-          url: String(story?.url || ''),
-          publishedAt: String(story?.publishedAt || new Date().toISOString()),
-          tag: String(story?.tag || 'ทั่วไป'),
-          impact: (story?.impact === 'low' || story?.impact === 'medium' || story?.impact === 'high') ? story.impact : 'medium',
-          summary: String(story?.summary || story?.title || 'ไม่มีสรุปข่าว'),
-        }));
-      }
+      const provinceQuery = displayName || selectedProvinceName;
+      const data = await fetchNews(forceSync, provinceQuery);
+      
+      const stories = (data as any[]).map((item: any) => ({
+        ...item,
+        summary: item.summary || item.description || item.title || 'ไม่มีสรุปข่าว'
+      }));
 
       const fallbackStories = buildMockProvinceNews();
       const allStories = stories.length > 0 ? stories : fallbackStories;
 
-      const now = Date.now();
-      const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
-      const oneYearAgo = now - (365 * 24 * 60 * 60 * 1000);
-
-      const normalized = allStories
-        .map((item) => {
-          const time = new Date(item.publishedAt).getTime();
-          return { item, time: Number.isFinite(time) ? time : 0 };
-        })
-        .filter((entry) => entry.time >= oneYearAgo)
-        .sort((a, b) => b.time - a.time);
-
-      const weekSet = normalized.filter((entry) => entry.time >= sevenDaysAgo).map((entry) => entry.item);
-      const yearSet = normalized.map((entry) => entry.item);
-      const prioritized = (weekSet.length >= 2 ? weekSet : yearSet).slice(0, 5);
-
-      setNewsBriefings(prioritized.length > 0 ? prioritized : fallbackStories);
+      setNewsBriefings(allStories.slice(0, 5));
       setHasLoadedNewsBriefings(true);
       setNewsLastSyncedAt(new Date().toISOString());
     } catch (error: any) {
+      console.warn('[TravelGuide] Province news fetch failed', error);
       setNewsBriefings(buildMockProvinceNews());
       setHasLoadedNewsBriefings(true);
       setNewsLastSyncedAt(new Date().toISOString());
@@ -1242,7 +1147,7 @@ export function TravelGuidePage() {
     } finally {
       setIsLoadingNewsBriefings(false);
     }
-  }, [buildMockProvinceNews, displayName, normalizeProvinceNewsId, selectedProvinceId, selectedProvinceName]);
+  }, [buildMockProvinceNews, displayName, selectedProvinceName]);
 
   useEffect(() => {
     if (!isNewsPanelOpen || hasLoadedNewsBriefings || isLoadingNewsBriefings) return;
@@ -2128,7 +2033,7 @@ export function TravelGuidePage() {
               <div className="flex items-center justify-between pt-2">
                 <span className="text-[10px] text-slate-500">{newsDetailItem.source} • {new Date(newsDetailItem.publishedAt).toLocaleDateString('th-TH')}</span>
                 <button
-                  onClick={() => window.open(newsDetailItem.url, '_blank')}
+                  onClick={() => openNewsLink(newsDetailItem.url)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-bold hover:bg-sky-500/30 transition-all"
                 >
                   อ่านข่าวฉบับเต็ม <ExternalLink size={12} />

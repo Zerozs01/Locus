@@ -63,9 +63,9 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
   };
 
   const getScoreColor = (score: number): string => {
-    if (score >= 8.0) return 'text-emerald-400';
-    if (score >= 6.0) return 'text-cyan-400';
-    if (score >= 4.0) return 'text-amber-400';
+    if (score >= 8.0) return 'text-yellow-400';
+    if (score >= 6.0) return 'text-amber-400';
+    if (score >= 4.0) return 'text-orange-400';
     return 'text-gray-400';
   };
 
@@ -93,9 +93,9 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
             <button
               key={tf.id}
               onClick={() => setTimeframe(tf.id)}
-              className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${
+              className={`px-3 py-1.5 text-[11px] font-black rounded-md transition-all ${
                 timeframe === tf.id 
-                  ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.2)]' 
+                  ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' 
                   : 'text-zinc-600 hover:text-zinc-400'
               }`}
             >
@@ -125,13 +125,13 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
               <div key={place.id} className="flex flex-col gap-0.5">
                 <div
                   onClick={() => onClick?.(place)}
-                  className="group flex items-center gap-2 p-1.5 rounded-xl bg-zinc-900/40 hover:bg-zinc-800/60 border border-zinc-800/50 hover:border-cyan-500/30 transition-all cursor-pointer relative overflow-hidden"
+                  className="group flex items-center gap-2 p-1.5 rounded-xl bg-zinc-900/40 hover:bg-zinc-800/60 border border-zinc-800/50 hover:border-yellow-500/30 transition-all cursor-pointer relative overflow-hidden"
                 >
                   {/* Glow Effect on Hover */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/0 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/0 via-yellow-500/0 to-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                   {/* Rank Badge */}
-                  <div className="flex items-center justify-center w-7 h-7 shrink-0 rounded-lg bg-zinc-800 border border-zinc-700 text-[10px] font-black text-zinc-400 group-hover:text-cyan-400 group-hover:border-cyan-500/40 transition-colors">
+                  <div className="flex items-center justify-center w-7 h-7 shrink-0 rounded-lg bg-zinc-800 border border-zinc-700 text-[10px] font-black text-zinc-400 group-hover:text-yellow-400 group-hover:border-yellow-500/40 transition-colors">
                     {idx + 1}
                   </div>
 
@@ -158,7 +158,7 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
                       </h4>
                       {place.isTrending && (
                         <div className="flex items-center shrink-0">
-                          <Sparkles size={10} className="text-cyan-400 animate-pulse" />
+                          <Sparkles size={10} className="text-yellow-400 animate-pulse" />
                         </div>
                       )}
                     </div>
@@ -204,7 +204,7 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
                       e.stopPropagation();
                       setExpandedPlaceId(expandedPlaceId === place.id ? null : place.id);
                     }}
-                    className="flex flex-col items-center justify-center shrink-0 z-10 bg-zinc-900/60 w-12 h-12 rounded-lg border border-zinc-800/80 group-hover:border-cyan-500/20 group-hover:bg-cyan-500/5 transition-all cursor-help"
+                    className="flex flex-col items-center justify-center shrink-0 z-10 bg-zinc-900/60 w-12 h-12 rounded-lg border border-zinc-800/80 group-hover:border-yellow-500/20 group-hover:bg-yellow-500/5 transition-all cursor-help"
                   >
                     <div className={`text-base font-black leading-none ${getScoreColor(place.trendingScore)}`}>
                       {formatScore(place.trendingScore)}

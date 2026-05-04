@@ -198,7 +198,6 @@ export const ThailandMap = memo(({
           zoom={zoom}
           minZoom={1}
           maxZoom={8}
-          transitionDuration={400}
         >
           <Geographies geography={thailandGeo}>
             {({ geographies }: { geographies: Array<{ rsmKey: string; properties: { name: string } }> }) => {

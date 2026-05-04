@@ -225,9 +225,9 @@ const mobilityByRegion: Record<string, MobilityStatProps> = {
 
 const getStabilityProps = (safetyScore?: number): StabilityStatProps => {
   const score = typeof safetyScore === 'number' && Number.isFinite(safetyScore) ? safetyScore : 80;
-  if (score >= 88) return { value: `${score}%`, label: 'เสถียร', tone: 'stable' };
-  if (score >= 80) return { value: `${score}%`, label: 'เฝ้าระวัง', tone: 'watch' };
-  return { value: `${score}%`, label: 'ผันผวน', tone: 'volatile' };
+  if (score >= 80) return { value: `${score}%`, label: 'เสถียร', tone: 'stable' };
+  if (score >= 50) return { value: `${score}%`, label: 'เฝ้าระวัง', tone: 'watch' };
+  return { value: `${score}%`, label: 'วิกฤต', tone: 'volatile' };
 };
 
 const normalizeWeatherProvinceId = (id: string) => {
@@ -335,7 +335,7 @@ export const RegionDashboard = memo(({
             nextRows = dbRows
               .filter((r: any) => r && typeof r.provinceId === 'string')
               .map((r: any) => ({
-                provinceId: r.provinceId,
+                provinceId: normalizeWeatherProvinceId(r.provinceId),
                 date: typeof r.date === 'string' ? r.date : '',
                 temperature: Number(r.temperature),
                 aqi: Number(r.aqi)
@@ -346,16 +346,43 @@ export const RegionDashboard = memo(({
         // Use csvDb fallback when IPC/SQLite is unavailable.
       }
 
+      const fallbackRows = getRecords().map((r) => ({
+        provinceId: normalizeWeatherProvinceId(r.id),
+        date: r.date,
+        temperature: r.temperature,
+        aqi: r.aqi
+      }));
+
       if (nextRows.length === 0) {
-        nextRows = getRecords().map((r) => ({
-          provinceId: r.id,
-          date: r.date,
-          temperature: r.temperature,
-          aqi: r.aqi
-        }));
+        nextRows = fallbackRows;
+      } else if (fallbackRows.length > 0) {
+        const merged = new Map<string, WeatherAqiRow>();
+        const mergeRow = (row: WeatherAqiRow) => {
+          const key = `${row.provinceId}|${row.date}`;
+          const existing = merged.get(key);
+          if (!existing) {
+            merged.set(key, row);
+            return;
+          }
+          const rowAqi = Number.isFinite(row.aqi) ? row.aqi : NaN;
+          const existingAqi = Number.isFinite(existing.aqi) ? existing.aqi : NaN;
+          if (!Number.isFinite(existingAqi) && Number.isFinite(rowAqi)) {
+            merged.set(key, row);
+            return;
+          }
+          if (existingAqi === 50 && Number.isFinite(rowAqi) && rowAqi !== 50) {
+            merged.set(key, row);
+            return;
+          }
+        };
+
+        nextRows.forEach(mergeRow);
+        fallbackRows.forEach(mergeRow);
+        nextRows = Array.from(merged.values());
       }
 
       if (!cancelled) {
+        console.debug('[RegionDashboard] syncWeatherRows -> nextRows.length:', nextRows.length, 'sample:', nextRows.slice(0,5));
         setWeatherRows(nextRows);
       }
     };
@@ -433,7 +460,10 @@ export const RegionDashboard = memo(({
     const result: Record<string, number> = {};
     grouped.forEach((records, provinceId) => {
       const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
-      const preferred = sorted.find((item) => item.date === todayStr)
+      // Prefer non-default values (aqi !== 50) to avoid stale 50 defaults from failed syncs
+      const preferred = sorted.find((item) => item.date === todayStr && item.aqi !== 50)
+        || sorted.find((item) => item.aqi !== 50 && item.date <= todayStr)
+        || sorted.find((item) => item.date === todayStr)
         || sorted.find((item) => item.date <= todayStr)
         || sorted[0];
       if (preferred) {
@@ -471,6 +501,22 @@ export const RegionDashboard = memo(({
     });
     return map;
   }, [provinceIndex]);
+
+  const effectiveProvinceIdsByRegion = useMemo(() => {
+    const map = new Map<string, string[]>();
+
+    for (const reg of regions) {
+      const fromIndex = provinceIdsByRegion.get(reg.id) || [];
+      const fromDynamic = (reg.subProvinces || []).map((p) => normalizeWeatherProvinceId(p.id));
+      const fromStatic = (regionsData.find((r) => r.id === reg.id)?.subProvinces || [])
+        .map((p) => normalizeWeatherProvinceId(p.id));
+
+      const merged = Array.from(new Set([...fromIndex, ...fromDynamic, ...fromStatic]));
+      map.set(reg.id, merged);
+    }
+
+    return map;
+  }, [regions, provinceIdsByRegion]);
 
   const aqiModalProvincesByRegion = useMemo(() => {
     const map = new Map<string, AQIProvinceItem[]>();
@@ -586,31 +632,54 @@ export const RegionDashboard = memo(({
 
   const pm25ByRegion = useMemo(() => {
     const map = new Map<string, { value: string; sub: string }>();
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     for (const reg of orderedRegions) {
-      let provinceIds = provinceIdsByRegion.get(reg.id);
-      if (!provinceIds || provinceIds.length === 0) {
-        let provinces = reg.subProvinces;
-        if (!provinces || provinces.length === 0) {
-          provinces = regionsData.find((r) => r.id === reg.id)?.subProvinces || [];
-        }
-        provinceIds = provinces.map((p) => normalizeWeatherProvinceId(p.id));
-      }
+      const provinceIds = effectiveProvinceIdsByRegion.get(reg.id) || [];
 
-      const values = provinceIds
-        .map((id) => latestAqiByProvince[normalizeWeatherProvinceId(id)])
+      // Only include values from TODAY to ensure the average is live and not skewed by stale fallbacks
+      const todayValues = provinceIds
+        .map((id) => {
+          const provId = normalizeWeatherProvinceId(id);
+          const records = weatherRows.filter(r => normalizeWeatherProvinceId(r.provinceId) === provId && r.date === todayStr);
+          if (records.length > 0) {
+            const latest = [...records].sort((a, b) => b.date.localeCompare(a.date))[0];
+            return latest.aqi;
+          }
+          return null;
+        })
         .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
 
-      if (values.length > 0) {
-        const avg = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+      if (todayValues.length > 0) {
+        const avg = Math.round(todayValues.reduce((sum, value) => sum + value, 0) / todayValues.length);
         map.set(reg.id, { value: `${avg} AQI`, sub: getAqiLevelSub(avg) });
       } else {
-        map.set(reg.id, getFallbackPM25Stat(reg.id));
+        // Fallback to latest available if no data for today exists
+        const allValues = provinceIds
+          .map((id) => latestAqiByProvince[normalizeWeatherProvinceId(id)])
+          .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+
+        if (allValues.length > 0) {
+          const avg = Math.round(allValues.reduce((sum, value) => sum + value, 0) / allValues.length);
+          map.set(reg.id, { value: `${avg} AQI`, sub: getAqiLevelSub(avg) });
+        } else {
+          map.set(reg.id, getFallbackPM25Stat(reg.id));
+        }
       }
     }
 
     return map;
-  }, [latestAqiByProvince, orderedRegions, provinceIdsByRegion]);
+  }, [effectiveProvinceIdsByRegion, latestAqiByProvince, orderedRegions]);
+
+  // Debug: log latest AQI mapping and per-region computed PM2.5 when weatherRows change
+  useEffect(() => {
+    try {
+      console.debug('[RegionDashboard] weatherRows:', weatherRows.length, 'latestAqiByProvince:', latestAqiByProvince, 'pm25ByRegion:', Array.from(pm25ByRegion.entries()));
+    } catch (e) {
+      console.debug('[RegionDashboard] debug log failed', e);
+    }
+  }, [weatherRows, latestAqiByProvince]);
 
   const latestTemperatureByProvince = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -696,6 +765,7 @@ export const RegionDashboard = memo(({
         const nowTs = Date.now();
     const lastSyncTs = Number(localStorage.getItem(AQI_SYNC_TIMESTAMP_KEY) || 0);
     if (lastSyncTs > 0 && nowTs - lastSyncTs < AQI_SYNC_COOLDOWN_MS) {
+      console.info('[RegionDashboard] AQI auto-sync skipped because cooldown is still active');
       return;
     }
 
@@ -705,7 +775,12 @@ export const RegionDashboard = memo(({
     const conf = await api.config.get().catch(() => null);
     const provider = (conf?.aqi_provider || 'openweather') as 'openweather' | 'aqicn';
     const apiKey = provider === 'aqicn' ? conf?.aqicn : conf?.openweather;
-    if (!apiKey) return;
+    if (!apiKey) {
+      console.warn('[RegionDashboard] AQI auto-sync skipped because API key is missing');
+      return;
+    }
+
+    console.info('[RegionDashboard] Starting AQI auto-sync', { provider, provinces: provinceIndex.length || regions.reduce((sum, region) => sum + (region.subProvinces?.length || 0), 0) });
 
     const provinceMap = new Map<string, AQIProvinceItem>();
     if (provinceIndex.length > 0) {
@@ -785,7 +860,7 @@ export const RegionDashboard = memo(({
     try {
       for (const province of allProvinces) {
         const cleanName = province.name.replace(' Metropolis', '').replace(' (Pattaya)', '').trim();
-        let aqiVal = latestAqiSnapshot.get(province.id) ?? 50;
+        let aqiVal: number | null = latestAqiSnapshot.get(province.id) ?? null;
         let success = false;
         let resolvedTemp = latestTempSnapshot.get(province.id);
 
@@ -819,8 +894,11 @@ export const RegionDashboard = memo(({
             if (aqiData && aqiData.list && aqiData.list[0]) {
               const pm25 = aqiData.list[0].components.pm2_5;
               if (pm25 != null) {
-                aqiVal = pm25ToAqi(pm25);
-                success = true;
+                const convertedAqi = pm25ToAqi(pm25);
+                if (convertedAqi !== null) {
+                  aqiVal = convertedAqi;
+                  success = true;
+                }
               }
             } else {
               success = false;
@@ -839,7 +917,7 @@ export const RegionDashboard = memo(({
           success = false;
         }
 
-        if (success) {
+        if (success && aqiVal !== null) {
           const temperature = Number.isFinite(resolvedTemp) ? Number(resolvedTemp) : 30;
           const row = { provinceId: province.id, date: todayStr, temperature, aqi: aqiVal };
           syncedRows.push(row);
@@ -952,19 +1030,20 @@ export const RegionDashboard = memo(({
           const todayStr = getLocalDateKey();
           const todayAqi = dateStr === todayStr ? aqiByProvinceDate.get(`${provinceKey}|${todayStr}`) : undefined;
           const existingAqi = aqiByProvinceDate.get(`${provinceKey}|${dateStr}`);
-          const fallbackAqi = latestAqiByProvince.get(provinceKey) ?? 50;
-          const aqiVal = todayAqi ?? existingAqi ?? fallbackAqi;
+          const latestKnownAqi = latestAqiByProvince.get(provinceKey);
+          const aqiVal = todayAqi ?? existingAqi ?? latestKnownAqi;
           
-          // Only save forecast if we have a valid AQI or if we want to preserve old one.
-          // CRITICAL: If aqiVal is 50 (default) and we are creating a future record, 
-          // it might overshadow tomorrow's real sync. 
-          // We only save if we have a legitimate source or if it's today's record.
-          const isDefault = aqiVal === 50 && !todayAqi && !existingAqi;
-          
-          if (!isDefault || dateStr === todayStr) {
+          // Never write a synthetic AQI 50 into the DB. If we do not have a real AQI,
+          // skip the row entirely so the UI does not reset back to a fake moderate value.
+          if (Number.isFinite(aqiVal as number)) {
             const row = { provinceId: province.id, date: dateStr, temperature: avgTemp, aqi: aqiVal };
             syncedRows.push(row);
             saveRecord({ id: row.provinceId, date: row.date, temperature: row.temperature, aqi: row.aqi });
+          } else {
+            console.info('[RegionDashboard] Skipping forecast AQI save because no real AQI is available', {
+              provinceId: province.id,
+              date: dateStr
+            });
           }
         });
       } catch { /* skip province */ }
@@ -1012,7 +1091,8 @@ export const RegionDashboard = memo(({
         provinces = regionsData.find((r) => r.id === reg.id)?.subProvinces || [];
       }
 
-      const provIds = provinces.map((p) => normalizeWeatherProvinceId(p.id));
+      const provIds = effectiveProvinceIdsByRegion.get(reg.id)
+        || provinces.map((p) => normalizeWeatherProvinceId(p.id));
       const liveAqi: Record<string, number> = {};
       const liveTemp: Record<string, number> = {};
 
@@ -1027,7 +1107,7 @@ export const RegionDashboard = memo(({
       map.set(reg.id, result);
     }
     return map;
-  }, [orderedRegions, latestAqiByProvince, latestTemperatureByProvince]);
+  }, [effectiveProvinceIdsByRegion, orderedRegions, latestAqiByProvince, latestTemperatureByProvince]);
 
   useEffect(() => {
     if (onSafetyDataChange) {

@@ -14,12 +14,31 @@ interface SidebarBtnProps {
 const SidebarBtn = ({ icon, label, active, onClick }: SidebarBtnProps) => (
   <button 
     onClick={onClick}
-    className={`w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200 relative group mb-2
-      ${active ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-slate-500 hover:bg-white/5 hover:text-slate-200'}`}
+    className={`w-full flex items-center justify-center p-3 rounded-xl transition-all duration-300 relative group mb-2 overflow-hidden
+      ${active 
+        ? 'text-white shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/20' 
+        : 'text-slate-500 hover:bg-white/5 hover:text-slate-200 border border-transparent'}`}
     title={label}
   >
-    <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</div>
-    {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-cyan-500 rounded-r-full shadow-[0_0_10px_#06b6d4]"></div>}
+    {active && (
+      <>
+        {/* Subtle Gray/Slate Gradient Base */}
+        <div 
+          className="absolute inset-0 bg-gradient-to-br from-slate-600/40 via-slate-700/40 to-slate-800/60"
+        />
+        {/* Glassmorphism Overlay */}
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-sm" />
+      </>
+    )}
+    
+    <div className={`relative z-10 transition-all duration-300 ${active ? 'scale-110' : 'group-hover:scale-110 opacity-70 group-hover:opacity-100'}`}>
+      {icon}
+    </div>
+
+    {/* Subtle Inner Glow */}
+    {active && (
+      <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none" />
+    )}
   </button>
 );
 

@@ -194,7 +194,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
             const cleanName = prov.name.replace(' Metropolis', '').replace(' (Pattaya)', '').trim();
             console.log(`[AQI Modal] Fetching for ${cleanName} (${prov.id})...`);
             
-            let aqiVal = 50;
+            let aqiVal: number | null = null;
             let success = false;
             let resolvedTemp = latestTempByProvince.get(prov.id);
             const existingTodayTemp = weatherRows.find(
@@ -231,9 +231,11 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
                 const pm25 = aqiData.list[0].components.pm2_5;
                 if (pm25 != null) {
                   aqiVal = pm25ToAqi(pm25);
+                  if (aqiVal !== null) {
+                    success = true;
+                    console.log(`[AQI Modal] OpenWeather ${prov.id} => PM2.5=${pm25}, AQI=${aqiVal}`);
+                  }
                 }
-                success = true;
-                console.log(`[AQI Modal] OpenWeather ${prov.id} => PM2.5=${pm25}, AQI=${aqiVal}`);
               }
 
               if (!Number.isFinite(resolvedTemp)) {
@@ -246,7 +248,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
               }
             }
 
-            if (success) {
+            if (success && aqiVal !== null) {
               const temperatureToStore = Number.isFinite(resolvedTemp) ? Number(resolvedTemp) : 30;
 
               saveRecord({
@@ -274,15 +276,18 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
         try {
           const api = (window as any).api;
           if (api?.db?.saveWeatherAqi && syncedRows.length > 0) {
-            await api.db.saveWeatherAqi(syncedRows);
+            const saved = await api.db.saveWeatherAqi(syncedRows);
             console.log(`[AQI Modal] Persisted ${syncedRows.length} records to SQLite DB.`);
+            console.debug('[AQI Modal] persisted rows:', syncedRows.slice(0, 10), 'savedCountOrResult:', saved);
+            try { window.dispatchEvent(new Event(AQI_SYNC_EVENT)); } catch(e) { /* best-effort */ }
+            // Also keep legacy custom event for other listeners
+            window.dispatchEvent(new CustomEvent('locus:weather-aqi-updated', { detail: { source: 'aqi-modal' } }));
           }
         } catch (dbErr) {
           console.warn('[AQI Modal] Failed to persist to DB:', dbErr);
         }
 
-                await loadWeatherRows();
-        window.dispatchEvent(new CustomEvent('locus:weather-aqi-updated', { detail: { source: 'aqi-modal' } }));
+        await loadWeatherRows();
 
       } catch (e) {
         console.error('[AQI Modal] Batch sync failed', e);
@@ -318,17 +323,25 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
       const records = groupedByProvince.get(province.id) || [];
       const todayRecord = records.find((record) => record.date === todayStr);
       const sortedRecords = [...records].sort((a, b) => b.date.localeCompare(a.date));
-      const latestPastRecord = sortedRecords.find((record) => record.date <= todayStr);
+      const latestPastRecord = sortedRecords.find((record) => record.date < todayStr);
       const latestRecord = sortedRecords[0];
-            const resolved = todayRecord || latestPastRecord || latestRecord;
-      const aqi = resolved && Number.isFinite(resolved.aqi) ? Math.round(resolved.aqi) : 50;
+      
+      // For the display list, we prefer today, then latest past.
+      const resolved = todayRecord || latestPastRecord || latestRecord;
+      const aqi = resolved && Number.isFinite(resolved.aqi) ? Math.round(resolved.aqi) : null;
+
+      if (aqi === null) {
+        return null;
+      }
 
       return {
         ...province,
         aqi,
-        level: getAqiLevel(aqi)
+        level: getAqiLevel(aqi),
+        isToday: !!todayRecord,
+        date: resolved?.date
       };
-    });
+    }).filter((item): item is { id: string; name: string; aqi: number; level: ReturnType<typeof getAqiLevel>; isToday: boolean; date: string } => item !== null);
 
     return data.sort((a, b) => b.aqi - a.aqi);
   }, [isOpen, resolvedProvinces, syncCount, weatherRows]);
@@ -338,12 +351,24 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
     if (!isOpen || aqiDataList.length === 0) return null;
     const provIds = new Set(resolvedProvinces.map((province) => province.id));
     const today = new Date();
+    const todayStr = getLocalDateKey(today);
 
-    // Today's stats
-    const todayAqis = aqiDataList.map(d => d.aqi);
+    // Today's stats — ONLY use data from TODAY to avoid stale fallbacks skewing the average
+    const todayData = aqiDataList.filter(d => d.isToday);
+    
+    if (todayData.length === 0) {
+      // Fallback to latest available if no today data exists at all
+      const latestAqis = aqiDataList.map(d => d.aqi);
+      const avg = Math.round(latestAqis.reduce((a, b) => a + b, 0) / latestAqis.length);
+      const worst = aqiDataList[0];
+      const best = aqiDataList[aqiDataList.length - 1];
+      return { avg, worst, best, trend: [], avgLevel: getAqiLevel(avg), isLive: false };
+    }
+
+    const todayAqis = todayData.map(d => d.aqi);
     const avg = Math.round(todayAqis.reduce((a, b) => a + b, 0) / todayAqis.length);
-    const worst = aqiDataList[0];
-    const best = aqiDataList[aqiDataList.length - 1];
+    const worst = [...todayData].sort((a, b) => b.aqi - a.aqi)[0];
+    const best = [...todayData].sort((a, b) => a.aqi - b.aqi)[0];
 
     // 7-day trend (past 6 days + today)
     const trend: { date: string; displayDate: string; avg: number; isToday: boolean }[] = [];
@@ -364,7 +389,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
         isToday: i === 0,
       });
     }
-    return { avg, worst, best, trend, avgLevel: getAqiLevel(avg) };
+    return { avg, worst, best, trend, avgLevel: getAqiLevel(avg), isLive: true };
   }, [isOpen, aqiDataList, resolvedProvinces, syncCount, weatherRows]);
 
   const filteredData = useMemo(() => {
@@ -426,7 +451,9 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
             <div className="grid grid-cols-3 gap-3 mb-4">
               {/* Average */}
               <div className={`rounded-xl p-3 border ${regionSummary.avgLevel.bg} border-white/5`}>
-                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 flex items-center gap-1"><BarChart3 size={10} /> Regional Avg</div>
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 flex items-center gap-1">
+                  <BarChart3 size={10} /> {regionSummary.isLive ? 'Regional Avg (Live)' : 'Regional Avg (Last Known)'}
+                </div>
                 <div className="text-2xl font-black" style={{ color: regionSummary.avgLevel.color }}>{regionSummary.avg}</div>
                 <div className="text-[10px] mt-0.5" style={{ color: regionSummary.avgLevel.color }}>{regionSummary.avgLevel.label}</div>
               </div>
@@ -494,6 +521,7 @@ export const AQIModal = ({ isOpen, onClose, regionName, provinces }: AQIModalPro
                     <span className="text-xs text-slate-500 mr-1.5">{idx + 1}.</span>{item.name}
                   </span>
                   <div className="flex items-center gap-2">
+                    {!item.isToday && <span className="text-[8px] text-slate-500 uppercase font-bold">Stale ({item.date.split('-').slice(1).join('/')})</span>}
                     <span className="text-[10px] px-1.5 py-0.5 rounded font-bold" style={{ color: item.level.color, backgroundColor: item.level.color + '15' }}>{item.level.label}</span>
                     <span className="font-black w-10 text-right font-mono" style={{ color: item.level.color }}>{item.aqi}</span>
                   </div>

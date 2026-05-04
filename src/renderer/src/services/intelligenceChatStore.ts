@@ -144,64 +144,73 @@ const migrateLegacyState = (legacyState: LegacyChatStoreState): ChatStoreState =
   }
 }
 
-const loadInitialState = (): ChatStoreState => {
-  if (typeof window === 'undefined') {
-    return { conversations: [], activeConversationId: null }
-  }
+let state: ChatStoreState = { conversations: [], activeConversationId: null }
+let isInitialized = false
 
+const initStore = async () => {
+  if (isInitialized || typeof window === 'undefined' || !window.api?.chat) return
+  
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<ChatStoreState>
-      const conversations = sortConversations(
-        (parsed.conversations || []).map((conversation) => ({
-          ...conversation,
-          messages: withRecoveredPendingMessages(conversation.messages || []),
-          chatContext: conversation.chatContext || null,
-          lastContextKey: conversation.lastContextKey || null,
-          title: conversation.title || deriveConversationTitle(conversation),
-          createdAt: conversation.createdAt || new Date().toISOString(),
-          updatedAt: conversation.updatedAt || conversation.createdAt || new Date().toISOString()
-        }))
+    const dbConversations = await window.api.chat.getConversations()
+    if (dbConversations && dbConversations.length > 0) {
+      const conversationsWithMessages = await Promise.all(
+        dbConversations.map(async (conv: any) => {
+          const messages = await window.api.chat.getMessages(conv.id)
+          return {
+            ...conv,
+            messages: withRecoveredPendingMessages(messages)
+          }
+        })
       )
-
-      const activeConversationId = conversations.some((conversation) => conversation.id === parsed.activeConversationId)
-        ? parsed.activeConversationId || null
-        : conversations[0]?.id || null
-
-      return { conversations, activeConversationId }
+      
+      const sorted = sortConversations(conversationsWithMessages)
+      state = {
+        conversations: sorted,
+        activeConversationId: sorted[0]?.id || null
+      }
+    } else {
+      // Try migrating from legacy localStorage if SQLite is empty
+      const raw = window.localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as ChatStoreState
+        state = parsed
+        // Save to SQLite
+        for (const conv of parsed.conversations) {
+          await window.api.chat.saveConversation(conv.id, conv.title, conv.chatContext, conv.lastContextKey)
+          for (const msg of conv.messages) {
+            await window.api.chat.saveMessage({ ...msg, conversationId: conv.id })
+          }
+        }
+        // window.localStorage.removeItem(STORAGE_KEY) // Optional: keep as backup for now
+      }
     }
-
-    for (const legacyKey of LEGACY_STORAGE_KEYS) {
-      const legacyRaw = window.localStorage.getItem(legacyKey)
-      if (!legacyRaw) continue
-
-      const migrated = migrateLegacyState(JSON.parse(legacyRaw) as LegacyChatStoreState)
-      window.localStorage.removeItem(legacyKey)
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
-      return migrated
-    }
-
-    return { conversations: [], activeConversationId: null }
-  } catch {
-    return { conversations: [], activeConversationId: null }
+  } catch (error) {
+    console.error('[IntelligenceStore] Failed to init from SQLite:', error)
+  } finally {
+    isInitialized = true
+    emit()
   }
 }
 
-let state = loadInitialState()
+// Start initialization
+if (typeof window !== 'undefined') {
+  initStore()
+}
 
-const persistState = () => {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+const persistState = async (updatedState: ChatStoreState) => {
+  if (typeof window === 'undefined' || !window.api?.chat) return
+  
+  // In a real app, we might want to only save the changed parts.
+  // For simplicity, we'll save the active conversation or newly added items.
 }
 
 const emit = () => {
-  persistState()
   listeners.forEach((listener) => listener())
 }
 
 const setState = (updater: (current: ChatStoreState) => ChatStoreState) => {
-  state = updater(state)
+  const nextState = updater(state)
+  state = nextState
   emit()
 }
 
@@ -350,6 +359,7 @@ export const intelligenceChatStore = {
       conversations: sortConversations([conversation, ...current.conversations]),
       activeConversationId: conversation.id
     }))
+    window.api.chat?.saveConversation(conversation.id, conversation.title, conversation.chatContext, conversation.lastContextKey)
     return conversation.id
   },
   setActiveConversation(conversationId: string) {
@@ -371,6 +381,7 @@ export const intelligenceChatStore = {
         activeConversationId
       }
     })
+    window.api.chat?.deleteConversation(conversationId)
   },
   setChatContext(context: ChatContext | null) {
     if (!context) {
@@ -439,6 +450,7 @@ export const intelligenceChatStore = {
       updatedAt: new Date().toISOString(),
       messages: conversation.messages.filter(m => m.id !== messageId)
     }));
+    window.api.chat?.deleteChatMessage(messageId)
   },
   resubmitMessage(messageId: string, newText: string, routeContext?: RouteContext) {
     const trimmed = newText.trim();
@@ -490,6 +502,10 @@ export const intelligenceChatStore = {
 
     (async () => {
       try {
+        // Save user message to SQLite
+        window.api.chat?.saveMessage({ ...userMessage, conversationId });
+        window.api.chat?.saveMessage({ ...pendingReply, conversationId });
+
         const fuelPrices = await getFuelPricesPayload();
         const currentConv = getSnapshot().conversations.find(c => c.id === conversationId);
         const locPayload = buildLocationPayload(currentConv?.chatContext || null);
@@ -502,27 +518,32 @@ export const intelligenceChatStore = {
           routeContext
         );
 
+        const updatedBotMessage = { ...pendingReply, text: responseText, status: 'complete' as const };
+        
         updateConversation(conversationId, (conversation) => ({
           ...conversation,
           updatedAt: new Date().toISOString(),
           messages: conversation.messages.map((message) =>
-            message.id === pendingReply.id
-              ? { ...message, text: responseText, status: 'complete' }
-              : message
+            message.id === pendingReply.id ? updatedBotMessage : message
           )
         }));
+
+        window.api.chat?.saveMessage({ ...updatedBotMessage, conversationId });
+        window.api.chat?.saveConversation(conversationId, currentConv?.title || 'Chat', currentConv?.chatContext || null, currentConv?.lastContextKey || null);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'ไม่สามารถเชื่อมต่อ Agent ได้';
+        const errorBotMessage = { ...pendingReply, text: `❌ ${errorMessage}`, status: 'error' as const };
+        
         updateConversation(conversationId, (conversation) => ({
           ...conversation,
           updatedAt: new Date().toISOString(),
           messages: conversation.messages.map((message) =>
-            message.id === pendingReply.id
-              ? { ...message, text: `❌ ${errorMessage}`, status: 'error' }
-              : message
+            message.id === pendingReply.id ? errorBotMessage : message
           )
         }));
+        
+        window.api.chat?.saveMessage({ ...errorBotMessage, conversationId });
       }
     })()
   },
@@ -564,21 +585,48 @@ export const intelligenceChatStore = {
       }
     })
 
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
+      const conv = getSnapshot().conversations.find(c => c.id === conversationId)
+      if (!conv) return
+
+      const analyzedMessages = conv.messages.map((message) =>
+        message.status === 'pending' && message.id.startsWith('file-analysis')
+          ? {
+              ...message,
+              status: 'complete' as const,
+              contextType: 'text' as const
+            }
+          : message
+      )
+
       updateConversation(conversationId, (conversation) => ({
         ...conversation,
         updatedAt: new Date().toISOString(),
-        messages: conversation.messages.map((message) =>
-          message.status === 'pending' && message.id.startsWith('file-analysis')
-            ? {
-                ...message,
-                status: 'complete',
-                contextType: 'text'
-              }
-            : message
-        )
+        messages: analyzedMessages
       }))
+
+      // Persist analysis results
+      const botMsg = analyzedMessages.find(m => m.id.startsWith('file-analysis'))
+      if (botMsg) {
+        window.api.chat?.saveMessage({ ...botMsg, conversationId })
+      }
     }, 1000)
+  },
+  renameConversation(conversationId: string, newTitle: string) {
+    const trimmed = newTitle.trim()
+    if (!trimmed) return
+
+    const truncatedTitle = truncate(trimmed)
+    updateConversation(conversationId, (conversation) => ({
+      ...conversation,
+      title: truncatedTitle,
+      updatedAt: new Date().toISOString()
+    }))
+
+    const conv = state.conversations.find(c => c.id === conversationId)
+    if (conv) {
+      window.api.chat?.saveConversation(conversationId, truncatedTitle, conv.chatContext, conv.lastContextKey)
+    }
   },
   sendMessage(userText: string, options?: { systemContext?: string, routeContext?: RouteContext }) {
     const trimmed = userText.trim()
@@ -631,6 +679,10 @@ export const intelligenceChatStore = {
 
     const executeSend = async () => {
       try {
+        // Save initial messages to SQLite
+        window.api.chat?.saveMessage({ ...userMessage, conversationId });
+        window.api.chat?.saveMessage({ ...pendingReply, conversationId });
+
         // Resolve all situational data BEFORE sending
         const fuelPrices = await getFuelPricesPayload();
         const currentConv = getSnapshot().conversations.find(c => c.id === conversationId);
@@ -645,38 +697,44 @@ export const intelligenceChatStore = {
           options?.routeContext
         );
         
+        const updatedBotMessage = {
+          ...pendingReply,
+          text: responseText,
+          status: 'complete' as const,
+          sources: createSources(),
+          contextType: determineContextType(trimmed),
+          contextData: generateMockContextData(trimmed)
+        };
+
         updateConversation(conversationId, (conversation) => ({
           ...conversation,
           updatedAt: new Date().toISOString(),
           messages: conversation.messages.map((message) =>
-            message.id === pendingReply.id
-              ? {
-                  ...message,
-                  text: responseText,
-                  status: 'complete',
-                  sources: createSources(),
-                  contextType: determineContextType(trimmed),
-                  contextData: generateMockContextData(trimmed)
-                }
-              : message
+            message.id === pendingReply.id ? updatedBotMessage : message
           )
         }))
+
+        // Persist final state
+        window.api.chat?.saveMessage({ ...updatedBotMessage, conversationId });
+        window.api.chat?.saveConversation(conversationId, currentConv?.title || 'Chat', currentConv?.chatContext || null, currentConv?.lastContextKey || null);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'ไม่สามารถเชื่อมต่อ Agent ได้ กรุณาตรวจสอบการเชื่อมต่อ n8n และ Ngrok'
+        const errorBotMessage = {
+          ...pendingReply,
+          text: `❌ ${errorMessage}`,
+          status: 'error' as const
+        };
+
         updateConversation(conversationId, (conversation) => ({
           ...conversation,
           updatedAt: new Date().toISOString(),
           messages: conversation.messages.map((message) =>
-            message.id === pendingReply.id
-              ? {
-                  ...message,
-                  text: `❌ ${errorMessage}`,
-                  status: 'error'
-                }
-              : message
+            message.id === pendingReply.id ? errorBotMessage : message
           )
         }))
+
+        window.api.chat?.saveMessage({ ...errorBotMessage, conversationId });
       }
     }
 
@@ -684,7 +742,7 @@ export const intelligenceChatStore = {
   }
 }
 
-export const useIntelligenceChatStore = () => {
+export const useIntelligenceChatStore = (searchQuery = '') => {
   const snapshot = useSyncExternalStore(
     intelligenceChatStore.subscribe,
     intelligenceChatStore.getSnapshot,
@@ -692,14 +750,22 @@ export const useIntelligenceChatStore = () => {
   )
 
   const activeConversation = getActiveConversation(snapshot)
-  const recentChats: RecentChatSummary[] = sortConversations(snapshot.conversations).map((conversation) => ({
-    id: conversation.id,
-    title: conversation.title,
-    preview: getLatestPreview(conversation.messages),
-    updatedAt: conversation.updatedAt,
-    contextName: conversation.chatContext?.name || null,
-    isPending: conversation.messages.some((message) => message.status === 'pending')
-  }))
+  const normalizedQuery = searchQuery.trim().toLowerCase()
+  
+  const recentChats: RecentChatSummary[] = sortConversations(snapshot.conversations)
+    .filter((conversation) => 
+      !normalizedQuery || 
+      conversation.title.toLowerCase().includes(normalizedQuery) ||
+      conversation.messages.some(m => m.text.toLowerCase().includes(normalizedQuery))
+    )
+    .map((conversation) => ({
+      id: conversation.id,
+      title: conversation.title,
+      preview: getLatestPreview(conversation.messages),
+      updatedAt: conversation.updatedAt,
+      contextName: conversation.chatContext?.name || null,
+      isPending: conversation.messages.some((message) => message.status === 'pending')
+    }))
 
   return {
     messages: activeConversation?.messages || [],
@@ -712,6 +778,7 @@ export const useIntelligenceChatStore = () => {
     setActiveConversation: intelligenceChatStore.setActiveConversation,
     createConversation: intelligenceChatStore.createConversation,
     deleteConversation: intelligenceChatStore.deleteConversation,
+    renameConversation: intelligenceChatStore.renameConversation,
     clearChat: intelligenceChatStore.clear,
     sendMessage: intelligenceChatStore.sendMessage,
     resubmitMessage: intelligenceChatStore.resubmitMessage,

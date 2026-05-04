@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, session } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid, getExplorePlaces, getExplorePlacesByCategories, seedExplorePlaces, getPopularProvinces, upsertProvinceStats, seedPopularProvinces, getTrendingPlaces, populateTestTrendingData } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid, getExplorePlaces, getExplorePlacesByCategories, seedExplorePlaces, getPopularProvinces, upsertProvinceStats, seedPopularProvinces, getTrendingPlaces, populateTestTrendingData, saveChatConversation, getChatConversations, getChatConversation, deleteChatConversation, saveChatMessage, getChatMessages, deleteChatMessage } from './database/db'
 import { initialRegions } from './database/initialData'
 import { EXPLORE_PLACES_SEED } from './database/explorePlacesSeed'
 import { POPULAR_PROVINCES_SEED } from './database/popularProvincesSeed'
@@ -769,6 +769,35 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('db:getPopularProvinces', (_, regionId?: string, limit?: number) => {
      return getPopularProvinces(regionId, limit);
+  })
+
+  // ====== Chat History IPC ======
+  ipcMain.handle('db:saveChatConversation', (_, id, title, context, lastContextKey) => {
+    return saveChatConversation(id, title, context, lastContextKey);
+  })
+
+  ipcMain.handle('db:getChatConversations', () => {
+    return getChatConversations();
+  })
+
+  ipcMain.handle('db:getChatConversation', (_, id) => {
+    return getChatConversation(id);
+  })
+
+  ipcMain.handle('db:deleteChatConversation', (_, id) => {
+    return deleteChatConversation(id);
+  })
+
+  ipcMain.handle('db:saveChatMessage', (_, message) => {
+    return saveChatMessage(message);
+  })
+
+  ipcMain.handle('db:getChatMessages', (_, conversationId) => {
+    return getChatMessages(conversationId);
+  })
+
+  ipcMain.handle('db:deleteChatMessage', (_, messageId) => {
+    return deleteChatMessage(messageId);
   })
 
   ipcMain.handle('assets:getImageCacheStats', () => {

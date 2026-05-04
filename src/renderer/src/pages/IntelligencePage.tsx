@@ -161,6 +161,9 @@ const extractMentionedRegions = (text: string): Array<{ id: string; name: string
 
 export const IntelligencePage = () => {
   const location = useLocation();
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [pendingRouteContext, setPendingRouteContext] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const {
     messages,
     chatContext,
@@ -171,18 +174,19 @@ export const IntelligencePage = () => {
     setActiveConversation,
     createConversation,
     deleteConversation,
+    renameConversation,
     clearChat,
     sendMessage,
     resubmitMessage,
     deleteMessage,
     addUploadedFile
-  } = useIntelligenceChatStore();
+  } = useIntelligenceChatStore(searchQuery);
   const { theme } = useChatThemeStore();
   const [inputText, setInputText] = useState('');
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
   const [activeContextId, setActiveContextId] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-    const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [editTextareaRef, setEditTextareaRef] = useState<HTMLTextAreaElement | null>(null);
   const [showPaletteSettings, setShowPaletteSettings] = useState(false);
@@ -191,8 +195,6 @@ export const IntelligencePage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSentRef = useRef(false);
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [pendingRouteContext, setPendingRouteContext] = useState<any | null>(null);
 
   // Auto-resize textarea to fit content (like ChatGPT/Gemini)
   const autoResizeTextarea = useCallback(() => {
@@ -409,7 +411,7 @@ export const IntelligencePage = () => {
       {/* Sidebar (Recent Chats) toggleable */}
       {showSidebar && (
         <div className="w-[280px] shrink-0 border-r border-white/5 bg-[#080a0f] flex flex-col">
-          <div className="h-16 px-4 flex items-center justify-between border-b border-white/5">
+          <div className="h-16 px-4 flex items-center justify-between border-b border-white/5 shrink-0">
             <div>
               <h2 className="text-sm font-semibold text-white">Recent Chats</h2>
               <p className="text-[11px] text-slate-500">ประวัติจะอยู่ตรงนี้จนกว่าจะลบเอง</p>
@@ -419,6 +421,7 @@ export const IntelligencePage = () => {
                 const newConversationId = createConversation();
                 setActiveConversation(newConversationId);
                 setActiveContextId(null);
+                setSearchQuery('');
               }}
               className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:text-white hover:brightness-110"
               style={{
@@ -432,17 +435,42 @@ export const IntelligencePage = () => {
             </button>
           </div>
 
+          {/* Search Bar */}
+          <div className="px-3 pt-4 pb-2">
+            <div className="relative group">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors">
+                <Compass size={14} className="animate-pulse" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ค้นหาชื่อแชตหรือเนื้อหา..."
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-2 pl-9 pr-8 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 focus:bg-white/[0.05] transition-all"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-0.5"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {recentChats.length === 0 ? (
               <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm text-slate-500">
                 ยังไม่มีบทสนทนา เริ่มพิมพ์คำถามแรกได้เลย
               </div>
             ) : (
-              recentChats.map((chat) => (
+              recentChats.map((chat, index) => (
                 <RecentChatItem
                   key={chat.id}
                   chat={chat}
                   isActive={chat.id === activeConversationId}
+                  indexFromBottom={recentChats.length - 1 - index}
                   onSelect={() => {
                     setActiveConversation(chat.id);
                     setActiveContextId(null);
@@ -453,6 +481,9 @@ export const IntelligencePage = () => {
                     if (isDeletingActive) {
                       setActiveContextId(null);
                     }
+                  }}
+                  onRename={(newTitle) => {
+                    renameConversation(chat.id, newTitle);
                   }}
                 />
               ))
@@ -467,21 +498,33 @@ export const IntelligencePage = () => {
         onDragEnter={handleDrag}
       >
         {/* Chat Header */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#0a0c10] shrink-0">
-          <div className="flex items-center gap-3">
-            {/* Sidebar Toggle Button */}
-            <button
-              onClick={() => setShowSidebar((v) => !v)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-transparent hover:bg-white/10 transition-transform"
-              title={showSidebar ? 'ซ่อน Recent Chats' : 'แสดง Recent Chats'}
-            >
-              {showSidebar ? <PanelLeftClose size={20} className="text-slate-400" /> : <PanelLeftOpen size={20} className="text-slate-400" />}
-            </button>
-            <div>
-              <h1 className="text-lg font-bold text-white">Locus Agent</h1>
-              <p className="text-xs text-slate-500">Powered by LightRAG + Gemini</p>
-            </div>
-          </div>
+        {(() => {
+          const activeChatIndex = recentChats.findIndex(c => c.id === activeConversationId);
+          const headerTheme = activeChatIndex !== -1 
+            ? CHAT_HISTORY_COLORS[(recentChats.length - 1 - activeChatIndex) % CHAT_HISTORY_COLORS.length]
+            : null;
+            
+          return (
+            <div className={`h-16 flex items-center justify-between px-6 border-b border-white/5 shrink-0 transition-all duration-500 relative overflow-hidden ${!headerTheme ? 'bg-[#0a0c10]' : ''}`}>
+              {/* Dynamic Gradient Background */}
+              {headerTheme && (
+                <div className={`absolute inset-0 bg-gradient-to-r ${headerTheme.headerGradient} opacity-50 transition-all duration-700`}></div>
+              )}
+              
+              <div className="flex items-center gap-3 relative z-10">
+                {/* Sidebar Toggle Button */}
+                <button
+                  onClick={() => setShowSidebar((v) => !v)}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-transparent hover:bg-white/10 transition-transform"
+                  title={showSidebar ? 'ซ่อน Recent Chats' : 'แสดง Recent Chats'}
+                >
+                  {showSidebar ? <PanelLeftClose size={20} className="text-slate-400" /> : <PanelLeftOpen size={20} className="text-slate-400" />}
+                </button>
+                <div>
+                  <h1 className="text-lg font-bold text-white">Locus Agent</h1>
+                  <p className="text-xs text-slate-500">Powered by LightRAG + Gemini</p>
+                </div>
+              </div>
                     <div className="flex items-center gap-3">
             {/* Palette Settings Button */}
             <button
@@ -507,12 +550,14 @@ export const IntelligencePage = () => {
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20 relative z-10">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
               <span className="text-xs text-emerald-400 font-medium">{isLoading ? 'Thinking...' : 'Online'}</span>
             </div>
           </div>
         </div>
+          );
+        })()}
 
         {/* Chat Messages */}
         <div 
@@ -943,9 +988,9 @@ const MessageBubble = ({
         ) : (
           /* ── Normal / Error Bubble ── */
           <>
-            <div className={`p-4 rounded-2xl ${
+            <div className={`p-4 rounded-2xl shadow-xl transition-all duration-300 ${
               isUser 
-                ? 'bg-cyan-600/10 border border-cyan-500/20 rounded-tr-md' 
+                ? 'bg-[#f1f5f9] text-slate-900 font-medium rounded-tr-md scale-[1.01] origin-right shadow-white/5' 
                 : `bg-white/5 border ${
                     isError
                       ? 'border-red-500/30'
@@ -963,7 +1008,22 @@ const MessageBubble = ({
               )}
 
               {/* Message Text with Markdown-like formatting */}
-              <MarkdownLite text={message.text} className="text-sm" />
+              {isUser ? (
+                <div style={{ 
+                  '--chat-md-text': '#000000',
+                  '--chat-md-strong': '#000000',
+                  '--chat-md-list-strong': '#000000',
+                  '--chat-md-h1': '#000000',
+                  '--chat-md-h2': '#000000',
+                  '--chat-md-h3': '#000000',
+                  '--chat-md-bullet': '#333333',
+                  '--chat-md-muted': '#444444'
+                } as any}>
+                  <MarkdownLite text={message.text} className="text-sm" />
+                </div>
+              ) : (
+                <MarkdownLite text={message.text} className="text-sm" />
+              )}
 
               {message.status === 'pending' && (
                 <div className="mt-3 flex items-center gap-2 text-xs text-cyan-400">
@@ -1157,9 +1217,62 @@ const SourceBadge = ({ source }: { source: Source }) => {
 interface RecentChatItemProps {
   chat: RecentChatSummary
   isActive: boolean
+  indexFromBottom: number
   onSelect: () => void
   onDelete: () => void
+  onRename: (newTitle: string) => void
 }
+
+const CHAT_HISTORY_COLORS = [
+  { 
+    bg: 'bg-emerald-500/10', 
+    border: 'border-emerald-500/20', 
+    text: 'text-emerald-400', 
+    iconBg: 'bg-emerald-500/20', 
+    active: 'bg-emerald-500/20 border-emerald-500/50 shadow-emerald-500/10',
+    headerGradient: 'from-emerald-600/40 via-emerald-500/20 to-emerald-600/30'
+  }, // Green
+  { 
+    bg: 'bg-yellow-500/10', 
+    border: 'border-yellow-500/20', 
+    text: 'text-yellow-400', 
+    iconBg: 'bg-yellow-500/20', 
+    active: 'bg-yellow-500/20 border-yellow-500/50 shadow-yellow-500/10',
+    headerGradient: 'from-yellow-600/40 via-yellow-500/20 to-yellow-600/30'
+  }, // Yellow
+  { 
+    bg: 'bg-orange-500/10', 
+    border: 'border-orange-500/20', 
+    text: 'text-orange-400', 
+    iconBg: 'bg-orange-500/20', 
+    active: 'bg-orange-500/20 border-orange-500/50 shadow-orange-500/10',
+    headerGradient: 'from-orange-600/40 via-orange-500/20 to-orange-600/30'
+  }, // Orange
+  { 
+    bg: 'bg-rose-500/10', 
+    border: 'border-rose-500/20', 
+    text: 'text-rose-400', 
+    iconBg: 'bg-rose-500/20', 
+    active: 'bg-rose-500/20 border-rose-500/50 shadow-rose-500/10',
+    headerGradient: 'from-rose-600/40 via-rose-500/20 to-rose-600/30'
+  }, // Red
+  { 
+    bg: 'bg-purple-500/10', 
+    border: 'border-purple-500/20', 
+    text: 'text-purple-400', 
+    iconBg: 'bg-purple-500/20', 
+    active: 'bg-purple-500/20 border-purple-500/50 shadow-purple-500/10',
+    headerGradient: 'from-purple-600/40 via-purple-500/20 to-purple-600/30'
+  }, // Purple
+  { 
+    bg: 'bg-blue-500/10', 
+    border: 'border-blue-500/20', 
+    text: 'text-blue-400', 
+    iconBg: 'bg-blue-500/20', 
+    active: 'bg-blue-500/20 border-blue-500/50 shadow-blue-500/10',
+    headerGradient: 'from-blue-600/40 via-blue-500/20 to-blue-600/30'
+  }, // Blue
+];
 
 const formatRelativeChatTime = (timestamp: string) => {
   const date = new Date(timestamp)
@@ -1172,73 +1285,120 @@ const formatRelativeChatTime = (timestamp: string) => {
   }).format(date)
 }
 
-const RecentChatItem = ({ chat, isActive, onSelect, onDelete }: RecentChatItemProps) => (
-  <div
-    className={`group w-full rounded-2xl border p-3 transition-all ${
-      isActive
-        ? ''
-        : 'border-white/5 bg-white/[0.03] hover:border-white/10 hover:bg-white/[0.05]'
-    }`}
-    style={
-      isActive
-        ? {
-            borderColor: 'var(--chat-recent-active-border)',
-            backgroundColor: 'var(--chat-recent-active-bg)',
-            boxShadow: 'var(--chat-recent-active-shadow)'
-          }
-        : undefined
+const RecentChatItem = ({ chat, isActive, indexFromBottom, onSelect, onDelete, onRename }: RecentChatItemProps) => {
+  const colorTheme = CHAT_HISTORY_COLORS[indexFromBottom % CHAT_HISTORY_COLORS.length];
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(chat.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
     }
-  >
-    <div className="flex items-start gap-3">
-      <div
-        className={`mt-0.5 rounded-xl p-2 ${isActive ? '' : 'bg-white/5 text-slate-400'}`}
-        style={
-          isActive
-            ? {
-                backgroundColor: 'var(--chat-recent-active-icon-bg)',
-                color: 'var(--chat-recent-active-icon-text)'
-              }
-            : undefined
-        }
-      >
-        <Clock3 size={14} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <button onClick={onSelect} className="min-w-0 flex-1 text-left">
-            <div className={`truncate text-sm font-semibold ${isActive ? 'text-white' : 'text-slate-200'}`}>{chat.title}</div>
-            <div className="mt-1 text-[11px] text-slate-500">{formatRelativeChatTime(chat.updatedAt)}</div>
-          </button>
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete();
-            }}
-            className="rounded-lg p-1.5 text-slate-500 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-300 group-hover:opacity-100"
-            title="ลบบทสนทนานี้"
-          >
-            <Trash2 size={14} />
+  }, [isEditing]);
+
+  const handleRenameConfirm = () => {
+    if (editTitle.trim() && editTitle !== chat.title) {
+      onRename(editTitle);
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleRenameConfirm();
+    } else if (e.key === 'Escape') {
+      setEditTitle(chat.title);
+      setIsEditing(false);
+    }
+  };
+
+  return (
+    <div
+      className={`group w-full rounded-2xl border p-3 transition-all duration-300 ${
+        isActive
+          ? `${colorTheme.active} shadow-lg scale-[1.02]`
+          : `${colorTheme.bg} ${colorTheme.border} hover:scale-[1.01] hover:brightness-125`
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={`mt-0.5 rounded-xl p-2 transition-colors ${
+            isActive ? colorTheme.iconBg + ' ' + colorTheme.text : 'bg-white/5 text-slate-400 group-hover:' + colorTheme.text
+          }`}
+        >
+          <Clock3 size={14} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              {isEditing ? (
+                <input
+                  ref={inputRef}
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={handleRenameConfirm}
+                  onKeyDown={handleKeyDown}
+                  className="w-full bg-black/20 border-b border-cyan-500 text-sm font-semibold text-white focus:outline-none py-0.5"
+                />
+              ) : (
+                <button onClick={onSelect} className="w-full text-left">
+                  <div className={`truncate text-sm font-semibold transition-colors ${isActive ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
+                    {chat.title}
+                  </div>
+                </button>
+              )}
+              <div className="mt-1 text-[11px] text-slate-500">{formatRelativeChatTime(chat.updatedAt)}</div>
+            </div>
+            
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+              {!isEditing && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditing(true);
+                  }}
+                  className="rounded-lg p-1.5 text-slate-500 hover:bg-white/10 hover:text-white"
+                  title="เปลี่ยนชื่อแชต"
+                >
+                  <Edit3 size={14} />
+                </button>
+              )}
+              <button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete();
+                }}
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-red-500/10 hover:text-red-300"
+                title="ลบบทสนทนานี้"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+          <button onClick={onSelect} className="w-full text-left">
+            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-400 group-hover:text-slate-300 transition-colors">
+              {chat.preview}
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              {chat.contextName && (
+                <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${colorTheme.border} ${colorTheme.bg} ${colorTheme.text}`}>
+                  {chat.contextName}
+                </span>
+              )}
+              {chat.isPending && (
+                <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-300 animate-pulse">
+                  Pending
+                </span>
+              )}
+            </div>
           </button>
         </div>
-        <button onClick={onSelect} className="w-full text-left">
-          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-400">{chat.preview}</p>
-          <div className="mt-3 flex items-center gap-2">
-            {chat.contextName && (
-              <span className="rounded-full border border-purple-500/20 bg-purple-500/10 px-2 py-1 text-[10px] font-medium text-purple-300">
-                {chat.contextName}
-              </span>
-            )}
-            {chat.isPending && (
-              <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-300">
-                Pending
-              </span>
-            )}
-          </div>
-        </button>
       </div>
     </div>
-  </div>
-)
+  );
+};
 
 const ContextCanvas = ({ context }: { context: Message }) => {
   return (

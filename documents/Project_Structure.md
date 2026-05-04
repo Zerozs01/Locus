@@ -203,7 +203,7 @@ locus/
 - ✅ Knowledge/Tips section from portal data
 - ✅ Supply/Facilities section (bank, gas, other)
 - ✅ Danger zones with hotspot visualization
-- ✅ Province news panel with API sync + mock fallback
+- ✅ Province news panel with live API sync via local news aggregator server (`/news?province=...`) and mock fallback only when no live data is available
 - ✅ Live AQI/Temperature sync from SQLite
 - ✅ Weather history modal
 

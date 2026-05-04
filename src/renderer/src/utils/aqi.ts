@@ -11,8 +11,8 @@ export const PM25_TO_AQI_BREAKPOINTS = [
   { pmHigh: 500.4, pmLow: 250.5, aqiHigh: 500, aqiLow: 301 },
 ] as const;
 
-export const pm25ToAqi = (pm25: number): number => {
-  if (!Number.isFinite(pm25) || pm25 < 0) return 50; // Default to moderate
+export const pm25ToAqi = (pm25: number): number | null => {
+  if (pm25 === null || pm25 === undefined || !Number.isFinite(pm25) || pm25 < 0) return null;
 
   for (const bp of PM25_TO_AQI_BREAKPOINTS) {
     if (pm25 <= bp.pmHigh) {

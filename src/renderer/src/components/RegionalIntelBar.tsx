@@ -107,13 +107,13 @@ const ClimateStat = ({ value, trend, tone, toneRamp, onClick }: ClimateStatProps
         <Thermometer size={18} />
       </div>
       <div className="flex flex-col relative z-10">
+        <div className="text-[10px] uppercase tracking-[0.22em] mb-1" style={{ color: getLabelColor(toneColor) }}>
+          อุณหภูมิเฉลี่ย
+        </div>
         <div className="text-lg font-semibold leading-none" style={getValueStyle(toneColor, lift)}>
           {value}
         </div>
-        <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
-          อุณหภูมิเฉลี่ย
-        </div>
-        <div className="text-[11px]" style={getMetaStyle(toneColor, lift)}>
+        <div className="text-[11px] mt-1" style={getMetaStyle(toneColor, lift)}>
           {arrow} {trend.replace(/^[-+]/, '')}
         </div>
       </div>
@@ -136,6 +136,9 @@ const StabilityStat = ({ value, label, tone, toneRamp, onClick }: StabilityStatP
         <Shield size={18} />
       </div>
       <div className="flex flex-col">
+        <div className="text-[10px] uppercase tracking-[0.22em] mb-1" style={{ color: getLabelColor(toneColor) }}>
+          ระดับความปลอดภัย
+        </div>
         <div className="flex items-center gap-1.5">
           <div className="text-lg font-semibold leading-none" style={getValueStyle(toneColor, lift)}>
             {value}
@@ -147,10 +150,7 @@ const StabilityStat = ({ value, label, tone, toneRamp, onClick }: StabilityStatP
             <Info size={10} />
           </button>
         </div>
-        <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
-          ระดับความปลอดภัย
-        </div>
-        <div className="flex items-center gap-2 text-[11px] text-white/60">
+        <div className="flex items-center gap-2 text-[11px] text-white/60 mt-1">
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent }} />
           <span style={getMetaStyle(toneColor, lift)}>{label}</span>
         </div>
@@ -172,13 +172,14 @@ const MobilityStat = ({ state, subtitle, tone, toneRamp }: MobilityStatProps & R
       <div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={getTileStyle(toneColor, lift)}>
         <Compass size={18} />
       </div>
-      <div className="flex flex-col">
-        <div className="text-lg font-semibold leading-none" style={getValueStyle(toneColor, lift)}>
-          {state}
-        </div>
+      <div className="flex flex-col"> 
         <div className="text-[10px] uppercase tracking-[0.22em]" style={{ color: getLabelColor(toneColor) }}>
           สภาพการจราจร
         </div>
+        <div className="text-lg font-semibold leading-none" style={getValueStyle(toneColor, lift)}>
+          {state}
+        </div>
+       
         <div className="text-[11px]" style={getMetaStyle(toneColor, lift)}>
           {subtitle}
         </div>

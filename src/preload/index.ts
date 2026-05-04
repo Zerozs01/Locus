@@ -114,6 +114,22 @@ const api = {
       ipcRenderer.invoke('map:searchEvChargers', params),
     fetchGistdaFeatures: (url: string, headers?: Record<string, string>) =>
       ipcRenderer.invoke('map:fetchGistdaFeatures', url, headers)
+  },
+  chat: {
+    saveConversation: (id: string, title: string, context: any, lastContextKey: string | null) =>
+      ipcRenderer.invoke('db:saveChatConversation', id, title, context, lastContextKey),
+    getConversations: () =>
+      ipcRenderer.invoke('db:getChatConversations'),
+    getConversation: (id: string) =>
+      ipcRenderer.invoke('db:getChatConversation', id),
+    deleteConversation: (id: string) =>
+      ipcRenderer.invoke('db:deleteChatConversation', id),
+    saveMessage: (message: any) =>
+      ipcRenderer.invoke('db:saveChatMessage', message),
+    getMessages: (conversationId: string) =>
+      ipcRenderer.invoke('db:getChatMessages', conversationId),
+    deleteChatMessage: (messageId: string) =>
+      ipcRenderer.invoke('db:deleteChatMessage', messageId)
   }
 }
 
