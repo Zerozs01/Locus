@@ -682,7 +682,9 @@ export const IntelligencePage = () => {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">Route Active</span>
-                      <span className="text-[11px] font-semibold text-white">{(pendingRouteContext.estimatedDistanceKm).toFixed(1)} KM • {Math.round(pendingRouteContext.estimatedDurationMin)} Min</span>
+                      <span className="text-[11px] font-semibold text-white">
+                        {(pendingRouteContext.estimatedDistanceKm || 0).toFixed(1)} KM • {Math.round(pendingRouteContext.estimatedDurationMin || 0)} Min
+                      </span>
                     </div>
                   </div>
                   <div className="w-px h-6 bg-white/10 mx-1"></div>
@@ -1015,9 +1017,12 @@ const SmartActionBar = ({ text }: SmartActionBarProps) => {
 
   // Primary action logic
   const handlePrimaryAction = () => {
+    console.log('[SmartActionBar] handlePrimaryAction triggered. Provinces:', provinces);
     if (provinces.length === 1) {
       const p = provinces[0];
-      navigate(`/province/${p.regionId}/${p.id}`);
+      const targetUrl = `/province/${p.regionId}/${p.id}`;
+      console.log(`[SmartActionBar] Navigating to: ${targetUrl}`);
+      navigate(targetUrl);
     } else if (provinces.length > 1) {
       setShowSelector(true);
     } else if (regions.length > 0) {

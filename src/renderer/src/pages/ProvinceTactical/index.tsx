@@ -129,6 +129,7 @@ export const ProvinceTacticalPage = () => {
     const fetchData = async () => {
       try {
         if (window.api && window.api.db) {
+          console.log(`[ProvinceTactical] Initial IDs from params: region=${regionId}, province=${provinceId}`);
           let resolvedProvinceId = provinceId;
           let resolvedRegionId = regionId;
 
@@ -144,10 +145,13 @@ export const ProvinceTacticalPage = () => {
               cleanName.includes(getThaiProvinceName(p.name))
             );
             if (found) {
+              console.log(`[ProvinceTactical] Resolved ID from name: ${provinceId} -> ${found.id}`);
               resolvedProvinceId = found.id;
               resolvedRegionId = found.regionId || regionId;
             }
           }
+
+          console.log(`[ProvinceTactical] Final resolved IDs: region=${resolvedRegionId}, province=${resolvedProvinceId}`);
 
           if (resolvedRegionId && resolvedProvinceId && window.api.db.getRegion) {
             const [regionData, provinceData] = await measureAsync(
@@ -157,6 +161,7 @@ export const ProvinceTacticalPage = () => {
                 window.api.db.getProvince(resolvedProvinceId)
               ])
             );
+            console.log('[ProvinceTactical] DB Fetch result:', { region: regionData?.name, province: provinceData?.name });
             if (regionData) setRegion(regionData);
             if (provinceData) {
               // Force sync image from static data

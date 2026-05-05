@@ -182,7 +182,21 @@ const renderInline = (text: string, inListItem = false, navigate?: ReturnType<ty
   });
 };
 
-const normalizeMarkdown = (text: string) => text.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim()
+const normalizeMarkdown = (text: string) => {
+  let normalized = text.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+  
+  // Robustness for single-line tables: if we see header | separator | row merged without newlines
+  // We detect | | as a row boundary if it's followed by a separator pattern or another row
+  if (normalized.includes('|') && !normalized.includes('\n')) {
+    // If it looks like a merged table (contains separator pattern within)
+    if (normalized.includes('| :---') || normalized.includes('| :---')) {
+       normalized = normalized.replace(/\|\s*\|\s*(:?-+:?)/g, '|\n|$1');
+       normalized = normalized.replace(/\|\s*\|\s*([^:])/g, '|\n$1');
+    }
+  }
+  
+  return normalized;
+};
 
 const isTableLine = (line: string) => {
   const trimmed = line.trim();

@@ -544,10 +544,18 @@ export const openNewsLink = (url: string, fallbackTitle?: string) => {
       }
 
       console.log('[News] Opening external URL:', candidate);
+      // Primary path: window.open is intercepted by Electron setWindowOpenHandler
+      // and routed to shell.openExternal in main process.
+      window.open(candidate, '_blank', 'noopener,noreferrer');
+
+      // Secondary fallback path for environments where setWindowOpenHandler is unavailable.
       if ((window as any).api?.shell?.openExternal) {
-        (window as any).api.shell.openExternal(candidate);
-      } else {
-        window.open(candidate, '_blank', 'noopener,noreferrer');
+        const openPromise = (window as any).api.shell.openExternal(candidate);
+        if (openPromise && typeof openPromise.catch === 'function') {
+          openPromise.catch((error: unknown) => {
+            console.warn('[News] shell.openExternal fallback failed', error);
+          });
+        }
       }
       return true;
     } catch (e) {
@@ -559,7 +567,7 @@ export const openNewsLink = (url: string, fallbackTitle?: string) => {
   if (!openExternal(normalized)) {
     if (fallbackQuery) {
       console.log('[News] Falling back to search for title:', fallbackQuery);
-      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(fallbackQuery)}`;
+      const searchUrl = buildNewsSearchUrl(fallbackQuery);
       openExternal(searchUrl);
     } else {
       console.warn('[News] No URL and no fallback title available.');

@@ -857,9 +857,29 @@ function ProvinceMapComponent(props: ProvinceMapProps, ref: React.ForwardedRef<P
   };
 
   // Get coordinates for province
-  const coords = lat && lng 
-    ? { lat, lng } 
-    : provinceCoordinates[provinceName] || defaultCoords;
+  const coords = useMemo(() => {
+    if (lat && lng) return { lat, lng };
+    
+    // 1. Direct lookup
+    if (provinceCoordinates[provinceName]) return provinceCoordinates[provinceName];
+    
+    // 2. Normalized lookup (slugified)
+    const slug = (provinceName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const foundBySlug = Object.entries(provinceCoordinates).find(([key]) => 
+      key.toLowerCase().replace(/[^a-z0-9]/g, '') === slug
+    );
+    if (foundBySlug) return foundBySlug[1];
+    
+    // 3. Fallback to provinceId if provided
+    if (provinceId) {
+      const foundById = Object.entries(provinceCoordinates).find(([key]) => 
+        key.toLowerCase().replace(/[^a-z0-9]/g, '') === provinceId.toLowerCase().replace(/[^a-z0-9]/g, '')
+      );
+      if (foundById) return foundById[1];
+    }
+    
+    return defaultCoords;
+  }, [provinceName, provinceId, lat, lng]);
 
   const enabledDataLayers = useMemo(() => new Set<ProvinceDataLayer>(externalDataLayers), [externalDataLayers]);
 

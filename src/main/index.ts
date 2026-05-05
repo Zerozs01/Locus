@@ -26,6 +26,7 @@ import { readRuntimeConfig, writeRuntimeConfig } from './config/runtimeConfig'
 import { createHash } from 'crypto'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { createConnection } from 'node:net'
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'locus', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }
@@ -206,8 +207,38 @@ const resolveN8nConfig = async (overrides?: N8nOverrides) => {
 
 let newsServerProcess: ChildProcess | null = null
 
-function startNewsServer() {
+function isPortInUse(port: number): Promise<boolean> {
+  const canConnect = (host: string) => {
+    return new Promise<boolean>((resolve) => {
+      const socket = createConnection({ port, host })
+      let done = false
+
+      const finish = (result: boolean) => {
+        if (done) return
+        done = true
+        socket.destroy()
+        resolve(result)
+      }
+
+      socket.setTimeout(500)
+      socket.once('connect', () => finish(true))
+      socket.once('timeout', () => finish(false))
+      socket.once('error', () => finish(false))
+    })
+  }
+
+  return Promise.all([canConnect('127.0.0.1'), canConnect('::1')]).then(([ipv4, ipv6]) => ipv4 || ipv6)
+}
+
+async function startNewsServer() {
   if (newsServerProcess) return
+
+  const port = Number(process.env.NEWS_SERVER_PORT || 4000)
+  const portBusy = await isPortInUse(port)
+  if (portBusy) {
+    console.log(`[Main] News server already running on port ${port}; skipping internal spawn.`)
+    return
+  }
 
   const scriptPath = is.dev 
     ? join(app.getAppPath(), 'scripts', 'news-server.js')
@@ -217,7 +248,7 @@ function startNewsServer() {
   
   newsServerProcess = spawn('node', [scriptPath], {
     stdio: 'inherit',
-    env: { ...process.env, NEWS_SERVER_PORT: '4000' }
+    env: { ...process.env, NEWS_SERVER_PORT: String(port) }
   })
 
   newsServerProcess.on('error', (err) => {
@@ -669,7 +700,7 @@ app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.locus.app')
 
-  startNewsServer()
+  await startNewsServer()
 
   app.on('will-quit', () => {
     if (newsServerProcess) {
