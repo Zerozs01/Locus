@@ -150,9 +150,15 @@ const renderInline = (text: string, inListItem = false, navigate?: ReturnType<ty
                 console.error('Invalid locus link:', url, e);
               }
             }}
-            className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded hover:bg-cyan-500/20 transition-colors font-bold text-[0.9em] align-baseline mx-1 shadow-[0_0_10px_rgba(6,182,212,0.1)]"
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all font-bold text-[0.9em] align-baseline mx-1"
+            style={{ 
+              backgroundColor: 'rgba(var(--chat-btn-rgb, 6, 182, 212), 0.1)', 
+              borderColor: 'var(--chat-btn)',
+              color: 'var(--chat-btn)',
+              boxShadow: '0 0 10px rgba(var(--chat-btn-rgb, 6, 182, 212), 0.1)'
+            }}
           >
-            <MapPin size={12} className="text-cyan-400" />
+            <MapPin size={12} style={{ color: 'var(--chat-btn)' }} />
             {linkText}
           </button>
         );
@@ -164,7 +170,8 @@ const renderInline = (text: string, inListItem = false, navigate?: ReturnType<ty
           href={url} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-cyan-400 underline underline-offset-4 decoration-cyan-500/30 hover:text-cyan-300 transition-colors"
+          className="underline underline-offset-4 transition-colors"
+          style={{ color: 'var(--chat-md-link)', textDecorationColor: 'rgba(var(--chat-md-link-rgb, 6, 182, 212), 0.3)' }}
         >
           {linkText}
         </a>
@@ -177,8 +184,23 @@ const renderInline = (text: string, inListItem = false, navigate?: ReturnType<ty
 
 const normalizeMarkdown = (text: string) => text.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim()
 
-const isTableLine = (line: string) => line.includes('|')
-const isTableSeparatorLine = (line: string) => /^\|?[\s:-]+(\|[\s:-]+)+\|?$/.test(line.trim())
+const isTableLine = (line: string) => {
+  const trimmed = line.trim();
+  // Must have at least one pipe and not be a horizontal rule or other clear type
+  if (trimmed === '---' || trimmed === '***' || trimmed === '___') return false;
+  return trimmed.includes('|');
+}
+
+const isTableSeparatorLine = (line: string) => {
+  const trimmed = line.trim();
+  return /^\|?[\s:-]+(\|[\s:-]+)+\|?$/.test(trimmed);
+}
+
+const isHorizontalRule = (line: string) => {
+  const trimmed = line.trim();
+  return trimmed === '---' || trimmed === '***' || trimmed === '___';
+}
+
 const parseTableCells = (line: string) =>
   line
     .trim()
@@ -268,7 +290,14 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
   }
 
   const flushTable = () => {
-    if (currentTable.length < 2) return
+    if (currentTable.length === 0) return
+    
+    if (currentTable.length < 2) {
+      currentParagraph.push(...currentTable)
+      currentTable = []
+      return
+    }
+
     const [headerLine, separatorLine, ...rowLines] = currentTable
     if (!headerLine || !separatorLine || !isTableSeparatorLine(separatorLine)) {
       currentParagraph.push(...currentTable)
@@ -280,37 +309,39 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
     const rows = rowLines.map(parseTableCells).filter((row) => row.some(Boolean))
 
     blocks.push(
-      <div key={`table-${blocks.length}`} className="overflow-x-auto rounded-xl border border-white/5">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr>
-              {headers.map((header, index) => (
-                <th
-                  key={`th-${index}`}
-                  className="border-b px-3 py-2 text-left font-semibold"
-                  style={TABLE_HEADER_STYLE}
-                >
-                  {renderInline(header, false, navigate)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, rowIndex) => (
-              <tr key={`tr-${rowIndex}`}>
-                {row.map((cell, cellIndex) => (
-                  <td
-                    key={`td-${rowIndex}-${cellIndex}`}
-                    className="border-t px-3 py-2 align-top leading-relaxed"
-                    style={TABLE_CELL_STYLE}
+      <div key={`table-${blocks.length}`} className="my-5 overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead>
+              <tr style={TABLE_HEADER_STYLE}>
+                {headers.map((header, index) => (
+                  <th
+                    key={`th-${index}`}
+                    className="border-b border-white/5 px-4 py-3 font-bold uppercase tracking-wider"
+                    style={{ fontSize: '10px' }}
                   >
-                    {renderInline(cell, false, navigate)}
-                  </td>
+                    {renderInline(header, false, navigate)}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {rows.map((row, rowIndex) => (
+                <tr key={`tr-${rowIndex}`} className="hover:bg-white/[0.02] transition-colors">
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      key={`td-${rowIndex}-${cellIndex}`}
+                      className="px-4 py-3 align-top leading-relaxed"
+                      style={TABLE_CELL_STYLE}
+                    >
+                      {renderInline(cell, false, navigate)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )
     currentTable = []
@@ -384,22 +415,19 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
       return
     }
 
-    if (isTableLine(line)) {
-      flushParagraph()
-      flushList()
-      flushOrderedList()
-      flushQuote()
-      currentTable.push(line)
+    const horizontalRuleMatch = isHorizontalRule(line)
+    if (horizontalRuleMatch) {
+      flushAll()
+      blocks.push(<hr key={`hr-${blocks.length}`} className="my-6 border-t border-white/10" />)
       return
     }
-
-    flushTable()
 
     const quoteMatch = line.match(/^>\s?(.+)$/)
     if (quoteMatch) {
       flushParagraph()
       flushList()
       flushOrderedList()
+      flushTable()
       currentQuote.push(quoteMatch[1])
       return
     }
@@ -410,6 +438,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
     if (listMatch) {
       flushParagraph()
       flushOrderedList()
+      flushTable()
       currentList.push(listMatch[1])
       return
     }
@@ -418,10 +447,21 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
     if (orderedListMatch) {
       flushParagraph()
       flushList()
+      flushTable()
       currentOrderedList.push(orderedListMatch[1])
       return
     }
 
+    if (isTableLine(line)) {
+      flushParagraph()
+      flushList()
+      flushOrderedList()
+      flushQuote()
+      currentTable.push(line)
+      return
+    }
+
+    flushTable()
     flushList()
     flushOrderedList()
     currentParagraph.push(line)

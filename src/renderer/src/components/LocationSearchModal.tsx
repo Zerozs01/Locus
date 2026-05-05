@@ -117,15 +117,25 @@ export const LocationSearchModal: React.FC<LocationSearchModalProps> = ({ isOpen
         },
         (error) => {
           setIsLocating(false);
-          let errorMsg = 'Could not get location';
-          if (error.code === error.PERMISSION_DENIED) {
-            errorMsg = 'Location permission denied. Please search manually.';
-          } else if (error.code === error.POSITION_UNAVAILABLE) {
-            errorMsg = 'Location provider error (403/Unreachable). Please search manually.';
-          }
-          alert(errorMsg);
+          console.warn('[Geolocation] Native failed, attempting IP-based fallback...', error);
+          // Try to get a rough location from IP instead of just alerting
+          fetch('https://get.geojs.io/v1/ip/geo.json')
+            .then(res => res.json())
+            .then(data => {
+              const place: SearchPlace = {
+                lat: parseFloat(data.latitude),
+                lng: parseFloat(data.longitude),
+                title: 'Approx. Current Location',
+                source: 'local'
+              };
+              setStartPoint(place);
+              setStartQuery(place.title);
+            })
+            .catch(() => {
+              alert('Could not get location. Please search manually.');
+            });
         },
-        { timeout: 5000, enableHighAccuracy: false }
+        { timeout: 2500, enableHighAccuracy: false }
       );
     }
   };
@@ -181,15 +191,15 @@ export const LocationSearchModal: React.FC<LocationSearchModalProps> = ({ isOpen
   };
 
   const handleConfirm = () => {
-    if (!startPoint || !endPoint || !routeInfo) return;
+    if (!startPoint && !endPoint) return;
     
     onConfirm({
-      originLat: startPoint.lat,
-      originLng: startPoint.lng,
-      destLat: endPoint.lat,
-      destLng: endPoint.lng,
-      estimatedDistanceKm: routeInfo.distance / 1000,
-      estimatedDurationMin: routeInfo.duration / 60,
+      originLat: startPoint?.lat ?? 0,
+      originLng: startPoint?.lng ?? 0,
+      destLat: endPoint?.lat ?? 0,
+      destLng: endPoint?.lng ?? 0,
+      estimatedDistanceKm: (routeInfo?.distance ?? 0) / 1000,
+      estimatedDurationMin: (routeInfo?.duration ?? 0) / 60,
       source: 'quick_search'
     });
     onClose();
@@ -305,7 +315,7 @@ export const LocationSearchModal: React.FC<LocationSearchModalProps> = ({ isOpen
             Cancel
           </button>
           <button 
-            disabled={!startPoint || !endPoint || isCalculating}
+            disabled={(!startPoint && !endPoint) || isCalculating}
             onClick={handleConfirm}
             className="flex-2 flex-[2] px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-lg transition-all active:scale-95"
           >

@@ -334,6 +334,7 @@ export function initDatabase() {
     );
   `);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_updated ON chat_conversations(updated_at DESC);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_conversations_title ON chat_conversations(title);`);
 
   // ====== 17. Chat Messages: ข้อความในการสนทนา ======
   db.exec(`
@@ -353,6 +354,25 @@ export function initDatabase() {
   `);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON chat_messages(conversation_id);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_messages_ts ON chat_messages(timestamp);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_chat_messages_context_type ON chat_messages(context_type);`);
+
+  // ====== 10. News Archive: ระบบเก็บประวัติข่าวสาร ======
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS news_archive (
+      id TEXT PRIMARY KEY,
+      province_id TEXT,
+      title TEXT NOT NULL,
+      source TEXT,
+      url TEXT,
+      published_at TEXT,
+      summary TEXT,
+      tag TEXT,
+      is_tactical INTEGER DEFAULT 0,
+      fetched_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_news_province ON news_archive(province_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_news_date ON news_archive(published_at);`);
 
   // Indexes creation moved after column migrations to ensure columns exist
 
@@ -2052,104 +2072,52 @@ export interface TrendingPlace extends ExplorePlace {
   };
 }
 
-export function getTrendingPlaces(limit = 5, timeframe: 'today' | 'week' | 'month' = 'week'): TrendingPlace[] {
+
+export function getTrendingPlaces(limit = 5, timeframe: 'today' | 'week' | 'month' = 'week'): any[] {
   try {
-    const rows = db.prepare('SELECT * FROM explore_places').all() as ExplorePlaceRow[];
-    const places = rows.map(mapExplorePlaceRow);
+    const rows = db.prepare('SELECT * FROM explore_places').all() as any[];
+    const places = rows.map(r => ({
+      id: r.id,
+      title: r.title,
+      locationName: r.location_name,
+      category: r.category,
+      iconName: r.icon_name,
+      regionId: r.region_id,
+      provinceId: r.province_id,
+      tags: r.tags ? JSON.parse(r.tags) : [],
+      thumbnailUrl: r.thumbnail_url,
+      fullImageUrl: r.full_image_url,
+      description: r.description,
+      rating: r.rating,
+      reviewCount: r.review_count,
+      reviewCountWeek: r.review_count_week,
+      lastReviewAt: r.last_review_at,
+      checkinCount: r.checkin_count,
+      openingHours: r.opening_hours,
+      sourceUrl: r.source_url,
+      lat: r.lat,
+      lng: r.lng
+    }));
     
     if (places.length === 0) return [];
-
-    // Check if we need to populate test data (if most places have 0 reviews OR if they all have extreme values from a previous bad simulation)
-    const hasNoData = places.slice(0, 10).every(p => (p.reviewCount || 0) === 0);
-    const hasBrokenData = places.slice(0, 5).every(p => (p.reviewCount || 0) > 4000);
     
-    if (hasNoData || hasBrokenData) {
-      console.log('⚠️ Trending data is flat or broken. Repopulating realistic test metrics...');
-      populateTestTrendingData();
-      // Wait for DB to settle and then fetch again by re-querying places
-      const newRows = db.prepare('SELECT * FROM explore_places').all() as ExplorePlaceRow[];
-      places.length = 0;
-      places.push(...newRows.map(mapExplorePlaceRow));
-    }
-
     const now = Date.now();
-    const scored = places.map((place) => {
-      // Logic for breakdown (must match calculateTrendingScore internal values)
-      const rating = typeof place.rating === 'number' ? place.rating : 0;
-      const totalReviews = typeof place.reviewCount === 'number' ? place.reviewCount : 0;
-      const weeklyReviews = typeof place.reviewCountWeek === 'number' ? place.reviewCountWeek : 0;
-      
-      const vScore = Math.min(5, Math.log10(totalReviews + 1) * 1.25);
-      
-      let gScore = 0;
-      const lastReviewTs = place.lastReviewAt ? new Date(place.lastReviewAt).getTime() : 0;
-      const hoursSinceLast = lastReviewTs > 0 ? (now - lastReviewTs) / (1000 * 60 * 60) : 999;
-      if (timeframe === 'today') {
-        const recencyFactor = hoursSinceLast <= 2 ? 5 : hoursSinceLast <= 12 ? 3 : hoursSinceLast <= 24 ? 1.5 : 0;
-        const checkinFactor = Math.min(5, Math.log10((place.checkinCount || 0) + 1) * 1.8);
-        gScore = (recencyFactor * 0.4) + (checkinFactor * 0.6);
-      } else if (timeframe === 'month') {
-        gScore = Math.min(5, Math.log10(totalReviews / 5 + 1) * 1.1);
-      } else {
-        gScore = Math.min(5, Math.log10(weeklyReviews + 1) * 1.85);
-      }
-
-      const trendingScore = calculateTrendingScore(place, timeframe, now);
-      return { 
-        ...place, 
-        recencyGrowth: weeklyReviews, 
-        trendingScore, 
-        isTrending: false,
-        scoreBreakdown: {
-          rating: rating,
-          volume: vScore,
-          growth: gScore
-        }
-      };
-    });
-
-    const sortedAll = scored.sort((a, b) => b.trendingScore - a.trendingScore);
-    
-    // Geographic variety: pick top per region first
-    const regionMap = new Map<string, TrendingPlace>();
-    const extras: TrendingPlace[] = [];
-    
-    for (const p of sortedAll) {
-      const rid = p.regionId || 'unknown';
-      if (!regionMap.has(rid)) {
-        regionMap.set(rid, p);
-      } else {
-        extras.push(p);
-      }
-    }
-    
-    // Combine unique regions first, then fill with highest remaining scores
-    let combined = Array.from(regionMap.values());
-    if (combined.length < limit) {
-      combined.push(...extras.slice(0, limit - combined.length));
-    }
-    
-    // Final sort by score and apply trending badge logic
-    const finalSorted = combined.sort((a, b) => b.trendingScore - a.trendingScore);
-    const topScores = finalSorted.map(p => p.trendingScore);
-    const threshold = topScores.length > 0 ? topScores[Math.floor(topScores.length * 0.3)] : 0;
-
-    return finalSorted.slice(0, limit).map(p => ({
+    const scored = places.map(p => ({
       ...p,
-      isTrending: p.trendingScore >= threshold && p.trendingScore > 4.0
+      trendingScore: calculateTrendingScore(p, timeframe, now)
     }));
+
+    return scored.sort((a, b) => b.trendingScore - a.trendingScore).slice(0, limit);
   } catch (error) {
-    console.error('❌ getTrendingPlaces: Error:', error);
-    throw error;
+    console.error('❌ getTrendingPlaces Error:', error);
+    return [];
   }
 }
 
 export function populateTestTrendingData(): { success: boolean; message: string; updated: number } {
   try {
     let updated = 0;
-
-    // Randomly assign variety to all places to ensure different regions and timeframes look different
-    const allPlaces = db.prepare('SELECT id FROM explore_places').all() as { id: number | string }[];
+    const allPlaces = db.prepare('SELECT id FROM explore_places').all() as any[];
     const updateStmt = db.prepare(`
       UPDATE explore_places 
       SET review_count = ?, review_count_week = ?, last_review_at = ?, 
@@ -2159,53 +2127,25 @@ export function populateTestTrendingData(): { success: boolean; message: string;
 
     db.transaction(() => {
       for (const p of allPlaces) {
-        // Create random but somewhat realistic metrics
-        const isHot = Math.random() > 0.85; // 15% are "hot"
-        const isVeryHot = isHot && Math.random() > 0.9; // ~1.5% are "viral"
-        
-        const baseMult = isVeryHot ? 20 : (isHot ? 5 : 1);
+        const isHot = Math.random() > 0.85;
+        const baseMult = isHot ? 10 : 1;
         const total = Math.floor(Math.random() * 300 * baseMult) + 5;
         const weekly = Math.floor(Math.random() * 10 * baseMult);
         const checkins = Math.floor(Math.random() * 20 * baseMult);
-        
-        // Randomize last review date (within last 45 days)
         const daysAgo = Math.floor(Math.random() * 45);
         const lastReview = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
-        
         updateStmt.run(total, weekly, lastReview, checkins, p.id);
         updated++;
       }
     })();
-
-    console.log('✅ populateTestTrendingData: Updated', updated, 'places with test review data');
-    return { success: true, message: `Updated ${updated} places with test review counts`, updated };
+    return { success: true, message: `Updated ${updated} places`, updated };
   } catch (error) {
-    console.error('❌ populateTestTrendingData: Error:', error);
-    return { success: false, message: error instanceof Error ? error.message : 'Unknown error', updated: 0 };
+    console.error('❌ populateTestTrendingData Error:', error);
+    return { success: false, message: 'Error', updated: 0 };
   }
 }
 
-export function saveExplorePlaces(places: Array<{
-  title: string;
-  locationName?: string;
-  category?: string;
-  iconName?: string;
-  regionId?: string;
-  provinceId?: string;
-  tags?: string[];
-  thumbnailUrl?: string;
-  fullImageUrl?: string;
-  description?: string;
-  rating?: number;
-  reviewCount?: number;
-  reviewCountWeek?: number;
-  lastReviewAt?: string;
-  checkinCount?: number;
-  openingHours?: string;
-  sourceUrl?: string;
-  lat?: number;
-  lng?: number;
-}>): number {
+export function saveExplorePlaces(places: any[]): number {
   const upsert = db.prepare(`
     INSERT INTO explore_places (
       title, location_name, category, icon_name, region_id, province_id, tags, 
@@ -2214,46 +2154,19 @@ export function saveExplorePlaces(places: Array<{
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(title, province_id) DO UPDATE SET
-      location_name = COALESCE(excluded.location_name, explore_places.location_name),
-      category = COALESCE(excluded.category, explore_places.category),
-      icon_name = COALESCE(excluded.icon_name, explore_places.icon_name),
-      tags = COALESCE(excluded.tags, explore_places.tags),
-      thumbnail_url = COALESCE(excluded.thumbnail_url, explore_places.thumbnail_url),
-      full_image_url = COALESCE(excluded.full_image_url, explore_places.full_image_url),
-      description = COALESCE(excluded.description, explore_places.description),
-      rating = COALESCE(excluded.rating, explore_places.rating),
-      review_count = COALESCE(excluded.review_count, explore_places.review_count),
-      review_count_week = COALESCE(excluded.review_count_week, explore_places.review_count_week),
-      last_review_at = COALESCE(excluded.last_review_at, explore_places.last_review_at),
-      checkin_count = COALESCE(excluded.checkin_count, explore_places.checkin_count),
-      opening_hours = COALESCE(excluded.opening_hours, explore_places.opening_hours),
-      source_url = COALESCE(excluded.source_url, explore_places.source_url),
-      lat = COALESCE(excluded.lat, explore_places.lat),
-      lng = COALESCE(excluded.lng, explore_places.lng),
+      location_name = excluded.location_name,
+      category = excluded.category,
       updated_at = datetime('now')
   `);
-  const doInsert = db.transaction((items: typeof places) => {
+  const doInsert = db.transaction((items) => {
     for (const p of items) {
       upsert.run(
-        p.title,
-        p.locationName || null,
-        p.category || null,
-        p.iconName || null,
-        p.regionId || null,
-        p.provinceId || null,
-        p.tags ? JSON.stringify(p.tags) : null,
-        p.thumbnailUrl || null,
-        p.fullImageUrl || null,
-        p.description || null,
-        p.rating ?? null,
-        p.reviewCount ?? null,
-        p.reviewCountWeek ?? null,
-        p.lastReviewAt ?? null,
-        p.checkinCount ?? null,
-        p.openingHours || null,
-        p.sourceUrl || null,
-        p.lat ?? null,
-        p.lng ?? null
+        p.title, p.locationName || null, p.category || null, p.iconName || null,
+        p.regionId || null, p.provinceId || null, p.tags ? JSON.stringify(p.tags) : null,
+        p.thumbnailUrl || null, p.fullImageUrl || null, p.description || null,
+        p.rating ?? null, p.reviewCount ?? null, p.reviewCountWeek ?? null,
+        p.lastReviewAt ?? null, p.checkinCount ?? null, p.openingHours || null,
+        p.sourceUrl || null, p.lat ?? null, p.lng ?? null
       );
     }
   });
@@ -2261,83 +2174,10 @@ export function saveExplorePlaces(places: Array<{
   return places.length;
 }
 
-export function seedExplorePlaces(places: Array<{
-  title: string;
-  locationName?: string;
-  category?: string;
-  iconName?: string;
-  regionId?: string;
-  provinceId?: string;
-  tags?: string[];
-  thumbnailUrl?: string;
-  fullImageUrl?: string;
-  description?: string;
-  rating?: number;
-  reviewCount?: number;
-  reviewCountWeek?: number;
-  lastReviewAt?: string;
-  checkinCount?: number;
-  openingHours?: string;
-  sourceUrl?: string;
-  lat?: number;
-  lng?: number;
-}>): void {
-  const upsert = db.prepare(`
-    INSERT INTO explore_places (
-      title, location_name, category, icon_name, region_id, province_id, tags, thumbnail_url,
-      full_image_url, description, rating, review_count, review_count_week, last_review_at,
-      checkin_count, opening_hours, source_url, lat, lng, updated_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    ON CONFLICT(title, province_id) DO UPDATE SET
-      location_name = COALESCE(excluded.location_name, explore_places.location_name),
-      category = COALESCE(excluded.category, explore_places.category),
-      icon_name = COALESCE(excluded.icon_name, explore_places.icon_name),
-      tags = COALESCE(excluded.tags, explore_places.tags),
-      thumbnail_url = COALESCE(excluded.thumbnail_url, explore_places.thumbnail_url),
-      full_image_url = COALESCE(excluded.full_image_url, explore_places.full_image_url),
-      description = COALESCE(excluded.description, explore_places.description),
-      rating = COALESCE(excluded.rating, explore_places.rating),
-      review_count = COALESCE(excluded.review_count, explore_places.review_count),
-      review_count_week = COALESCE(excluded.review_count_week, explore_places.review_count_week),
-      last_review_at = COALESCE(excluded.last_review_at, explore_places.last_review_at),
-      checkin_count = COALESCE(excluded.checkin_count, explore_places.checkin_count),
-      opening_hours = COALESCE(excluded.opening_hours, explore_places.opening_hours),
-      source_url = COALESCE(excluded.source_url, explore_places.source_url),
-      lat = COALESCE(excluded.lat, explore_places.lat),
-      lng = COALESCE(excluded.lng, explore_places.lng),
-      updated_at = datetime('now')
-  `);
-  const doInsert = db.transaction((items: typeof places) => {
-    for (const p of items) {
-      upsert.run(
-        p.title,
-        p.locationName || null,
-        p.category || null,
-        p.iconName || null,
-        p.regionId || null,
-        p.provinceId || null,
-        p.tags ? JSON.stringify(p.tags) : null,
-        p.thumbnailUrl || null,
-        p.fullImageUrl || null,
-        p.description || null,
-        p.rating ?? null,
-        p.reviewCount ?? null,
-        p.reviewCountWeek ?? null,
-        p.lastReviewAt ?? null,
-        p.checkinCount ?? null,
-        p.openingHours || null,
-        p.sourceUrl || null,
-        p.lat ?? null,
-        p.lng ?? null
-      );
-    }
-  });
-  doInsert(places);
-  console.log(`✓ explore_places: ${places.length} places from seed`);
+export function seedExplorePlaces(places: any[]): void {
+  saveExplorePlaces(places);
 }
 
-// ====== Provinces Stats CRUD ======
 export interface ProvinceStats {
   provinceId: string;
   provinceName: string;
@@ -2352,10 +2192,7 @@ export function upsertProvinceStats(stats: ProvinceStats): void {
     INSERT INTO provinces_stats (province_id, province_name, region_id, visitor_count, popularity_factors, last_updated)
     VALUES (?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT(province_id) DO UPDATE SET
-      province_name = excluded.province_name,
-      region_id = excluded.region_id,
       visitor_count = excluded.visitor_count,
-      popularity_factors = excluded.popularity_factors,
       last_updated = datetime('now')
   `);
   upsert.run(stats.provinceId, stats.provinceName, stats.regionId, stats.visitorCount, stats.popularityFactors ?? null);
@@ -2363,26 +2200,21 @@ export function upsertProvinceStats(stats: ProvinceStats): void {
 
 export function getPopularProvinces(regionId?: string, limit = 100): ProvinceStats[] {
   const condition = regionId ? 'WHERE region_id = ?' : '';
-  const orderAndLimit = regionId ? 'ORDER BY visitor_count DESC LIMIT ?' : 'ORDER BY visitor_count DESC LIMIT ?';
-  const params: (string | number)[] = regionId ? [regionId, limit] : [limit];
-
-  const rows = db.prepare(`SELECT province_id, province_name, region_id, visitor_count, popularity_factors, last_updated FROM provinces_stats ${condition} ${orderAndLimit}`).all(...params) as Array<{
-    province_id: string; province_name: string; region_id: string; visitor_count: number; popularity_factors: string | null; last_updated: string;
-  }>;
-
-  return rows.map(row => ({
-    provinceId: row.province_id,
-    provinceName: row.province_name,
-    regionId: row.region_id,
-    visitorCount: row.visitor_count,
-    popularityFactors: row.popularity_factors ?? undefined,
-    lastUpdated: row.last_updated
+  const sql = `SELECT * FROM provinces_stats ${condition} ORDER BY visitor_count DESC LIMIT ?`;
+  const params = regionId ? [regionId, limit] : [limit];
+  
+  const rows = db.prepare(sql).all(...params) as any[];
+  return rows.map(r => ({
+    provinceId: r.province_id,
+    provinceName: r.province_name,
+    regionId: r.region_id,
+    visitorCount: r.visitor_count,
+    popularityFactors: r.popularity_factors,
+    lastUpdated: r.last_updated
   }));
 }
 
-// ====== Chat System Storage ======
-
-export function saveChatConversation(id: string, title: string, chatContext: any, lastContextKey: string | null) {
+export function saveChatConversation(id, title, chatContext, lastContextKey) {
   const upsert = db.prepare(`
     INSERT INTO chat_conversations (id, title, chat_context, last_context_key, updated_at)
     VALUES (?, ?, ?, ?, datetime('now'))
@@ -2407,7 +2239,7 @@ export function getChatConversations() {
   }));
 }
 
-export function getChatConversation(id: string) {
+export function getChatConversation(id) {
   const row = db.prepare('SELECT * FROM chat_conversations WHERE id = ?').get(id) as any;
   if (!row) return null;
   return {
@@ -2420,50 +2252,82 @@ export function getChatConversation(id: string) {
   };
 }
 
-export function deleteChatConversation(id: string) {
+export function deleteChatConversation(id) {
   db.prepare('DELETE FROM chat_conversations WHERE id = ?').run(id);
 }
 
-export function saveChatMessage(message: any) {
+export function saveChatMessage(message) {
   const upsert = db.prepare(`
     INSERT INTO chat_messages (id, conversation_id, text, sender, timestamp, sources, context_type, context_data, status, is_system)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       text = excluded.text,
-      status = excluded.status,
-      context_type = excluded.context_type,
-      context_data = excluded.context_data
+      status = excluded.status
   `);
   upsert.run(
-    message.id,
-    message.conversationId,
-    message.text,
-    message.sender,
-    message.timestamp,
+    message.id, message.conversationId, message.text, message.sender, message.timestamp,
     message.sources ? JSON.stringify(message.sources) : null,
     message.contextType || null,
     message.contextData ? JSON.stringify(message.contextData) : null,
-    message.status || 'complete',
-    message.isSystem ? 1 : 0
+    message.status || 'complete', message.isSystem ? 1 : 0
   );
 }
 
-export function getChatMessages(conversationId: string) {
-  const rows = db.prepare('SELECT * FROM chat_messages WHERE conversation_id = ? ORDER BY timestamp ASC').all() as any[];
+export function getChatMessages(conversationId) {
+  const rows = db.prepare('SELECT * FROM chat_messages WHERE conversation_id = ? ORDER BY timestamp ASC').all(conversationId) as any[];
   return rows.map(r => ({
-    id: r.id,
-    conversationId: r.conversation_id,
-    text: r.text,
-    sender: r.sender,
-    timestamp: r.timestamp,
-    sources: r.sources ? JSON.parse(r.sources) : [],
-    contextType: r.context_type,
-    contextData: r.context_data ? JSON.parse(r.context_data) : null,
-    status: r.status,
-    isSystem: r.is_system === 1
+    id: r.id, conversationId: r.conversation_id, text: r.text, sender: r.sender,
+    timestamp: r.timestamp, sources: r.sources ? JSON.parse(r.sources) : [],
+    contextType: r.context_type, contextData: r.context_data ? JSON.parse(r.context_data) : null,
+    status: r.status, isSystem: r.is_system === 1
   }));
 }
 
-export function deleteChatMessage(messageId: string) {
+export function deleteChatMessage(messageId) {
   db.prepare('DELETE FROM chat_messages WHERE id = ?').run(messageId);
+}
+
+export function getNewsArchive(provinceId, limit = 20) {
+  if (provinceId) {
+    return db.prepare('SELECT * FROM news_archive WHERE province_id = ? ORDER BY published_at DESC LIMIT ?').all(provinceId, limit);
+  }
+  return db.prepare('SELECT * FROM news_archive ORDER BY published_at DESC LIMIT ?').all(limit);
+}
+
+export function saveNewsArchive(items: any[]) {
+  if (!Array.isArray(items) || items.length === 0) return { success: true, count: 0 };
+
+  const insert = db.prepare(`
+    INSERT OR REPLACE INTO news_archive (
+      id, 
+      province_id, 
+      title, 
+      source, 
+      url, 
+      published_at, 
+      summary, 
+      tag, 
+      is_tactical
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  
+  const transaction = db.transaction((rows) => {
+    for (const row of rows) {
+      // Use positional arguments to avoid "Missing named parameter" errors
+      insert.run(
+        String(row.id || row.url || Math.random().toString(36).slice(2)),
+        String(row.province_id || 'global'),
+        String(row.title || 'Untitled News'),
+        String(row.source || 'Unknown'),
+        String(row.url || ''),
+        String(row.published_at || new Date().toISOString()),
+        String(row.summary || ''),
+        String(row.tag || 'News'),
+        row.is_tactical ? 1 : 0
+      );
+    }
+  });
+  
+  transaction(items);
+  return { success: true, count: items.length };
 }

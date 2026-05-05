@@ -1,7 +1,8 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, session } from 'electron'
+import { spawn, ChildProcess } from 'child_process'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid, getExplorePlaces, getExplorePlacesByCategories, seedExplorePlaces, getPopularProvinces, upsertProvinceStats, seedPopularProvinces, getTrendingPlaces, populateTestTrendingData, saveChatConversation, getChatConversations, getChatConversation, deleteChatConversation, saveChatMessage, getChatMessages, deleteChatMessage } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid, getExplorePlaces, getExplorePlacesByCategories, seedExplorePlaces, getPopularProvinces, upsertProvinceStats, seedPopularProvinces, getTrendingPlaces, populateTestTrendingData, saveChatConversation, getChatConversations, getChatConversation, deleteChatConversation, saveChatMessage, getChatMessages, deleteChatMessage, getNewsArchive, saveNewsArchive } from './database/db'
 import { initialRegions } from './database/initialData'
 import { EXPLORE_PLACES_SEED } from './database/explorePlacesSeed'
 import { POPULAR_PROVINCES_SEED } from './database/popularProvincesSeed'
@@ -201,6 +202,32 @@ const resolveN8nConfig = async (overrides?: N8nOverrides) => {
   const webhookUrl = (overrides?.webhookUrl || config.ngrok || process.env.VITE_NGROK_URL || DEFAULT_N8N_WEBHOOK_URL).replace(/\/+$/, '')
   const apiKey = overrides?.apiKey || config.n8n_api_key || process.env.VITE_N8N_API_KEY || ''
   return { webhookUrl, apiKey }
+}
+
+let newsServerProcess: ChildProcess | null = null
+
+function startNewsServer() {
+  if (newsServerProcess) return
+
+  const scriptPath = is.dev 
+    ? join(app.getAppPath(), 'scripts', 'news-server.js')
+    : join(process.resourcesPath, 'scripts', 'news-server.js')
+
+  console.log(`[Main] Starting news server: ${scriptPath}`)
+  
+  newsServerProcess = spawn('node', [scriptPath], {
+    stdio: 'inherit',
+    env: { ...process.env, NEWS_SERVER_PORT: '4000' }
+  })
+
+  newsServerProcess.on('error', (err) => {
+    console.error('[Main] News server failed to start:', err)
+  })
+
+  newsServerProcess.on('exit', (code) => {
+    console.log(`[Main] News server exited with code ${code}`)
+    newsServerProcess = null
+  })
 }
 
 const buildN8nHeaders = (apiKey?: string, contentType?: string) => {
@@ -642,6 +669,15 @@ app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.locus.app')
 
+  startNewsServer()
+
+  app.on('will-quit', () => {
+    if (newsServerProcess) {
+      console.log('[Main] Killing news server process...')
+      newsServerProcess.kill()
+    }
+  })
+
   // Initialize and Seed Database
   console.log('--- Locus Main Process Starting (Updated Protocol Handler) ---');
   initDatabase()
@@ -710,6 +746,14 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('db:saveWeatherAqi', (_, records: { provinceId: string; date: string; temperature: number; aqi: number }[]) => {
      return saveWeatherAqi(records);
+  })
+
+  ipcMain.handle('db:getNewsArchive', (_, provinceId?: string, limit?: number) => {
+    return getNewsArchive(provinceId, limit);
+  })
+
+  ipcMain.handle('db:saveNewsArchive', (_, items: any[]) => {
+    return saveNewsArchive(items);
   })
 
   ipcMain.handle('db:getWeatherAqi', (_, provinceId?: string, date?: string) => {
@@ -899,6 +943,10 @@ app.whenReady().then(async () => {
         error: error instanceof Error ? error.message : 'Unknown network error'
       }
     }
+  })
+
+  ipcMain.handle('shell:openExternal', async (_, url: string) => {
+    return shell.openExternal(url)
   })
 
   createWindow()

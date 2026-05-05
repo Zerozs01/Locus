@@ -17,8 +17,9 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import { regionTheme, type RegionId } from '../data/regionTheme';
-import { fetchNews, openNewsLink, type ProvinceNewsSummary, type RiskLevel } from '../utils/news';
+import { fetchNews, isValidNewsUrl, openNewsLink, type ProvinceNewsSummary } from '../utils/news';
 type Sentiment = 'positive' | 'mixed' | 'negative';
+type RiskLevel = ProvinceNewsSummary['alertLevel'];
 
 const riskTone = {
   green: {
@@ -47,8 +48,12 @@ const sentimentTone = {
   negative: { label: 'กดดัน', icon: <ShieldAlert size={14} />, text: 'text-rose-300' }
 } as const;
 
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+const formatTime = (iso: string) => {
+  if (!iso) return 'ไม่ระบุเวลา';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return 'ไม่ระบุเวลา';
+  return d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+};
 
 
 /**
@@ -68,7 +73,15 @@ export const AnalyticsPage = () => {
     setIsLoading(true);
     try {
       const data = await fetchNews(force);
-      if (data) setNewsSummaries(data);
+      if (Array.isArray(data)) {
+        if (data.length === 0) {
+          setNewsSummaries([]);
+        } else if ('topStories' in data[0]) {
+          setNewsSummaries(data as ProvinceNewsSummary[]);
+        } else {
+          setNewsSummaries([]);
+        }
+      }
     } catch (error) {
       console.error('[Analytics] Load news failed', error);
     } finally {
@@ -97,17 +110,20 @@ export const AnalyticsPage = () => {
     const totals = newsSummaries.reduce(
       (acc, item) => {
         acc.total += 1;
-        acc.avgRisk += item.riskScore;
-        acc.coverage += item.coverage;
-        acc[item.alertLevel] += 1;
+        acc.avgRisk += (item.riskScore || 0);
+        acc.coverage += (item.coverage || 0);
+        const level = item.alertLevel as keyof typeof acc;
+        if (acc[level] !== undefined) {
+          (acc[level] as number) += 1;
+        }
         return acc;
       },
       { total: 0, red: 0, amber: 0, green: 0, avgRisk: 0, coverage: 0 }
     );
     return {
       ...totals,
-      avgRisk: Math.round(totals.avgRisk / totals.total),
-      coverage: Math.round(totals.coverage / totals.total)
+      avgRisk: totals.total > 0 ? Math.round((totals.avgRisk || 0) / totals.total) : 0,
+      coverage: totals.total > 0 ? Math.round((totals.coverage || 0) / totals.total) : 0
     };
   }, [newsSummaries]);
 
@@ -313,8 +329,8 @@ export const AnalyticsPage = () => {
             </div>
           ) : (
             <div className={viewMode === 'cards' ? 'grid gap-6 md:grid-cols-2' : 'space-y-4'}>
-              {filteredNews.map((province) => (
-                <ProvinceNewsCard key={province.id} data={province} compact={viewMode === 'compact'} />
+              {filteredNews.map((province, idx) => (
+                <ProvinceNewsCard key={`${province.id}-${idx}`} data={province} compact={viewMode === 'compact'} />
               ))}
             </div>
           )}
@@ -355,9 +371,23 @@ const SummaryCard = ({ icon, label, value, hint, accent }: SummaryCardProps) => 
 };
 
 const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compact?: boolean }) => {
-  const region = regionTheme[data.regionId];
-  const sentiment = sentimentTone[data.sentiment];
-  const risk = riskTone[data.alertLevel];
+  const region = regionTheme[data.regionId] || { 
+    bg: 'bg-slate-500/20', 
+    text: 'text-slate-300', 
+    border: 'border-white/10', 
+    label: 'ทั่วไป' 
+  };
+  const sentiment = sentimentTone[data.sentiment] || { 
+    label: 'เสถียร', 
+    icon: <RefreshCw size={14} />, 
+    text: 'text-slate-400' 
+  };
+  const risk = riskTone[data.alertLevel] || { 
+    label: 'ปกติ', 
+    bg: 'bg-white/5', 
+    border: 'border-white/10', 
+    text: 'text-slate-400' 
+  };
   const riskWidth = `${Math.min(100, Math.max(0, data.riskScore))}%`;
 
   return (
@@ -406,16 +436,16 @@ const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compac
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {data.signals.map((signal) => (
+        {data.signals?.map((signal) => (
           <span key={signal} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-slate-300">
             {signal}
           </span>
-        ))}
+        )) || <span className="text-[10px] text-slate-600">ไม่มีสัญญาณเตือน</span>}
       </div>
 
       <div className="mt-5 space-y-3">
-        {data.topStories.slice(0, compact ? 1 : 2).map((story) => (
-          <div key={story.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+        {data.topStories?.slice(0, compact ? 1 : 2).map((story, i) => (
+          <div key={`${story.id}-${i}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-white">{story.title}</div>
@@ -427,12 +457,19 @@ const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compac
                   <span>{formatTime(story.publishedAt)}</span>
                 </div>
               </div>
+              {(() => {
+                const canOpen = isValidNewsUrl(story.url) || Boolean(story.title?.trim());
+                return (
               <button
-                onClick={() => openNewsLink(story.url)}
-                className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 hover:bg-white/10"
+                onClick={() => openNewsLink(story.url, story.title)}
+                disabled={!canOpen}
+                title={canOpen ? 'เปิดข่าวฉบับเต็ม' : 'ไม่มีลิงก์สำหรับข่าวนี้'}
+                className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/5"
               >
                 <ExternalLink size={14} />
               </button>
+                );
+              })()}
             </div>
           </div>
         ))}

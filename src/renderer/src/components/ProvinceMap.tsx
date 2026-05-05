@@ -433,22 +433,27 @@ function ProvinceMapComponent(props: ProvinceMapProps, ref: React.ForwardedRef<P
   };
 
   const handleAskLocus = () => {
-    if (!routeData || !routeStart || !routeEnd) return;
+    // Allow sending if at least one point is selected
+    if (!routeStart && !routeEnd) return;
 
     const routeContext = {
-      originLat: routeStart.lat,
-      originLng: routeStart.lng,
-      destLat: routeEnd.lat,
-      destLng: routeEnd.lng,
-      estimatedDistanceKm: routeData.distance / 1000,
-      estimatedDurationMin: routeData.duration / 60,
+      originLat: routeStart?.lat ?? null,
+      originLng: routeStart?.lng ?? null,
+      destLat: routeEnd?.lat ?? null,
+      destLng: routeEnd?.lng ?? null,
+      estimatedDistanceKm: routeData ? routeData.distance / 1000 : null,
+      estimatedDurationMin: routeData ? routeData.duration / 60 : null,
       source: 'map_page' as const
     };
 
     navigate('/intelligence', {
       state: {
         routeContext,
-        autoSendMessage: 'วิเคราะห์ความปลอดภัยและความเสี่ยงของเส้นทางนี้ให้หน่อย'
+        autoSendMessage: routeData 
+          ? 'วิเคราะห์ความปลอดภัยและความเสี่ยงของเส้นทางนี้ให้หน่อย' 
+          : routeEnd 
+            ? `วิเคราะห์พิกัดเป้าหมายนี้ให้หน่อย: ${routeEnd.title || 'พิกัดที่เลือก'}`
+            : `วิเคราะห์พิกัดจุดเริ่มต้นนี้ให้หน่อย: ${routeStart?.title || 'พิกัดที่เลือก'}`
       }
     });
   };
@@ -572,20 +577,27 @@ function ProvinceMapComponent(props: ProvinceMapProps, ref: React.ForwardedRef<P
         resolve(null);
       };
 
-      if ('geolocation' in navigator) {
+      const useNativeGeolocation = () => {
+        if (!('geolocation' in navigator)) {
+          tryIPGeolocation();
+          return;
+        }
+
+        // Reduced timeout to 2500ms to avoid long hangs on Google 403
         navigator.geolocation.getCurrentPosition(
           (position) => {
             resolveAndDraw(position.coords.latitude, position.coords.longitude, position.coords.accuracy || 20);
           },
           async (error) => {
-            console.warn('[Geolocation] Native API failed (often happens in Electron due to missing Google API Keys). Falling back to IP-based location...', error.message);
+            console.warn('[Geolocation] Native API failed (403 or Permission). Falling back to IP...', error.message);
             await tryIPGeolocation();
           },
-          { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+          { enableHighAccuracy: false, timeout: 2500, maximumAge: 60000 }
         );
-      } else {
-        tryIPGeolocation();
-      }
+      };
+
+      // In Electron environment, often better to try IP first or provide a clear path
+      useNativeGeolocation();
     });
   };
 
@@ -2722,7 +2734,6 @@ function ProvinceMapComponent(props: ProvinceMapProps, ref: React.ForwardedRef<P
                                   setSearchQuery('');
                                   setShowSuggestions(false);
                                   setActiveRouteField('end');
-                                  // Force focus to the next field to avoid focus-trap in Electron
                                   setTimeout(() => {
                                      document.getElementById('route-dest-input')?.focus();
                                   }, 100);
@@ -2764,10 +2775,25 @@ function ProvinceMapComponent(props: ProvinceMapProps, ref: React.ForwardedRef<P
                  {/* Results / Status */}
                  <div className="mt-3 overflow-hidden rounded-xl border border-white/5 bg-[#080c12]">
                     {isCalculatingRoute ? (
-                       <div className="p-6 flex items-center justify-center gap-3 text-cyan-400 text-sm">
-                          <Loader2 size={16} className="animate-spin" /> คำนวณเส้นทาง...
+                       <div className="p-6 flex flex-col items-center justify-center gap-4 text-cyan-400 text-sm">
+                          <div className="flex items-center gap-3">
+                            <Loader2 size={16} className="animate-spin" /> คำนวณเส้นทาง...
+                          </div>
+                          
+                          {(routeStart || routeEnd) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAskLocus();
+                              }}
+                              className="flex items-center gap-2 px-6 py-2.5 bg-[#facc15] hover:bg-[#eab308] text-black font-black text-[11px] uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(250,204,21,0.3)] transition-all hover:-translate-y-0.5 active:scale-95"
+                            >
+                              <Sparkles size={14} />
+                              ข้ามไปวิเคราะห์ด้วย AI (Ask Locus)
+                            </button>
+                          )}
                        </div>
-                    ) : (routeData || (travelMode === 'transit' && routeStart && routeEnd)) ? (
+                    ) : (routeStart || routeEnd) ? (
                        <div className="flex flex-col">
                           {/* Main Stats */}
                           <div className="bg-gradient-to-r from-cyan-900/40 to-blue-900/20 p-4 flex justify-between items-center border-b border-white/5">
@@ -2780,39 +2806,49 @@ function ProvinceMapComponent(props: ProvinceMapProps, ref: React.ForwardedRef<P
                                    <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
                                       เส้นทางรถเมล์และรถไฟฟ้าต้องใช้ข้อมูลตารางเวลาจริงและสภาพจราจรแบบ Real-time เพื่อความแม่นยำสูงสุดในการวางแผน
                                    </p>
-                                   <button 
-                                      onClick={() => routeStart && routeEnd && openGoogleMapsTransit(routeStart.lat, routeStart.lng, routeEnd.lat, routeEnd.lng)}
-                                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-[11px] rounded-xl transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] active:scale-[0.98]"
-                                   >
-                                      <ExternalLink size={14} /> เปิดดูเส้นทางสาธารณะใน Google Maps
-                                   </button>
+                                   <div className="flex gap-2">
+                                     <button 
+                                        onClick={() => routeStart && routeEnd && openGoogleMapsTransit(routeStart.lat, routeStart.lng, routeEnd.lat, routeEnd.lng)}
+                                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-[11px] rounded-xl transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] active:scale-[0.98]"
+                                     >
+                                        <ExternalLink size={14} /> Google Maps
+                                     </button>
+                                     <button
+                                       onClick={(e) => { e.stopPropagation(); handleAskLocus(); }}
+                                       className="flex items-center gap-2 px-4 py-2 bg-[#facc15] hover:bg-[#eab308] text-black font-black text-[11px] uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(250,204,21,0.3)] transition-all"
+                                     >
+                                       <Sparkles size={14} /> Ask Locus
+                                     </button>
+                                   </div>
                                 </div>
                              ) : (
                                 <>
                                    <div className="flex flex-col">
                                       <span className="text-2xl font-black text-white tracking-tight">
-                                         {routeData && (routeData.duration > 3600 
+                                         {routeData ? (routeData.duration > 3600 
                                             ? `${Math.floor(routeData.duration / 3600)} hr ${Math.round((routeData.duration % 3600) / 60)} min`
-                                            : `${Math.round(routeData.duration / 60)} min`)}
+                                            : `${Math.round(routeData.duration / 60)} min`) : (routeStart || routeEnd ? 'พร้อมวิเคราะห์' : '--:--')}
                                       </span>
                                       <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-                                         {routeData && (routeData.distance / 1000).toFixed(1)} KM • {travelMode}
+                                         {routeData ? `${(routeData.distance / 1000).toFixed(1)} KM • ${travelMode}` : (routeStart || routeEnd ? 'ระบุตำแหน่งแล้ว' : 'รอระบุตำแหน่ง')}
                                       </span>
                                    </div>
 
-                                   {/* Ask Locus Button */}
-                                   <button
-                                     onClick={(e) => {
-                                       e.stopPropagation();
-                                       handleAskLocus();
-                                     }}
-                                     className="flex items-center gap-2 px-4 py-2 bg-[#facc15] hover:bg-[#eab308] text-black font-black text-[11px] uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(250,204,21,0.3)] transition-all hover:-translate-y-0.5 active:scale-95"
-                                   >
-                                     <Sparkles size={14} />
-                                     Ask Locus
-                                   </button>
+                                   {/* Ask Locus Button - Always show if we have data */}
+                                   {(routeStart || routeEnd) && (
+                                     <button
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         handleAskLocus();
+                                       }}
+                                       className="flex items-center gap-2 px-4 py-2 bg-[#facc15] hover:bg-[#eab308] text-black font-black text-[11px] uppercase tracking-wider rounded-xl shadow-[0_4px_15px_rgba(250,204,21,0.3)] transition-all hover:-translate-y-0.5 active:scale-95"
+                                     >
+                                       <Sparkles size={14} />
+                                       Ask Locus
+                                     </button>
+                                   )}
                                     
-                                    {travelMode === 'driving' && (
+                                    {travelMode === 'driving' && routeData && (
                                        <button 
                                          onClick={() => setShowFuelDetails(!showFuelDetails)}
                                          className={`flex flex-col items-end gap-0.5 group transition-all ${showFuelDetails ? 'text-amber-400' : 'text-slate-400 hover:text-white'}`}
@@ -2829,7 +2865,7 @@ function ProvinceMapComponent(props: ProvinceMapProps, ref: React.ForwardedRef<P
                           </div>
 
                           {/* Tactical Fuel Details Expansion */}
-                          {travelMode === 'driving' && showFuelDetails && (
+                          {travelMode === 'driving' && showFuelDetails && routeData && (
                              <div className="p-4 bg-black/40 space-y-4 animate-in slide-in-from-top-2 duration-200">
                                 {/* Vehicle & Terrain Selectors */}
                                 <div className="flex gap-4">

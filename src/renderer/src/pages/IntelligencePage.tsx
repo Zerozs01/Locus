@@ -189,7 +189,6 @@ export const IntelligencePage = () => {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [editTextareaRef, setEditTextareaRef] = useState<HTMLTextAreaElement | null>(null);
-  const [showPaletteSettings, setShowPaletteSettings] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -505,7 +504,16 @@ export const IntelligencePage = () => {
             : null;
             
           return (
-            <div className={`h-16 flex items-center justify-between px-6 border-b border-white/5 shrink-0 transition-all duration-500 relative overflow-hidden ${!headerTheme ? 'bg-[#0a0c10]' : ''}`}>
+            <div 
+              className={`h-16 flex items-center justify-between px-6 border-b border-white/5 shrink-0 transition-all duration-500 relative overflow-hidden ${!headerTheme ? 'bg-[#0a0c10]' : ''}`}
+              style={headerTheme ? {
+                '--chat-accent': headerTheme.accent,
+                '--chat-md-h1': headerTheme.mdH,
+                '--chat-md-strong': headerTheme.mdB,
+                '--chat-md-list-strong': headerTheme.mdB,
+                '--chat-btn': headerTheme.btn,
+              } as React.CSSProperties : {}}
+            >
               {/* Dynamic Gradient Background */}
               {headerTheme && (
                 <div className={`absolute inset-0 bg-gradient-to-r ${headerTheme.headerGradient} opacity-50 transition-all duration-700`}></div>
@@ -526,33 +534,24 @@ export const IntelligencePage = () => {
                 </div>
               </div>
                     <div className="flex items-center gap-3">
-            {/* Palette Settings Button */}
-            <button
-              onClick={() => setShowPaletteSettings(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 text-xs text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
-              title="ตั้งค่าสีแชต"
-            >
-              <Settings size={12} />
-              สีแชต
-            </button>
             {/* Context Badge */}
             {chatContext && (
-                <div className="flex items-center gap-2 rounded-full border px-3 py-1.5" style={{ borderColor: 'var(--chat-accent-soft-border)', backgroundColor: 'var(--chat-accent-soft)' }}>
-                <Tag size={12} style={{ color: 'var(--chat-md-list-strong)' }} />
-                <span className="text-xs font-medium" style={{ color: 'var(--chat-md-list-strong)' }}>{chatContext.name}</span>
+                <div className="flex items-center gap-2 rounded-full border px-3 py-1.5 bg-white/5" style={{ borderColor: 'rgba(var(--chat-accent-rgb, 14, 165, 233), 0.2)' }}>
+                <Tag size={12} style={{ color: 'var(--chat-accent)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--chat-accent)' }}>{chatContext.name}</span>
                 <button 
                   onClick={() => setChatContext(null)}
                   title="ลบ context"
                   className="ml-1 transition-colors hover:text-white"
-                  style={{ color: 'var(--chat-md-list-strong)' }}
+                  style={{ color: 'var(--chat-accent)' }}
                 >
                   <X size={12} />
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20 relative z-10">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-emerald-400 font-medium">{isLoading ? 'Thinking...' : 'Online'}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-white/5" style={{ borderColor: 'rgba(var(--chat-accent-rgb, 14, 165, 233), 0.2)' }}>
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--chat-accent)' }}></div>
+              <span className="text-xs font-medium" style={{ color: 'var(--chat-accent)' }}>{isLoading ? 'Thinking...' : 'Online'}</span>
             </div>
           </div>
         </div>
@@ -566,6 +565,24 @@ export const IntelligencePage = () => {
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
+          style={(() => {
+            const activeChatIndex = recentChats.findIndex(c => c.id === activeConversationId);
+            const theme = activeChatIndex !== -1 
+              ? CHAT_HISTORY_COLORS[(recentChats.length - 1 - activeChatIndex) % CHAT_HISTORY_COLORS.length]
+              : null;
+            if (!theme) return {};
+            return {
+              '--chat-md-h1': theme.mdH,
+              '--chat-md-h2': theme.mdH,
+              '--chat-md-h3': theme.mdH,
+              '--chat-md-strong': theme.mdB,
+              '--chat-md-list-strong': theme.mdB,
+              '--chat-md-link': theme.mdL,
+              '--chat-md-bullet': theme.mdH,
+              '--chat-btn': theme.btn,
+              '--chat-accent': theme.accent,
+            } as React.CSSProperties;
+          })()}
         >
           {/* Drop Zone Overlay */}
           {dragActive && (
@@ -581,8 +598,8 @@ export const IntelligencePage = () => {
           {/* Empty State */}
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mb-6 border border-cyan-500/20">
-                <Bot size={40} className="text-cyan-400" />
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 border bg-white/5" style={{ borderColor: 'rgba(var(--chat-accent-rgb, 6, 182, 212), 0.2)' }}>
+                <Bot size={40} style={{ color: 'var(--chat-accent)' }} />
               </div>
               <h2 className="text-xl font-bold text-white mb-2">Intel Room พร้อมใช้งาน</h2>
               <p className="text-slate-400 text-sm mb-8 max-w-md">
@@ -603,9 +620,9 @@ export const IntelligencePage = () => {
                     onClick={() => handleSuggestedQuery(query.text)}
                     className="flex items-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-left text-sm text-slate-300 transition-all group"
                   >
-                    <div className="text-cyan-400">{query.icon}</div>
+                    <div style={{ color: 'var(--chat-accent)' }}>{query.icon}</div>
                     <span className="line-clamp-2">{query.text}</span>
-                    <ChevronRight size={14} className="ml-auto text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                    <ChevronRight size={14} className="ml-auto text-slate-600 group-hover:text-[var(--chat-accent)] transition-colors" />
                   </button>
                 ))}
               </div>
@@ -637,7 +654,13 @@ export const IntelligencePage = () => {
 
         {/* Input Area */}
                 <div className="p-4 mx-auto w-full max-w-4xl bg-gradient-to-t from-[#0a0c10] pb-8 via-[#0a0c10] to-transparent sticky bottom-0 z-10">
-          <div className="relative flex items-end gap-3 bg-[#15181e] border border-white/10 rounded-3xl px-6 py-2 pb-3 shadow-[0_10px_40px_rgba(0,0,0,0.4)] focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/30 transition-all">
+          <div 
+            className="relative flex items-end gap-3 bg-[#15181e] border border-white/10 rounded-3xl px-6 py-2 pb-3 shadow-[0_10px_40px_rgba(0,0,0,0.4)] transition-all focus-within:ring-1"
+            style={{ 
+              borderColor: 'rgba(var(--chat-accent-rgb, 6, 182, 212), 0.3)',
+              '--tw-ring-color': 'var(--chat-accent)',
+            } as any}
+          >
             <textarea
               ref={textareaRef}
               value={inputText}
@@ -692,7 +715,8 @@ export const IntelligencePage = () => {
               <button
                 onClick={handleSend}
                 disabled={(!inputText.trim() && !pendingRouteContext) || isLoading}
-                className="p-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
+                className="p-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
+                style={{ backgroundColor: 'var(--chat-accent)' }}
                 title="Send message"
               >
                 <Send size={18} />
@@ -736,109 +760,6 @@ export const IntelligencePage = () => {
         </div>
       </div>
 
-      {/* CHAT PALETTE SETTINGS MODAL */}
-      {showPaletteSettings && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-3xl max-h-[80vh] bg-[#0a0c10] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-              <div>
-                <h2 className="text-lg font-bold text-white">ตั้งค่าสีแชต</h2>
-                <p className="text-xs text-slate-500">ปรับสีของคำตอบแชตแบบสดๆ ได้เลย</p>
-              </div>
-              <button
-                onClick={() => setShowPaletteSettings(false)}
-                className="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Modal Body - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-6">
-                {/* Chat Accent Section */}
-                <div className="bg-[#0f1115] rounded-xl border border-white/5 p-4">
-                  <h3 className="text-sm font-semibold text-white mb-4">Chat Accent</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { key: 'accentPrimary', label: 'Primary Accent' },
-                      { key: 'accentPrimaryHover', label: 'Primary Hover' },
-                      { key: 'accentText', label: 'Accent Text' },
-                      { key: 'accentSoft', label: 'Soft Surface' },
-                      { key: 'accentSoftBorder', label: 'Soft Border' },
-                      { key: 'recentActiveBg', label: 'Recent Active BG' },
-                      { key: 'recentActiveBorder', label: 'Recent Active Border' },
-                      { key: 'recentActiveShadow', label: 'Recent Active Shadow' },
-                    ].map((field) => (
-                      <PaletteColorField
-                        key={field.key}
-                        label={field.label}
-                        value={theme[field.key as keyof typeof theme]}
-                        onChange={(val) => {
-                          const { patchTheme } = useChatThemeStore.getState();
-                          patchTheme({ [field.key]: val } as any);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Markdown Hierarchy Section */}
-                <div className="bg-[#0f1115] rounded-xl border border-white/5 p-4">
-                  <h3 className="text-sm font-semibold text-white mb-4">Markdown Hierarchy</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { key: 'markdownHeading1', label: '# Heading 1' },
-                      { key: 'markdownHeading2', label: '## Heading 2' },
-                      { key: 'markdownHeading3', label: '### Heading 3' },
-                      { key: 'markdownListStrong', label: 'Bullet Strong' },
-                      { key: 'markdownStrong', label: 'Default Strong' },
-                      { key: 'markdownText', label: 'Body Text' },
-                      { key: 'markdownMuted', label: 'Muted Text' },
-                      { key: 'markdownItalic', label: 'Italic Text' },
-                      { key: 'markdownCodeText', label: 'Inline Code Text' },
-                      { key: 'markdownCodeBg', label: 'Inline Code BG' },
-                      { key: 'markdownBullet', label: 'Bullet Marker' },
-                      { key: 'markdownDivider', label: 'Divider' },
-                    ].map((field) => (
-                      <PaletteColorField
-                        key={field.key}
-                        label={field.label}
-                        value={theme[field.key as keyof typeof theme]}
-                        onChange={(val) => {
-                          const { patchTheme } = useChatThemeStore.getState();
-                          patchTheme({ [field.key]: val } as any);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-white/5">
-              <button
-                onClick={() => {
-                  const { resetTheme } = useChatThemeStore.getState();
-                  resetTheme();
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-slate-300 transition-colors"
-              >
-                <RotateCcw size={14} />
-                Reset Colors
-              </button>
-              <button
-                onClick={() => setShowPaletteSettings(false)}
-                className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-xl text-sm font-bold text-white transition-colors"
-              >
-                ปิด
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* QUICK LOCATION SEARCH MODAL */}
       <LocationSearchModal 
@@ -850,43 +771,7 @@ export const IntelligencePage = () => {
   );
 };
 
-// ==================== PALETTE COLOR FIELD ====================
-const PaletteColorField = ({
-  label,
-  value,
-  onChange
-}: {
-  label: string;
-  value: string;
-  onChange: (val: string) => void;
-}) => {
-  return (
-    <div className="flex items-center gap-3">
-      <div
-        className="w-8 h-8 rounded-lg border border-white/10 shrink-0 cursor-pointer"
-        style={{ background: value }}
-        title={value}
-      />
-      <div className="flex-1 min-w-0">
-        <div className="text-xs text-slate-400 truncate">{label}</div>
-        <div className="flex items-center gap-1">
-          <input
-            type="color"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-6 h-6 rounded border border-white/10 bg-transparent cursor-pointer p-0"
-          />
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="flex-1 bg-[#0b0d11] border border-white/10 rounded px-2 py-1 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
+
         // ==================== SUB COMPONENTS ====================
 
 interface MessageBubbleProps {
@@ -937,12 +822,16 @@ const MessageBubble = ({
     <div className={`flex gap-3 group ${isUser ? 'flex-row-reverse' : 'flex-row'} ${isEditing ? 'flex-col' : ''}`}>
       {/* Avatar */}
       {!isEditing && (
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-          isUser 
-            ? 'bg-gradient-to-br from-cyan-500 to-blue-600' 
-            : 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20'
-        }`}>
-          {isUser ? <User size={18} className="text-white" /> : <Bot size={18} className="text-cyan-400" />}
+        <div 
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+          style={{ 
+            backgroundColor: isUser ? 'rgba(var(--chat-btn-rgb, 6, 182, 212), 0.15)' : 'rgba(var(--chat-accent-rgb, 6, 182, 212), 0.15)',
+            borderColor: isUser ? 'var(--chat-btn)' : 'var(--chat-accent)',
+          }}
+        >
+          {isUser 
+            ? <User size={18} style={{ color: 'var(--chat-btn)' }} /> 
+            : <Bot size={18} style={{ color: 'var(--chat-accent)' }} />}
         </div>
       )}
 
@@ -1142,9 +1031,14 @@ const SmartActionBar = ({ text }: SmartActionBarProps) => {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={handlePrimaryAction}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-[12px] font-black text-cyan-400 hover:bg-cyan-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_4px_15px_rgba(6,182,212,0.1)]"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-black transition-all shadow-lg active:scale-[0.98] hover:scale-[1.02]"
+          style={{ 
+            backgroundColor: 'rgba(var(--chat-btn-rgb, 6, 182, 212), 0.1)', 
+            border: '1px solid var(--chat-btn)',
+            color: 'var(--chat-btn)',
+          } as React.CSSProperties}
         >
-          <Compass size={14} className="animate-pulse" />
+          <Compass size={14} className="animate-pulse" style={{ color: 'var(--chat-btn)' }} />
           {provinces.length > 1 
             ? `View Mentioned Provinces (${provinces.length})` 
             : provinces.length === 1 
@@ -1225,53 +1119,41 @@ interface RecentChatItemProps {
 
 const CHAT_HISTORY_COLORS = [
   { 
-    bg: 'bg-emerald-500/10', 
-    border: 'border-emerald-500/20', 
-    text: 'text-emerald-400', 
-    iconBg: 'bg-emerald-500/20', 
-    active: 'bg-emerald-500/20 border-emerald-500/50 shadow-emerald-500/10',
-    headerGradient: 'from-emerald-600/40 via-emerald-500/20 to-emerald-600/30'
-  }, // Green
+    bg: 'bg-green-500/10', border: 'border-green-500/20', text: 'text-green-400', iconBg: 'bg-green-500/20', 
+    active: 'bg-green-500/20 border-green-500/50 shadow-green-500/10',
+    headerGradient: 'from-green-600/40 via-green-500/20 to-green-600/30',
+    mdH: '#22c55e', mdB: '#86efac', mdL: '#c084fc', btn: '#a855f7', accent: '#22c55e'
+  }, // Green -> Purple Button
   { 
-    bg: 'bg-yellow-500/10', 
-    border: 'border-yellow-500/20', 
-    text: 'text-yellow-400', 
-    iconBg: 'bg-yellow-500/20', 
+    bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', text: 'text-yellow-400', iconBg: 'bg-yellow-500/20', 
     active: 'bg-yellow-500/20 border-yellow-500/50 shadow-yellow-500/10',
-    headerGradient: 'from-yellow-600/40 via-yellow-500/20 to-yellow-600/30'
-  }, // Yellow
+    headerGradient: 'from-yellow-600/40 via-yellow-500/20 to-yellow-600/30',
+    mdH: '#facc15', mdB: '#a16207', mdL: '#60a5fa', btn: '#3b82f6', accent: '#facc15'
+  }, // Yellow -> Blue Button
   { 
-    bg: 'bg-orange-500/10', 
-    border: 'border-orange-500/20', 
-    text: 'text-orange-400', 
-    iconBg: 'bg-orange-500/20', 
+    bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400', iconBg: 'bg-orange-500/20', 
     active: 'bg-orange-500/20 border-orange-500/50 shadow-orange-500/10',
-    headerGradient: 'from-orange-600/40 via-orange-500/20 to-orange-600/30'
-  }, // Orange
+    headerGradient: 'from-orange-600/40 via-orange-500/20 to-orange-600/30',
+    mdH: '#fb923c', mdB: '#ca8a04', mdL: '#4ade80', btn: '#22c55e', accent: '#fb923c'
+  }, // Orange -> Green Button
   { 
-    bg: 'bg-rose-500/10', 
-    border: 'border-rose-500/20', 
-    text: 'text-rose-400', 
-    iconBg: 'bg-rose-500/20', 
+    bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', iconBg: 'bg-rose-500/20', 
     active: 'bg-rose-500/20 border-rose-500/50 shadow-rose-500/10',
-    headerGradient: 'from-rose-600/40 via-rose-500/20 to-rose-600/30'
-  }, // Red
+    headerGradient: 'from-rose-600/40 via-rose-500/20 to-rose-600/30',
+    mdH: '#f87171', mdB: '#fb923c', mdL: '#facc15', btn: '#06b6d4', accent: '#f87171'
+  }, // Red -> Cyan Button
   { 
-    bg: 'bg-purple-500/10', 
-    border: 'border-purple-500/20', 
-    text: 'text-purple-400', 
-    iconBg: 'bg-purple-500/20', 
+    bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-400', iconBg: 'bg-purple-500/20', 
     active: 'bg-purple-500/20 border-purple-500/50 shadow-purple-500/10',
-    headerGradient: 'from-purple-600/40 via-purple-500/20 to-purple-600/30'
-  }, // Purple
+    headerGradient: 'from-purple-600/40 via-purple-500/20 to-purple-600/30',
+    mdH: '#c084fc', mdB: '#f87171', mdL: '#fb923c', btn: '#facc15', accent: '#c084fc'
+  }, // Purple -> Yellow Button
   { 
-    bg: 'bg-blue-500/10', 
-    border: 'border-blue-500/20', 
-    text: 'text-blue-400', 
-    iconBg: 'bg-blue-500/20', 
+    bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400', iconBg: 'bg-blue-500/20', 
     active: 'bg-blue-500/20 border-blue-500/50 shadow-blue-500/10',
-    headerGradient: 'from-blue-600/40 via-blue-500/20 to-blue-600/30'
-  }, // Blue
+    headerGradient: 'from-blue-600/40 via-blue-500/20 to-blue-600/30',
+    mdH: '#60a5fa', mdB: '#c084fc', mdL: '#f87171', btn: '#fb923c', accent: '#60a5fa'
+  }, // Blue -> Orange Button
 ];
 
 const formatRelativeChatTime = (timestamp: string) => {

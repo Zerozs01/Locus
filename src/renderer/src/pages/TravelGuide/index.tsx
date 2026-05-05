@@ -18,7 +18,7 @@ import { provinceCoordinates } from '../../data/coordinates';
 import { getEcoEntities, expandEcoTags, type EcoEntity, type EcoTag } from './data/ecoDb';
 import { WeatherHistoryModal } from '../../components/WeatherHistoryModal';
 import { AQI_SYNC_EVENT } from '../../utils/aqi';
-import { fetchNews, openNewsLink, type NewsItem as TravelGuideNewsItem } from '../../utils/news';
+import { fetchNews, isValidNewsUrl, openNewsLink, type NewsItem as TravelGuideNewsItem } from '../../utils/news';
 
 const getLocalDateKey = (date = new Date()) => {
   const year = date.getFullYear();
@@ -762,9 +762,9 @@ export function TravelGuidePage() {
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 12000,
-          maximumAge: 30000,
+          enableHighAccuracy: false, // High accuracy is more likely to trigger 403 on Electron
+          timeout: 2500,
+          maximumAge: 60000,
         });
       });
 
@@ -1741,7 +1741,7 @@ export function TravelGuidePage() {
                           <div className="text-[10px] text-slate-400">กำลังดึงข่าวล่าสุด...</div>
                         ) : newsBriefings.length > 0 ? (
                           newsBriefings.map((item, i) => (
-                            <div key={item.id} className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5">
+                            <div key={`${item.id}-${i}`} className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5">
                               <div className="flex items-start justify-between gap-2">
                                 <div className={`text-[10px] font-bold leading-tight ${knowledgeToneScale[i % knowledgeToneScale.length]}`}>{item.title}</div>
                                 <button
@@ -2033,8 +2033,9 @@ export function TravelGuidePage() {
               <div className="flex items-center justify-between pt-2">
                 <span className="text-[10px] text-slate-500">{newsDetailItem.source} • {new Date(newsDetailItem.publishedAt).toLocaleDateString('th-TH')}</span>
                 <button
-                  onClick={() => openNewsLink(newsDetailItem.url)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-bold hover:bg-sky-500/30 transition-all"
+                  onClick={() => openNewsLink(newsDetailItem.url, newsDetailItem.title)}
+                  disabled={!isValidNewsUrl(newsDetailItem.url) && !newsDetailItem.title?.trim()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-bold hover:bg-sky-500/30 transition-all disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-sky-500/20"
                 >
                   อ่านข่าวฉบับเต็ม <ExternalLink size={12} />
                 </button>

@@ -58,7 +58,14 @@ const api = {
     getPopularProvinces: (regionId?: string, limit?: number) =>
       ipcRenderer.invoke('db:getPopularProvinces', regionId, limit),
     populateTestTrendingData: () =>
-      ipcRenderer.invoke('db:populate-test-trending')
+      ipcRenderer.invoke('db:populate-test-trending'),
+    getNewsArchive: (provinceId?: string, limit?: number) =>
+      ipcRenderer.invoke('db:getNewsArchive', provinceId, limit),
+    saveNewsArchive: (items: any[]) =>
+      ipcRenderer.invoke('db:saveNewsArchive', items)
+  },
+  shell: {
+    openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url)
   },
   floodCache: {
     save: (provinceId: string, geoJsonData: object) =>
