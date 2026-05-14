@@ -267,7 +267,7 @@ export function TravelGuidePage() {
   const [activePlannerFilter, setActivePlannerFilter] = useState<'speed' | 'price'>('speed');
   const [showPlannerInfoPopup, setShowPlannerInfoPopup] = useState(false);
   const [dangerInfoState, setDangerInfoState] = useState<{ danger: any; index: number } | null>(null);
-  const [isNewsPanelOpen, setIsNewsPanelOpen] = useState(false);
+  const [isNewsPanelOpen, setIsNewsPanelOpen] = useState(true);
   const [isLoadingNewsBriefings, setIsLoadingNewsBriefings] = useState(false);
   const [newsBriefingError, setNewsBriefingError] = useState('');
   const [newsBriefings, setNewsBriefings] = useState<TravelGuideNewsItem[]>([]);

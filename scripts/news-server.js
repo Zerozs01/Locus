@@ -9,6 +9,7 @@ const os = require('os');
 const PORT = process.env.NEWS_SERVER_PORT || 4000;
 const REFRESH_MS = Number(process.env.NEWS_REFRESH_MS || 10 * 60 * 1000);
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+const DEFAULT_DAYS_BACK = 7; // How far back to fetch news by default
 
 // Stats Tracker
 let newsApiRequestCount = 0;
@@ -93,11 +94,14 @@ function generateSignals(items) {
 }
 
 // --- Fetching Logic ---
-async function fetchFromNewsApi(q) {
+async function fetchFromNewsApi(q, daysBack = DEFAULT_DAYS_BACK) {
   const newsApiKey = getNewsApiKey();
   if (!newsApiKey) return [];
   try {
-    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=th&pageSize=30&apiKey=${newsApiKey}`;
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - daysBack);
+    const fromStr = fromDate.toISOString().split('T')[0];
+    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=th&pageSize=30&from=${fromStr}&apiKey=${newsApiKey}`;
     const res = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': USER_AGENT } });
     newsApiRequestCount++;
     newsApiRemaining = res.headers.get('x-rate-limit-remaining') || newsApiRemaining;
@@ -132,14 +136,15 @@ async function fetchFromRssFeeds(q) {
   return results;
 }
 
-async function aggregateForProvince(province, force = false) {
+async function aggregateForProvince(province, force = false, daysBack = DEFAULT_DAYS_BACK) {
   const q = (province || '').trim();
-  const cached = cache[q];
+  const cacheKey = `${q}:${daysBack}`;
+  const cached = cache[cacheKey];
   const now = Date.now();
   if (!force && cached && (now - cached.fetchedAt) < REFRESH_MS) return cached.items;
 
-  console.log(`[news-server] Fetching: "${q || 'global'}" (Force=${force})`);
-  const [rssItems, newsApiItems] = await Promise.all([fetchFromRssFeeds(q), fetchFromNewsApi(q)]);
+  console.log(`[news-server] Fetching: "${q || 'global'}" (Force=${force}, DaysBack=${daysBack})`);
+  const [rssItems, newsApiItems] = await Promise.all([fetchFromRssFeeds(q), fetchFromNewsApi(q, daysBack)]);
 
   const map = new Map();
   [...newsApiItems, ...rssItems].forEach(it => {
@@ -157,7 +162,7 @@ async function aggregateForProvince(province, force = false) {
     return new Date(b.publishedAt) - new Date(a.publishedAt);
   }).slice(0, 50);
 
-  cache[q] = { fetchedAt: now, items };
+  cache[cacheKey] = { fetchedAt: now, items };
   return items;
 }
 
@@ -169,7 +174,8 @@ app.get('/news', async (req, res) => {
     try { province = decodeURIComponent(rawProvince); } catch { province = rawProvince; }
     
     const force = req.query.force === 'true';
-    const currentItems = await aggregateForProvince(province, force);
+    const daysBack = req.query.days ? Math.max(1, Math.min(Number(req.query.days) || DEFAULT_DAYS_BACK, 30)) : DEFAULT_DAYS_BACK;
+    const currentItems = await aggregateForProvince(province, force, daysBack);
 
     // If a specific province was requested, return just those items
     if (province) return res.json({ ok: true, provider: 'local-aggregator', count: currentItems.length, items: currentItems });
@@ -221,6 +227,15 @@ app.listen(PORT, () => {
 
 // Cache Warmer
 (async () => {
+  // Warm global view first
   try { await aggregateForProvince(''); } catch {}
+  
+  // Pre-warm key provinces so global view has data for all provinces
+  const WARM_PROVINCES = ['bangkok', 'chiangmai', 'phuket', 'chonburi', 'khonkaen', 'nakhon-ratchasima', 'lampang', 'phetchabun', 'chiangrai'];
+  for (const prov of WARM_PROVINCES) {
+    try { await aggregateForProvince(prov); } catch { /* skip */ }
+    await new Promise(r => setTimeout(r, 500)); // Rate limit pause
+  }
+  
   setInterval(() => aggregateForProvince(''), REFRESH_MS);
 })();

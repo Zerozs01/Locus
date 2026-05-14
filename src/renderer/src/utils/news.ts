@@ -186,6 +186,48 @@ const normalizeNewsPayload = (data: any[]) => {
   return data.map(normalizeStory);
 };
 
+const groupFlatNewsIntoSummaries = async (flatNews: NewsItem[]): Promise<ProvinceNewsSummary[]> => {
+  const provinceIndex = window.api?.db?.getProvinceIndex ? await window.api.db.getProvinceIndex().catch(() => []) : [];
+  const safeProvinceIndex = Array.isArray(provinceIndex) ? provinceIndex : [];
+  
+  const grouped = new Map<string, NewsItem[]>();
+  for (const item of flatNews) {
+    const provinceId = String((item as any).province_id || (item as any).provinceId || (item as any).province || 'unknown').trim() || 'unknown';
+    const list = grouped.get(provinceId) || [];
+    list.push(item);
+    grouped.set(provinceId, list);
+  }
+
+  const summaries = Array.from(grouped.entries()).map(([provinceId, provinceRows]) => {
+    const meta = resolveProvinceMeta(provinceId, safeProvinceIndex);
+    const topStories = provinceRows
+      .slice()
+      .sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''))
+      .slice(0, 5);
+    const riskScore = computeArchiveRiskScore(topStories);
+    const coverage = Math.min(100, provinceRows.length * 18);
+    const sentiment = riskScore >= 70 ? 'negative' : riskScore >= 40 ? 'mixed' : 'positive';
+    const alertLevel = riskScore >= 70 ? 'red' : riskScore >= 40 ? 'amber' : 'green';
+
+    return {
+      id: meta.id,
+      name: meta.name,
+      regionId: meta.regionId,
+      regionName: meta.regionName,
+      riskScore,
+      sentiment,
+      alertLevel,
+      coverage,
+      confidence: Math.max(60, Math.min(95, 70 + Math.min(20, provinceRows.length * 2))),
+      signals: provinceRows.length > 0 ? ['ข่าวล่าสุดจาก API'] : ['ไม่มีสัญญาณเพิ่มเติม'],
+      topStories,
+      lastUpdated: provinceRows[0]?.publishedAt || new Date().toISOString()
+    } satisfies ProvinceNewsSummary;
+  });
+
+  return summaries.sort((a, b) => b.riskScore - a.riskScore);
+};
+
 const normalizeCachedPayload = (data: ProvinceNewsSummary[] | NewsItem[]) => {
   if (!Array.isArray(data)) return data;
   return normalizeNewsPayload(data as any[]);
@@ -205,7 +247,7 @@ const buildArchiveFallback = async (provinceName?: string): Promise<ProvinceNews
   if (!window.api?.db?.getNewsArchive) return [];
 
   const [archiveRows, provinceIndex] = await Promise.all([
-    window.api.db.getNewsArchive(),
+    window.api.db.getNewsArchive(undefined, 200), // Get more items for fallback/merge
     window.api.db.getProvinceIndex ? window.api.db.getProvinceIndex().catch(() => []) : []
   ]);
 
@@ -376,12 +418,14 @@ export const fetchNews = async (force: boolean = false, provinceName?: string): 
   }
 
   try {
+    // Request 7 days of news by default (matches server's DEFAULT_DAYS_BACK)
+    const daysParam = 'days=7';
     let requestUrl = provinceName 
-      ? `${endpoint}${endpoint.includes('?') ? '&' : '?'}province=${encodeURIComponent(provinceName)}`
-      : endpoint;
+      ? `${endpoint}${endpoint.includes('?') ? '&' : '?'}province=${encodeURIComponent(provinceName)}&${daysParam}`
+      : `${endpoint}${endpoint.includes('?') ? '&' : '?'}${daysParam}`;
     
     if (force) {
-      requestUrl += `${requestUrl.includes('?') ? '&' : '?'}force=true`;
+      requestUrl += `&force=true`;
     }
 
     console.log(`[News] Fetching from ${requestUrl}...`);
@@ -389,19 +433,22 @@ export const fetchNews = async (force: boolean = false, provinceName?: string): 
     if (!response.ok) throw new Error('Failed to load news');
     const payload = await response.json();
 
-    let newsData: ProvinceNewsSummary[] = [];
-
+    let newsData: any[] = [];
     if (Array.isArray(payload)) {
       newsData = payload;
     } else if (payload && typeof payload === 'object' && Array.isArray((payload as any).items)) {
       newsData = (payload as any).items;
     }
 
-    if (newsData.length > 0) {
+    // Always fetch archive to merge with live results for persistence
+    const archiveResult = await buildArchiveFallback(provinceName);
+    const archiveItems = Array.isArray(archiveResult) ? archiveResult : [];
+
+    if (newsData.length > 0 || archiveItems.length > 0) {
       const normalizedNewsData = normalizeNewsPayload(newsData);
       const isSummaryPayload = Boolean(normalizedNewsData[0]?.topStories);
 
-      // 1. Save to SQLite Archive for persistence
+      // 1. Save live data to SQLite Archive for persistence
       try {
         const storiesToArchive = normalizedNewsData.flatMap((entry: any) => {
           if (Array.isArray(entry?.topStories)) {
@@ -442,6 +489,7 @@ export const fetchNews = async (force: boolean = false, provinceName?: string): 
             is_tactical: isTactical
           }];
         });
+        
         if (storiesToArchive.length > 0 && (window as any).api?.db?.saveNewsArchive) {
           const result = await (window as any).api.db.saveNewsArchive(storiesToArchive);
           console.log(`[News] Archived ${result.count} stories to SQLite`);
@@ -450,20 +498,76 @@ export const fetchNews = async (force: boolean = false, provinceName?: string): 
         console.warn('[News] Failed to archive news to DB', err);
       }
 
-      const cacheKey = provinceName ? buildCacheKey(provinceName) : CACHE_KEY;
-      const cachePayload = provinceName
-        ? (isSummaryPayload ? filterNews(normalizedNewsData, provinceName) : normalizedNewsData)
-        : normalizedNewsData;
+      // 2. Merge Live + Archive
+      let mergedPayload: ProvinceNewsSummary[] | NewsItem[] = [];
 
+      if (provinceName) {
+        // Flat list of items for a specific province
+        const liveItems = isSummaryPayload 
+          ? (filterNews(normalizedNewsData, provinceName) as NewsItem[])
+          : (normalizedNewsData as NewsItem[]);
+        
+        const archiveItemsFlat = archiveItems as NewsItem[];
+        
+        // Dedup by URL
+        const seenUrls = new Set<string>();
+        mergedPayload = [...liveItems, ...archiveItemsFlat].filter(item => {
+          const url = normalizeHttpUrl(item.url);
+          if (!url || seenUrls.has(url)) return false;
+          seenUrls.add(url);
+          return true;
+        }).sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || '')).slice(0, 50);
+      } else {
+        // List of summaries for global view
+        const liveSummaries = isSummaryPayload 
+          ? (normalizedNewsData as ProvinceNewsSummary[])
+          : await groupFlatNewsIntoSummaries(normalizedNewsData as NewsItem[]);
+        
+        const archiveSummaries = archiveItems as ProvinceNewsSummary[];
+        
+        // Merge summaries by province ID
+        const summariesMap = new Map<string, ProvinceNewsSummary>();
+        
+        // Archive first as base
+        archiveSummaries.forEach(s => summariesMap.set(s.id, s));
+        
+        // Live overrides/adds
+        liveSummaries.forEach(s => {
+          const existing = summariesMap.get(s.id);
+          if (existing) {
+            // Merge top stories and dedup
+            const seenUrls = new Set<string>();
+            const allStories = [...s.topStories, ...existing.topStories].filter(st => {
+              const url = normalizeHttpUrl(st.url);
+              if (!url || seenUrls.has(url)) return false;
+              seenUrls.add(url);
+              return true;
+            }).slice(0, 10);
+            
+            summariesMap.set(s.id, {
+              ...existing,
+              ...s,
+              topStories: allStories,
+              coverage: Math.max(s.coverage, existing.coverage)
+            });
+          } else {
+            summariesMap.set(s.id, s);
+          }
+        });
+        
+        mergedPayload = Array.from(summariesMap.values()).sort((a, b) => b.riskScore - a.riskScore);
+      }
+
+      const cacheKey = provinceName ? buildCacheKey(provinceName) : CACHE_KEY;
       const cache: NewsCache = {
         lastFetched: now,
-        data: cachePayload as ProvinceNewsSummary[] | NewsItem[]
+        data: mergedPayload
       };
       localStorage.setItem(cacheKey, JSON.stringify(cache));
-      return filterNews(normalizedNewsData, provinceName);
+      return mergedPayload;
     }
   } catch (error) {
-    console.warn('[News] Fetch failed, falling back to cache or mock', error);
+    console.warn('[News] Fetch failed, falling back to archive or cache', error);
     const archived = await trySQLiteFallback();
     if (archived.length > 0) return archived;
     const cached = readCache(provinceName ? buildCacheKey(provinceName) : CACHE_KEY);
@@ -544,19 +648,15 @@ export const openNewsLink = (url: string, fallbackTitle?: string) => {
       }
 
       console.log('[News] Opening external URL:', candidate);
-      // Primary path: window.open is intercepted by Electron setWindowOpenHandler
-      // and routed to shell.openExternal in main process.
-      window.open(candidate, '_blank', 'noopener,noreferrer');
-
-      // Secondary fallback path for environments where setWindowOpenHandler is unavailable.
+      
+      // Prioritize shell.openExternal for Electron environment
       if ((window as any).api?.shell?.openExternal) {
-        const openPromise = (window as any).api.shell.openExternal(candidate);
-        if (openPromise && typeof openPromise.catch === 'function') {
-          openPromise.catch((error: unknown) => {
-            console.warn('[News] shell.openExternal fallback failed', error);
-          });
-        }
+        (window as any).api.shell.openExternal(candidate);
+        return true;
       }
+      
+      // Fallback to standard window.open for web/browser environment
+      window.open(candidate, '_blank', 'noopener,noreferrer');
       return true;
     } catch (e) {
       console.error('[News] URL parsing failed for:', candidate, e);

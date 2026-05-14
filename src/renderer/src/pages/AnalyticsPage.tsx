@@ -68,6 +68,7 @@ export const AnalyticsPage = () => {
   const [riskFilter, setRiskFilter] = useState<RiskLevel | 'all'>('all');
   const [viewMode, setViewMode] = useState<'cards' | 'compact'>('cards');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [selectedNews, setSelectedNews] = useState<ProvinceNewsSummary['topStories'][0] | null>(null);
 
   const loadNews = async (force: boolean = false) => {
     setIsLoading(true);
@@ -330,12 +331,42 @@ export const AnalyticsPage = () => {
           ) : (
             <div className={viewMode === 'cards' ? 'grid gap-6 md:grid-cols-2' : 'space-y-4'}>
               {filteredNews.map((province, idx) => (
-                <ProvinceNewsCard key={`${province.id}-${idx}`} data={province} compact={viewMode === 'compact'} />
+                <ProvinceNewsCard 
+                  key={`${province.id}-${idx}`} 
+                  data={province} 
+                  compact={viewMode === 'compact'} 
+                  onViewNews={setSelectedNews}
+                />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* News Detail Modal */}
+      {selectedNews && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-[#0f1115] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-white/5 flex justify-between items-center">
+              <h3 className="font-black text-white">สรุปข่าว: {selectedNews.title}</h3>
+              <button onClick={() => setSelectedNews(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="text-xs text-slate-400 leading-relaxed">{selectedNews.summary || 'ไม่มีเนื้อหาสรุปสำหรับข่าวนี้'}</div>
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-[10px] text-slate-500">{selectedNews.source} • {new Date(selectedNews.publishedAt).toLocaleDateString('th-TH')}</span>
+                <button
+                  onClick={() => openNewsLink(selectedNews.url, selectedNews.title)}
+                  disabled={!isValidNewsUrl(selectedNews.url) && !selectedNews.title?.trim()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-bold hover:bg-sky-500/30 transition-all disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-sky-500/20"
+                >
+                  อ่านข่าวฉบับเต็ม <ExternalLink size={12} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -370,7 +401,7 @@ const SummaryCard = ({ icon, label, value, hint, accent }: SummaryCardProps) => 
   );
 };
 
-const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compact?: boolean }) => {
+const ProvinceNewsCard = ({ data, compact, onViewNews }: { data: ProvinceNewsSummary; compact?: boolean; onViewNews?: (news: ProvinceNewsSummary['topStories'][0]) => void; }) => {
   const region = regionTheme[data.regionId] || { 
     bg: 'bg-slate-500/20', 
     text: 'text-slate-300', 
@@ -392,9 +423,9 @@ const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compac
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0b0f14]/90 p-5 shadow-[0_22px_80px_rgba(0,0,0,0.35)] transition-transform duration-300 hover:-translate-y-1">
-      <div className="absolute inset-0 opacity-0 transition-opacity duration-300 hover:opacity-100" style={{ background: 'radial-gradient(circle at top, rgba(34,197,94,0.12), transparent 55%)' }} />
+      <div className="absolute inset-0 opacity-0 transition-opacity duration-300 hover:opacity-100 pointer-events-none" style={{ background: 'radial-gradient(circle at top, rgba(34,197,94,0.12), transparent 55%)' }} />
 
-      <div className="relative flex flex-wrap items-center justify-between gap-3">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-white">{data.name}</h3>
@@ -443,7 +474,7 @@ const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compac
         )) || <span className="text-[10px] text-slate-600">ไม่มีสัญญาณเตือน</span>}
       </div>
 
-      <div className="mt-5 space-y-3">
+      <div className="relative z-10 mt-5 space-y-3">
         {data.topStories?.slice(0, compact ? 1 : 2).map((story, i) => (
           <div key={`${story.id}-${i}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
             <div className="flex items-start justify-between gap-3">
@@ -460,14 +491,31 @@ const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compac
               {(() => {
                 const canOpen = isValidNewsUrl(story.url) || Boolean(story.title?.trim());
                 return (
-              <button
-                onClick={() => openNewsLink(story.url, story.title)}
-                disabled={!canOpen}
-                title={canOpen ? 'เปิดข่าวฉบับเต็ม' : 'ไม่มีลิงก์สำหรับข่าวนี้'}
-                className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/5"
-              >
-                <ExternalLink size={14} />
-              </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (onViewNews) onViewNews(story);
+                      }}
+                      title="ดูข้อมูลข่าวในแอป"
+                      className="rounded-full border border-sky-500/30 bg-sky-500/10 p-2 text-sky-400 hover:bg-sky-500/20 transition-all"
+                    >
+                      <Layers size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openNewsLink(story.url, story.title);
+                      }}
+                      disabled={!canOpen}
+                      title={canOpen ? 'เปิดข่าวฉบับเต็ม' : 'ไม่มีลิงก์สำหรับข่าวนี้'}
+                      className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/5"
+                    >
+                      <ExternalLink size={14} />
+                    </button>
+                  </div>
                 );
               })()}
             </div>

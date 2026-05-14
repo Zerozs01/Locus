@@ -5,6 +5,8 @@ import { getRecords } from '../utils/csvDb';
 import { AQI_SYNC_EVENT } from '../utils/aqi';
 import { CachedImage } from '../components/CachedImage';
 import { TrendingPlacesCard } from '../components/TrendingPlacesCard';
+import { WeatherHistoryModal } from '../components/WeatherHistoryModal';
+import { AQIModal } from '../components/AQIModal';
 import {
   MapPin,
   Compass,
@@ -263,8 +265,27 @@ export const GeoArchivePage = () => {
   ]);
   const [regionStats, setRegionStats] = useState<RegionStats[]>([]);
   const [statsViewMode, setStatsViewMode] = useState<'temp' | 'aqi'>('temp');
+  const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
+  const [isAQIModalOpen, setIsAQIModalOpen] = useState(false);
+  const [selectedRegionForWeather, setSelectedRegionForWeather] = useState<{ id: string; name: string } | null>(null);
+  const [provinceIndexForModal, setProvinceIndexForModal] = useState<Array<{ id: string; name: string; regionId?: string }>>([]);
   const [fuelSort, setFuelSort] = useState<'asc' | 'desc' | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
+
+  const handleShowRegionWeather = useCallback(async (id: string, name: string) => {
+    try {
+      const rows = await (window as any).api?.db?.getProvinceIndex?.() || [];
+      setProvinceIndexForModal(Array.isArray(rows) ? rows : []);
+    } catch { 
+      setProvinceIndexForModal([]); 
+    }
+    setSelectedRegionForWeather({ id, name });
+    if (statsViewMode === 'temp') {
+      setIsWeatherModalOpen(true);
+    } else {
+      setIsAQIModalOpen(true);
+    }
+  }, [statsViewMode]);
 
   // Load fuel prices from database on mount
   useEffect(() => {
@@ -932,11 +953,16 @@ export const GeoArchivePage = () => {
                         const barHeight = 40 + normalized * (140 - 40); // Scale bar from 40px to 140px
 
                         return (
-                          <div key={`col-${region.id}`} className="flex flex-col items-center group cursor-help">
+                          <div 
+                            key={`col-${region.id}`} 
+                            className="flex flex-col items-center group cursor-pointer"
+                            onClick={() => handleShowRegionWeather(region.id, region.name)}
+                            title={`คลิกเพื่อดูรายละเอียด ${statsViewMode === 'temp' ? 'อุณหภูมิ' : 'AQI'} ของ${region.name}`}
+                          >
                             {/* Bar Container */}
                             <div className="h-44 w-full flex items-end justify-center px-1 mb-6">
                               <div 
-                                className={`w-full max-w-[42px] rounded-t-xl transition-all duration-700 ease-out group-hover:scale-x-105 group-hover:brightness-125 border-x border-t border-white/20 shadow-[0_0_20px_rgba(0,0,0,0.5)] ${regionMeta?.barClass || 'bg-cyan-500'}`}
+                                className={`w-full max-w-[42px] rounded-t-xl transition-all duration-700 ease-out group-hover:scale-x-110 group-hover:scale-y-105 group-hover:brightness-125 border-x border-t border-white/20 shadow-[0_0_20px_rgba(0,0,0,0.5)] ${regionMeta?.barClass || 'bg-cyan-500'}`}
                                 style={{ 
                                   height: `${barHeight}px`,
                                   boxShadow: `0 0 30px ${regionMeta?.color || '#0ea5e9'}40`
@@ -1117,6 +1143,32 @@ export const GeoArchivePage = () => {
             </div>
           </div>
         </div>
+
+        {/* Weather History Modal - reused from ThailandMap */}
+        <WeatherHistoryModal
+          isOpen={isWeatherModalOpen}
+          onClose={() => setIsWeatherModalOpen(false)}
+          provinceName={selectedRegionForWeather?.id === 'all' ? "สภาพอากาศทั้งหมด" : `${selectedRegionForWeather?.name}`}
+          provinces={(() => {
+            if (!selectedRegionForWeather || selectedRegionForWeather.id === 'all') return provinceIndexForModal;
+            return provinceIndexForModal.filter(p => p.regionId === selectedRegionForWeather.id);
+          })()}
+          regionId={selectedRegionForWeather?.id === 'all' ? undefined : selectedRegionForWeather?.id}
+          targetProvinceId={selectedRegionForWeather?.id === 'all' ? 'all' : undefined}
+          chartScope="region-average"
+        />
+
+        {isAQIModalOpen && (
+          <AQIModal
+            isOpen={isAQIModalOpen}
+            onClose={() => setIsAQIModalOpen(false)}
+            regionName={selectedRegionForWeather?.id === 'all' ? "ประเทศไทย" : `${selectedRegionForWeather?.name}`}
+            provinces={(() => {
+              if (!selectedRegionForWeather || selectedRegionForWeather.id === 'all') return provinceIndexForModal;
+              return provinceIndexForModal.filter(p => p.regionId === selectedRegionForWeather.id);
+            })()}
+          />
+        )}
       </div>
     );
   }
