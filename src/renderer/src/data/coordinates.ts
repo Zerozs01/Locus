@@ -3,12 +3,14 @@
  */
 export const provinceCoordinates: Record<string, { lat: number; lng: number }> = {
   'Bangkok Metropolis': { lat: 13.7563, lng: 100.5018 },
+  'Bangkok': { lat: 13.7563, lng: 100.5018 },
   'Samut Prakan': { lat: 13.5991, lng: 100.5968 },
   'Nonthaburi': { lat: 13.8591, lng: 100.5217 },
   'Pathum Thani': { lat: 14.0208, lng: 100.5250 },
+  'Phra Nakhon Si Ayutthaya': { lat: 14.3532, lng: 100.5690 },
   'Ayutthaya': { lat: 14.3532, lng: 100.5690 },
   'Ang Thong': { lat: 14.5930, lng: 100.4550 },
-  'Lopburi': { lat: 14.7995, lng: 100.6534 },
+  'Lop Buri': { lat: 14.7995, lng: 100.6534 },
   'Saraburi': { lat: 14.5289, lng: 100.9101 },
   'Sing Buri': { lat: 14.8904, lng: 100.3967 },
   'Chai Nat': { lat: 15.1852, lng: 100.1251 },
@@ -49,6 +51,7 @@ export const provinceCoordinates: Record<string, { lat: number; lng: number }> =
   'Roi Et': { lat: 16.0545, lng: 103.6520 },
   'Mukdahan': { lat: 16.5458, lng: 104.7144 },
   'Chachoengsao': { lat: 13.6888, lng: 101.0772 },
+  'Chon Buri': { lat: 13.3611, lng: 100.9847 },
   'Chonburi': { lat: 13.3611, lng: 100.9847 },
   'Rayong': { lat: 12.6831, lng: 101.2816 },
   'Chanthaburi': { lat: 12.6114, lng: 102.1039 },

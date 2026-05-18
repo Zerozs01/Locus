@@ -1,7 +1,8 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net, session } from 'electron'
+import { spawn, ChildProcess } from 'child_process'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid, getExplorePlaces, getExplorePlacesByCategories, seedExplorePlaces, getPopularProvinces, upsertProvinceStats, seedPopularProvinces, getTrendingPlaces, populateTestTrendingData } from './database/db'
+import { initDatabase, getRegions, getRegion, getProvince, getRegionSummaries, getProvincesByRegion, getProvinceIndex, getArchiveProvinces, seedDatabase, forceReseedDatabase, getDatabaseStats, getProvincePortal, seedProvincePortalData, saveWeatherAqi, getWeatherAqi, saveFloodCache, getFloodCache, isFloodCacheValid, saveFuelPrices, getFuelPrices, isFuelPricesValid, getExplorePlaces, getExplorePlacesByCategories, seedExplorePlaces, getPopularProvinces, upsertProvinceStats, seedPopularProvinces, getTrendingPlaces, populateTestTrendingData, saveChatConversation, getChatConversations, getChatConversation, deleteChatConversation, saveChatMessage, getChatMessages, deleteChatMessage, getNewsArchive, saveNewsArchive } from './database/db'
 import { initialRegions } from './database/initialData'
 import { EXPLORE_PLACES_SEED } from './database/explorePlacesSeed'
 import { POPULAR_PROVINCES_SEED } from './database/popularProvincesSeed'
@@ -25,6 +26,7 @@ import { readRuntimeConfig, writeRuntimeConfig } from './config/runtimeConfig'
 import { createHash } from 'crypto'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { createConnection } from 'node:net'
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'locus', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }
@@ -176,6 +178,16 @@ type N8nChatPayload = {
   country?: string
   lat?: number
   lng?: number
+  fuelPrices?: Record<string, number>
+  routeContext?: {
+    originLat: number
+    originLng: number
+    destLat: number
+    destLng: number
+    estimatedDistanceKm: number
+    estimatedDurationMin: number
+    source: string
+  }
 } & N8nOverrides
 
 type MapEvSearchParams = {
@@ -191,6 +203,62 @@ const resolveN8nConfig = async (overrides?: N8nOverrides) => {
   const webhookUrl = (overrides?.webhookUrl || config.ngrok || process.env.VITE_NGROK_URL || DEFAULT_N8N_WEBHOOK_URL).replace(/\/+$/, '')
   const apiKey = overrides?.apiKey || config.n8n_api_key || process.env.VITE_N8N_API_KEY || ''
   return { webhookUrl, apiKey }
+}
+
+let newsServerProcess: ChildProcess | null = null
+
+function isPortInUse(port: number): Promise<boolean> {
+  const canConnect = (host: string) => {
+    return new Promise<boolean>((resolve) => {
+      const socket = createConnection({ port, host })
+      let done = false
+
+      const finish = (result: boolean) => {
+        if (done) return
+        done = true
+        socket.destroy()
+        resolve(result)
+      }
+
+      socket.setTimeout(500)
+      socket.once('connect', () => finish(true))
+      socket.once('timeout', () => finish(false))
+      socket.once('error', () => finish(false))
+    })
+  }
+
+  return Promise.all([canConnect('127.0.0.1'), canConnect('::1')]).then(([ipv4, ipv6]) => ipv4 || ipv6)
+}
+
+async function startNewsServer() {
+  if (newsServerProcess) return
+
+  const port = Number(process.env.NEWS_SERVER_PORT || 4000)
+  const portBusy = await isPortInUse(port)
+  if (portBusy) {
+    console.log(`[Main] News server already running on port ${port}; skipping internal spawn.`)
+    return
+  }
+
+  const scriptPath = is.dev 
+    ? join(app.getAppPath(), 'scripts', 'news-server.js')
+    : join(process.resourcesPath, 'scripts', 'news-server.js')
+
+  console.log(`[Main] Starting news server: ${scriptPath}`)
+  
+  newsServerProcess = spawn('node', [scriptPath], {
+    stdio: 'inherit',
+    env: { ...process.env, NEWS_SERVER_PORT: String(port) }
+  })
+
+  newsServerProcess.on('error', (err) => {
+    console.error('[Main] News server failed to start:', err)
+  })
+
+  newsServerProcess.on('exit', (code) => {
+    console.log(`[Main] News server exited with code ${code}`)
+    newsServerProcess = null
+  })
 }
 
 const buildN8nHeaders = (apiKey?: string, contentType?: string) => {
@@ -290,7 +358,9 @@ const postN8nChat = async (payload: N8nChatPayload) => {
         regionName: payload.regionName,
         country: payload.country,
         lat: payload.lat,
-        lng: payload.lng
+        lng: payload.lng,
+        fuelPrices: payload.fuelPrices ?? {},
+        routeContext: payload.routeContext
       })
     })
 
@@ -630,6 +700,15 @@ app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.locus.app')
 
+  await startNewsServer()
+
+  app.on('will-quit', () => {
+    if (newsServerProcess) {
+      console.log('[Main] Killing news server process...')
+      newsServerProcess.kill()
+    }
+  })
+
   // Initialize and Seed Database
   console.log('--- Locus Main Process Starting (Updated Protocol Handler) ---');
   initDatabase()
@@ -700,6 +779,14 @@ app.whenReady().then(async () => {
      return saveWeatherAqi(records);
   })
 
+  ipcMain.handle('db:getNewsArchive', (_, provinceId?: string, limit?: number) => {
+    return getNewsArchive(provinceId, limit);
+  })
+
+  ipcMain.handle('db:saveNewsArchive', (_, items: any[]) => {
+    return saveNewsArchive(items);
+  })
+
   ipcMain.handle('db:getWeatherAqi', (_, provinceId?: string, date?: string) => {
      return getWeatherAqi(provinceId, date);
   })
@@ -757,6 +844,35 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('db:getPopularProvinces', (_, regionId?: string, limit?: number) => {
      return getPopularProvinces(regionId, limit);
+  })
+
+  // ====== Chat History IPC ======
+  ipcMain.handle('db:saveChatConversation', (_, id, title, context, lastContextKey) => {
+    return saveChatConversation(id, title, context, lastContextKey);
+  })
+
+  ipcMain.handle('db:getChatConversations', () => {
+    return getChatConversations();
+  })
+
+  ipcMain.handle('db:getChatConversation', (_, id) => {
+    return getChatConversation(id);
+  })
+
+  ipcMain.handle('db:deleteChatConversation', (_, id) => {
+    return deleteChatConversation(id);
+  })
+
+  ipcMain.handle('db:saveChatMessage', (_, message) => {
+    return saveChatMessage(message);
+  })
+
+  ipcMain.handle('db:getChatMessages', (_, conversationId) => {
+    return getChatMessages(conversationId);
+  })
+
+  ipcMain.handle('db:deleteChatMessage', (_, messageId) => {
+    return deleteChatMessage(messageId);
   })
 
   ipcMain.handle('assets:getImageCacheStats', () => {
@@ -858,6 +974,10 @@ app.whenReady().then(async () => {
         error: error instanceof Error ? error.message : 'Unknown network error'
       }
     }
+  })
+
+  ipcMain.handle('shell:openExternal', async (_, url: string) => {
+    return shell.openExternal(url)
   })
 
   createWindow()

@@ -178,18 +178,38 @@ export interface ChatResponse {
   output: string
 }
 
+export interface RouteContext {
+  originLat: number;
+  originLng: number;
+  destLat: number;
+  destLng: number;
+  estimatedDistanceKm: number;
+  estimatedDurationMin: number;
+  source: 'map_page' | 'quick_search';
+}
+
 export const sendChatMessage = async (
   message: string,
   sessionId?: string,
   overrides?: N8nOverrides,
-  location?: ChatLocationPayload
+  location?: ChatLocationPayload,
+  fuelPrices?: Record<string, number>,
+  routeContext?: RouteContext
 ): Promise<string> => {
   const resolvedSessionId = resolveSessionId(sessionId)
   const payload = {
     message,
     sessionId: resolvedSessionId,
-    ...location
-  }
+    fuelPrices: fuelPrices || {},
+    provinceName: location?.provinceName || '',
+    regionName: location?.regionName || '',
+    country: location?.country || 'TH',
+    lat: location?.lat,
+    lng: location?.lng,
+    routeContext
+  };
+  
+  console.log('[n8nClient] Sending Payload:', payload);
 
   if (window.api?.n8n?.chat) {
     const response = await window.api.n8n.chat({

@@ -3,7 +3,6 @@ import {
   Image as ImageIcon,
   PinIcon,
   Thermometer,
-  Wallet,
   Wind
 } from 'lucide-react';
 import { FlyToHandler, ProvinceData } from '../types';
@@ -57,18 +56,6 @@ export const ExploreTab = ({
     return 'อันตราย (Hazardous)';
   }, [data.weather.aqi]);
 
-  const dailyCostClassByRegion: Record<string, string> = {
-    north: 'bg-violet-500/12 border-violet-400/35 text-violet-300',
-    northeast: 'bg-rose-500/12 border-rose-400/35 text-rose-300',
-    central: 'bg-amber-500/12 border-amber-400/35 text-amber-300',
-    west: 'bg-emerald-500/12 border-emerald-400/35 text-emerald-300',
-    east: 'bg-yellow-500/12 border-yellow-400/35 text-yellow-300',
-    south: 'bg-sky-500/12 border-sky-400/35 text-sky-300',
-  };
-
-  const dailyCostColorClass = provinceInfo
-    ? (dailyCostClassByRegion[provinceInfo.regionId] || 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400')
-    : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400';
 
   useEffect(() => {
     // Thailand seasonal cycle: Nov-Feb cool, Mar-May hot, Jun-Oct rainy
@@ -144,11 +131,6 @@ export const ExploreTab = ({
                 </div>
               </button>
               
-              {/* Daily Cost */}
-              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border shrink-0 ${dailyCostColorClass}`}>
-                <Wallet size={14} />
-                <span className="text-xs font-bold leading-none">{data.dailyCost}</span>
-              </div>
             </div>
           </div>
         </div>

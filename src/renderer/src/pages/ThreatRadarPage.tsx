@@ -38,12 +38,12 @@ const hasPolygonGeo = (geojson: unknown): boolean => {
 };
 
 const POPULAR_PLACE_CANDIDATES = [
-  { name: 'สยามพารากอน', keywords: 'siam paragon สยามพารากอน สยามพารากอ สยามพา', provinceName: 'Bangkok Metropolis', lat: 13.7466, lng: 100.5347 },
-  { name: 'สยามสแควร์', keywords: 'siam square สยามสแควร์ สยาม', provinceName: 'Bangkok Metropolis', lat: 13.7449, lng: 100.5335 },
-  { name: 'เซ็นทรัลเวิลด์', keywords: 'central world centralworld เซ็นทรัลเวิลด์', provinceName: 'Bangkok Metropolis', lat: 13.7467, lng: 100.5393 },
-  { name: 'เยาวราช', keywords: 'yaowarat chinatown เยาวราช', provinceName: 'Bangkok Metropolis', lat: 13.7396, lng: 100.5104 },
-  { name: 'จตุจักร', keywords: 'chatuchak จตุจักร jj market', provinceName: 'Bangkok Metropolis', lat: 13.7998, lng: 100.5510 },
-  { name: 'วัดอรุณ', keywords: 'wat arun วัดอรุณ temple', provinceName: 'Bangkok Metropolis', lat: 13.7437, lng: 100.4888 },
+  { name: 'สยามพารากอน', keywords: 'siam paragon สยามพารากอน สยามพารากอ สยามพา', provinceName: 'Bangkok', lat: 13.7466, lng: 100.5347 },
+  { name: 'สยามสแควร์', keywords: 'siam square สยามสแควร์ สยาม', provinceName: 'Bangkok', lat: 13.7449, lng: 100.5335 },
+  { name: 'เซ็นทรัลเวิลด์', keywords: 'central world centralworld เซ็นทรัลเวิลด์', provinceName: 'Bangkok', lat: 13.7467, lng: 100.5393 },
+  { name: 'เยาวราช', keywords: 'yaowarat chinatown เยาวราช', provinceName: 'Bangkok', lat: 13.7396, lng: 100.5104 },
+  { name: 'จตุจักร', keywords: 'chatuchak จตุจักร jj market', provinceName: 'Bangkok', lat: 13.7998, lng: 100.5510 },
+  { name: 'วัดอรุณ', keywords: 'wat arun วัดอรุณ temple', provinceName: 'Bangkok', lat: 13.7437, lng: 100.4888 },
 ];
 
 // Local image mapping for regions (override DB URLs)
@@ -51,6 +51,21 @@ const regionImageMap: Record<string, string> = regionsData.reduce((acc, r) => {
   acc[r.id] = r.image;
   return acc;
 }, {} as Record<string, string>);
+
+// Map provinces to their regions for map interactions
+const provinceToRegion: Record<string, string> = {};
+regionsData.forEach((region) => {
+  (region.subProvinces || []).forEach((prov) => {
+    provinceToRegion[prov.name] = region.id;
+    provinceToRegion[prov.name.toLowerCase()] = region.id;
+    // Add GeoJSON aliases
+    if (prov.name === 'Bangkok') provinceToRegion['Bangkok Metropolis'] = region.id;
+    if (prov.name === 'Phra Nakhon Si Ayutthaya') {
+      provinceToRegion['Ayutthaya'] = region.id;
+      provinceToRegion['ayutthaya'] = region.id;
+    }
+  });
+});
 
 /**
  * Threat Radar Page - Survival Mode
@@ -235,6 +250,13 @@ export const ThreatRadarPage = () => {
     } else if (state?.regionId) {
       setSelectedRegionId(state.regionId);
       window.history.replaceState({}, document.title);
+    }
+    if (state?.autoSearch) {
+      setSearchQuery(state.autoSearch);
+      if (state.autoSelectFirst) {
+         // We need to wait for suggestions to be populated (async Nominatim search)
+         // So we'll use a ref or another effect to watch for results
+      }
     }
   }, [location.state, provinceIndex]);
 
@@ -517,6 +539,13 @@ export const ThreatRadarPage = () => {
       return;
     }
 
+    if (suggestion.kind === 'province') {
+      navigate(`/province/${suggestion.regionId}/${suggestion.id}`);
+      setSearchQuery('');
+      setShowSuggestions(false);
+      return;
+    }
+
     setSelectedRegionId(suggestion.regionId);
     setMapMode('province');
     const provinces = await loadRegionProvinces(suggestion.regionId);
@@ -526,6 +555,24 @@ export const ThreatRadarPage = () => {
     setSearchQuery('');
     setShowSuggestions(false);
   }, [loadRegionProvinces, navigate]);
+
+  // Effect to handle auto-selection of the first search result when autoSelectFirst is true
+  useEffect(() => {
+    const state = location.state as { autoSelectFirst?: boolean; autoSearch?: string } | null;
+    if (state?.autoSelectFirst && searchSuggestions.length > 0 && !isRemoteSearching) {
+      const topResult = searchSuggestions[0];
+      // Only auto-select if the name is a very strong match
+      const queryNorm = normalizeSearchText(state.autoSearch || '');
+      const resultNorm = normalizeSearchText(topResult.name);
+      
+      if (resultNorm.includes(queryNorm) || queryNorm.includes(resultNorm)) {
+        console.log('🎯 ThreatRadarPage: Auto-selecting top match:', topResult.name);
+        handleSearchSelect(topResult);
+        // Clear state to avoid infinite loop
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [searchSuggestions, isRemoteSearching, location.state, handleSearchSelect]);
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -565,13 +612,37 @@ export const ThreatRadarPage = () => {
     setSelectedProvince(null);
   }, []);
 
-  const handleSelectProvinceByName = useCallback(async (name: string) => {
-    const regionId = provinceToRegion[name] || 'central';
-    setSelectedRegionId(regionId);
-    setMapMode('province');
-    const provinces = await loadRegionProvinces(regionId);
-    const prov = provinces.find((p) => p.name === name || (name === 'Bangkok Metropolis' && p.name === 'Bangkok') || (name === 'Phra Nakhon Si Ayutthaya' && p.name === 'Ayutthaya'));
-    if (prov) setSelectedProvince(prov);
+  const handleSelectProvinceByName = useCallback((name: string) => {
+    // 1. Find the target region and province synchronously from local data for instant feedback
+    const searchName = name.toLowerCase();
+    const regionId = provinceToRegion[name] || provinceToRegion[searchName] || 'central';
+    
+    const targetRegion = regionsData.find(r => r.id === regionId);
+    if (!targetRegion) return;
+
+    const prov = (targetRegion.subProvinces || []).find(p => {
+      const pName = p.name.toLowerCase();
+      return (
+        pName === searchName ||
+        pName.includes(searchName) ||
+        searchName.includes(pName) ||
+        (searchName === 'bangkok metropolis' && pName === 'bangkok') ||
+        (searchName === 'ayutthaya' && pName === 'phra nakhon si ayutthaya') ||
+        (searchName === 'phra nakhon si ayutthaya' && pName === 'ayutthaya')
+      );
+    });
+
+    if (prov) {
+      // 2. Update all UI states at once (React will batch these)
+      setSelectedRegionId(regionId);
+      setMapMode('province');
+      setSelectedProvince(prov);
+      
+      // 3. Trigger background load of "official" DB data if needed
+      loadRegionProvinces(regionId);
+    } else {
+      console.warn('❌ Province Not Found:', name, 'in region', regionId);
+    }
   }, [loadRegionProvinces]);
 
   useEffect(() => {

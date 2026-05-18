@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Navigation2, Search, ExternalLink, MapPin,
@@ -18,18 +18,7 @@ import { provinceCoordinates } from '../../data/coordinates';
 import { getEcoEntities, expandEcoTags, type EcoEntity, type EcoTag } from './data/ecoDb';
 import { WeatherHistoryModal } from '../../components/WeatherHistoryModal';
 import { AQI_SYNC_EVENT } from '../../utils/aqi';
-type SupplyType = 'bank' | 'gas' | 'other';
-
-type TravelGuideNewsItem = {
-  id: string;
-  title: string;
-  source: string;
-  url: string;
-  publishedAt: string;
-  tag: string;
-  impact: 'low' | 'medium' | 'high';
-  summary: string;
-};
+import { fetchNews, isValidNewsUrl, openNewsLink, type NewsItem as TravelGuideNewsItem } from '../../utils/news';
 
 const getLocalDateKey = (date = new Date()) => {
   const year = date.getFullYear();
@@ -78,17 +67,6 @@ const formatRouteDeparture = (route: any) => {
   return `${normalized[0]}, ${normalized[1]} +${normalized.length - 2}`;
 };
 
-const resolveNewsEndpoint = async (): Promise<string> => {
-  if (window.api?.config?.get) {
-    try {
-      const config = await window.api.config.get();
-      if (config.news_api_url) return String(config.news_api_url);
-    } catch {
-      return '';
-    }
-  }
-  return import.meta.env.VITE_NEWS_API_URL || '';
-};
 
 const transportTypeOrder = ['rail', 'bus', 'van', 'plane', 'boat', 'songthaew', 'tuk_tuk', 'bike', 'other'];
 const transportTypeLabels: Record<string, string> = {
@@ -289,7 +267,7 @@ export function TravelGuidePage() {
   const [activePlannerFilter, setActivePlannerFilter] = useState<'speed' | 'price'>('speed');
   const [showPlannerInfoPopup, setShowPlannerInfoPopup] = useState(false);
   const [dangerInfoState, setDangerInfoState] = useState<{ danger: any; index: number } | null>(null);
-  const [isNewsPanelOpen, setIsNewsPanelOpen] = useState(false);
+  const [isNewsPanelOpen, setIsNewsPanelOpen] = useState(true);
   const [isLoadingNewsBriefings, setIsLoadingNewsBriefings] = useState(false);
   const [newsBriefingError, setNewsBriefingError] = useState('');
   const [newsBriefings, setNewsBriefings] = useState<TravelGuideNewsItem[]>([]);
@@ -688,13 +666,23 @@ export function TravelGuidePage() {
   const plannerOriginOptions = useMemo(() => {
     const set = new Set<string>(plannerEndpointOptions);
     originSearchOptions.forEach((option) => set.add(option));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    const arr = Array.from(set).sort((a, b) => a.localeCompare(b));
+    const q = (originText || '').trim().toLowerCase();
+    if (q.length >= 2) {
+      return arr.filter((o) => o.toLowerCase().includes(q)).slice(0, 8);
+    }
+    return arr.slice(0, 24);
   }, [originSearchOptions, plannerEndpointOptions]);
 
   const plannerDestinationOptions = useMemo(() => {
     const set = new Set<string>(plannerEndpointOptions);
     destSearchOptions.forEach((option) => set.add(option));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    const arr = Array.from(set).sort((a, b) => a.localeCompare(b));
+    const q = (destText || '').trim().toLowerCase();
+    if (q.length >= 2) {
+      return arr.filter((o) => o.toLowerCase().includes(q)).slice(0, 8);
+    }
+    return arr.slice(0, 24);
   }, [destSearchOptions, plannerEndpointOptions]);
 
   const reverseGeocodeCurrentLocation = useCallback(async (lat: number, lng: number) => {
@@ -774,9 +762,9 @@ export function TravelGuidePage() {
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 12000,
-          maximumAge: 30000,
+          enableHighAccuracy: false, // High accuracy is more likely to trigger 403 on Electron
+          timeout: 2500,
+          maximumAge: 60000,
         });
       });
 
@@ -1112,7 +1100,7 @@ export function TravelGuidePage() {
         id: `${selectedProvinceId}-news-4`,
         title: `หน่วยงานท้องถิ่นปรับแผนรับนักท่องเที่ยวช่วงเทศกาล`,
         source: 'Province News',
-        url: '',
+        url: 'https://news.google.com',
         publishedAt: mkDate(47),
         tag: 'การท่องเที่ยว',
         impact: 'low',
@@ -1122,7 +1110,7 @@ export function TravelGuidePage() {
         id: `${selectedProvinceId}-news-5`,
         title: `รายงานสถิติพื้นที่เสี่ยงในช่วง 3 เดือนที่ผ่านมา`,
         source: 'Province News',
-        url: '',
+        url: 'https://news.google.com',
         publishedAt: mkDate(91),
         tag: 'สถิติ',
         impact: 'medium',
@@ -1136,73 +1124,22 @@ export function TravelGuidePage() {
     setNewsBriefingError('');
 
     try {
-      let stories: TravelGuideNewsItem[] = [];
-      const endpoint = await resolveNewsEndpoint();
-
-      if (endpoint) {
-        const response = await fetch(endpoint, {
-          method: 'GET',
-          cache: forceSync ? 'no-store' : 'default',
-          headers: { 'Accept': 'application/json' }
-        });
-
-        if (!response.ok) {
-          throw new Error(`โหลดข่าวไม่สำเร็จ (${response.status})`);
-        }
-
-        const payload = await response.json();
-        const summaries = Array.isArray(payload) ? payload : [];
-
-        const provinceCandidates = new Set([
-          normalizeProvinceNewsId(selectedProvinceId),
-          normalizeProvinceNewsId(selectedProvinceName),
-          normalizeProvinceNewsId(displayName),
-        ]);
-
-        const matched = summaries.find((summary: any) => {
-          const id = normalizeProvinceNewsId(String(summary?.id || summary?.name || ''));
-          return provinceCandidates.has(id);
-        });
-
-        const sourceStories = Array.isArray(matched?.topStories)
-          ? matched.topStories
-          : [];
-
-        stories = sourceStories.map((story: any, index: number) => ({
-          id: String(story?.id || `${selectedProvinceId}-api-${index}`),
-          title: String(story?.title || 'ไม่มีหัวข้อข่าว'),
-          source: String(story?.source || 'News API'),
-          url: String(story?.url || ''),
-          publishedAt: String(story?.publishedAt || new Date().toISOString()),
-          tag: String(story?.tag || 'ทั่วไป'),
-          impact: (story?.impact === 'low' || story?.impact === 'medium' || story?.impact === 'high') ? story.impact : 'medium',
-          summary: String(story?.summary || story?.title || 'ไม่มีสรุปข่าว'),
-        }));
-      }
+      const provinceQuery = displayName || selectedProvinceName;
+      const data = await fetchNews(forceSync, provinceQuery);
+      
+      const stories = (data as any[]).map((item: any) => ({
+        ...item,
+        summary: item.summary || item.description || item.title || 'ไม่มีสรุปข่าว'
+      }));
 
       const fallbackStories = buildMockProvinceNews();
       const allStories = stories.length > 0 ? stories : fallbackStories;
 
-      const now = Date.now();
-      const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
-      const oneYearAgo = now - (365 * 24 * 60 * 60 * 1000);
-
-      const normalized = allStories
-        .map((item) => {
-          const time = new Date(item.publishedAt).getTime();
-          return { item, time: Number.isFinite(time) ? time : 0 };
-        })
-        .filter((entry) => entry.time >= oneYearAgo)
-        .sort((a, b) => b.time - a.time);
-
-      const weekSet = normalized.filter((entry) => entry.time >= sevenDaysAgo).map((entry) => entry.item);
-      const yearSet = normalized.map((entry) => entry.item);
-      const prioritized = (weekSet.length >= 2 ? weekSet : yearSet).slice(0, 5);
-
-      setNewsBriefings(prioritized.length > 0 ? prioritized : fallbackStories);
+      setNewsBriefings(allStories.slice(0, 5));
       setHasLoadedNewsBriefings(true);
       setNewsLastSyncedAt(new Date().toISOString());
     } catch (error: any) {
+      console.warn('[TravelGuide] Province news fetch failed', error);
       setNewsBriefings(buildMockProvinceNews());
       setHasLoadedNewsBriefings(true);
       setNewsLastSyncedAt(new Date().toISOString());
@@ -1210,7 +1147,7 @@ export function TravelGuidePage() {
     } finally {
       setIsLoadingNewsBriefings(false);
     }
-  }, [buildMockProvinceNews, displayName, normalizeProvinceNewsId, selectedProvinceId, selectedProvinceName]);
+  }, [buildMockProvinceNews, displayName, selectedProvinceName]);
 
   useEffect(() => {
     if (!isNewsPanelOpen || hasLoadedNewsBriefings || isLoadingNewsBriefings) return;
@@ -1804,7 +1741,7 @@ export function TravelGuidePage() {
                           <div className="text-[10px] text-slate-400">กำลังดึงข่าวล่าสุด...</div>
                         ) : newsBriefings.length > 0 ? (
                           newsBriefings.map((item, i) => (
-                            <div key={item.id} className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5">
+                            <div key={`${item.id}-${i}`} className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5">
                               <div className="flex items-start justify-between gap-2">
                                 <div className={`text-[10px] font-bold leading-tight ${knowledgeToneScale[i % knowledgeToneScale.length]}`}>{item.title}</div>
                                 <button
@@ -2096,8 +2033,9 @@ export function TravelGuidePage() {
               <div className="flex items-center justify-between pt-2">
                 <span className="text-[10px] text-slate-500">{newsDetailItem.source} • {new Date(newsDetailItem.publishedAt).toLocaleDateString('th-TH')}</span>
                 <button
-                  onClick={() => window.open(newsDetailItem.url, '_blank')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-bold hover:bg-sky-500/30 transition-all"
+                  onClick={() => openNewsLink(newsDetailItem.url, newsDetailItem.title)}
+                  disabled={!isValidNewsUrl(newsDetailItem.url) && !newsDetailItem.title?.trim()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-bold hover:bg-sky-500/30 transition-all disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-sky-500/20"
                 >
                   อ่านข่าวฉบับเต็ม <ExternalLink size={12} />
                 </button>

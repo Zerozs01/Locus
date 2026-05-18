@@ -1,10 +1,14 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getFuelPricesWithRefresh, refreshFuelPrices } from '../services/fuelPricesService';
 import { getRecords } from '../utils/csvDb';
 import { AQI_SYNC_EVENT } from '../utils/aqi';
+import { HOLIDAYS } from '../data/holidayData';
+import { appendTravelPlanHistory, saveTravelPlanSnapshot } from '../utils/travelPlans';
 import { CachedImage } from '../components/CachedImage';
 import { TrendingPlacesCard } from '../components/TrendingPlacesCard';
+import { WeatherHistoryModal } from '../components/WeatherHistoryModal';
+import { AQIModal } from '../components/AQIModal';
 import {
   MapPin,
   Compass,
@@ -33,15 +37,18 @@ import {
   CarTaxiFront,
   Bike,
   TrendingUp,
-  BarChart3,
   Filter,
   Info,
   ArrowDownNarrowWide,
   ArrowUpNarrowWide,
   Thermometer,
-  Wind
+  Wind,
+  RefreshCw,
+  Search,
+  Bell
 } from 'lucide-react';
 import KohKradan from '../../../Image/koh_kradan.png';
+import { PremiumCalendarCard } from '../components/PremiumCalendarCard';
 
 // ─── Types ──────────────────────────────────────────
 type IntentMode = null | 'help' | 'explore';
@@ -78,6 +85,7 @@ interface ExploreResultItem {
 
 // ─── Data ───────────────────────────────────────────
 const DISCOVERY_CHIPS: DiscoveryChip[] = [
+  { label: 'ทั้งหมด', icon: <Compass size={14} />, keywords: ['all'] },
   { label: 'ธรรมชาติ', icon: <TreePine size={14} />, keywords: ['nature', 'forest', 'mountain'] },
   { label: 'ทะเล', icon: <Waves size={14} />, keywords: ['beach', 'sea'] },
   { label: 'อาหาร', icon: <UtensilsCrossed size={14} />, keywords: ['food', 'restaurant'] },
@@ -205,10 +213,173 @@ const HELP_QUESTIONS: HelpQuestion[] = [
 ];
 
 // ═══════════════════════════════════════════════════════
+// Constants & Mock Data
+// ═══════════════════════════════════════════════════════
+const HOME_SUGGESTIONS = ['เชียงใหม่', 'ภูเก็ต', 'ทะเล', 'คาเฟ่ธรรมชาติ'];
+
+type ProvinceIndexItem = {
+  id: string;
+  name: string;
+  regionId?: string;
+  regionName?: string;
+};
+
+type HomeSuggestionItem = {
+  kind: 'province' | 'place';
+  id: string;
+  label: string;
+  subtitle: string;
+  regionId?: string;
+  provinceId?: string;
+  score: number;
+};
+
+const normalizeSearchText = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[\s\-_/.,()]+/g, '')
+    .trim();
+
+const isLooseMatch = (query: string, candidate: string) => {
+  const q = normalizeSearchText(query);
+  const c = normalizeSearchText(candidate);
+  if (!q || !c) return false;
+  if (c.includes(q) || q.includes(c)) return true;
+
+  let qi = 0;
+  for (let i = 0; i < c.length && qi < q.length; i += 1) {
+    if (c[i] === q[qi]) qi += 1;
+  }
+  return qi / q.length >= 0.8;
+};
+
+const matchesProvinceIndex = (query: string, province: ProvinceIndexItem) =>
+  isLooseMatch(query, province.name) ||
+  isLooseMatch(query, province.id) ||
+  isLooseMatch(query, province.regionName || '');
+
+const scoreTextMatch = (query: string, candidate: string) => {
+  const q = normalizeSearchText(query);
+  const c = normalizeSearchText(candidate);
+  if (!q || !c) return 0;
+  if (c === q) return 100;
+  if (c.startsWith(q)) return 90;
+  if (c.includes(q)) return 80 - Math.min(Math.max(c.indexOf(q), 0), 20);
+
+  let qi = 0;
+  for (let i = 0; i < c.length && qi < q.length; i += 1) {
+    if (c[i] === q[qi]) qi += 1;
+  }
+  return qi / q.length >= 0.8 ? 60 : 0;
+};
+
+const buildHomeSuggestions = (
+  query: string,
+  provinces: ProvinceIndexItem[],
+  places: Array<{ id: number; title: string; locationName: string | null; regionId: string | null; provinceId: string | null; category: string | null; tags: string[] | null }>,
+) => {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const provinceItems: HomeSuggestionItem[] = provinces
+    .map((province) => ({
+      kind: 'province' as const,
+      id: province.id,
+      label: province.name,
+      subtitle: province.regionName || province.regionId || 'จังหวัด',
+      regionId: province.regionId,
+      score: Math.max(
+        scoreTextMatch(trimmed, province.name),
+        scoreTextMatch(trimmed, province.id),
+        scoreTextMatch(trimmed, province.regionName || ''),
+      ),
+    }))
+    .filter((item) => item.score > 0);
+
+  const placeItems: HomeSuggestionItem[] = places
+    .map((place) => ({
+      kind: 'place' as const,
+      id: String(place.id),
+      label: place.title,
+      subtitle: [place.locationName, place.category].filter(Boolean).join(' · ') || 'สถานที่',
+      regionId: place.regionId || undefined,
+      provinceId: place.provinceId || undefined,
+      score: Math.max(
+        scoreTextMatch(trimmed, place.title),
+        scoreTextMatch(trimmed, place.locationName || ''),
+        scoreTextMatch(trimmed, place.category || ''),
+        ...(place.tags || []).map((tag) => scoreTextMatch(trimmed, tag)),
+      ),
+    }))
+    .filter((item) => item.score > 0);
+
+  return [...provinceItems, ...placeItems]
+    .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label, 'th'))
+    .slice(0, 8);
+};
+
+const TRAVEL_CHECKLIST_ITEMS = [
+  {
+    id: 'plan-destination',
+    title: 'ล็อกปลายทางและจุดแวะ',
+    detail: 'ยืนยันจังหวัดหลัก จุดพัก และสถานที่สำรอง',
+    when: 'วันนี้',
+    date: '09:00',
+    category: 'Plan',
+    done: true,
+  },
+  {
+    id: 'book-stay',
+    title: 'จองที่พัก / เช็คอิน',
+    detail: 'เลือกที่พักให้ใกล้แผนเดินทางที่สุด',
+    when: 'ก่อนเดินทาง 3 วัน',
+    date: '18:00',
+    category: 'Booking',
+    done: false,
+  },
+  {
+    id: 'check-weather',
+    title: 'เช็คอากาศและ AQI',
+    detail: 'ดูฝน ลม และช่วงที่เหมาะออกเดินทาง',
+    when: 'ก่อนออก 1 วัน',
+    date: '07:00',
+    category: 'Weather',
+    done: false,
+  },
+  {
+    id: 'prepare-gear',
+    title: 'เตรียมของจำเป็น',
+    detail: 'เสื้อผ้า ยา พาวเวอร์แบงก์ และเอกสาร',
+    when: 'คืนนี้',
+    date: '20:30',
+    category: 'Packing',
+    done: false,
+  },
+  {
+    id: 'route-check',
+    title: 'เช็คเส้นทางและเวลาออก',
+    detail: 'ตั้งเวลาออกจากบ้านและเผื่อรถติด',
+    when: 'เช้าวันเดินทาง',
+    date: '06:30',
+    category: 'Route',
+    done: true,
+  },
+];
+
+const RECENT_SEARCHES = ['น่าน', 'พัทยา', 'ดอยอินทนนท์', 'ร้านอาหาร เชียงใหม่'];
+
+const getProgressClass = (percent: number) => {
+  if (percent === 100) return 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]';
+  if (percent >= 50) return 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]';
+  return 'bg-rose-400 shadow-[0_0_10px_rgba(251,113,113,0.5)]';
+};
+
+// ═══════════════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════════════
 export const GeoArchivePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mode, setMode] = useState<IntentMode>(null);
   const [helpStep, setHelpStep] = useState(0);
   const [helpAnswers, setHelpAnswers] = useState<Record<string, string>>({});
@@ -246,6 +417,93 @@ export const GeoArchivePage = () => {
   const [showRatingFilter, setShowRatingFilter] = useState(false);
   const [ratingSort, setRatingSort] = useState<'desc' | 'asc' | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
+  const [homeSearch, setHomeSearch] = useState('');
+  const [homeProvinceIndex, setHomeProvinceIndex] = useState<ProvinceIndexItem[]>([]);
+  const [homeExplorePlaces, setHomeExplorePlaces] = useState<Array<{ id: number; title: string; locationName: string | null; regionId: string | null; provinceId: string | null; category: string | null; tags: string[] | null }>>([]);
+  const [planChecklist, setPlanChecklist] = useState<Record<string, boolean>>(() => Object.fromEntries(TRAVEL_CHECKLIST_ITEMS.map((task) => [task.id, task.done])));
+  const [showPlanEditor, setShowPlanEditor] = useState(false);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
+  const [planDraft, setPlanDraft] = useState({
+    title: '',
+    detail: '',
+    when: 'วันนี้',
+    date: '09:00',
+    category: 'Plan',
+  });
+
+  // Checklist is rendered as a scrollable list (max 4 visible) — no windowing required.
+
+  useEffect(() => {
+    saveTravelPlanSnapshot(
+      TRAVEL_CHECKLIST_ITEMS.map((task) => ({
+        id: task.id,
+        title: task.title,
+        detail: task.detail,
+        when: task.when,
+        date: task.date,
+        category: task.category,
+        completed: planChecklist[task.id] ?? task.done,
+      })),
+    );
+  }, [planChecklist]);
+
+  const handleHomeSearch = (queryOverride?: string) => {
+    const query = (queryOverride ?? homeSearch).trim();
+    if (!query) return;
+
+    const directMatch = homeProvinceIndex.find((province) => matchesProvinceIndex(query, province));
+    if (directMatch?.regionId) {
+      const cleanId = directMatch.id.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      navigate(`/province/${directMatch.regionId}/${cleanId}`, {
+        state: {
+          focusPlace: {
+            title: directMatch.name,
+            autoFocus: true,
+          },
+        },
+      });
+      return;
+    }
+
+    const bestSuggestion = buildHomeSuggestions(query, homeProvinceIndex, homeExplorePlaces)[0];
+    if (bestSuggestion) {
+      handleHomeSuggestionPick(bestSuggestion);
+      return;
+    }
+
+    navigate('/map', { state: { focusSearch: true, searchQuery: query } });
+  };
+
+  const handleHomeSuggestionPick = (suggestion: HomeSuggestionItem) => {
+    setHomeSearch(suggestion.label);
+    if (suggestion.kind === 'province' && suggestion.regionId) {
+      const cleanId = suggestion.id.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      navigate(`/province/${suggestion.regionId}/${cleanId}`, {
+        state: {
+          focusPlace: {
+            title: suggestion.label,
+            autoFocus: true,
+          },
+        },
+      });
+      return;
+    }
+
+    if (suggestion.kind === 'place' && suggestion.regionId && suggestion.provinceId) {
+      navigate(`/province/${suggestion.regionId}/${suggestion.provinceId}`, {
+        state: {
+          focusPlace: {
+            title: suggestion.label,
+            autoFocus: true,
+          },
+        },
+      });
+      return;
+    }
+
+    handleHomeSearch(suggestion.label);
+  };
+
   const [showAllFuelPrices, setShowAllFuelPrices] = useState(false);
   const [openFuelType, setOpenFuelType] = useState<string | null>(null);
   const [isRefreshingFuel, setIsRefreshingFuel] = useState(false);
@@ -262,11 +520,58 @@ export const GeoArchivePage = () => {
   ]);
   const [regionStats, setRegionStats] = useState<RegionStats[]>([]);
   const [statsViewMode, setStatsViewMode] = useState<'temp' | 'aqi'>('temp');
+  const [isWeatherModalOpen, setIsWeatherModalOpen] = useState(false);
+  const [isAQIModalOpen, setIsAQIModalOpen] = useState(false);
+  const [selectedRegionForWeather, setSelectedRegionForWeather] = useState<{ id: string; name: string } | null>(null);
+  const [provinceIndexForModal, setProvinceIndexForModal] = useState<Array<{ id: string; name: string; regionId?: string }>>([]);
+  const [fuelSort, setFuelSort] = useState<'asc' | 'desc' | null>(null);
+  const [fuelVehicleType, setFuelVehicleType] = useState<'car' | 'motorcycle'>('car');
   const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
+
+  const handleShowRegionWeather = useCallback(async (id: string, name: string) => {
+    try {
+      const rows = await (window as any).api?.db?.getProvinceIndex?.() || [];
+      setProvinceIndexForModal(Array.isArray(rows) ? rows : []);
+    } catch { 
+      setProvinceIndexForModal([]); 
+    }
+    setSelectedRegionForWeather({ id, name });
+    if (statsViewMode === 'temp') {
+      setIsWeatherModalOpen(true);
+    } else {
+      setIsAQIModalOpen(true);
+    }
+  }, [statsViewMode]);
 
   // Load fuel prices from database on mount
   useEffect(() => {
     let isMounted = true;
+
+    const loadProvinceIndex = async () => {
+      try {
+        const api = (window as any).api;
+        const rows = api?.db?.getProvinceIndex ? await api.db.getProvinceIndex() : [];
+        if (!isMounted) return;
+        setHomeProvinceIndex(Array.isArray(rows) ? rows : []);
+      } catch {
+        if (isMounted) setHomeProvinceIndex([]);
+      }
+    };
+
+    const loadExplorePlaces = async () => {
+      try {
+        const api = (window as any).api;
+        const rows = api?.explorePlaces?.getAll ? await api.explorePlaces.getAll() : [];
+        if (!isMounted) return;
+        setHomeExplorePlaces(Array.isArray(rows) ? rows : []);
+      } catch {
+        if (isMounted) setHomeExplorePlaces([]);
+      }
+    };
+
+    void loadProvinceIndex();
+    void loadExplorePlaces();
+
     const loadFuelPrices = async () => {
       try {
         const colorMap: Record<string, string> = {
@@ -323,6 +628,32 @@ export const GeoArchivePage = () => {
     'สถานบันเทิง': ['สถานบันเทิง'],
   };
 
+  // Handle focusFuel from chat deep links
+  useEffect(() => {
+    const state = location.state as { focusFuel?: string } | null;
+    if (state?.focusFuel) {
+      const title = state.focusFuel;
+      // Extract type from title (e.g., "แก๊สโซฮอล์ 95" -> "95")
+      let fuelType = '';
+      if (title.includes('95')) fuelType = '95';
+      else if (title.includes('91')) fuelType = '91';
+      else if (title.includes('E20')) fuelType = 'E20';
+      else if (title.includes('E85')) fuelType = 'E85';
+      else if (title.includes('98')) fuelType = '98+';
+      else if (title.includes('B7')) fuelType = 'B7';
+      else if (title.includes('B20')) fuelType = 'B20';
+      else if (title.includes('ดีเซล') || title.includes('Diesel')) fuelType = 'Diesel';
+      else if (title.includes('Premium')) fuelType = 'Premium';
+
+      if (fuelType) {
+        setShowAllFuelPrices(true);
+        setOpenFuelType(fuelType);
+        // Clear state to avoid re-triggering on refresh
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state]);
+
   // Fetch explore results from SQLite when chips change
   useEffect(() => {
     if (selectedChips.length === 0) {
@@ -333,12 +664,19 @@ export const GeoArchivePage = () => {
     const fetchPlaces = async () => {
       try {
         const api = (window as any).api;
-        // Map chip labels to DB category names
-        const categories = selectedChips.flatMap(chip => CHIP_TO_CATEGORIES[chip] || [chip]);
-        const uniqueCategories = [...new Set(categories)];
-        const places = api?.explorePlaces?.getByCategories
-          ? await api.explorePlaces.getByCategories(uniqueCategories)
-          : [];
+        let places = [];
+        if (selectedChips.includes('ทั้งหมด')) {
+          places = api?.explorePlaces?.getAll
+            ? await api.explorePlaces.getAll()
+            : [];
+        } else {
+          // Map chip labels to DB category names
+          const categories = selectedChips.flatMap(chip => CHIP_TO_CATEGORIES[chip] || [chip]);
+          const uniqueCategories = [...new Set(categories)];
+          places = api?.explorePlaces?.getByCategories
+            ? await api.explorePlaces.getByCategories(uniqueCategories)
+            : [];
+        }
         if (!isMounted) return;
         if (places && places.length > 0) {
           let filtered = places.map((p: any) => ({
@@ -461,7 +799,8 @@ export const GeoArchivePage = () => {
           return;
         }
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const groupedByProvince: Record<string, Array<{ date: string; temperature: number; aqi: number }>> = {};
         weatherRows.forEach((row: any) => {
           const normalizedId = normalizeProvinceId(String(row?.provinceId || ''));
@@ -475,43 +814,34 @@ export const GeoArchivePage = () => {
           });
         });
 
-        const resolvedRows = Object.entries(groupedByProvince).map(([provinceId, records]) => {
-          const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
-          const today = sorted.find((r) => r.date === todayStr);
-          const latestPast = sorted.find((r) => r.date <= todayStr);
-          const latest = sorted[0];
-          const resolved = today || latestPast || latest;
-          return resolved ? { provinceId, temperature: resolved.temperature, aqi: resolved.aqi } : null;
-        }).filter((row): row is { provinceId: string; temperature: number; aqi: number } => Boolean(row));
-
-        // Build province to region mapping
         const provinceToRegion: Record<string, string> = {
-          // North
           'chiangmai': 'north', 'chiangrai': 'north', 'phayao': 'north', 'nan': 'north',
           'phrae': 'north', 'uttaradit': 'north', 'sukhothai': 'north', 'tak': 'north',
-          // Northeast
           'khonkaen': 'northeast', 'korat': 'northeast', 'udonthani': 'northeast',
           'nakhonphanom': 'northeast', 'sakonakhon': 'northeast', 'yasothon': 'northeast',
           'amnatcharoen': 'northeast', 'maha': 'northeast', 'loei': 'northeast',
           'chaiyaphum': 'northeast', 'roiet': 'northeast',
-          // Central
           'bangkok': 'central', 'ayutthaya': 'central', 'lopburi': 'central',
           'sara': 'central', 'nakhonnayok': 'central', 'phetchaburi': 'central',
           'chumphon': 'central',
-          // South
           'phuket': 'south', 'krabi': 'south', 'phangnga': 'south',
           'surat': 'south', 'nakhorn': 'south', 'ranong': 'south',
-          // East
           'chachoengsao': 'east', 'chonburi': 'east', 'rayong': 'east',
           'trad': 'east',
-          // West
           'kanchanaburi': 'west', 'ratchaburi': 'west', 'prachuap': 'west'
         };
 
+        
         // Group by region
         const regionData: Record<string, { temps: number[]; aqis: number[] }> = {};
         
-        resolvedRows.forEach((row) => {
+        // 1. First, try to get ONLY today's data for a clean "Live" average
+        const todayRows = Object.entries(groupedByProvince).map(([provinceId, records]) => {
+          const today = records.find((r) => r.date === todayStr);
+          return today ? { provinceId, temperature: today.temperature, aqi: today.aqi } : null;
+        }).filter((row): row is { provinceId: string; temperature: number; aqi: number } => Boolean(row));
+
+        todayRows.forEach((row) => {
           const normalizedId = normalizeProvinceId(row.provinceId);
           const mappedRegionId = provinceIdToRegionId[normalizedId];
           const fallbackRegionId = Object.entries(provinceToRegion).find(([prov]) =>
@@ -520,12 +850,37 @@ export const GeoArchivePage = () => {
           const regionId = mappedRegionId || fallbackRegionId;
 
           if (regionId) {
-            if (!regionData[regionId]) {
-              regionData[regionId] = { temps: [], aqis: [] };
+            if (!regionData[regionId]) regionData[regionId] = { temps: [], aqis: [] };
+            if (Number.isFinite(row.temperature)) regionData[regionId].temps.push(row.temperature);
+            if (Number.isFinite(row.aqi)) regionData[regionId].aqis.push(row.aqi);
+          }
+        });
+
+        // 2. If a region has NO today data, fall back to latest past data (but mark as not live if we had the UI for it)
+        REGIONS.forEach(r => {
+          if (!regionData[r.id] || (regionData[r.id].temps.length === 0 && regionData[r.id].aqis.length === 0)) {
+            const fallbackRows = Object.entries(groupedByProvince).map(([provinceId, records]) => {
+              const normalizedId = normalizeProvinceId(provinceId);
+              const mappedRegionId = provinceIdToRegionId[normalizedId];
+              const fallbackRegionId = Object.entries(provinceToRegion).find(([prov]) =>
+                normalizedId.includes(prov) || prov.includes(normalizedId)
+              )?.[1];
+              const regId = mappedRegionId || fallbackRegionId;
+              
+              if (regId !== r.id) return null;
+              
+              const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+              const latest = sorted.find((r) => r.date <= todayStr) || sorted[0];
+              return latest ? { temperature: latest.temperature, aqi: latest.aqi } : null;
+            }).filter(Boolean);
+
+            if (fallbackRows.length > 0) {
+              regionData[r.id] = { temps: [], aqis: [] };
+              fallbackRows.forEach(row => {
+                if (row && Number.isFinite(row.temperature)) regionData[r.id].temps.push(row.temperature);
+                if (row && Number.isFinite(row.aqi)) regionData[r.id].aqis.push(row.aqi);
+              });
             }
-            const data = regionData[regionId];
-            if (Number.isFinite(row.temperature)) data.temps.push(row.temperature);
-            if (Number.isFinite(row.aqi)) data.aqis.push(row.aqi);
           }
         });
 
@@ -546,7 +901,7 @@ export const GeoArchivePage = () => {
               color: r.color,
               avgTemp,
               avgAqi,
-              dataPoints: data ? Math.min(data.temps.length, data.aqis.length) : 0,
+              dataPoints: data ? Math.max(data.temps.length, data.aqis.length) : 0,
             };
           })
           .filter(s => s.dataPoints > 0);
@@ -609,9 +964,16 @@ export const GeoArchivePage = () => {
   }, [mode, helpStep]);
 
   const toggleChip = (label: string) => {
-    setSelectedChips((prev) =>
-      prev.includes(label) ? prev.filter((c) => c !== label) : [...prev, label]
-    );
+    setSelectedChips((prev) => {
+      if (label === 'ทั้งหมด') {
+        return prev.includes('ทั้งหมด') ? [] : ['ทั้งหมด'];
+      } else {
+        const withoutAll = prev.filter((c) => c !== 'ทั้งหมด');
+        return withoutAll.includes(label)
+          ? withoutAll.filter((c) => c !== label)
+          : [...withoutAll, label];
+      }
+    });
   };
 
   const togglePublicMode = (value: string) => {
@@ -738,358 +1100,638 @@ export const GeoArchivePage = () => {
         tripTotalBudget: budgetMeta.totalBudget.trim(),
         note: budgetMeta.budgetNote.trim(),
       },
+      travelPlanChecklist: TRAVEL_CHECKLIST_ITEMS.map((task) => ({
+        id: task.id,
+        title: task.title,
+        detail: task.detail,
+        when: task.when,
+        date: task.date,
+        category: task.category,
+        completed: planChecklist[task.id] ?? task.done,
+      })),
     };
 
     return JSON.stringify(payload, null, 2);
   };
 
   const buildReadableSummary = () => {
+    const checklistSummary = TRAVEL_CHECKLIST_ITEMS.map((task) => {
+      const checked = planChecklist[task.id] ?? task.done;
+      return `- [${checked ? 'x' : ' '}] ${task.title} (${task.when} · ${task.date})`;
+    }).join('\n');
+
     return HELP_QUESTIONS.map((q) => {
       const details = getQuestionDetails(q.id);
       const detailText = details.length > 0 ? `\n- ${details.join('\n- ')}` : '';
       return `${q.question} ${getAnswerLabel(q.id)}${detailText}`;
-    }).join('\n');
+    }).join('\n') + '\n\nTravel checklist:\n' + checklistSummary;
   };
 
   // ─── Intent Selection (Home) ──────────────────────
   if (mode === null) {
-    // Trending places are now fetched from database in TrendingPlacesCard component
-    // No longer need mock data
-
-    const visibleGas = showAllFuelPrices ? gasPrices : gasPrices.slice(0, 3);
     const displayStats = regionStats
       .slice()
       .sort((a, b) => (statsViewMode === 'temp' ? b.avgTemp - a.avgTemp : b.avgAqi - a.avgAqi));
-    const maxValue = displayStats.length > 0
-      ? Math.max(...displayStats.map((stat) => (statsViewMode === 'temp' ? stat.avgTemp : stat.avgAqi)))
-      : 0;
-    const minValue = displayStats.length > 0
-      ? Math.min(...displayStats.map((stat) => (statsViewMode === 'temp' ? stat.avgTemp : stat.avgAqi)))
-      : 0;
+    const topStats = displayStats.slice(0, 6);
+    const maxValue = topStats.length > 0 ? Math.max(...topStats.map(s => statsViewMode === 'temp' ? s.avgTemp : s.avgAqi)) : 1;
+    const minValue = topStats.length > 0 ? Math.min(...topStats.map(s => statsViewMode === 'temp' ? s.avgTemp : s.avgAqi)) : 0;
     const valueRange = Math.max(maxValue - minValue, 1);
-    const minBar = 12;
-    const maxBar = 48;
-
+    const visibleGas = gasPrices.slice(0, 5);
+    const suggestionQuery = homeSearch.trim();
+    const homeSuggestionItems = buildHomeSuggestions(suggestionQuery, homeProvinceIndex, homeExplorePlaces);
+    const showHomeSuggestions = suggestionQuery.length > 0;
 
     return (
-      <div className="flex-1 overflow-y-auto relative bg-[#050608]">
-        {/* Background Image with Overlay */}
-        <div 
-          className="fixed inset-0 z-0 pointer-events-none"
-          style={{ 
-            backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.75)), url(${KohKradan})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        
-        <div className="relative z-10 mx-auto max-w-6xl px-8 py-10">
-          {/* ─── Main Grid Layout ─── */}
-          <div className="grid grid-cols-12 gap-x-6 gap-y-4">
-            {/* Top Row - Left: Intent Cards (7 cols) */}
-            <div className="col-span-7 space-y-3">
-              <IntentCard
-                icon={<MapPin size={32} />}
-                title="มีที่ในใจแล้ว"
-                subtitle="ระบุพิกัดที่คุณอยากไป แล้วให้เราจัดการเส้นทางให้"
-                gradient="from-emerald-500/20 to-teal-600/10"
-                border="border-emerald-500/30"
-                iconBg="bg-emerald-500/20"
-                iconColor="text-emerald-400"
-                onClick={() => navigate('/map', { state: { focusSearch: true } })}
+      <div className="flex-1 overflow-hidden relative bg-[#050608] flex">
+        {/* Ambient glows */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-40 right-1/4 h-96 w-96 rounded-full bg-indigo-500/8 blur-3xl" />
+          <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-purple-500/8 blur-3xl" />
+        </div>
+
+        {/* Rainbow header banner */}
+        <div className="absolute top-0 left-0 right-0 z-30">
+          <div className="h-14 w-full overflow-hidden rounded-b-2xl shadow-[0_6px_30px_rgba(0,0,0,0.6)]">
+            <div className="h-full bg-[linear-gradient(90deg,#38bdf8_0%,#2563eb_16%,#7c3aed_32%,#ef4444_50%,#f97316_68%,#facc15_84%,#22c55e_100%)]" />
+          </div>
+        </div>
+
+        {/* ══ LEFT MAIN COLUMN ══ */}
+        <div className="relative z-10 flex-1 flex flex-col justify-start overflow-y-auto px-8 pt-20 pb-10 gap-6">
+          {/* Search Hero */}
+          <div className="flex justify-center mt-14">
+            <div className="w-full max-w-2xl relative flex items-center gap-4 rounded-[1.5rem] border border-white bg-white/[0.03] px-6 py-5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all hover:border-white/90 focus-within:border-white focus-within:bg-white/[0.05] focus-within:shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.9),0_0_34px_rgba(99,102,241,0.22)]">
+              <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] bg-gradient-to-r from-cyan-400/0 via-sky-400/0 to-fuchsia-400/0 opacity-0 transition-opacity duration-300 focus-within:opacity-100" />
+              <Search size={20} className="flex-shrink-0 text-slate-500" />
+              <input
+                value={homeSearch}
+                onChange={(e) => setHomeSearch(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleHomeSearch(); }}
+                placeholder="ค้นหาสถานที่ที่คุณอยากไป..."
+                className="relative z-10 flex-1 appearance-none border-0 bg-transparent text-[16px] font-medium text-white outline-none ring-0 shadow-none caret-white placeholder:text-slate-600 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
               />
-              <IntentCard
-                icon={<Compass size={30} />}
-                title="สำรวจตามความสนใจ"
-                subtitle="เลือกหมวดหมู่ที่ชอบ — ป่าไม้, ทะเล, ของกิน หรือ สถานบันเทิง"
-                gradient="from-amber-500/20 to-orange-600/10"
-                border="border-amber-500/30"
-                iconBg="bg-amber-500/20"
-                iconColor="text-amber-400"
-                onClick={() => setMode('explore')}
-              >
-                <div className="mt-4 flex gap-2">
-                  {DISCOVERY_CHIPS.map((chip) => (
-                    <div 
-                      key={chip.label}
-                      className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/70 transition-all hover:bg-amber-500/30 hover:text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMode('explore');
-                        setSelectedChips([chip.label]);
-                      }}
-                    >
-                      <span className="scale-75 opacity-70">{chip.icon}</span>
-                      {chip.label}
-                    </div>
-                  ))}
-                </div>
-              </IntentCard>
-              <IntentCard
-                icon={<Sparkles size={32} />}
-                title="ช่วยเลือกให้หน่อย"
-                subtitle="ตอบคำถามสั้นๆ แล้ว Locus จะค้นหาจุดหมายที่ใช่ที่สุดสำหรับคุณ"
-                isAi={true}
-                gradient="from-purple-500/20 to-indigo-600/10"
-                border="border-purple-500/30"
-                iconBg="bg-purple-500/20"
-                iconColor="text-purple-400"
+              <button
                 onClick={() => setMode('help')}
-              />
-            </div>
-
-            {/* Top Row - Right: Trending (5 cols) */}
-            <div className="col-span-5">
-              <TrendingPlacesCard 
-                limit={4}
-                onClick={(place) => navigate(`/province/${place.regionId}/${place.provinceId}`, { 
-                  state: { 
-                    focusPlace: {
-                      title: place.title,
-                      lat: (place as any).lat,
-                      lng: (place as any).lng,
-                      autoFocus: true
-                    }
-                  } 
-                })}
-              />
-            </div>
-
-              {/* Bottom Row - Left: Regional Histogram (7 cols) */}
-              <div className="col-span-7">
-                <div className="h-fit self-start rounded-2xl border border-white/20 bg-black/20 backdrop-blur-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col">
-                  <div className="relative flex w-full mb-5 rounded-2xl bg-black/60 border border-white/10 p-1 backdrop-blur-md shadow-inner overflow-hidden">
-                    {/* Sliding Indicator */}
-                    <div 
-                      className="absolute top-1 bottom-1 transition-all duration-500 ease-out bg-white rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.45)]"
-                      style={{ 
-                        left: statsViewMode === 'temp' ? '4px' : 'calc(50% + 2px)', 
-                        width: 'calc(50% - 6px)' 
-                      }}
-                    />
-
-                    <button
-                      onClick={() => setStatsViewMode('temp')}
-                      className={`relative z-10 flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 ${
-                        statsViewMode === 'temp' ? 'text-black' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      <Thermometer size={14} className={`transition-transform duration-500 ${statsViewMode === 'temp' ? 'scale-110 text-cyan-600' : 'text-slate-600'}`} />
-                      AVG อุณหภูมิ
-                    </button>
-                    <button
-                      onClick={() => setStatsViewMode('aqi')}
-                      className={`relative z-10 flex-1 flex items-center justify-center gap-2.5 py-2.5 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 ${
-                        statsViewMode === 'aqi' ? 'text-black' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      <Wind size={14} className={`transition-transform duration-500 ${statsViewMode === 'aqi' ? 'scale-110 text-cyan-600' : 'text-slate-600'}`} />
-                      AVG AQI
-                    </button>
+                className="flex-shrink-0 flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-5 py-2.5 text-[12px] font-black text-white shadow-[0_8px_20px_rgba(99,102,241,0.3)] transition-all hover:shadow-[0_8px_30px_rgba(99,102,241,0.5)] hover:scale-[1.02] active:scale-95"
+              >
+                <Sparkles size={14} className="animate-pulse" />
+                Locus Agent
+              </button>
+              {showHomeSuggestions && (
+                <div className="absolute left-0 right-0 top-full z-40 mt-3 overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#0a0c10]/95 shadow-[0_28px_70px_rgba(0,0,0,0.65)] backdrop-blur-2xl">
+                  <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Suggestions</div>
+                      <div className="text-[11px] text-slate-600">จังหวัด / สถานที่ที่ใกล้เคียง</div>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500">Enter to search</div>
                   </div>
-
-                  {regionStats.length > 0 ? (
-                    <div className="flex-1 flex flex-col justify-end">
-                      <div className="grid grid-cols-6 gap-2">
-                        {displayStats.map((region) => {
-                          const regionMeta = REGIONS.find((item) => item.id === region.id);
-                          const value = statsViewMode === 'temp' ? region.avgTemp : region.avgAqi;
-                          const valueLabel = statsViewMode === 'temp'
-                            ? `${value.toFixed(1)}°C`
-                            : `${value.toFixed(0)}`;
-                          
-                          const normalized = valueRange > 0 ? (value - minValue) / valueRange : 0.5;
-                          const barHeight = minBar + normalized * (maxBar - minBar);
-
-                          return (
-                            <div key={`col-${region.id}`} className="flex flex-col items-center group cursor-help">
-                              {/* Bar - Back at the Top */}
-                              <div className="h-14 w-full flex items-end justify-center px-1 mb-3">
-                                <div 
-                                  className={`w-full max-w-[16px] rounded-sm transition-all duration-700 ease-out group-hover:scale-x-110 shadow-lg shadow-black/20 ${regionMeta?.barClass || 'bg-cyan-500'}`}
-                                  style={{ height: `${barHeight}px` }}
-                                />
-                              </div>
-
-                              {/* Labels - At the Bottom */}
-                              <div className={`text-[11px] font-black tracking-tight ${regionMeta?.colorClass || 'text-slate-300'}`}>
-                                {valueLabel}
-                              </div>
-                              <div className="text-[10px] font-medium text-slate-500 truncate w-full text-center">
-                                {region.name}
-                              </div>
-                            </div>
-                          );
-                        })}
+                  <div className="max-h-72 overflow-y-auto custom-scrollbar p-2">
+                    {homeSuggestionItems.length > 0 ? homeSuggestionItems.map((item) => (
+                      <button
+                        key={`${item.kind}-${item.id}`}
+                        type="button"
+                        onClick={() => handleHomeSuggestionPick(item)}
+                        className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:bg-white/5"
+                      >
+                        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.kind === 'place' ? 'bg-fuchsia-500/10 text-fuchsia-300' : 'bg-cyan-500/10 text-cyan-300'}`}>
+                          <MapPin size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-bold text-white">{item.label}</div>
+                          <div className="truncate text-[11px] text-slate-500">{item.subtitle}</div>
+                        </div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Enter</div>
+                      </button>
+                    )) : (
+                      <div className="px-4 py-8 text-center text-sm text-slate-500">
+                        ไม่พบผลลัพธ์ที่ใกล้เคียง
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
-                      <div className="text-center">
-                        <p className="text-xs text-slate-600">ไม่พบข้อมูล</p>
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Three Cards Row — moved down to use more vertical space */}
+          <div className="flex-shrink-0 grid grid-cols-3 gap-6 mt-16">
+
+            {/* Card 1 — สำรวจตามความสนใจ */}
+            <div className="group rounded-[1.5rem] border border-purple-500/10 bg-gradient-to-br from-purple-600/10 via-indigo-500/5 to-transparent p-5 flex flex-col gap-4 transition-all hover:border-purple-500/30 hover:bg-purple-500/5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[13px] font-black uppercase tracking-wider text-slate-300">สำรวจตามความสนใจ</h3>
+                <button onClick={() => { setSelectedChips(['ทั้งหมด']); setMode('explore'); }} className="text-[10px] font-bold text-purple-400 hover:text-purple-200 transition-colors">EXPLORE ALL</button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 flex-1">
+                {DISCOVERY_CHIPS.slice(0, 4).map((chip) => (
+                  <button
+                    key={chip.label}
+                    onClick={() => { setSelectedChips([chip.label]); setMode('explore'); }}
+                    className="flex items-center gap-2.5 rounded-[1rem] border border-white/5 bg-white/[0.03] px-3 py-3 text-[11px] text-slate-400 font-bold transition-all hover:border-purple-400/30 hover:bg-purple-500/10 hover:text-white hover:scale-[1.03]"
+                  >
+                    <span className="opacity-70 group-hover:opacity-100 transition-opacity">{chip.icon}</span>
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Card 2 — ราคาน้ำมัน */}
+            <div className="group rounded-[1.5rem] border border-amber-500/10 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent p-5 flex flex-col gap-4 transition-all hover:border-amber-500/30 hover:bg-amber-500/5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-[13px] font-black uppercase tracking-wider text-slate-300">ราคาน้ำมันวันนี้</h3>
+                  <a href="https://oil-price.bangchak.co.th/BcpOilPrice2/th" target="_blank" rel="noopener noreferrer" className="text-[9px] font-bold text-amber-600/80 hover:text-amber-400 transition-colors">SOURCE: BANGCHAK</a>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllFuelPrices(true)}
+                    className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-slate-500 hover:text-white"
+                    title="Open full fuel price popup"
+                    aria-label="Open full fuel price popup"
+                  >
+                    <Info size={12} />
+                  </button>
+                  <button onClick={handleRefreshFuelPrices} disabled={isRefreshingFuel} className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50 text-slate-500 hover:text-white" title="Refresh fuel prices" aria-label="Refresh fuel prices">
+                    <RefreshCw size={12} className={isRefreshingFuel ? 'animate-spin' : ''} />
+                  </button>
                 </div>
               </div>
 
-            {/* Bottom Row - Right: Gas Price (5 cols) */}
-            <div className="col-span-5">
-              <div className="h-full rounded-2xl border border-white/20 bg-white/[0.03] backdrop-blur-xl p-5 shadow-xl relative overflow-hidden flex flex-col">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
-                <div className="flex items-center justify-between mb-4 relative z-10">
-                  <div className="flex flex-col">
-                    <h3 className="text-sm text-white">ราคาน้ำมันวันนี้</h3>
-                    <a 
-                      href="https://oil-price.bangchak.co.th/BcpOilPrice2/th" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-[10px] text-teal-500 uppercase tracking-tighter hover:underline"
-                    >
-                      From: Bangchak Corporation
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-2">
+              {/* Vehicle Type Toggle */}
+              <div className="flex bg-white/[0.03] p-0.5 rounded-xl border border-white/5 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setFuelVehicleType('car')}
+                  className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all text-center ${
+                    fuelVehicleType === 'car'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/20 shadow-md font-black'
+                      : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  รถยนต์ (~14 km/L)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFuelVehicleType('motorcycle')}
+                  className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all text-center ${
+                    fuelVehicleType === 'motorcycle'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/20 shadow-md font-black'
+                      : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  มอเตอร์ไซค์ (~35 km/L)
+                </button>
+              </div>
+
+              <div className="flex-1 space-y-2">
+                {(() => {
+                  const sorted = [...visibleGas];
+                  if (fuelSort === 'asc') sorted.sort((a, b) => a.price - b.price);
+                  else if (fuelSort === 'desc') sorted.sort((a, b) => b.price - a.price);
+                  return sorted.slice(0, 6).map((gas) => {
+                    const det = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
+                    const costKm = gas.price / FUEL_EFFICIENCY[fuelVehicleType];
+                    const isGasohol = gas.type.includes('9') || gas.type.includes('E');
+                    return (
+                      <div key={gas.type} className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors border border-white/[0.02] hover:border-white/[0.05]">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-2 h-2 flex-shrink-0 rounded-full ${isGasohol ? 'bg-emerald-500' : 'bg-amber-500'} shadow-[0_0_8px_rgba(16,185,129,0.4)]`} />
+                          <span className="text-[12px] font-bold text-slate-400 truncate">{det.label}</span>
+                        </div>
+                        <div className="flex items-center gap-4 flex-shrink-0 ml-2">
+                          <div className="text-right">
+                            <span className="block text-[13px] font-black text-amber-400 tracking-tight">{gas.price.toFixed(2)}<span className="text-[9px] text-slate-600 font-bold ml-1">฿/L</span></span>
+                            <span className="block text-[9px] font-bold text-slate-500">~{costKm.toFixed(2)} ฿/km</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            {showAllFuelPrices && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 py-6 backdrop-blur-sm">
+                <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-[#0a0c10] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.65)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-300">Fuel details</div>
+                      <h4 className="mt-1 text-lg font-bold text-white">ราคาน้ำมันทั้งหมด</h4>
+                    </div>
                     <button
-                      onClick={handleRefreshFuelPrices}
-                      disabled={isRefreshingFuel}
-                      className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50"
-                      title="รีเฟรชราคาน้ำมัน"
+                      type="button"
+                      onClick={() => setShowAllFuelPrices(false)}
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/10 hover:text-white"
+                      aria-label="Close fuel price popup"
                     >
-                      <svg className={`w-3.5 h-3.5 text-slate-400 ${isRefreshingFuel ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
+                      <ChevronRight size={16} className="rotate-45" />
                     </button>
+                  </div>
+
+                  {/* Vehicle Type Toggle inside modal */}
+                  <div className="mt-4 flex bg-white/[0.03] p-0.5 rounded-xl border border-white/5 gap-1">
                     <button
-                      onClick={() => setShowAllFuelPrices(!showAllFuelPrices)}
-                      className={`flex items-center justify-center p-1.5 rounded-lg border transition-all ${
-                        showAllFuelPrices 
-                        ? 'bg-teal-500/20 border-teal-500/30 text-teal-400' 
-                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                      type="button"
+                      onClick={() => setFuelVehicleType('car')}
+                      className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all text-center ${
+                        fuelVehicleType === 'car'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/20 shadow-md font-black'
+                          : 'text-slate-500 hover:text-slate-300'
                       }`}
-                      title={showAllFuelPrices ? 'แสดงน้อยลง' : 'แสดงทั้งหมด'}
                     >
-                      <BarChart3 size={14} className={showAllFuelPrices ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                       รถยนต์ (~14 km/L)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFuelVehicleType('motorcycle')}
+                      className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all text-center ${
+                        fuelVehicleType === 'motorcycle'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/20 shadow-md font-black'
+                          : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                       มอเตอร์ไซค์ (~35 km/L)
                     </button>
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-2 relative z-10">
-                  {(() => {
-                    // Explicit class mapping to ensure Tailwind JIT includes them
-                    const FUEL_THEMES: Record<string, { text: string; border: string; glow: string }> = {
-                      'bg-blue-500':    { text: 'text-blue-500',    border: 'border-blue-500',    glow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)]' },
-                      'bg-teal-500':    { text: 'text-teal-500',    border: 'border-teal-500',    glow: 'shadow-[0_0_15px_rgba(20,184,166,0.3)]' },
-                      'bg-emerald-500': { text: 'text-emerald-500', border: 'border-emerald-500', glow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]' },
-                      'bg-rose-500':    { text: 'text-rose-500',    border: 'border-rose-500',    glow: 'shadow-[0_0_15px_rgba(244,63,94,0.3)]' },
-                      'bg-amber-500':   { text: 'text-amber-500',   border: 'border-amber-500',   glow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' },
-                      'bg-orange-500':  { text: 'text-orange-500',  border: 'border-orange-500',  glow: 'shadow-[0_0_15px_rgba(249,115,22,0.3)]' },
-                      'bg-slate-500':   { text: 'text-slate-500',   border: 'border-slate-500',   glow: 'shadow-[0_0_15px_rgba(100,116,139,0.3)]' },
-                      'bg-purple-600':  { text: 'text-purple-600',  border: 'border-purple-600',  glow: 'shadow-[0_0_15px_rgba(147,51,234,0.3)]' },
-                      'bg-red-600':     { text: 'text-red-600',     border: 'border-red-600',     glow: 'shadow-[0_0_15px_rgba(220,38,38,0.3)]' },
-                    };
 
-                    const chunks = [];
-                    for (let i = 0; i < visibleGas.length; i += 3) {
-                      chunks.push(visibleGas.slice(i, i + 3));
-                    }
-                    return chunks.map((chunk, chunkIdx) => {
-                      const openInThisChunk = chunk.find(g => g.type === openFuelType);
+                  <div className="mt-4 max-h-[60vh] overflow-y-auto pr-1 space-y-2">
+                    {[...visibleGas].map((gas) => {
+                      const detail = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
+                      const isActive = openFuelType ? openFuelType === gas.type : false;
+                      const costKm = gas.price / FUEL_EFFICIENCY[fuelVehicleType];
                       return (
-                        <React.Fragment key={chunkIdx}>
-                          {chunk.map((gas) => {
-                            const details = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
-                            const isOpen = openFuelType === gas.type;
-                            const fuelTheme = FUEL_THEMES[gas.color] || { 
-                              text: 'text-slate-400', 
-                              border: 'border-white/20', 
-                              glow: 'shadow-none' 
-                            };
-
-                            return (
-                              <div key={gas.type} className="flex flex-col gap-2">
-                                <div className={`p-2.5 rounded-xl border transition-all h-full ${
-                                  isOpen 
-                                    ? `bg-white/[0.08] ${fuelTheme.border}/50 ${fuelTheme.glow}` 
-                                    : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06]'
-                                }`}>
-                                  <div className="flex items-start justify-between mb-1">
-                                    <div className="flex items-center gap-1.5">
-                                      <div className={`w-1.5 h-1.5 rounded-full ${gas.color} shadow-[0_0_8px_rgba(255,255,255,0.2)]`}></div>
-                                      <span className="text-[9px] text-slate-500 font-bold tracking-tight">{details.label}</span>
-                                    </div>
-                                    <button
-                                      onClick={() => setOpenFuelType(isOpen ? null : gas.type)}
-                                      className={`p-1 rounded-md border transition-all ${
-                                        isOpen
-                                          ? `bg-slate-800 border-slate-700 ${fuelTheme.text}`
-                                          : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
-                                      }`}
-                                      title={isOpen ? 'ซ่อนข้อมูลคำนวณ' : 'ดูข้อมูลคำนวณ'}
-                                    >
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                                    </button>
-                                  </div>
-                                  <div className="flex items-baseline gap-0.5">
-                                    <span className="text-sm font-black text-white leading-none">{gas.price.toFixed(2)}</span>
-                                    <span className="text-[8px] text-slate-600 font-bold uppercase">฿/L</span>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {openInThisChunk && (
-                            <div className="col-span-3 rounded-xl border border-white/10 bg-slate-950/60 backdrop-blur-xl p-4 text-[11px] text-white mt-1 mb-2 animate-in fade-in slide-in-from-top-2 duration-200 shadow-2xl">
-                              <div className={`mb-3 text-[10px] font-bold uppercase tracking-widest ${
-                                FUEL_THEMES[openInThisChunk.color]?.text || 'text-cyan-400'
-                              } border-b border-white/10 pb-2`}>
-                                {FUEL_TYPE_DETAILS[openInThisChunk.type]?.label || openInThisChunk.type} — คำนวณโดยประมาณ
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                {(() => {
-                                  const gas = openInThisChunk;
-                                  const details = FUEL_TYPE_DETAILS[gas.type] || { label: gas.type, motorcycle: true, car: true };
-                                  const motoCostKm = gas.price / FUEL_EFFICIENCY.motorcycle;
-                                  const carCostKm = gas.price / FUEL_EFFICIENCY.car;
-                                  return (
-                                    <>
-                                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">รถจักรยานยนต์</div>
-                                        {details.motorcycle ? (
-                                          <>
-                                            <div className="text-sm font-black text-white">{motoCostKm.toFixed(2)} บ./กม</div>
-                                            <div className="text-[10px] text-slate-500">{(motoCostKm * 10).toFixed(1)} บ./10กม</div>
-                                          </>
-                                        ) : (
-                                          <div className="text-[10px] text-slate-600">ไม่แนะนำ</div>
-                                        )}
-                                      </div>
-                                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                                        <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">รถยนต์</div>
-                                        {details.car ? (
-                                          <>
-                                            <div className="text-sm font-black text-white">{carCostKm.toFixed(2)} บ./กม</div>
-                                            <div className="text-[10px] text-slate-500">{(carCostKm * 10).toFixed(1)} บ./10กม</div>
-                                          </>
-                                        ) : (
-                                          <div className="text-[10px] text-slate-600">ไม่แนะนำ</div>
-                                        )}
-                                      </div>
-                                    </>
-                                  );
-                                })()}
+                        <div
+                          key={gas.type}
+                          className={`rounded-2xl border px-4 py-3 transition-colors ${isActive ? 'border-amber-400/40 bg-amber-500/10' : 'border-white/5 bg-white/[0.02]'}`}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <div className="text-sm font-bold text-white">{detail.label}</div>
+                              <div className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+                                {detail.motorcycle ? 'Motorcycle ok' : 'Car only'} · {detail.car ? 'Car ok' : 'No car'}
                               </div>
                             </div>
-                          )}
-                        </React.Fragment>
+                            <div className="text-right">
+                              <div className="text-xl font-black text-amber-300">{gas.price.toFixed(2)}</div>
+                              <div className="text-[10px] font-bold text-slate-500">฿/L</div>
+                              <div className="mt-1 text-[10px] font-bold text-slate-500">~{costKm.toFixed(2)} ฿/km</div>
+                            </div>
+                          </div>
+                        </div>
                       );
-                    });
-                  })()}
+                    })}
+                  </div>
                 </div>
+              </div>
+            )}
+
+            {/* Card 3 — Checklist + Upcoming Event */}
+            <div className="group rounded-[1.5rem] border border-cyan-500/10 bg-gradient-to-br from-cyan-500/10 via-blue-500/5 to-transparent p-5 flex flex-col gap-4 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-[13px] font-black uppercase tracking-wider text-slate-300">แผนการเดินทาง</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/travel-plans')}
+                    className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+                    title="Open travel plan history"
+                  >
+                    History
+                  </button>
+                  <button
+                    onClick={() => setShowPlanEditor(true)}
+                    className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 hover:bg-cyan-500/20 transition-all hover:scale-110"
+                    title="Create plan"
+                  >
+                    <span className="text-lg font-black leading-none">+</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Next Upcoming Event (compact mini version) */}
+              {(() => {
+                const now = new Date();
+                const todayStr = now.toISOString().split('T')[0];
+                const nextEvent = HOLIDAYS.filter(h => h.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date))[0];
+                
+                if (!nextEvent) return null;
+                
+                const diffTime = new Date(nextEvent.date).getTime() - now.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                return (
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Bell size={14} className="flex-shrink-0 text-amber-400 animate-pulse" />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[9px] font-black uppercase tracking-[0.15em] text-amber-300">Next event</div>
+                          <div className="text-xs font-bold text-white truncate">{nextEvent.name}</div>
+                          <div className="text-[8px] font-medium text-amber-300/70">{diffDays === 0 ? 'วันนี้!' : `อีก ${diffDays} วัน`}</div>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <div className="text-[9px] font-bold text-slate-400">{nextEvent.date}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-3 py-2">
+                <div className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Plan progress</div>
+                <div className="text-[11px] font-black text-white">
+                  {TRAVEL_CHECKLIST_ITEMS.filter((task) => planChecklist[task.id] ?? task.done).length}/{TRAVEL_CHECKLIST_ITEMS.length}
+                </div>
+              </div>
+              {/* Compact checklist: show up to 4 items and allow vertical scrolling for extras */}
+              <div className="flex-1 space-y-2 max-h-56 overflow-y-auto pr-2">
+                {TRAVEL_CHECKLIST_ITEMS.map((task) => {
+                  const done = planChecklist[task.id] ?? task.done;
+                  return (
+                    <button
+                      key={task.id}
+                      type="button"
+                      onClick={() => {
+                        const nextDone = !done;
+                        setPlanChecklist((prev) => ({ ...prev, [task.id]: nextDone }));
+                        appendTravelPlanHistory({
+                          type: 'checklist-toggle',
+                          title: task.title,
+                          detail: task.detail,
+                          when: task.when,
+                          date: task.date,
+                          category: task.category,
+                          completed: nextDone,
+                        });
+                      }}
+                      className="flex w-full items-start gap-3 rounded-xl border border-white/[0.02] bg-white/[0.02] px-3 py-2.5 text-left transition-all hover:border-cyan-500/20 hover:bg-white/[0.05]"
+                    >
+                      <div className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-lg border transition-colors ${done ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400' : 'border-white/10 bg-white/5 text-slate-600'}`}>
+                        {done ? <span className="text-[10px] font-black">✓</span> : <div className="h-1.5 w-1.5 rounded-full bg-current opacity-40" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className={`text-[12px] font-bold transition-colors ${done ? 'text-slate-300 line-through decoration-slate-500/60' : 'text-slate-200'}`}>{task.title}</div>
+                        <div className="text-[10px] font-medium text-slate-600">{task.detail}</div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 text-right">
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.22em] text-slate-500">{task.category}</span>
+                        <div className="text-[10px] font-bold text-cyan-300">{task.when}</div>
+                        <div className="text-[9px] font-medium text-slate-600">{task.date}</div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
+
+          {showPlanEditor && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 py-6 backdrop-blur-sm">
+              <div className="w-full max-w-lg rounded-[2rem] border border-white/10 bg-[#0a0c10] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.65)]">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-300">Create plan</div>
+                    <h4 className="mt-1 text-lg font-bold text-white">กำหนดรายละเอียด checklist ใหม่</h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPlanEditor(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/10 hover:text-white"
+                    aria-label="Close plan editor"
+                  >
+                    <ChevronRight size={16} className="rotate-45" />
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-3">
+                  <input
+                    value={planDraft.title}
+                    onChange={(event) => setPlanDraft((prev) => ({ ...prev, title: event.target.value }))}
+                    placeholder="ชื่อรายการ เช่น จองโรงแรม"
+                    className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
+                  />
+                  <textarea
+                    value={planDraft.detail}
+                    onChange={(event) => setPlanDraft((prev) => ({ ...prev, detail: event.target.value }))}
+                    rows={3}
+                    placeholder="รายละเอียดที่อยากให้จำ เช่น ใกล้สถานีรถไฟ / มีที่จอดรถ"
+                    className="resize-none rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
+                  />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <input
+                      value={planDraft.when}
+                      onChange={(event) => setPlanDraft((prev) => ({ ...prev, when: event.target.value }))}
+                      placeholder="ช่วงเวลา เช่น วันนี้ / ก่อนเดินทาง 3 วัน"
+                      className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
+                    />
+                    <input
+                      value={planDraft.date}
+                      onChange={(event) => setPlanDraft((prev) => ({ ...prev, date: event.target.value }))}
+                      placeholder="เวลา เช่น 09:00"
+                      className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
+                    />
+                  </div>
+                  <input
+                    value={planDraft.category}
+                    onChange={(event) => setPlanDraft((prev) => ({ ...prev, category: event.target.value }))}
+                    placeholder="หมวดหมู่ เช่น Booking / Route / Packing"
+                    className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
+                  />
+                </div>
+
+                <div className="mt-4 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPlanEditor(false)}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      appendTravelPlanHistory({
+                        type: 'draft-saved',
+                        title: planDraft.title.trim() || 'draft',
+                        detail: planDraft.detail.trim() || 'บันทึก draft จากหน้า Home',
+                        when: planDraft.when.trim() || 'วันนี้',
+                        date: planDraft.date.trim() || '09:00',
+                        category: planDraft.category.trim() || 'Plan',
+                        completed: false,
+                      });
+                      setShowPlanEditor(false);
+                    }}
+                    className="rounded-2xl border border-cyan-500/30 bg-cyan-500/15 px-4 py-2.5 text-sm font-black text-cyan-200 hover:bg-cyan-500/25"
+                  >
+                    บันทึก draft
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selectedCalendarDate && (() => {
+            const selectedEvents = HOLIDAYS.filter((holiday) => holiday.date === selectedCalendarDate);
+            const selectedDateLabel = new Date(`${selectedCalendarDate}T00:00:00`).toLocaleDateString('th-TH', {
+              dateStyle: 'full',
+            });
+
+            return (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 py-6 backdrop-blur-sm">
+                <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-[#0a0c10] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.65)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">Calendar detail</div>
+                      <h4 className="mt-1 text-lg font-bold text-white">{selectedDateLabel}</h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCalendarDate(null)}
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/10 hover:text-white"
+                      aria-label="Close calendar detail"
+                    >
+                      <ChevronRight size={16} className="rotate-45" />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    {selectedEvents.map((holiday) => (
+                      <div key={`${holiday.date}-${holiday.name}`} className="rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-white">{holiday.name}</div>
+                            <div className="mt-1 text-xs text-slate-500">{holiday.nameEn}</div>
+                          </div>
+                          <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.22em] ${holiday.type === 'public' ? 'border-blue-500/30 bg-blue-500/10 text-blue-300' : holiday.type === 'religious' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300' : holiday.type === 'chinese' ? 'border-rose-500/30 bg-rose-500/10 text-rose-300' : 'border-white/10 bg-white/5 text-slate-300'}`}>
+                            {holiday.type}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Trending Places removed from main column — moved to sidebar */}
         </div>
+
+          {/* Right Sidebar - Analytics Overlay */}
+          <div className="relative z-10 w-[300px] flex-shrink-0 flex flex-col gap-3 border-l border-white/5 bg-black/10 backdrop-blur-3xl px-6 py-8 overflow-y-auto custom-scrollbar">
+
+            {/* Calendar / Schedule - Premium Component */}
+            <PremiumCalendarCard
+              onDateClick={(date) => {
+                setSelectedCalendarDate(date);
+              }}
+            />
+
+            {/* Stats View Toggle */}
+            <div className="flex-shrink-0 flex flex-col gap-1.5">
+              
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-1.5 flex gap-1.5">
+                <button
+                  onClick={() => setStatsViewMode('temp')}
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-[11px] font-black transition-all ${
+                    statsViewMode === 'temp' ? 'bg-white text-black shadow-xl scale-[1.02]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                  }`}
+                >
+                  <Thermometer size={14} className={statsViewMode === 'temp' ? 'text-indigo-600' : ''} />
+                  TEMP
+                </button>
+                <button
+                  onClick={() => setStatsViewMode('aqi')}
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-[11px] font-black transition-all ${
+                    statsViewMode === 'aqi' ? 'bg-white text-black shadow-xl scale-[1.02]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                  }`}
+                >
+                  <Wind size={14} className={statsViewMode === 'aqi' ? 'text-indigo-600' : ''} />
+                  AQI
+                </button>
+              </div>
+            </div>
+
+            {/* Regional Bar Chart - Premium */}
+            <div className="flex-1 min-h-0 rounded-[2rem] border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-5 flex flex-col shadow-inner">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-black">Temp | AQI Bar Chart</div>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              </div>
+              
+              {topStats.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
+                  <div className="w-12 h-12 rounded-full border border-dashed border-white/10 flex items-center justify-center text-slate-700">?</div>
+                  <div className="text-[10px] text-slate-700 font-bold">NO DATA SYNCED</div>
+                </div>
+              ) : (
+                <div className="flex-1 flex items-end gap-2.5 h-full pb-2">
+                  {topStats.map((region) => {
+                    const regionMeta = REGIONS.find((r) => r.id === region.id);
+                    const value = statsViewMode === 'temp' ? region.avgTemp : region.avgAqi;
+                    const label = statsViewMode === 'temp' ? `${value.toFixed(0)}°` : `${value.toFixed(0)}`;
+                    const normalized = valueRange > 0 ? (value - minValue) / valueRange : 0.5;
+                    const barPct = Math.round(20 + normalized * 75);
+                    return (
+                      <div
+                        key={region.id}
+                        className="flex-1 flex flex-col items-center gap-2 h-full justify-end cursor-pointer group"
+                        onClick={() => handleShowRegionWeather(region.id, region.name)}
+                      >
+                        <span className="text-[10px] font-black text-slate-500 group-hover:text-white group-hover:scale-110 transition-all">{label}</span>
+                        <div
+                          className="w-full rounded-t-xl transition-all duration-1000 cubic-bezier(0.23, 1, 0.32, 1) group-hover:brightness-150 relative overflow-hidden"
+                          style={{
+                            height: `${barPct}%`,
+                            background: regionMeta?.color ? `linear-gradient(to top, ${regionMeta.color}44, ${regionMeta.color}cc)` : '#38bdf8',
+                            boxShadow: `0 0 20px ${regionMeta?.color || '#38bdf8'}22`,
+                          }}
+                        >
+                          {/* Inner Shine Effect */}
+                          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <span className="text-[8px] font-black text-slate-600 uppercase text-center truncate w-full group-hover:text-slate-400 transition-colors">
+                          {region.name.replace('ภาค', '')}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+        {/* Modals */}
+        <WeatherHistoryModal
+          isOpen={isWeatherModalOpen}
+          onClose={() => setIsWeatherModalOpen(false)}
+          provinceName={selectedRegionForWeather?.id === 'all' ? "สภาพอากาศทั้งหมด" : `${selectedRegionForWeather?.name}`}
+          provinces={(() => {
+            if (!selectedRegionForWeather || selectedRegionForWeather.id === 'all') return provinceIndexForModal;
+            return provinceIndexForModal.filter(p => p.regionId === selectedRegionForWeather.id);
+          })()}
+          regionId={selectedRegionForWeather?.id === 'all' ? undefined : selectedRegionForWeather?.id}
+          targetProvinceId={selectedRegionForWeather?.id === 'all' ? 'all' : undefined}
+          chartScope="region-average"
+        />
+        {isAQIModalOpen && (
+          <AQIModal
+            isOpen={isAQIModalOpen}
+            onClose={() => setIsAQIModalOpen(false)}
+            regionName={selectedRegionForWeather?.id === 'all' ? "ประเทศไทย" : `${selectedRegionForWeather?.name}`}
+            provinces={(() => {
+              if (!selectedRegionForWeather || selectedRegionForWeather.id === 'all') return provinceIndexForModal;
+              return provinceIndexForModal.filter(p => p.regionId === selectedRegionForWeather.id);
+            })()}
+          />
+        )}
       </div>
     );
   }
@@ -1108,6 +1750,7 @@ export const GeoArchivePage = () => {
     // All questions answered → show editable summary
     if (helpStep >= HELP_QUESTIONS.length) {
       return (
+        <>
         <div className="flex-1 bg-[#050608] overflow-y-auto">
           <div className="mx-auto max-w-3xl px-6 py-12">
             <BackButton onClick={handleBack} />
@@ -1225,6 +1868,7 @@ export const GeoArchivePage = () => {
             </button>
           </div>
         </div>
+        </>
       );
     }
 
@@ -1544,387 +2188,406 @@ export const GeoArchivePage = () => {
   if (mode === 'explore') {
     return (
       <div className="flex-1 bg-[#050608] overflow-y-auto">
-        <div className="mx-auto max-w-4xl px-6 py-12">
-          <div className="mb-8 flex items-start justify-between relative">
-            <div>
-              <BackButton onClick={handleBack} />
-              <h2 className="text-2xl font-bold text-white">สำรวจตามความสนใจ</h2>
-            </div>
-
-            {/* Region Filter Dropdown */}
-            <div className="flex items-center gap-2 pt-2">
-              <div className="relative">
-                <button
-                  onClick={() => setShowRatingFilter(!showRatingFilter)}
-                  className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all ${
-                    showRatingFilter
-                      ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
-                      : ratingSort
-                        ? 'border-yellow-500/50 bg-yellow-500/15 text-yellow-300'
-                        : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
-                  }`}
-                >
-                  {ratingSort === 'desc' ? <ArrowDownNarrowWide size={14} className="text-yellow-400" /> : 
-                   ratingSort === 'asc' ? <ArrowUpNarrowWide size={14} className="text-yellow-400" /> : 
-                   <span className="text-yellow-400">★</span>}
-                  <span className="text-xs font-bold">
-                    {ratingSort === 'desc' ? 'Rating: มาก → น้อย' : 
-                     ratingSort === 'asc' ? 'Rating: น้อย → มาก' : 'เรียงตาม rating'}
-                  </span>
-                </button>
-
-                {showRatingFilter && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowRatingFilter(false)} />
-                    <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c10] p-3 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
-                      <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                        การเรียงลำดับ
-                      </div>
-                      <div className="space-y-1">
-                        <button
-                          onClick={() => {
-                            setRatingSort('desc');
-                            setShowRatingFilter(false);
-                          }}
-                          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                            ratingSort === 'desc'
-                              ? 'bg-cyan-500/15 text-cyan-300'
-                              : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                          }`}
-                        >
-                          <ArrowDownNarrowWide size={14} />
-                          เรียงจาก Rating มากไปน้อย
-                        </button>
-                        <button
-                          onClick={() => {
-                            setRatingSort('asc');
-                            setShowRatingFilter(false);
-                          }}
-                          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                            ratingSort === 'asc'
-                              ? 'bg-cyan-500/15 text-cyan-300'
-                              : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                          }`}
-                        >
-                          <ArrowUpNarrowWide size={14} />
-                          เรียงจาก Rating น้อยไปมาก
-                        </button>
-                        <button
-                          onClick={() => {
-                            setRatingSort(null);
-                            setShowRatingFilter(false);
-                          }}
-                          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                            ratingSort === null
-                              ? 'bg-white/10 text-white'
-                              : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
-                          }`}
-                        >
-                          ล้างการเรียงลำดับ
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
+        <div className="mx-auto max-w-6xl px-6 py-12 flex gap-6">
+          
+          {/* Main Left Section: Grouped content together */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Header / Title & Filter Dropdowns */}
+            <div className="mb-8 flex items-start justify-between relative">
+              <div>
+                <BackButton onClick={handleBack} />
+                <h2 className="text-2xl font-bold text-white">สำรวจตามความสนใจ</h2>
               </div>
 
-              <div className="relative">
-                <button
-                  onClick={() => setShowRegionFilter(!showRegionFilter)}
-                  className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all ${
-                    showRegionFilter
-                      ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
-                      : selectedRegionFilters.length > 0
-                        ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300'
-                        : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
-                  }`}
-                >
-                  <Filter size={16} />
-                  <span className="text-xs font-bold">
-                    {selectedRegionFilters.length > 0
-                      ? selectedRegionFilters.length === 1 
-                        ? REGIONS.find(r => r.id === selectedRegionFilters[0])?.name
-                        : `เลือกแล้ว ${selectedRegionFilters.length} ภูมิภาค`
-                      : 'กรองตามภูมิภาค'}
-                  </span>
-                </button>
-
-                {showRegionFilter && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowRegionFilter(false)} />
-                    <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c10] p-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
-                      <div className="space-y-1">
-                        <button
-                          onClick={() => {
-                            setSelectedRegionFilters([]);
-                            // Keep open for multi-select convenience or close if user prefers
-                            // setShowRegionFilter(false); 
-                          }}
-                          className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium transition-colors ${
-                            selectedRegionFilters.length === 0 ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                          }`}
-                        >
-                          <div className="h-2 w-2 rounded-full bg-slate-400" />
-                          ทั้งหมด
-                        </button>
-                        {REGIONS.map((r) => {
-                          const isSelected = selectedRegionFilters.includes(r.id);
-                          return (
-                            <button
-                              key={r.id}
-                              onClick={() => {
-                                setSelectedRegionFilters(prev => 
-                                  prev.includes(r.id) 
-                                    ? prev.filter(id => id !== r.id)
-                                    : [...prev, r.id]
-                                );
-                              }}
-                              className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium transition-colors ${
-                                isSelected ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                              }`}
-                            >
-                              <div
-                                className="h-2 w-2 rounded-full"
-                                style={{ 
-                                  backgroundColor: r.color, 
-                                  boxShadow: isSelected ? `0 0 8px ${r.color}80` : `0 0 8px ${r.color}30` 
-                                }}
-                              />
-                              <div className="flex-1">{r.name}</div>
-                              {isSelected && (
-                                <div className="text-[10px] text-cyan-400 font-bold">✓</div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Discovery Chips */}
-          <div className="mb-8 flex flex-wrap gap-2">
-            {DISCOVERY_CHIPS.map((chip) => {
-              const isSelected = selectedChips.includes(chip.label);
-              return (
-                <button
-                  key={chip.label}
-                  onClick={() => toggleChip(chip.label)}
-                  className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                    isSelected
-                      ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
-                      : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
-                  }`}
-                >
-                  {chip.icon}
-                  {chip.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Region Filter was here */}
-
-          {/* Explore Results */}
-          {selectedChips.length > 0 ? (
-            <div>
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white">
-                  ผลลัพธ์สำหรับ: {selectedChips.join(', ')}
-                </h3>
-                {(selectedRegionFilters.length > 0 || ratingSort) && (
-                  <div className="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
-                    {selectedRegionFilters.map(regionId => (
-                      <span key={regionId} className="flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-emerald-300">
-                        <span className="text-[8px]">●</span>
-                        {REGIONS.find(r => r.id === regionId)?.name}
-                      </span>
-                    ))}
-                    {ratingSort && (
-                      <span className="flex items-center gap-1 rounded-md bg-yellow-500/10 border border-yellow-500/20 px-2 py-1 text-yellow-300">
-                        {ratingSort === 'desc' ? 'Rating: มาก → น้อย' : 'Rating: น้อย → มาก'}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {exploreResults.map((item, i) => (
-                  <div
-                    key={i}
-                    className="group cursor-pointer rounded-2xl border border-white/10 bg-[#0a0c10] overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/5 flex flex-col"
-                    onClick={() => setSelectedPlace(item)}
+              {/* Filters (Rating & Region) */}
+              <div className="flex items-center gap-2 pt-2">
+                {/* Rating Filter Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowRatingFilter(!showRatingFilter)}
+                    className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all ${
+                      showRatingFilter
+                        ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
+                        : ratingSort
+                          ? 'border-yellow-500/50 bg-yellow-500/15 text-yellow-300'
+                          : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
+                    }`}
                   >
-                    {/* Thumbnail Section */}
-                    <div className="relative h-32 w-full bg-slate-900 overflow-hidden shrink-0">
-                      {item.thumbnailUrl && (
-                        <CachedImage
-                          src={item.thumbnailUrl}
-                          alt={item.title}
-                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
+                    {ratingSort === 'desc' ? <ArrowDownNarrowWide size={14} className="text-yellow-400" /> : 
+                     ratingSort === 'asc' ? <ArrowUpNarrowWide size={14} className="text-yellow-400" /> : 
+                     <span className="text-yellow-400">★</span>}
+                    <span className="text-xs font-bold">
+                      {ratingSort === 'desc' ? 'Rating: มาก → น้อย' : 
+                       ratingSort === 'asc' ? 'Rating: น้อย → มาก' : 'เรียงตาม rating'}
+                    </span>
+                  </button>
+
+                  {showRatingFilter && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowRatingFilter(false)} />
+                      <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c10] p-3 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                          การเรียงลำดับ
+                        </div>
+                        <div className="space-y-1">
+                          <button
+                            onClick={() => {
+                              setRatingSort('desc');
+                              setShowRatingFilter(false);
+                            }}
+                            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                              ratingSort === 'desc'
+                                ? 'bg-cyan-500/15 text-cyan-300'
+                                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            <ArrowDownNarrowWide size={14} />
+                            เรียงจาก Rating มากไปน้อย
+                          </button>
+                          <button
+                            onClick={() => {
+                              setRatingSort('asc');
+                              setShowRatingFilter(false);
+                            }}
+                            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                              ratingSort === 'asc'
+                                ? 'bg-cyan-500/15 text-cyan-300'
+                                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            <ArrowUpNarrowWide size={14} />
+                            เรียงจาก Rating น้อยไปมาก
+                          </button>
+                          <button
+                            onClick={() => {
+                              setRatingSort(null);
+                              setShowRatingFilter(false);
+                            }}
+                            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                              ratingSort === null
+                                ? 'bg-white/10 text-white'
+                                : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
+                            }`}
+                          >
+                            ล้างการเรียงลำดับ
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Region Filter Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowRegionFilter(!showRegionFilter)}
+                    className={`flex items-center gap-2 rounded-xl border px-4 py-2 transition-all ${
+                      showRegionFilter
+                        ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
+                        : selectedRegionFilters.length > 0
+                          ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300'
+                          : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
+                    }`}
+                  >
+                    <Filter size={16} />
+                    <span className="text-xs font-bold">
+                      {selectedRegionFilters.length > 0
+                        ? selectedRegionFilters.length === 1 
+                          ? REGIONS.find(r => r.id === selectedRegionFilters[0])?.name
+                          : `เลือกแล้ว ${selectedRegionFilters.length} ภูมิภาค`
+                        : 'กรองตามภูมิภาค'}
+                    </span>
+                  </button>
+
+                  {showRegionFilter && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowRegionFilter(false)} />
+                      <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c10] p-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="space-y-1">
+                          <button
+                            onClick={() => {
+                              setSelectedRegionFilters([]);
+                            }}
+                            className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium transition-colors ${
+                              selectedRegionFilters.length === 0 ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            <div className="h-2 w-2 rounded-full bg-slate-400" />
+                            ทั้งหมด
+                          </button>
+                          {REGIONS.map((r) => {
+                            const isSelected = selectedRegionFilters.includes(r.id);
+                            return (
+                              <button
+                                key={r.id}
+                                onClick={() => {
+                                  setSelectedRegionFilters(prev => 
+                                    prev.includes(r.id) 
+                                      ? prev.filter(id => id !== r.id)
+                                      : [...prev, r.id]
+                                  );
+                                }}
+                                className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-xs font-medium transition-colors ${
+                                  isSelected ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                                }`}
+                              >
+                                <div
+                                  className="h-2 w-2 rounded-full"
+                                  style={{ 
+                                    backgroundColor: r.color, 
+                                    boxShadow: isSelected ? `0 0 8px ${r.color}80` : `0 0 8px ${r.color}30` 
+                                  }}
+                                />
+                                <div className="flex-1">{r.name}</div>
+                                {isSelected && (
+                                  <div className="text-[10px] text-cyan-400 font-bold">✓</div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Discovery Chips (Horizontal row inside left column) */}
+            <div className="mb-8 flex flex-wrap gap-2">
+              {DISCOVERY_CHIPS.map((chip) => {
+                const isSelected = selectedChips.includes(chip.label);
+                return (
+                  <button
+                    key={chip.label}
+                    onClick={() => toggleChip(chip.label)}
+                    className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                      isSelected
+                        ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
+                        : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20 hover:text-white'
+                    }`}
+                  >
+                    {chip.icon}
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Explore Results */}
+            {selectedChips.length > 0 ? (
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white">
+                    ผลลัพธ์สำหรับ: {selectedChips.join(', ')}
+                  </h3>
+                  {(selectedRegionFilters.length > 0 || ratingSort) && (
+                    <div className="flex items-center gap-2 text-xs text-slate-400 flex-wrap">
+                      {selectedRegionFilters.map(regionId => (
+                        <span key={regionId} className="flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-emerald-300">
+                          <span className="text-[8px]">●</span>
+                          {REGIONS.find(r => r.id === regionId)?.name}
+                        </span>
+                      ))}
+                      {ratingSort && (
+                        <span className="flex items-center gap-1 rounded-md bg-yellow-500/10 border border-yellow-500/20 px-2 py-1 text-yellow-300">
+                          {ratingSort === 'desc' ? 'Rating: มาก → น้อย' : 'Rating: น้อย → มาก'}
+                        </span>
                       )}
-                      {/* Fallback Icon */}
-                      <div className={`fallback-icon absolute inset-0 flex items-center justify-center bg-slate-800 ${item.thumbnailUrl ? 'hidden' : ''}`}>
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-slate-400 shadow-inner">
-                          {item.iconName ? (ICON_MAP[item.iconName] || <MapPin size={24} />) : <MapPin size={24} />}
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {exploreResults.map((item, i) => (
+                    <div
+                      key={i}
+                      className="group cursor-pointer rounded-2xl border border-white/10 bg-[#0a0c10] overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/5 flex flex-col"
+                      onClick={() => setSelectedPlace(item)}
+                    >
+                      {/* Thumbnail Section */}
+                      <div className="relative h-32 w-full bg-slate-900 overflow-hidden shrink-0">
+                        {item.thumbnailUrl && (
+                          <CachedImage
+                            src={item.thumbnailUrl}
+                            alt={item.title}
+                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        )}
+                        {/* Fallback Icon */}
+                        <div className={`fallback-icon absolute inset-0 flex items-center justify-center bg-slate-800 ${item.thumbnailUrl ? 'hidden' : ''}`}>
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-slate-400 shadow-inner">
+                            {item.iconName ? (ICON_MAP[item.iconName] || <MapPin size={24} />) : <MapPin size={24} />}
+                          </div>
+                        </div>
+                        
+                        {/* Category Badge */}
+                        <div className="absolute top-2 right-2 rounded-lg bg-black/60 backdrop-blur-md px-2.5 py-1 border border-white/10 shadow-lg">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-300">
+                            {item.category}
+                          </span>
                         </div>
                       </div>
                       
-                      {/* Category Badge */}
-                      <div className="absolute top-2 right-2 rounded-lg bg-black/60 backdrop-blur-md px-2.5 py-1 border border-white/10 shadow-lg">
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-300">
-                          {item.category}
-                        </span>
+                      {/* Content Section */}
+                      <div className="p-4 flex-1 flex flex-col">
+                        <div className="mb-1 text-sm font-bold text-white group-hover:text-cyan-300 transition-colors line-clamp-1" title={item.title}>
+                          {item.title}
+                        </div>
+                        <div className="text-xs text-slate-500 line-clamp-1 mb-2">{item.location || 'ไม่ระบุตำแหน่ง'}</div>
+                        
+                        <div className="mt-auto flex items-center justify-between">
+                          {item.rating ? (
+                            <div className="flex items-center gap-1 rounded-md bg-yellow-500/10 px-1.5 py-0.5 border border-yellow-500/20">
+                              <span className="text-[10px] text-yellow-400 leading-none">★</span>
+                              <span className="text-[10px] font-bold text-yellow-400 leading-none">{item.rating.toFixed(1)}</span>
+                            </div>
+                          ) : (
+                            <div></div>
+                          )}
+                          
+                          {item.tags && item.tags.length > 0 && (
+                            <div className="flex items-center gap-1 overflow-hidden">
+                              <span className="truncate text-[9px] text-slate-500">
+                                {item.tags.slice(0, 2).join(' • ')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    navigate('/intelligence', {
+                      state: {
+                        context: { type: 'explore', name: selectedChips.join(', ') },
+                        prefillInput: `แนะนำสถานที่ท่องเที่ยวในไทยที่เกี่ยวกับ: ${selectedChips.join(', ')} หน่อยครับ`,
+                      },
+                    });
+                  }}
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 py-3 text-sm font-medium text-cyan-300 transition-all hover:bg-cyan-500/20"
+                >
+                  <Sparkles size={16} />
+                  ให้ AI แนะนำเพิ่มเติม
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-[#0a0c10] py-16 text-center">
+                <PartyPopper size={32} className="mb-4 text-slate-600" />
+                <p className="text-sm text-slate-500">เลือกหมวดด้านบนเพื่อเริ่มสำรวจ</p>
+              </div>
+            )}
+
+            {/* Place Detail Popup */}
+            {selectedPlace && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0a0c10] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+                  <div className="relative h-56 bg-slate-900 shrink-0">
+                    {selectedPlace.thumbnailUrl ? (
+                      <CachedImage src={selectedPlace.thumbnailUrl} alt={selectedPlace.title} className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/5 text-slate-400">
+                          {selectedPlace.iconName ? ICON_MAP[selectedPlace.iconName] || <MapPin size={32} /> : <MapPin size={32} />}
+                        </div>
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => setSelectedPlace(null)}
+                      className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors backdrop-blur-md"
+                    >
+                      ✕
+                    </button>
+                    <div className="absolute bottom-4 left-4 flex gap-2">
+                      <span className="rounded-lg bg-black/60 backdrop-blur-md px-2.5 py-1 text-xs font-bold text-white border border-white/10 shadow-lg">
+                        {selectedPlace.category}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-6 overflow-y-auto">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-2xl font-bold text-white leading-tight">{selectedPlace.title}</h3>
+                      {selectedPlace.rating && (
+                        <div className="flex items-center gap-1 rounded-md bg-yellow-500/10 px-1.5 py-1 text-[11px] font-bold text-yellow-400 border border-yellow-500/20 shrink-0">
+                          ★ {selectedPlace.rating.toFixed(1)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm text-slate-400 mb-6 flex items-center gap-1.5">
+                      <MapPin size={14} className="text-slate-500" />
+                      {selectedPlace.location || 'ไม่ระบุตำแหน่ง'}
                     </div>
                     
-                    {/* Content Section */}
-                    <div className="p-4 flex-1 flex flex-col">
-                      <div className="mb-1 text-sm font-bold text-white group-hover:text-cyan-300 transition-colors line-clamp-1" title={item.title}>
-                        {item.title}
-                      </div>
-                      <div className="text-xs text-slate-500 line-clamp-1 mb-2">{item.location || 'ไม่ระบุตำแหน่ง'}</div>
-                      
-                      <div className="mt-auto flex items-center justify-between">
-                        {item.rating ? (
-                          <div className="flex items-center gap-1 rounded-md bg-yellow-500/10 px-1.5 py-0.5 border border-yellow-500/20">
-                            <span className="text-[10px] text-yellow-400 leading-none">★</span>
-                            <span className="text-[10px] font-bold text-yellow-400 leading-none">{item.rating.toFixed(1)}</span>
-                          </div>
-                        ) : (
-                          <div></div>
-                        )}
-                        
-                        {item.tags && item.tags.length > 0 && (
-                          <div className="flex items-center gap-1 overflow-hidden">
-                            <span className="truncate text-[9px] text-slate-500">
-                              {item.tags.slice(0, 2).join(' • ')}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => {
-                  navigate('/intelligence', {
-                    state: {
-                      context: { type: 'explore', name: selectedChips.join(', ') },
-                      prefillInput: `แนะนำสถานที่ท่องเที่ยวในไทยที่เกี่ยวกับ: ${selectedChips.join(', ')} หน่อยครับ`,
-                    },
-                  });
-                }}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 py-3 text-sm font-medium text-cyan-300 transition-all hover:bg-cyan-500/20"
-              >
-                <Sparkles size={16} />
-                ให้ AI แนะนำเพิ่มเติม
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-[#0a0c10] py-16 text-center">
-              <PartyPopper size={32} className="mb-4 text-slate-600" />
-              <p className="text-sm text-slate-500">เลือกหมวดด้านบนเพื่อเริ่มสำรวจ</p>
-            </div>
-          )}
-
-          {/* Place Detail Popup */}
-          {selectedPlace && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0a0c10] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-                <div className="relative h-56 bg-slate-900 shrink-0">
-                  {selectedPlace.thumbnailUrl ? (
-                    <CachedImage src={selectedPlace.thumbnailUrl} alt={selectedPlace.title} className="absolute inset-0 h-full w-full object-cover" />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/5 text-slate-400">
-                        {selectedPlace.iconName ? ICON_MAP[selectedPlace.iconName] || <MapPin size={32} /> : <MapPin size={32} />}
-                      </div>
-                    </div>
-                  )}
-                  <button 
-                    onClick={() => setSelectedPlace(null)}
-                    className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors backdrop-blur-md"
-                  >
-                    ✕
-                  </button>
-                  <div className="absolute bottom-4 left-4 flex gap-2">
-                    <span className="rounded-lg bg-black/60 backdrop-blur-md px-2.5 py-1 text-xs font-bold text-white border border-white/10 shadow-lg">
-                      {selectedPlace.category}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-6 overflow-y-auto">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-2xl font-bold text-white leading-tight">{selectedPlace.title}</h3>
-                    {selectedPlace.rating && (
-                      <div className="flex items-center gap-1 rounded-md bg-yellow-500/10 px-1.5 py-1 text-[11px] font-bold text-yellow-400 border border-yellow-500/20 shrink-0">
-                        ★ {selectedPlace.rating.toFixed(1)}
-                      </div>
+                    {selectedPlace.description ? (
+                      <p className="text-sm text-slate-300 leading-relaxed mb-8">
+                        {selectedPlace.description}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-slate-500 italic leading-relaxed mb-8">
+                        ไม่มีรายละเอียดเพิ่มเติม
+                      </p>
                     )}
-                  </div>
-                  <div className="text-sm text-slate-400 mb-6 flex items-center gap-1.5">
-                    <MapPin size={14} className="text-slate-500" />
-                    {selectedPlace.location || 'ไม่ระบุตำแหน่ง'}
-                  </div>
-                  
-                  {selectedPlace.description ? (
-                    <p className="text-sm text-slate-300 leading-relaxed mb-8">
-                      {selectedPlace.description}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-slate-500 italic leading-relaxed mb-8">
-                      ไม่มีรายละเอียดเพิ่มเติม
-                    </p>
-                  )}
-                  
-                  <div className="flex flex-col gap-3 mt-auto">
-                    {/* Primary Actions */}
-                    <div className="flex gap-3">
-                      <button 
-                        onClick={() => {
-                          if (selectedPlace.regionId && selectedPlace.provinceId) {
-                            const cleanId = selectedPlace.provinceId.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-                            navigate(`/province/${selectedPlace.regionId}/${cleanId}`, {
-                              state: {
-                                focusPlace: {
-                                  title: selectedPlace.title,
-                                  autoFocus: true
+                    
+                    <div className="flex flex-col gap-3 mt-auto">
+                      {/* Primary Actions */}
+                      <div className="flex gap-3">
+                        <button 
+                          onClick={() => {
+                            if (selectedPlace.regionId && selectedPlace.provinceId) {
+                              const cleanId = selectedPlace.provinceId.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                              navigate(`/province/${selectedPlace.regionId}/${cleanId}`, {
+                                state: {
+                                  focusPlace: {
+                                    title: selectedPlace.title,
+                                    autoFocus: true
+                                  }
                                 }
-                              }
-                            });
-                          }
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-cyan-600 py-3.5 text-sm font-bold text-white transition-all hover:bg-cyan-500 hover:shadow-[0_0_20px_rgba(8,145,178,0.4)]"
-                      >
-                        <MapPin size={18} />
-                        เปิดแผนที่ Locus
-                      </button>
-                    </div>
+                              });
+                            }
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-cyan-600 py-3.5 text-sm font-bold text-white transition-all hover:bg-cyan-500 hover:shadow-[0_0_20px_rgba(8,145,178,0.4)]"
+                        >
+                          <MapPin size={18} />
+                          เปิดแผนที่ Locus
+                        </button>
+                      </div>
 
-                    {/* Secondary Actions */}
-                    {selectedPlace.sourceUrl && (
-                      <a 
-                        href={selectedPlace.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
-                      >
-                        <Map size={14} />
-                        Open with Google Maps
-                      </a>
-                    )}
+                      {/* Secondary Actions */}
+                      {selectedPlace.sourceUrl && (
+                        <a 
+                          href={selectedPlace.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-medium text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+                        >
+                          <Map size={14} />
+                          Open with Google Maps
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Explore Sidebar: Trending places card only (Calendar removed) */}
+          <aside className="w-80 flex-shrink-0 flex flex-col gap-6">
+            <div className="flex-shrink-0 rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-black">Trending</div>
+                <div className="text-[10px] text-slate-400 font-bold">แยก: วันนี้/สัปดาห์/เดือน</div>
+              </div>
+              <TrendingPlacesCard
+                limit={6}
+                onClick={(place) => navigate(`/province/${place.regionId}/${place.provinceId}`, {
+                  state: { focusPlace: { title: place.title, lat: (place as any).lat, lng: (place as any).lng, autoFocus: true } }
+                })}
+              />
             </div>
-          )}
+          </aside>
         </div>
       </div>
     );
@@ -1952,7 +2615,7 @@ interface IntentCardProps {
 const IntentCard = ({ icon, title, subtitle, gradient, border, iconBg, iconColor, onClick, isAi, children }: any) => (
   <button
     onClick={onClick}
-    className={`group relative w-full overflow-hidden rounded-[2rem] border ${border} bg-[#0a0c10] p-6 text-left transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] active:scale-[0.99]`}
+    className={`group relative w-full overflow-hidden rounded-[2rem] border ${border} bg-[#0a0c10] p-5 text-left transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] active:scale-[0.99]`}
   >
     <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-40 transition-opacity group-hover:opacity-60`} />
     <div className="relative z-10 flex items-center gap-6">
@@ -1960,15 +2623,15 @@ const IntentCard = ({ icon, title, subtitle, gradient, border, iconBg, iconColor
         {icon}
       </div>
       <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <h3 className="text-xl font-black tracking-tight text-white">{title}</h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-2xl font-black tracking-tight text-white">{title}</h3>
           {isAi && (
-            <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter text-white shadow-lg shadow-indigo-500/30">
+            <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-tighter text-red-600 shadow-lg shadow-red-500/40">
               Guide agent
             </span>
           )}
         </div>
-        <p className="mt-1 text-sm font-medium text-slate-400">{subtitle}</p>
+        <p className="mt-2 text-base font-medium text-slate-400">{subtitle}</p>
         {children}
       </div>
       <div className="translate-x-2 text-slate-600 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100">

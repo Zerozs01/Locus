@@ -6,7 +6,9 @@
   "author": "Zeroz (CPE311 AI Lab)",
   "license": "MIT",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "concurrently -k -n app,news -c cyan,magenta \"electron-vite dev\" \"node scripts/news-server.js\"",
+    "dev:app": "electron-vite dev",
+    "news:serve": "node scripts/news-server.js",
     "build": "electron-vite build",
     "build:win": "npm run build && electron-builder --win",
     "postinstall": "electron-builder install-app-deps",
@@ -35,6 +37,12 @@
     "recharts": "^3.8.1",
     "sql.js": "^1.8.0"
   },
+  "optionalDependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.1",
+    "node-fetch": "^2.7.0",
+    "rss-parser": "^3.13.0"
+  },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.0",
     "@storybook/addon-a11y": "^10.2.1",
@@ -51,6 +59,7 @@
     "@vitest/browser-playwright": "^4.0.18",
     "@vitest/coverage-v8": "^4.0.18",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
     "electron": "^33.3.1",
     "electron-builder": "^25.1.8",
     "electron-vite": "^5.0.0",

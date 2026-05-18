@@ -9,17 +9,32 @@ import { regionTheme } from './regionTheme';
 
 // Central Province Images
 const imgAngThong = '/src/Image/Province_pic/Central_pic/ang_thong.jpg';
-const imgBangkok = '/src/Image/Province_pic/Central_pic/Bangkok.png';
-const imgChaiNat = '/src/Image/Province_pic/Central_pic/chai_nat.png';
-const imgLopBuri = '/src/Image/Province_pic/Central_pic/lop_buri.png';
-const imgNakhonPathom = '/src/Image/Province_pic/Central_pic/nakhon_pathom.png';
-const imgPathumThani = '/src/Image/Province_pic/Central_pic/pathum_thani.png';
-const imgSuphanBuri = '/src/Image/Province_pic/Central_pic/suphan_buri.png';
-const imgKamphaengPhet = '/src/Image/Province_pic/Central_pic/kamphaeng_phet.png';
-const imgNakhonNayok = '/src/Image/Province_pic/Central_pic/nakhon_nayok.png';
-const imgNakhonSawan = '/src/Image/Province_pic/Central_pic/nakhon_sawan.png';
-const imgAyutthaya = '/src/Image/Province_pic/Central_pic/ayutthaya_thai.png';
-const imgSaraburi = '/src/Image/Province_pic/Central_pic/saraburi_thai.png';
+const imgBangkok = '/src/Image/Province_pic/Central_pic/Bangkok.webp';
+const imgChaiNat = '/src/Image/Province_pic/Central_pic/chai_nat.webp';
+const imgLopBuri = '/src/Image/Province_pic/Central_pic/lop_buri.webp';
+const imgNakhonPathom = '/src/Image/Province_pic/Central_pic/nakhon_pathom.webp';
+const imgPathumThani = '/src/Image/Province_pic/Central_pic/pathum_thani.webp';
+const imgSuphanBuri = '/src/Image/Province_pic/Central_pic/suphan_buri.webp';
+const imgKamphaengPhet = '/src/Image/Province_pic/Central_pic/kamphaeng_phet.webp';
+const imgNakhonNayok = '/src/Image/Province_pic/Central_pic/nakhon_nayok.webp';
+const imgNakhonSawan = '/src/Image/Province_pic/Central_pic/nakhon_sawan.webp';
+const imgAyutthaya = '/src/Image/Province_pic/Central_pic/ayutthaya.webp';
+const imgSaraburi = '/src/Image/Province_pic/Central_pic/saraburi.webp';
+
+// North Province Images
+const imgChiangMai = '/src/Image/Province_pic/North_pic/chiang_mai.webp';
+const imgMaeHongSon = '/src/Image/Province_pic/North_pic/mae_hong_son.webp';
+const imgNan = '/src/Image/Province_pic/North_pic/nan.webp';
+const imgLampang = '/src/Image/Province_pic/North_pic/lampang.webp';
+const imgLamphun = '/src/Image/Province_pic/North_pic/lamphun.webp';
+const imgUttaradit = '/src/Image/Province_pic/North_pic/uttaradit.webp';
+
+// West Province Images
+const imgKanchanaburi = '/src/Image/Province_pic/West_pic/kanchanaburi.webp';
+const imgPhetchaburi = '/src/Image/Province_pic/West_pic/phetchaburi.webp';
+const imgPrachuapKhiriKhan = '/src/Image/Province_pic/West_pic/prachuap_khiri_khan.webp';
+const imgRatchaburi = '/src/Image/Province_pic/West_pic/ratchaburi.webp';
+const imgTak = '/src/Image/Province_pic/West_pic/tak.webp';
 
 export interface Province {
   name: string;
@@ -103,15 +118,15 @@ export const regionsData: Region[] = [
     },
     desc: "ดินแดนแห่งขุนเขาและสายหมอก ศูนย์กลางวัฒนธรรมล้านนา",
     subProvinces: [
-      { name: "Chiang Mai", id: "chiangmai", dist: 25, tam: 204, serenity: 9, entertainment: 8, relax: 9, image: "https://images.unsplash.com/photo-1596423405707-c9343586ac03?q=80&w=600", population: "1.78M", area: "20,107", dailyCost: "350 ฿", safety: 82 },
+      { name: "Chiang Mai", id: "chiangmai", dist: 25, tam: 204, serenity: 9, entertainment: 8, relax: 9, image: imgChiangMai, population: "1.78M", area: "20,107", dailyCost: "350 ฿", safety: 82 },
       { name: "Chiang Rai", id: "chiangrai", dist: 18, tam: 124, serenity: 9, entertainment: 6, relax: 9, image: "https://images.unsplash.com/photo-1504214208698-ea1916a2195a?q=80&w=600", population: "1.29M", area: "11,678", dailyCost: "280 ฿", safety: 78 },
-      { name: "Lampang", id: "lampang", dist: 13, tam: 100, serenity: 8, entertainment: 4, relax: 8, image: "https://images.unsplash.com/photo-1598892762299-66806509930f?q=80&w=600", population: "724K", area: "12,534", dailyCost: "250 ฿", safety: 85 },
-      { name: "Lamphun", id: "lamphun", dist: 8, tam: 51, serenity: 9, entertainment: 3, relax: 9, image: "https://images.unsplash.com/photo-1584883586678-77c8e9672697?q=80&w=600", population: "399K", area: "4,506", dailyCost: "240 ฿", safety: 88 },
-      { name: "Mae Hong Son", id: "maehongson", dist: 7, tam: 45, serenity: 10, entertainment: 2, relax: 10, image: "https://images.unsplash.com/photo-1598246738029-79774b9337ac?q=80&w=600", population: "274K", area: "12,681", dailyCost: "300 ฿", safety: 72 },
-      { name: "Nan", id: "nan", dist: 15, tam: 99, serenity: 10, entertainment: 3, relax: 10, image: "https://images.unsplash.com/photo-1589467657262-6da939796032?q=80&w=600", population: "479K", area: "11,472", dailyCost: "260 ฿", safety: 86 },
-      { name: "Phayao", id: "phayao", dist: 9, tam: 68, serenity: 9, entertainment: 3, relax: 9, image: "https://images.unsplash.com/photo-1598892762299-66806509930f?q=80&w=600", population: "474K", area: "6,335", dailyCost: "230 ฿", safety: 90 },
+      { name: "Lampang", id: "lampang", dist: 13, tam: 100, serenity: 8, entertainment: 4, relax: 8, image: imgLampang, population: "724K", area: "12,534", dailyCost: "250 ฿", safety: 85 },
+      { name: "Lamphun", id: "lamphun", dist: 8, tam: 51, serenity: 9, entertainment: 3, relax: 9, image: imgLamphun, population: "399K", area: "4,506", dailyCost: "240 ฿", safety: 88 },
+      { name: "Mae Hong Son", id: "maehongson", dist: 7, tam: 45, serenity: 10, entertainment: 2, relax: 10, image: imgMaeHongSon, population: "274K", area: "12,681", dailyCost: "300 ฿", safety: 72 },
+      { name: "Nan", id: "nan", dist: 15, tam: 99, serenity: 10, entertainment: 3, relax: 10, image: imgNan, population: "479K", area: "11,472", dailyCost: "260 ฿", safety: 86 },
+      { name: "Phayao", id: "phayao", dist: 9, tam: 68, serenity: 9, entertainment: 3, relax: 9, image: "https://images.unsplash.com/photo-1598892762299-66086509930f?q=80&w=600", population: "474K", area: "6,335", dailyCost: "230 ฿", safety: 90 },
       { name: "Phrae", id: "phrae", dist: 8, tam: 78, serenity: 8, entertainment: 4, relax: 8, image: "https://images.unsplash.com/photo-1598892762299-66806509930f?q=80&w=600", population: "433K", area: "6,539", dailyCost: "220 ฿", safety: 89 },
-      { name: "Uttaradit", id: "uttaradit", dist: 9, tam: 67, serenity: 8, entertainment: 3, relax: 8, image: "https://images.unsplash.com/photo-1598892762299-66806509930f?q=80&w=600", population: "453K", area: "7,838", dailyCost: "230 ฿", safety: 87 },
+      { name: "Uttaradit", id: "uttaradit", dist: 9, tam: 67, serenity: 8, entertainment: 3, relax: 8, image: imgUttaradit, population: "453K", area: "7,838", dailyCost: "230 ฿", safety: 87 },
     ],
   },
   {
@@ -220,11 +235,11 @@ export const regionsData: Region[] = [
     },
     desc: "ดินแดนแห่งประวัติศาสตร์สงครามโลก ธรรมชาติอันงดงาม",
     subProvinces: [
-      { name: "Kanchanaburi", id: "kanchanaburi", dist: 13, tam: 98, serenity: 9, entertainment: 5, relax: 10, image: "https://images.unsplash.com/photo-1592393739775-690226305632?q=80&w=600", population: "878K", area: "19,483", dailyCost: "350 ฿", safety: 82 },
-      { name: "Phetchaburi", id: "phetchaburi", dist: 8, tam: 93, serenity: 8, entertainment: 6, relax: 8, image: "https://images.unsplash.com/photo-1592393739775-690226305632?q=80&w=600", population: "474K", area: "6,225", dailyCost: "320 ฿", safety: 85 },
-      { name: "Prachuap Khiri Khan", id: "prachuapkhirikhan", dist: 8, tam: 48, serenity: 8, entertainment: 7, relax: 9, image: "https://images.unsplash.com/photo-1592393739775-690226305632?q=80&w=600", population: "532K", area: "6,368", dailyCost: "400 ฿", safety: 84 },
-      { name: "Ratchaburi", id: "ratchaburi", dist: 10, tam: 104, serenity: 8, entertainment: 4, relax: 8, image: "https://images.unsplash.com/photo-1592393739775-690226305632?q=80&w=600", population: "863K", area: "5,197", dailyCost: "300 ฿", safety: 86 },
-      { name: "Tak", id: "tak", dist: 9, tam: 63, serenity: 9, entertainment: 3, relax: 10, image: "https://images.unsplash.com/photo-1592393739775-690226305632?q=80&w=600", population: "662K", area: "16,407", dailyCost: "280 ฿", safety: 78 },
+      { name: "Kanchanaburi", id: "kanchanaburi", dist: 13, tam: 98, serenity: 9, entertainment: 5, relax: 10, image: imgKanchanaburi, population: "878K", area: "19,483", dailyCost: "350 ฿", safety: 82 },
+      { name: "Phetchaburi", id: "phetchaburi", dist: 8, tam: 93, serenity: 8, entertainment: 6, relax: 8, image: imgPhetchaburi, population: "474K", area: "6,225", dailyCost: "320 ฿", safety: 85 },
+      { name: "Prachuap Khiri Khan", id: "prachuapkhirikhan", dist: 8, tam: 48, serenity: 8, entertainment: 7, relax: 9, image: imgPrachuapKhiriKhan, population: "532K", area: "6,368", dailyCost: "400 ฿", safety: 84 },
+      { name: "Ratchaburi", id: "ratchaburi", dist: 10, tam: 104, serenity: 8, entertainment: 4, relax: 8, image: imgRatchaburi, population: "863K", area: "5,197", dailyCost: "300 ฿", safety: 86 },
+      { name: "Tak", id: "tak", dist: 9, tam: 63, serenity: 9, entertainment: 3, relax: 10, image: imgTak, population: "662K", area: "16,407", dailyCost: "280 ฿", safety: 78 },
     ],
   },
   {

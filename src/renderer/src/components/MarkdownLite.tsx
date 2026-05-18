@@ -1,11 +1,14 @@
 import { Fragment, ReactNode } from 'react'
+import { MapPin } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { regionsData } from '../data/regions'
+import { getThaiProvinceName } from '../data/thaiProvinceNames'
 
 interface MarkdownLiteProps {
   text: string
   className?: string
 }
 
-const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/
 const TEXT_STYLE = { color: 'var(--chat-md-text)' }
 const MUTED_STYLE = { color: 'var(--chat-md-muted)' }
 const STRONG_STYLE = { color: 'var(--chat-md-strong)' }
@@ -30,8 +33,12 @@ const TABLE_HEADER_STYLE = {
   backgroundColor: 'rgba(255,255,255,0.03)'
 }
 
-const renderInline = (text: string, inListItem = false): ReactNode[] =>
-  text.split(INLINE_PATTERN).filter(Boolean).map((segment, index) => {
+const LINK_PATTERN = /\[([^\]]+)\]\(([^)]+)\)/;
+const INLINE_PATTERN = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/;
+
+// navigate is passed in so hooks can stay at the component level
+const renderInline = (text: string, inListItem = false, navigate?: ReturnType<typeof useNavigate>): ReactNode[] => {
+  return text.split(INLINE_PATTERN).filter(Boolean).map((segment, index) => {
     if (segment.startsWith('**') && segment.endsWith('**')) {
       return (
         <strong
@@ -39,17 +46,17 @@ const renderInline = (text: string, inListItem = false): ReactNode[] =>
           className="font-semibold"
           style={inListItem ? LIST_STRONG_STYLE : STRONG_STYLE}
         >
-          {segment.slice(2, -2)}
+          {renderInline(segment.slice(2, -2), inListItem, navigate)}
         </strong>
-      )
+      );
     }
 
     if (segment.startsWith('*') && segment.endsWith('*')) {
       return (
         <em key={`em-${index}`} className="italic" style={ITALIC_STYLE}>
-          {segment.slice(1, -1)}
+          {renderInline(segment.slice(1, -1), inListItem, navigate)}
         </em>
-      )
+      );
     }
 
     if (segment.startsWith('`') && segment.endsWith('`')) {
@@ -57,16 +64,157 @@ const renderInline = (text: string, inListItem = false): ReactNode[] =>
         <code key={`code-${index}`} className="rounded px-1.5 py-0.5 font-mono text-[0.9em]" style={CODE_STYLE}>
           {segment.slice(1, -1)}
         </code>
-      )
+      );
     }
 
-    return <Fragment key={`text-${index}`}>{segment}</Fragment>
-  })
+    // Handle Links
+    const linkMatch = segment.match(LINK_PATTERN);
+    if (linkMatch) {
+      const [_, linkText, url] = linkMatch;
+      
+      // Custom Locus Deep Link - navigate to map with auto-warp + auto-search
+      if (url.startsWith('locus://location')) {
+        return (
+          <button
+            key={`locus-link-${index}`}
+            onClick={() => {
+              try {
+                // More robust parsing for Thai characters and various formats
+                const getParam = (name: string) => {
+                  try {
+                    const regex = new RegExp(`[?&]${name}=([^&]*)`);
+                    const match = url.match(regex);
+                    if (!match) return null;
+                    const val = match[1];
+                    // Try to decode, but if it fails (e.g. raw Thai), just return raw
+                    try {
+                      return decodeURIComponent(val);
+                    } catch {
+                      return val;
+                    }
+                  } catch {
+                    return null;
+                  }
+                };
 
-const normalizeMarkdown = (text: string) => text.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim()
+                const latStr = getParam('lat');
+                const lngStr = getParam('lng');
+                const lat = latStr ? parseFloat(latStr) : null;
+                const lng = lngStr ? parseFloat(lngStr) : null;
+                const title = getParam('title') || getParam('q') || linkText || 'Location';
+                
+                if (navigate) {
+                  // 1. Handle Fuel Buttons -> Warp to Home (/) and Toggle Fuel
+                  const fuelKeywords = ['95', '91', 'E20', 'E85', 'B7', 'B20', 'Diesel', 'ดีเซล', 'แก๊สโซฮอล์'];
+                  const isFuel = fuelKeywords.some(k => title.includes(k));
+                  
+                  if (isFuel) {
+                    navigate('/', { state: { focusFuel: title } });
+                    return;
+                  }
 
-const isTableLine = (line: string) => line.includes('|')
-const isTableSeparatorLine = (line: string) => /^\|?[\s:-]+(\|[\s:-]+)+\|?$/.test(line.trim())
+                  // 2. Handle Province Buttons -> Warp to Province Detail Page
+                  const cleanTitle = title.replace(/จังหวัด/g, '').trim();
+                  let provMatch: { id: string, region: string } | null = null;
+                  
+                  for (const r of regionsData) {
+                    const p = r.subProvinces?.find(sp => 
+                      sp.name.toLowerCase() === cleanTitle.toLowerCase() || 
+                      getThaiProvinceName(sp.name) === cleanTitle ||
+                      // Add fuzzy/partial matching for Thai names
+                      getThaiProvinceName(sp.name).includes(cleanTitle) ||
+                      cleanTitle.includes(getThaiProvinceName(sp.name))
+                    );
+                    if (p) {
+                      provMatch = { id: p.id, region: r.id };
+                      break;
+                    }
+                  }
+                  
+                  if (provMatch) {
+                    navigate(`/province/${provMatch.region}/${provMatch.id}`, {
+                      state: { autoWarp: (lat && lng) ? { lat, lng, title } : undefined }
+                    });
+                  } else {
+                    // 3. Handle Place Buttons -> Warp to Map and Auto Search
+                    navigate('/map', {
+                      state: {
+                        autoWarp: (lat && lng) ? { lat, lng, title } : undefined,
+                        autoSearch: title,
+                        autoSelectFirst: true
+                      }
+                    });
+                  }
+                }
+              } catch (e) {
+                console.error('Invalid locus link:', url, e);
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border transition-all font-bold text-[0.9em] align-baseline mx-1"
+            style={{ 
+              backgroundColor: 'rgba(var(--chat-btn-rgb, 6, 182, 212), 0.1)', 
+              borderColor: 'var(--chat-btn)',
+              color: 'var(--chat-btn)',
+              boxShadow: '0 0 10px rgba(var(--chat-btn-rgb, 6, 182, 212), 0.1)'
+            }}
+          >
+            <MapPin size={12} style={{ color: 'var(--chat-btn)' }} />
+            {linkText}
+          </button>
+        );
+      }
+
+      return (
+        <a 
+          key={`link-${index}`} 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="underline underline-offset-4 transition-colors"
+          style={{ color: 'var(--chat-md-link)', textDecorationColor: 'rgba(var(--chat-md-link-rgb, 6, 182, 212), 0.3)' }}
+        >
+          {linkText}
+        </a>
+      );
+    }
+
+    return <Fragment key={`text-${index}`}>{segment}</Fragment>;
+  });
+};
+
+const normalizeMarkdown = (text: string) => {
+  let normalized = text.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+  
+  // Robustness for single-line tables: if we see header | separator | row merged without newlines
+  // We detect | | as a row boundary if it's followed by a separator pattern or another row
+  if (normalized.includes('|') && !normalized.includes('\n')) {
+    // If it looks like a merged table (contains separator pattern within)
+    if (normalized.includes('| :---') || normalized.includes('| :---')) {
+       normalized = normalized.replace(/\|\s*\|\s*(:?-+:?)/g, '|\n|$1');
+       normalized = normalized.replace(/\|\s*\|\s*([^:])/g, '|\n$1');
+    }
+  }
+  
+  return normalized;
+};
+
+const isTableLine = (line: string) => {
+  const trimmed = line.trim();
+  // Must have at least one pipe and not be a horizontal rule or other clear type
+  if (trimmed === '---' || trimmed === '***' || trimmed === '___') return false;
+  return trimmed.includes('|');
+}
+
+const isTableSeparatorLine = (line: string) => {
+  const trimmed = line.trim();
+  return /^\|?[\s:-]+(\|[\s:-]+)+\|?$/.test(trimmed);
+}
+
+const isHorizontalRule = (line: string) => {
+  const trimmed = line.trim();
+  return trimmed === '---' || trimmed === '***' || trimmed === '___';
+}
+
 const parseTableCells = (line: string) =>
   line
     .trim()
@@ -76,6 +224,7 @@ const parseTableCells = (line: string) =>
     .map((cell) => cell.trim())
 
 export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
+  const navigate = useNavigate()
   const normalized = normalizeMarkdown(text)
   const lines = normalized.split('\n')
   const blocks: ReactNode[] = []
@@ -92,7 +241,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
     const paragraphText = currentParagraph.join(' ')
     blocks.push(
       <p key={`p-${blocks.length}`} className="leading-relaxed" style={TEXT_STYLE}>
-        {renderInline(paragraphText)}
+        {renderInline(paragraphText, false, navigate)}
       </p>
     )
     currentParagraph = []
@@ -108,7 +257,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
               •
             </span>
             <span className="min-w-0 flex-1" style={TEXT_STYLE}>
-              {renderInline(item, true)}
+              {renderInline(item, true, navigate)}
             </span>
           </li>
         ))}
@@ -127,7 +276,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
               {index + 1}.
             </span>
             <span className="min-w-0" style={TEXT_STYLE}>
-              {renderInline(item, true)}
+              {renderInline(item, true, navigate)}
             </span>
           </li>
         ))}
@@ -146,7 +295,7 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
       >
         {currentQuote.map((line, index) => (
           <p key={`quote-line-${index}`} className={index === 0 ? '' : 'mt-2'} style={TEXT_STYLE}>
-            {renderInline(line)}
+            {renderInline(line, false, navigate)}
           </p>
         ))}
       </blockquote>
@@ -155,7 +304,14 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
   }
 
   const flushTable = () => {
-    if (currentTable.length < 2) return
+    if (currentTable.length === 0) return
+    
+    if (currentTable.length < 2) {
+      currentParagraph.push(...currentTable)
+      currentTable = []
+      return
+    }
+
     const [headerLine, separatorLine, ...rowLines] = currentTable
     if (!headerLine || !separatorLine || !isTableSeparatorLine(separatorLine)) {
       currentParagraph.push(...currentTable)
@@ -167,37 +323,39 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
     const rows = rowLines.map(parseTableCells).filter((row) => row.some(Boolean))
 
     blocks.push(
-      <div key={`table-${blocks.length}`} className="overflow-x-auto rounded-xl border border-white/5">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr>
-              {headers.map((header, index) => (
-                <th
-                  key={`th-${index}`}
-                  className="border-b px-3 py-2 text-left font-semibold"
-                  style={TABLE_HEADER_STYLE}
-                >
-                  {renderInline(header)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, rowIndex) => (
-              <tr key={`tr-${rowIndex}`}>
-                {row.map((cell, cellIndex) => (
-                  <td
-                    key={`td-${rowIndex}-${cellIndex}`}
-                    className="border-t px-3 py-2 align-top leading-relaxed"
-                    style={TABLE_CELL_STYLE}
+      <div key={`table-${blocks.length}`} className="my-5 overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead>
+              <tr style={TABLE_HEADER_STYLE}>
+                {headers.map((header, index) => (
+                  <th
+                    key={`th-${index}`}
+                    className="border-b border-white/5 px-4 py-3 font-bold uppercase tracking-wider"
+                    style={{ fontSize: '10px' }}
                   >
-                    {renderInline(cell)}
-                  </td>
+                    {renderInline(header, false, navigate)}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {rows.map((row, rowIndex) => (
+                <tr key={`tr-${rowIndex}`} className="hover:bg-white/[0.02] transition-colors">
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      key={`td-${rowIndex}-${cellIndex}`}
+                      className="px-4 py-3 align-top leading-relaxed"
+                      style={TABLE_CELL_STYLE}
+                    >
+                      {renderInline(cell, false, navigate)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )
     currentTable = []
@@ -265,9 +423,46 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
             : { color: 'var(--chat-md-h3)' }
       blocks.push(
         <div key={`h-${blocks.length}`} className={`${headingClass} leading-relaxed`} style={headingStyle}>
-          {renderInline(headingMatch[2])}
+          {renderInline(headingMatch[2], false, navigate)}
         </div>
       )
+      return
+    }
+
+    const horizontalRuleMatch = isHorizontalRule(line)
+    if (horizontalRuleMatch) {
+      flushAll()
+      blocks.push(<hr key={`hr-${blocks.length}`} className="my-6 border-t border-white/10" />)
+      return
+    }
+
+    const quoteMatch = line.match(/^>\s?(.+)$/)
+    if (quoteMatch) {
+      flushParagraph()
+      flushList()
+      flushOrderedList()
+      flushTable()
+      currentQuote.push(quoteMatch[1])
+      return
+    }
+
+    flushQuote()
+
+    const listMatch = line.match(/^[-*]\s+(.+)$/)
+    if (listMatch) {
+      flushParagraph()
+      flushOrderedList()
+      flushTable()
+      currentList.push(listMatch[1])
+      return
+    }
+
+    const orderedListMatch = line.match(/^\d+\.\s+(.+)$/)
+    if (orderedListMatch) {
+      flushParagraph()
+      flushList()
+      flushTable()
+      currentOrderedList.push(orderedListMatch[1])
       return
     }
 
@@ -281,34 +476,6 @@ export const MarkdownLite = ({ text, className = '' }: MarkdownLiteProps) => {
     }
 
     flushTable()
-
-    const quoteMatch = line.match(/^>\s?(.+)$/)
-    if (quoteMatch) {
-      flushParagraph()
-      flushList()
-      flushOrderedList()
-      currentQuote.push(quoteMatch[1])
-      return
-    }
-
-    flushQuote()
-
-    const listMatch = line.match(/^[-*]\s+(.+)$/)
-    if (listMatch) {
-      flushParagraph()
-      flushOrderedList()
-      currentList.push(listMatch[1])
-      return
-    }
-
-    const orderedListMatch = line.match(/^\d+\.\s+(.+)$/)
-    if (orderedListMatch) {
-      flushParagraph()
-      flushList()
-      currentOrderedList.push(orderedListMatch[1])
-      return
-    }
-
     flushList()
     flushOrderedList()
     currentParagraph.push(line)

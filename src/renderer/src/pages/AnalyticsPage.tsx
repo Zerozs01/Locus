@@ -11,266 +11,34 @@ import {
   TrendingUp,
   TrendingDown,
   ShieldAlert,
+  Clock3,
   ExternalLink,
   Layers,
-  SlidersHorizontal,
-  Clock3
+  SlidersHorizontal
 } from 'lucide-react';
 import { regionTheme, type RegionId } from '../data/regionTheme';
-
-type RiskLevel = 'green' | 'amber' | 'red';
+import { fetchNews, isValidNewsUrl, openNewsLink, type ProvinceNewsSummary } from '../utils/news';
 type Sentiment = 'positive' | 'mixed' | 'negative';
-
-interface NewsItem {
-  id: string;
-  title: string;
-  source: string;
-  url: string;
-  publishedAt: string;
-  tag: string;
-  impact: 'low' | 'medium' | 'high';
-}
-
-interface ProvinceNewsSummary {
-  id: string;
-  name: string;
-  regionId: RegionId;
-  regionName: string;
-  riskScore: number;
-  sentiment: Sentiment;
-  alertLevel: RiskLevel;
-  coverage: number;
-  confidence: number;
-  signals: string[];
-  topStories: NewsItem[];
-  lastUpdated: string;
-}
-
-const MOCK_NEWS: ProvinceNewsSummary[] = [
-  {
-    id: 'bangkok',
-    name: 'Bangkok',
-    regionId: 'central',
-    regionName: regionTheme.central.label,
-    riskScore: 68,
-    sentiment: 'mixed',
-    alertLevel: 'amber',
-    coverage: 42,
-    confidence: 86,
-    signals: ['交通หนาแน่น', 'เศรษฐกิจย่านกลางเมือง', 'มาตรการความปลอดภัยอีเวนต์ใหญ่'],
-    lastUpdated: '2026-04-07T09:40:00.000Z',
-    topStories: [
-      {
-        id: 'bkk-1',
-        title: 'ศูนย์กลางธุรกิจเร่งปรับมาตรการรับมือฝนตกหนักและจราจรสะสม',
-        source: 'Bangkok Insight',
-        url: 'https://news.example.com/bkk/1',
-        publishedAt: '2026-04-07T08:10:00.000Z',
-        tag: 'โครงสร้างพื้นฐาน',
-        impact: 'medium'
-      },
-      {
-        id: 'bkk-2',
-        title: 'ตลาดท่องเที่ยวกลับมาคึกคัก แต่ยังต้องเฝ้าระวังเหตุฉุกเฉินในพื้นที่แออัด',
-        source: 'Tourism Daily',
-        url: 'https://news.example.com/bkk/2',
-        publishedAt: '2026-04-07T06:30:00.000Z',
-        tag: 'การท่องเที่ยว',
-        impact: 'high'
-      }
-    ]
-  },
-  {
-    id: 'chiangmai',
-    name: 'Chiang Mai',
-    regionId: 'north',
-    regionName: regionTheme.north.label,
-    riskScore: 52,
-    sentiment: 'positive',
-    alertLevel: 'green',
-    coverage: 21,
-    confidence: 81,
-    signals: ['คุณภาพอากาศดีขึ้น', 'ท่องเที่ยวเชิงวัฒนธรรม', 'โครงการชุมชนปลอดภัย'],
-    lastUpdated: '2026-04-07T09:20:00.000Z',
-    topStories: [
-      {
-        id: 'cm-1',
-        title: 'เทศบาลเปิดแผนจัดการหมอกควันเชิงรุกก่อนฤดูแล้ง',
-        source: 'Northern News',
-        url: 'https://news.example.com/cm/1',
-        publishedAt: '2026-04-07T07:15:00.000Z',
-        tag: 'สิ่งแวดล้อม',
-        impact: 'low'
-      },
-      {
-        id: 'cm-2',
-        title: 'ชุมชนท่องเที่ยวรับนักเดินทางเพิ่มขึ้นจากกิจกรรมวัฒนธรรมฤดูร้อน',
-        source: 'Culture Wire',
-        url: 'https://news.example.com/cm/2',
-        publishedAt: '2026-04-07T05:40:00.000Z',
-        tag: 'การท่องเที่ยว',
-        impact: 'medium'
-      }
-    ]
-  },
-  {
-    id: 'chonburi',
-    name: 'Chonburi',
-    regionId: 'east',
-    regionName: regionTheme.east.label,
-    riskScore: 61,
-    sentiment: 'mixed',
-    alertLevel: 'amber',
-    coverage: 27,
-    confidence: 78,
-    signals: ['โลจิสติกส์ท่าเรือ', 'การจ้างงานอุตสาหกรรม', 'ความเสี่ยงอุบัติเหตุทางถนน'],
-    lastUpdated: '2026-04-07T08:55:00.000Z',
-    topStories: [
-      {
-        id: 'cb-1',
-        title: 'ท่าเรือแหลมฉบังขยายระบบตรวจสอบความปลอดภัยสินค้า',
-        source: 'Eastern Economic',
-        url: 'https://news.example.com/cb/1',
-        publishedAt: '2026-04-07T06:50:00.000Z',
-        tag: 'เศรษฐกิจ',
-        impact: 'medium'
-      },
-      {
-        id: 'cb-2',
-        title: 'หน่วยงานท้องถิ่นเข้มงวดมาตรการจราจรช่วงวันหยุดยาว',
-        source: 'Road Safety Watch',
-        url: 'https://news.example.com/cb/2',
-        publishedAt: '2026-04-07T04:20:00.000Z',
-        tag: 'ความปลอดภัยสาธารณะ',
-        impact: 'high'
-      }
-    ]
-  },
-  {
-    id: 'khonkaen',
-    name: 'Khon Kaen',
-    regionId: 'northeast',
-    regionName: regionTheme.northeast.label,
-    riskScore: 58,
-    sentiment: 'mixed',
-    alertLevel: 'amber',
-    coverage: 19,
-    confidence: 74,
-    signals: ['โครงข่ายรถไฟรางคู่', 'ราคาสินค้าเกษตร', 'แผนรับมือฝนทิ้งช่วง'],
-    lastUpdated: '2026-04-07T08:30:00.000Z',
-    topStories: [
-      {
-        id: 'kk-1',
-        title: 'ศูนย์กลางโลจิสติกส์อีสานเตรียมแผนรองรับการขนส่งฤดูกาลใหม่',
-        source: 'Isan Focus',
-        url: 'https://news.example.com/kk/1',
-        publishedAt: '2026-04-07T05:55:00.000Z',
-        tag: 'โครงสร้างพื้นฐาน',
-        impact: 'medium'
-      }
-    ]
-  },
-  {
-    id: 'phuket',
-    name: 'Phuket',
-    regionId: 'south',
-    regionName: regionTheme.south.label,
-    riskScore: 63,
-    sentiment: 'positive',
-    alertLevel: 'amber',
-    coverage: 24,
-    confidence: 82,
-    signals: ['อุตสาหกรรมท่องเที่ยว', 'การจราจรชายฝั่ง', 'การจัดการน้ำเสีย'],
-    lastUpdated: '2026-04-07T09:10:00.000Z',
-    topStories: [
-      {
-        id: 'pk-1',
-        title: 'เทศบาลเร่งมาตรการควบคุมการท่องเที่ยวเชิงคุณภาพในพื้นที่ชายฝั่ง',
-        source: 'Southern Pulse',
-        url: 'https://news.example.com/pk/1',
-        publishedAt: '2026-04-07T07:20:00.000Z',
-        tag: 'การท่องเที่ยว',
-        impact: 'high'
-      },
-      {
-        id: 'pk-2',
-        title: 'ชุมชนร่วมเฝ้าระวังคุณภาพน้ำและชายหาดในช่วงฤดูฝน',
-        source: 'Coastal Watch',
-        url: 'https://news.example.com/pk/2',
-        publishedAt: '2026-04-07T05:00:00.000Z',
-        tag: 'สิ่งแวดล้อม',
-        impact: 'medium'
-      }
-    ]
-  },
-  {
-    id: 'songkhla',
-    name: 'Songkhla',
-    regionId: 'south',
-    regionName: regionTheme.south.label,
-    riskScore: 74,
-    sentiment: 'negative',
-    alertLevel: 'red',
-    coverage: 18,
-    confidence: 77,
-    signals: ['ความปลอดภัยชายแดน', 'การเดินทางกลางคืน', 'เฝ้าระวังเหตุฉุกเฉิน'],
-    lastUpdated: '2026-04-07T08:15:00.000Z',
-    topStories: [
-      {
-        id: 'sk-1',
-        title: 'เพิ่มกำลังดูแลความปลอดภัยจุดผ่านแดนและเส้นทางหลัก',
-        source: 'Deep South Report',
-        url: 'https://news.example.com/sk/1',
-        publishedAt: '2026-04-07T06:10:00.000Z',
-        tag: 'ความปลอดภัยสาธารณะ',
-        impact: 'high'
-      }
-    ]
-  },
-  {
-    id: 'kanchanaburi',
-    name: 'Kanchanaburi',
-    regionId: 'west',
-    regionName: regionTheme.west.label,
-    riskScore: 49,
-    sentiment: 'positive',
-    alertLevel: 'green',
-    coverage: 15,
-    confidence: 73,
-    signals: ['ท่องเที่ยวธรรมชาติ', 'โครงการชุมชนปลอดภัย', 'ฟื้นตัวเศรษฐกิจท้องถิ่น'],
-    lastUpdated: '2026-04-07T07:50:00.000Z',
-    topStories: [
-      {
-        id: 'kn-1',
-        title: 'ชุมชนท่องเที่ยวปรับเส้นทางใหม่เพื่อรองรับนักเดินทางฤดูร้อน',
-        source: 'Western Lens',
-        url: 'https://news.example.com/kn/1',
-        publishedAt: '2026-04-07T05:20:00.000Z',
-        tag: 'การท่องเที่ยว',
-        impact: 'low'
-      }
-    ]
-  }
-];
+type RiskLevel = ProvinceNewsSummary['alertLevel'];
 
 const riskTone = {
   green: {
     label: 'เสถียร',
-    bg: 'bg-emerald-500/15',
+    bg: 'bg-emerald-500/20',
     border: 'border-emerald-500/30',
     text: 'text-emerald-300'
   },
   amber: {
     label: 'เฝ้าระวัง',
-    bg: 'bg-amber-500/15',
+    bg: 'bg-amber-500/20',
     border: 'border-amber-500/30',
     text: 'text-amber-300'
   },
   red: {
     label: 'เร่งประเมิน',
-    bg: 'bg-rose-500/15',
-    border: 'border-rose-500/30',
-    text: 'text-rose-300'
+    bg: 'bg-purple-500/20',
+    border: 'border-purple-500/30',
+    text: 'text-purple-300'
   }
 } as const;
 
@@ -280,30 +48,13 @@ const sentimentTone = {
   negative: { label: 'กดดัน', icon: <ShieldAlert size={14} />, text: 'text-rose-300' }
 } as const;
 
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
-
-const resolveNewsEndpoint = async (): Promise<string> => {
-  if (window.api?.config?.get) {
-    try {
-      const config = await window.api.config.get();
-      if (config.news_api_url) return String(config.news_api_url);
-    } catch {
-      return '';
-    }
-  }
-  return import.meta.env.VITE_NEWS_API_URL || '';
+const formatTime = (iso: string) => {
+  if (!iso) return 'ไม่ระบุเวลา';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return 'ไม่ระบุเวลา';
+  return d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
 };
 
-const fetchNewsFromApi = async (): Promise<ProvinceNewsSummary[] | null> => {
-  const endpoint = await resolveNewsEndpoint();
-  if (!endpoint) return null;
-
-  // Prepared for external API, fallback to mock when endpoint is missing or fails.
-  const response = await fetch(endpoint, { method: 'GET' });
-  if (!response.ok) throw new Error('Failed to load news');
-  return (await response.json()) as ProvinceNewsSummary[];
-};
 
 /**
  * Analytics Page - Provincial news briefing for assessment
@@ -316,15 +67,24 @@ export const AnalyticsPage = () => {
   const [selectedRegions, setSelectedRegions] = useState<RegionId[]>([]);
   const [riskFilter, setRiskFilter] = useState<RiskLevel | 'all'>('all');
   const [viewMode, setViewMode] = useState<'cards' | 'compact'>('cards');
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [selectedNews, setSelectedNews] = useState<ProvinceNewsSummary['topStories'][0] | null>(null);
 
-  const loadNews = async () => {
+  const loadNews = async (force: boolean = false) => {
     setIsLoading(true);
     try {
-      const apiNews = await fetchNewsFromApi();
-      setNewsSummaries(apiNews ?? MOCK_NEWS);
+      const data = await fetchNews(force);
+      if (Array.isArray(data)) {
+        if (data.length === 0) {
+          setNewsSummaries([]);
+        } else if ('topStories' in data[0]) {
+          setNewsSummaries(data as ProvinceNewsSummary[]);
+        } else {
+          setNewsSummaries([]);
+        }
+      }
     } catch (error) {
-      console.warn('Falling back to mock news data:', error);
-      setNewsSummaries(MOCK_NEWS);
+      console.error('[Analytics] Load news failed', error);
     } finally {
       setLastUpdated(new Date());
       setIsLoading(false);
@@ -351,17 +111,20 @@ export const AnalyticsPage = () => {
     const totals = newsSummaries.reduce(
       (acc, item) => {
         acc.total += 1;
-        acc.avgRisk += item.riskScore;
-        acc.coverage += item.coverage;
-        acc[item.alertLevel] += 1;
+        acc.avgRisk += (item.riskScore || 0);
+        acc.coverage += (item.coverage || 0);
+        const level = item.alertLevel as keyof typeof acc;
+        if (acc[level] !== undefined) {
+          (acc[level] as number) += 1;
+        }
         return acc;
       },
       { total: 0, red: 0, amber: 0, green: 0, avgRisk: 0, coverage: 0 }
     );
     return {
       ...totals,
-      avgRisk: Math.round(totals.avgRisk / totals.total),
-      coverage: Math.round(totals.coverage / totals.total)
+      avgRisk: totals.total > 0 ? Math.round((totals.avgRisk || 0) / totals.total) : 0,
+      coverage: totals.total > 0 ? Math.round((totals.coverage || 0) / totals.total) : 0
     };
   }, [newsSummaries]);
 
@@ -400,8 +163,26 @@ export const AnalyticsPage = () => {
               <Clock3 size={14} />
               {lastUpdated ? lastUpdated.toLocaleTimeString('th-TH') : '--:--'}
             </div>
+            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1">
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                  viewMode === 'cards' ? 'bg-white/20 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                Cards
+              </button>
+              <button
+                onClick={() => setViewMode('compact')}
+                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+                  viewMode === 'compact' ? 'bg-white/20 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                Compact
+              </button>
+            </div>
             <button
-              onClick={loadNews}
+              onClick={() => loadNews(true)}
               disabled={isLoading}
               className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 transition-colors hover:bg-white/10 disabled:opacity-50"
             >
@@ -417,94 +198,121 @@ export const AnalyticsPage = () => {
             label="จังหวัดที่มีข่าว"
             value={`${stats.total}`}
             hint="ชุดข่าวล่าสุด"
-            accent="emerald"
+            accent="blue"
           />
           <SummaryCard
             icon={<AlertTriangle size={18} />}
             label="เร่งประเมิน"
             value={`${stats.red}`}
             hint="ระดับสีแดง"
-            accent="rose"
+            accent="purple-pink"
           />
           <SummaryCard
             icon={<CheckCircle2 size={18} />}
             label="เสถียร"
             value={`${stats.green}`}
             hint="ระดับสีเขียว"
-            accent="teal"
+            accent="green-yellow"
           />
           <SummaryCard
             icon={<Layers size={18} />}
             label="Coverage เฉลี่ย"
             value={`${stats.coverage}`}
             hint="แหล่งข่าว/จังหวัด"
-            accent="amber"
+            accent="yellow-orange"
           />
         </div>
 
-        <div className="mt-8 rounded-3xl border border-white/10 bg-[#0b0f14]/90 p-6 shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative min-w-[220px] flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+        <div className="mt-8 rounded-3xl border border-white/10 bg-[#0b0f14]/90 p-5 shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
               <input
                 type="text"
-                placeholder="ค้นหาจังหวัด..."
+                placeholder="ค้นหาข่าวรายจังหวัด..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none"
+                className="w-full rounded-2xl border border-white/10 bg-white/5 py-3 pl-12 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none transition-all"
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Filter size={14} className="text-slate-500" />
-              {Object.entries(regionTheme).map(([regionId, theme]) => (
-                <button
-                  key={regionId}
-                  onClick={() => toggleRegion(regionId as RegionId)}
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
-                    selectedRegions.includes(regionId as RegionId)
-                      ? `${theme.bg} ${theme.text} ${theme.border}`
-                      : 'border-white/10 text-slate-400 hover:text-white hover:border-white/30'
-                  }`}
-                >
-                  {theme.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1">
-              {(['all', 'green', 'amber', 'red'] as const).map((level) => (
-                <button
-                  key={level}
-                  onClick={() => setRiskFilter(level)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                    riskFilter === level
-                      ? 'bg-white/15 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {level === 'all' ? 'ทั้งหมด' : riskTone[level].label}
-                </button>
-              ))}
-            </div>
-
-            <div className="ml-auto flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1">
+            <div className="relative">
               <button
-                onClick={() => setViewMode('cards')}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                  viewMode === 'cards' ? 'bg-white/15 text-white' : 'text-slate-400'
+                onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+                className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition-all ${
+                  isFilterMenuOpen || selectedRegions.length > 0 || riskFilter !== 'all'
+                    ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                    : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'
                 }`}
               >
-                Cards
+                <Filter size={20} />
+                {(selectedRegions.length > 0 || riskFilter !== 'all') && (
+                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white shadow-lg">
+                    {(selectedRegions.length + (riskFilter !== 'all' ? 1 : 0))}
+                  </span>
+                )}
               </button>
-              <button
-                onClick={() => setViewMode('compact')}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
-                  viewMode === 'compact' ? 'bg-white/15 text-white' : 'text-slate-400'
-                }`}
-              >
-                Compact
-              </button>
+
+              {isFilterMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsFilterMenuOpen(false)} />
+                  <div className="absolute right-0 top-full z-50 mt-3 w-80 overflow-hidden rounded-3xl border border-white/10 bg-[#0b0f14] p-5 shadow-2xl animate-in fade-in slide-in-from-top-2">
+                    <div className="mb-4">
+                      <div className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">ภูมิภาค</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {Object.entries(regionTheme).map(([regionId, theme]) => {
+                          const isSelected = selectedRegions.includes(regionId as RegionId);
+                          return (
+                            <button
+                              key={regionId}
+                              onClick={() => toggleRegion(regionId as RegionId)}
+                              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-all ${
+                                isSelected
+                                  ? `${theme.bg} ${theme.text} ${theme.border}`
+                                  : 'border-white/5 bg-white/5 text-slate-400 hover:text-white hover:border-white/20'
+                              }`}
+                            >
+                              <div className={`h-1.5 w-1.5 rounded-full ${isSelected ? theme.text.replace('text-', 'bg-') : 'bg-slate-600'}`} />
+                              {theme.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">ระดับความเสี่ยง</div>
+                      <div className="flex flex-wrap gap-2">
+                        {(['all', 'green', 'amber', 'red'] as const).map((level) => (
+                          <button
+                            key={level}
+                            onClick={() => setRiskFilter(level)}
+                            className={`rounded-xl border px-3 py-2 text-xs font-semibold transition-all ${
+                              riskFilter === level
+                                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                                : 'border-white/5 bg-white/5 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {level === 'all' ? 'ทั้งหมด' : riskTone[level].label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {(selectedRegions.length > 0 || riskFilter !== 'all') && (
+                      <button
+                        onClick={() => {
+                          setSelectedRegions([]);
+                          setRiskFilter('all');
+                        }}
+                        className="mt-4 w-full rounded-xl border border-rose-500/20 bg-rose-500/10 py-2 text-[10px] font-bold uppercase tracking-widest text-rose-400 hover:bg-rose-500/20"
+                      >
+                        ล้างตัวกรองทั้งหมด
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -522,13 +330,43 @@ export const AnalyticsPage = () => {
             </div>
           ) : (
             <div className={viewMode === 'cards' ? 'grid gap-6 md:grid-cols-2' : 'space-y-4'}>
-              {filteredNews.map((province) => (
-                <ProvinceNewsCard key={province.id} data={province} compact={viewMode === 'compact'} />
+              {filteredNews.map((province, idx) => (
+                <ProvinceNewsCard 
+                  key={`${province.id}-${idx}`} 
+                  data={province} 
+                  compact={viewMode === 'compact'} 
+                  onViewNews={setSelectedNews}
+                />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* News Detail Modal */}
+      {selectedNews && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-[#0f1115] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-white/5 flex justify-between items-center">
+              <h3 className="font-black text-white">สรุปข่าว: {selectedNews.title}</h3>
+              <button onClick={() => setSelectedNews(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="text-xs text-slate-400 leading-relaxed">{selectedNews.summary || 'ไม่มีเนื้อหาสรุปสำหรับข่าวนี้'}</div>
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-[10px] text-slate-500">{selectedNews.source} • {new Date(selectedNews.publishedAt).toLocaleDateString('th-TH')}</span>
+                <button
+                  onClick={() => openNewsLink(selectedNews.url, selectedNews.title)}
+                  disabled={!isValidNewsUrl(selectedNews.url) && !selectedNews.title?.trim()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-bold hover:bg-sky-500/30 transition-all disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-sky-500/20"
+                >
+                  อ่านข่าวฉบับเต็ม <ExternalLink size={12} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -538,42 +376,56 @@ interface SummaryCardProps {
   label: string;
   value: string;
   hint: string;
-  accent: 'emerald' | 'rose' | 'teal' | 'amber';
+  accent: 'blue' | 'purple-pink' | 'green-yellow' | 'yellow-orange';
 }
 
 const SummaryCard = ({ icon, label, value, hint, accent }: SummaryCardProps) => {
   const accentMap = {
-    emerald: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300',
-    rose: 'from-rose-500/20 to-rose-600/10 border-rose-500/30 text-rose-300',
-    teal: 'from-teal-500/20 to-teal-600/10 border-teal-500/30 text-teal-300',
-    amber: 'from-amber-500/20 to-amber-600/10 border-amber-500/30 text-amber-300'
+    blue: 'from-blue-600/25 to-blue-400/10 border-blue-500/30 text-blue-300',
+    'purple-pink': 'from-purple-600/25 to-pink-500/20 border-purple-500/30 text-purple-300',
+    'green-yellow': 'from-emerald-600/25 to-yellow-500/20 border-emerald-500/30 text-emerald-300',
+    'yellow-orange': 'from-amber-500/30 to-orange-500/20 border-amber-500/30 text-amber-300'
   };
 
   return (
-    <div className={`rounded-2xl border bg-gradient-to-br ${accentMap[accent]} p-4 backdrop-blur`}> 
+    <div className={`rounded-2xl border bg-gradient-to-br ${accentMap[accent]} p-4 backdrop-blur shadow-lg shadow-black/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl`}> 
       <div className="flex items-center gap-3">
-        <div className="rounded-xl bg-white/10 p-2">{icon}</div>
+        <div className={`rounded-xl bg-white/10 p-2 ${accent === 'blue' ? 'text-blue-200' : accent === 'purple-pink' ? 'text-pink-200' : accent === 'green-yellow' ? 'text-yellow-200' : 'text-orange-200'}`}>{icon}</div>
         <div>
-          <div className="text-xs uppercase text-slate-400">{label}</div>
-          <div className="text-2xl font-semibold text-white">{value}</div>
-          <div className="text-xs text-slate-500">{hint}</div>
+          <div className="text-[10px] uppercase font-bold tracking-wider opacity-80">{label}</div>
+          <div className="text-2xl font-bold text-white tracking-tight">{value}</div>
+          <div className="text-[11px] font-medium opacity-60">{hint}</div>
         </div>
       </div>
     </div>
   );
 };
 
-const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compact?: boolean }) => {
-  const region = regionTheme[data.regionId];
-  const sentiment = sentimentTone[data.sentiment];
-  const risk = riskTone[data.alertLevel];
+const ProvinceNewsCard = ({ data, compact, onViewNews }: { data: ProvinceNewsSummary; compact?: boolean; onViewNews?: (news: ProvinceNewsSummary['topStories'][0]) => void; }) => {
+  const region = regionTheme[data.regionId] || { 
+    bg: 'bg-slate-500/20', 
+    text: 'text-slate-300', 
+    border: 'border-white/10', 
+    label: 'ทั่วไป' 
+  };
+  const sentiment = sentimentTone[data.sentiment] || { 
+    label: 'เสถียร', 
+    icon: <RefreshCw size={14} />, 
+    text: 'text-slate-400' 
+  };
+  const risk = riskTone[data.alertLevel] || { 
+    label: 'ปกติ', 
+    bg: 'bg-white/5', 
+    border: 'border-white/10', 
+    text: 'text-slate-400' 
+  };
   const riskWidth = `${Math.min(100, Math.max(0, data.riskScore))}%`;
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0b0f14]/90 p-5 shadow-[0_22px_80px_rgba(0,0,0,0.35)] transition-transform duration-300 hover:-translate-y-1">
-      <div className="absolute inset-0 opacity-0 transition-opacity duration-300 hover:opacity-100" style={{ background: 'radial-gradient(circle at top, rgba(34,197,94,0.12), transparent 55%)' }} />
+      <div className="absolute inset-0 opacity-0 transition-opacity duration-300 hover:opacity-100 pointer-events-none" style={{ background: 'radial-gradient(circle at top, rgba(34,197,94,0.12), transparent 55%)' }} />
 
-      <div className="relative flex flex-wrap items-center justify-between gap-3">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-white">{data.name}</h3>
@@ -615,16 +467,16 @@ const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compac
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {data.signals.map((signal) => (
+        {data.signals?.map((signal) => (
           <span key={signal} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-slate-300">
             {signal}
           </span>
-        ))}
+        )) || <span className="text-[10px] text-slate-600">ไม่มีสัญญาณเตือน</span>}
       </div>
 
-      <div className="mt-5 space-y-3">
-        {data.topStories.slice(0, compact ? 1 : 2).map((story) => (
-          <div key={story.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+      <div className="relative z-10 mt-5 space-y-3">
+        {data.topStories?.slice(0, compact ? 1 : 2).map((story, i) => (
+          <div key={`${story.id}-${i}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-white">{story.title}</div>
@@ -636,12 +488,36 @@ const ProvinceNewsCard = ({ data, compact }: { data: ProvinceNewsSummary; compac
                   <span>{formatTime(story.publishedAt)}</span>
                 </div>
               </div>
-              <a
-                href={story.url}
-                className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 hover:bg-white/10"
-              >
-                <ExternalLink size={14} />
-              </a>
+              {(() => {
+                const canOpen = isValidNewsUrl(story.url) || Boolean(story.title?.trim());
+                return (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (onViewNews) onViewNews(story);
+                      }}
+                      title="ดูข้อมูลข่าวในแอป"
+                      className="rounded-full border border-sky-500/30 bg-sky-500/10 p-2 text-sky-400 hover:bg-sky-500/20 transition-all"
+                    >
+                      <Layers size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openNewsLink(story.url, story.title);
+                      }}
+                      disabled={!canOpen}
+                      title={canOpen ? 'เปิดข่าวฉบับเต็ม' : 'ไม่มีลิงก์สำหรับข่าวนี้'}
+                      className="rounded-full border border-white/10 bg-white/5 p-2 text-slate-300 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/5"
+                    >
+                      <ExternalLink size={14} />
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         ))}

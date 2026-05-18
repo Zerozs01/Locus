@@ -35,7 +35,8 @@ import {
   Flame,
   Sparkles,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Navigation
 } from 'lucide-react';
 import { ChatContext, ChatMessage as Message, RecentChatSummary, Source, useIntelligenceChatStore } from '../services/intelligenceChatStore';
 import { MarkdownLite } from '../components/MarkdownLite';
@@ -44,6 +45,7 @@ import { useChatThemeStore } from '../services/chatThemeStore';
 import { GradientProgressBar } from '../components/GradientProgressBar';
 import { Menu } from 'lucide-react';
 import { regionsData, type Region, type Province } from '../data/regions';
+import { LocationSearchModal } from '../components/LocationSearchModal';
 
 interface SuggestedQuery {
   text: string;
@@ -81,14 +83,55 @@ const buildProvinceLookup = (): { provinces: Array<{ name: string; nameLower: st
 
 const PROVINCE_LOOKUP = buildProvinceLookup();
 
+/** Thai to ID mapping for provinces to ensure detection works with Thai text */
+const THAI_PROVINCE_MAP: Record<string, string> = {
+  'กรุงเทพ': 'bangkok', 'กรุงเทพมหานคร': 'bangkok', 'กทม': 'bangkok',
+  'นนทบุรี': 'nonthaburi', 'ปทุมธานี': 'pathumthani', 'สมุทรปราการ': 'samutprakan',
+  'สมุทรสาคร': 'samutsakhon', 'สมุทรสงคราม': 'samutsongkhram', 'นครปฐม': 'nakhonpathom',
+  'อยุธยา': 'ayutthaya', 'พระนครศรีอยุธยา': 'ayutthaya', 'สระบุรี': 'saraburi',
+  'ลพบุรี': 'lopburi', 'สิงห์บุรี': 'singburi', 'ชัยนาท': 'chainat', 'อ่างทอง': 'angthong',
+  'นครสวรรค์': 'nakhonsawan', 'อุทัยธานี': 'uthaithani', 'กำแพงเพชร': 'kamphaengphet',
+  'พิจิตร': 'phichit', 'พิษณุโลก': 'phitsanulok', 'เพชรบูรณ์': 'phetchabun',
+  'สุโขทัย': 'sukhothai', 'เชียงใหม่': 'chiangmai', 'เชียงราย': 'chiangrai',
+  'ลำพูน': 'lamphun', 'ลำปาง': 'lampang', 'แพร่': 'phrae', 'น่าน': 'nan',
+  'พะเยา': 'phayao', 'แม่ฮ่องสอน': 'maehongson', 'อุตรดิตถ์': 'uttaradit',
+  'ชลบุรี': 'chonburi', 'ระยอง': 'rayong', 'จันทบุรี': 'chanthaburi', 'ตราด': 'trat',
+  'ฉะเชิงเทรา': 'chachoengsao', 'ปราจีนบุรี': 'prachinburi', 'นครนายก': 'nakhonnayok',
+  'สระแก้ว': 'sa-kaeo', 'ขอนแก้ว': 'khonkaen', 'นครราชสีมา': 'nakhonratchasima',
+  'โคราช': 'nakhonratchasima', 'อุดรธานี': 'udonthani', 'อุบลราชธานี': 'ubonratchathani',
+  'บุรีรัมย์': 'buriram', 'สุรินทร์': 'surin', 'ศรีสะเกษ': 'sisaket', 'ร้อยเอ็ด': 'roiet',
+  'ชัยภูมิ': 'chaiyaphum', 'มหาสารคาม': 'mahasarakham', 'เลย': 'loei',
+  'หนองคาย': 'nongkhai', 'บึงกาฬ': 'buengkan', 'สกลนคร': 'sakonnakhon',
+  'นครพนม': 'nakhonphanom', 'กาฬสินธุ์': 'kalasin', 'มุกดาหาร': 'mukdahan',
+  'ยโสธร': 'yasothon', 'อำนาจเจริญ': 'amnatcharoen', 'หนองบัวลำภู': 'nongbualamphu',
+  'ภูเก็ต': 'phuket', 'สุราษฎร์ธานี': 'suratthani', 'กระบี่': 'krabi', 'พังงา': 'phangnga',
+  'นครศรีธรรมราช': 'nakhonsithammarat', 'สงขลา': 'songkhla', 'หาดใหญ่': 'songkhla',
+  'สตูล': 'satun', 'ตรัง': 'trang', 'พัทลุง': 'phatthalung', 'ยะลา': 'yala',
+  'ปัตตานี': 'pattani', 'นราธิวาส': 'narathiwat', 'ระนอง': 'ranong', 'ชุมพร': 'chumphon',
+  'ประจวบคีรีขันธ์': 'prachuapkhirikhan', 'เพชรบุรี': 'phetchaburi', 'กาญจนบุรี': 'kanchanaburi',
+  'ราชบุรี': 'ratchaburi', 'ตาก': 'tak'
+};
+
 /** Scan AI response text and extract mentioned provinces */
 const extractMentionedProvinces = (text: string): DetectedProvince[] => {
-  const lowerText = text.toLowerCase();
   const found: DetectedProvince[] = [];
   const seen = new Set<string>();
 
+  // 1. Check Thai Map
+  for (const [thaiName, id] of Object.entries(THAI_PROVINCE_MAP)) {
+    if (text.includes(thaiName) && !seen.has(id)) {
+      const p = PROVINCE_LOOKUP.provinces.find(p => p.id === id);
+      if (p) {
+        seen.add(id);
+        found.push({ name: p.name, id: p.id, regionId: p.regionId, regionName: p.regionName });
+      }
+    }
+  }
+
+  // 2. Check English IDs as fallback
   for (const p of PROVINCE_LOOKUP.provinces) {
-    if (lowerText.includes(p.nameLower) && !seen.has(p.id)) {
+    const regex = new RegExp(`\\b${p.id}\\b`, 'i');
+    if (regex.test(text) && !seen.has(p.id)) {
       seen.add(p.id);
       found.push({ name: p.name, id: p.id, regionId: p.regionId, regionName: p.regionName });
     }
@@ -98,16 +141,29 @@ const extractMentionedProvinces = (text: string): DetectedProvince[] => {
 
 /** Detect if a region is mentioned */
 const extractMentionedRegions = (text: string): Array<{ id: string; name: string; engName: string }> => {
-  const lowerText = text.toLowerCase();
-  return PROVINCE_LOOKUP.regions.filter(
-    (r) => lowerText.includes(r.engName.toLowerCase()) || lowerText.includes(r.name)
-  );
+  const found: Array<{ id: string; name: string; engName: string }> = [];
+  const seen = new Set<string>();
+
+  for (const r of PROVINCE_LOOKUP.regions) {
+    const escapedName = r.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedEngName = r.engName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(\\b${r.id}\\b)|(${escapedName})|(\\b${escapedEngName}\\b)`, 'i');
+    
+    if (regex.test(text) && !seen.has(r.id)) {
+      seen.add(r.id);
+      found.push(r);
+    }
+  }
+  return found;
 };
 
 // ==================== MAIN COMPONENT ====================
 
 export const IntelligencePage = () => {
   const location = useLocation();
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [pendingRouteContext, setPendingRouteContext] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const {
     messages,
     chatContext,
@@ -118,21 +174,21 @@ export const IntelligencePage = () => {
     setActiveConversation,
     createConversation,
     deleteConversation,
+    renameConversation,
     clearChat,
     sendMessage,
     resubmitMessage,
     deleteMessage,
     addUploadedFile
-  } = useIntelligenceChatStore();
+  } = useIntelligenceChatStore(searchQuery);
   const { theme } = useChatThemeStore();
   const [inputText, setInputText] = useState('');
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false);
   const [activeContextId, setActiveContextId] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-    const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [editTextareaRef, setEditTextareaRef] = useState<HTMLTextAreaElement | null>(null);
-  const [showPaletteSettings, setShowPaletteSettings] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -156,6 +212,7 @@ export const IntelligencePage = () => {
   useEffect(() => {
     const state = location.state as {
       context?: ChatContext;
+      routeContext?: any;
       prefillInput?: string;
       autoSendMessage?: string;
       autoSendSystemContext?: string;
@@ -167,17 +224,25 @@ export const IntelligencePage = () => {
 
     if (state?.autoSendMessage && !autoSentRef.current) {
       autoSentRef.current = true;
-      sendMessage(state.autoSendMessage, {
-        systemContext: state.autoSendSystemContext,
-      });
-      setInputText('');
+      
+      // If there is routeContext, we NEVER auto-send. We just stage it.
+      if (state.routeContext) {
+        setPendingRouteContext(state.routeContext);
+        setInputText(state.autoSendMessage || 'วิเคราะห์เส้นทางและความปลอดภัยที่ฉันเลือกให้หน่อย');
+      } else {
+        // Only auto-send if there is no route context (normal province navigation)
+        sendMessage(state.autoSendMessage, {
+          systemContext: state.autoSendSystemContext,
+          routeContext: state.routeContext,
+        });
+      }
     }
 
-    if (state?.prefillInput) {
+    if (state?.prefillInput && !state?.autoSendMessage) {
       setInputText(state.prefillInput);
     }
 
-    if (state?.context || state?.prefillInput || state?.autoSendMessage) {
+    if (state?.context || state?.prefillInput || state?.autoSendMessage || state?.routeContext) {
       window.history.replaceState({}, document.title);
     }
   }, [location.state, sendMessage, setChatContext]);
@@ -239,15 +304,39 @@ export const IntelligencePage = () => {
   };
 
     const handleSend = async () => {
-    if (!inputText.trim() || isLoading) return;
-    sendMessage(inputText);
+    if (!inputText.trim() && !pendingRouteContext) return;
+    if (isLoading) return;
+
+    const options: any = {};
+    if (chatContext) {
+      options.location = {
+        provinceName: chatContext.name,
+        regionName: chatContext.regionName,
+        lat: chatContext.lat,
+        lng: chatContext.lng
+      };
+    }
+
+    if (pendingRouteContext) {
+      options.routeContext = pendingRouteContext;
+    }
+
+    sendMessage(inputText || 'วิเคราะห์ข้อมูลเส้นทางที่แนบมาให้หน่อย', options);
     setInputText('');
+    setPendingRouteContext(null);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
 
   const handleResend = (messageText: string) => {
     if (isLoading) return;
     sendMessage(messageText);
+  };
+
+  const handleLocationSearchConfirm = (routeContext: any) => {
+    setPendingRouteContext(routeContext);
   };
 
   const handleStartEdit = (messageId: string, messageText: string) => {
@@ -289,6 +378,13 @@ export const IntelligencePage = () => {
     if (e.key === 'Escape' && editingMessageId) {
       handleCancelEdit();
     }
+    
+    // Command detection: #search
+    if (e.key === 'Enter' && !e.shiftKey && inputText.trim().toLowerCase() === '#search') {
+      e.preventDefault();
+      setInputText('');
+      setIsLocationModalOpen(true);
+    }
   };
 
 
@@ -314,7 +410,7 @@ export const IntelligencePage = () => {
       {/* Sidebar (Recent Chats) toggleable */}
       {showSidebar && (
         <div className="w-[280px] shrink-0 border-r border-white/5 bg-[#080a0f] flex flex-col">
-          <div className="h-16 px-4 flex items-center justify-between border-b border-white/5">
+          <div className="h-16 px-4 flex items-center justify-between border-b border-white/5 shrink-0">
             <div>
               <h2 className="text-sm font-semibold text-white">Recent Chats</h2>
               <p className="text-[11px] text-slate-500">ประวัติจะอยู่ตรงนี้จนกว่าจะลบเอง</p>
@@ -324,6 +420,7 @@ export const IntelligencePage = () => {
                 const newConversationId = createConversation();
                 setActiveConversation(newConversationId);
                 setActiveContextId(null);
+                setSearchQuery('');
               }}
               className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:text-white hover:brightness-110"
               style={{
@@ -337,17 +434,42 @@ export const IntelligencePage = () => {
             </button>
           </div>
 
+          {/* Search Bar */}
+          <div className="px-3 pt-4 pb-2">
+            <div className="relative group">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-400 transition-colors">
+                <Compass size={14} className="animate-pulse" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="ค้นหาชื่อแชตหรือเนื้อหา..."
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-2 pl-9 pr-8 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 focus:bg-white/[0.05] transition-all"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-0.5"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {recentChats.length === 0 ? (
               <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 text-sm text-slate-500">
                 ยังไม่มีบทสนทนา เริ่มพิมพ์คำถามแรกได้เลย
               </div>
             ) : (
-              recentChats.map((chat) => (
+              recentChats.map((chat, index) => (
                 <RecentChatItem
                   key={chat.id}
                   chat={chat}
                   isActive={chat.id === activeConversationId}
+                  indexFromBottom={recentChats.length - 1 - index}
                   onSelect={() => {
                     setActiveConversation(chat.id);
                     setActiveContextId(null);
@@ -358,6 +480,9 @@ export const IntelligencePage = () => {
                     if (isDeletingActive) {
                       setActiveContextId(null);
                     }
+                  }}
+                  onRename={(newTitle) => {
+                    renameConversation(chat.id, newTitle);
                   }}
                 />
               ))
@@ -372,52 +497,66 @@ export const IntelligencePage = () => {
         onDragEnter={handleDrag}
       >
         {/* Chat Header */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#0a0c10] shrink-0">
-          <div className="flex items-center gap-3">
-            {/* Sidebar Toggle Button */}
-            <button
-              onClick={() => setShowSidebar((v) => !v)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-transparent hover:bg-white/10 transition-transform"
-              title={showSidebar ? 'ซ่อน Recent Chats' : 'แสดง Recent Chats'}
+        {(() => {
+          const activeChatIndex = recentChats.findIndex(c => c.id === activeConversationId);
+          const headerTheme = activeChatIndex !== -1 
+            ? CHAT_HISTORY_COLORS[(recentChats.length - 1 - activeChatIndex) % CHAT_HISTORY_COLORS.length]
+            : null;
+            
+          return (
+            <div 
+              className={`h-16 flex items-center justify-between px-6 border-b border-white/5 shrink-0 transition-all duration-500 relative overflow-hidden ${!headerTheme ? 'bg-[#0a0c10]' : ''}`}
+              style={headerTheme ? {
+                '--chat-accent': headerTheme.accent,
+                '--chat-md-h1': headerTheme.mdH,
+                '--chat-md-strong': headerTheme.mdB,
+                '--chat-md-list-strong': headerTheme.mdB,
+                '--chat-btn': headerTheme.btn,
+              } as React.CSSProperties : {}}
             >
-              {showSidebar ? <PanelLeftClose size={20} className="text-slate-400" /> : <PanelLeftOpen size={20} className="text-slate-400" />}
-            </button>
-            <div>
-              <h1 className="text-lg font-bold text-white">Locus Agent</h1>
-              <p className="text-xs text-slate-500">Powered by LightRAG + Gemini</p>
-            </div>
-          </div>
+              {/* Dynamic Gradient Background */}
+              {headerTheme && (
+                <div className={`absolute inset-0 bg-gradient-to-r ${headerTheme.headerGradient} opacity-50 transition-all duration-700`}></div>
+              )}
+              
+              <div className="flex items-center gap-3 relative z-10">
+                {/* Sidebar Toggle Button */}
+                <button
+                  onClick={() => setShowSidebar((v) => !v)}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-transparent hover:bg-white/10 transition-transform"
+                  title={showSidebar ? 'ซ่อน Recent Chats' : 'แสดง Recent Chats'}
+                >
+                  {showSidebar ? <PanelLeftClose size={20} className="text-slate-400" /> : <PanelLeftOpen size={20} className="text-slate-400" />}
+                </button>
+                <div>
+                  <h1 className="text-lg font-bold text-white">Locus Agent</h1>
+                  <p className="text-xs text-slate-500">Powered by LightRAG + Gemini</p>
+                </div>
+              </div>
                     <div className="flex items-center gap-3">
-            {/* Palette Settings Button */}
-            <button
-              onClick={() => setShowPaletteSettings(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 text-xs text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
-              title="ตั้งค่าสีแชต"
-            >
-              <Settings size={12} />
-              สีแชต
-            </button>
             {/* Context Badge */}
             {chatContext && (
-                <div className="flex items-center gap-2 rounded-full border px-3 py-1.5" style={{ borderColor: 'var(--chat-accent-soft-border)', backgroundColor: 'var(--chat-accent-soft)' }}>
-                <Tag size={12} style={{ color: 'var(--chat-md-list-strong)' }} />
-                <span className="text-xs font-medium" style={{ color: 'var(--chat-md-list-strong)' }}>{chatContext.name}</span>
+                <div className="flex items-center gap-2 rounded-full border px-3 py-1.5 bg-white/5" style={{ borderColor: 'rgba(var(--chat-accent-rgb, 14, 165, 233), 0.2)' }}>
+                <Tag size={12} style={{ color: 'var(--chat-accent)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--chat-accent)' }}>{chatContext.name}</span>
                 <button 
                   onClick={() => setChatContext(null)}
                   title="ลบ context"
                   className="ml-1 transition-colors hover:text-white"
-                  style={{ color: 'var(--chat-md-list-strong)' }}
+                  style={{ color: 'var(--chat-accent)' }}
                 >
                   <X size={12} />
                 </button>
               </div>
             )}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-emerald-400 font-medium">{isLoading ? 'Thinking...' : 'Online'}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-white/5" style={{ borderColor: 'rgba(var(--chat-accent-rgb, 14, 165, 233), 0.2)' }}>
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--chat-accent)' }}></div>
+              <span className="text-xs font-medium" style={{ color: 'var(--chat-accent)' }}>{isLoading ? 'Thinking...' : 'Online'}</span>
             </div>
           </div>
         </div>
+          );
+        })()}
 
         {/* Chat Messages */}
         <div 
@@ -426,6 +565,24 @@ export const IntelligencePage = () => {
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
+          style={(() => {
+            const activeChatIndex = recentChats.findIndex(c => c.id === activeConversationId);
+            const theme = activeChatIndex !== -1 
+              ? CHAT_HISTORY_COLORS[(recentChats.length - 1 - activeChatIndex) % CHAT_HISTORY_COLORS.length]
+              : null;
+            if (!theme) return {};
+            return {
+              '--chat-md-h1': theme.mdH,
+              '--chat-md-h2': theme.mdH,
+              '--chat-md-h3': theme.mdH,
+              '--chat-md-strong': theme.mdB,
+              '--chat-md-list-strong': theme.mdB,
+              '--chat-md-link': theme.mdL,
+              '--chat-md-bullet': theme.mdH,
+              '--chat-btn': theme.btn,
+              '--chat-accent': theme.accent,
+            } as React.CSSProperties;
+          })()}
         >
           {/* Drop Zone Overlay */}
           {dragActive && (
@@ -441,8 +598,8 @@ export const IntelligencePage = () => {
           {/* Empty State */}
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mb-6 border border-cyan-500/20">
-                <Bot size={40} className="text-cyan-400" />
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 border bg-white/5" style={{ borderColor: 'rgba(var(--chat-accent-rgb, 6, 182, 212), 0.2)' }}>
+                <Bot size={40} style={{ color: 'var(--chat-accent)' }} />
               </div>
               <h2 className="text-xl font-bold text-white mb-2">Intel Room พร้อมใช้งาน</h2>
               <p className="text-slate-400 text-sm mb-8 max-w-md">
@@ -463,9 +620,9 @@ export const IntelligencePage = () => {
                     onClick={() => handleSuggestedQuery(query.text)}
                     className="flex items-center gap-2 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-left text-sm text-slate-300 transition-all group"
                   >
-                    <div className="text-cyan-400">{query.icon}</div>
+                    <div style={{ color: 'var(--chat-accent)' }}>{query.icon}</div>
                     <span className="line-clamp-2">{query.text}</span>
-                    <ChevronRight size={14} className="ml-auto text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                    <ChevronRight size={14} className="ml-auto text-slate-600 group-hover:text-[var(--chat-accent)] transition-colors" />
                   </button>
                 ))}
               </div>
@@ -496,35 +653,85 @@ export const IntelligencePage = () => {
         </div>
 
         {/* Input Area */}
-                <div className="p-4 mx-auto w-full max-w-4xl bg-gradient-to-t from-[#0a0c10] pb-8 via-[#0a0c10] to-transparent sticky bottom-0 z-10">
-          <div className="relative flex items-end gap-3 bg-[#15181e] border border-white/10 rounded-3xl px-6 py-2 pb-3 shadow-[0_10px_40px_rgba(0,0,0,0.4)] focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/30 transition-all">
-            <textarea
-              ref={textareaRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="ถามคำถาม หรือบอกให้ Locus ช่วยวางแผนให้..."
-              rows={1}
-              style={{ maxHeight: "300px", minHeight: "32px", overflowY: "auto" }}
-              className="w-full flex-1 bg-transparent border-none outline-none text-[15px] text-white placeholder:text-slate-500 resize-none py-2.5 leading-relaxed custom-scrollbar"
-            />
-            <div className="flex items-center gap-2 shrink-0 pb-1">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                title="Upload file"
-              >
-                <Upload size={18} />
-              </button>
-              <button
-                onClick={handleSend}
-                disabled={!inputText.trim() || isLoading}
-                className="p-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
-                title="Send message"
-              >
-                <Send size={18} />
-              </button>
+        {/* Input Area - Premium AI Command Center */}
+        <div className="p-6 mx-auto w-full max-w-4xl bg-gradient-to-t from-[#050608] pb-10 via-[#050608]/90 to-transparent sticky bottom-0 z-10">
+          <div 
+            className="relative flex flex-col gap-2 bg-[#11141b] border border-white/5 rounded-[2rem] p-2 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)] transition-all focus-within:border-indigo-500/30 focus-within:ring-4 focus-within:ring-indigo-500/5 group"
+          >
+            <div className="flex items-end gap-3 px-4 pt-2">
+              <textarea
+                ref={textareaRef}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={pendingRouteContext ? "ถามคำถามเกี่ยวกับเส้นทางที่แนบไว้..." : "ถามคำถาม หรือบอกให้ Locus ช่วยวางแผนให้..."}
+                rows={1}
+                style={{ maxHeight: "300px", minHeight: "44px", overflowY: "auto" }}
+                className="w-full flex-1 bg-transparent border-none outline-none text-[16px] text-white placeholder:text-slate-600 resize-none py-3 leading-relaxed custom-scrollbar font-medium"
+              />
+
+              <div className="flex items-center gap-2 shrink-0 pb-2">
+                <button
+                  onClick={handleSend}
+                  disabled={(!inputText.trim() && !pendingRouteContext) || isLoading}
+                  className="w-10 h-10 flex items-center justify-center disabled:opacity-30 disabled:grayscale rounded-2xl text-white transition-all hover:scale-105 active:scale-95 shadow-lg"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                    boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)'
+                  }}
+                  title="Send message"
+                >
+                  <Send size={18} className={isLoading ? 'animate-pulse' : ''} />
+                </button>
+              </div>
             </div>
+
+            {/* Accessory Bar */}
+            <div className="flex items-center justify-between px-4 pb-2 border-t border-white/[0.02] pt-2 mt-1">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all text-[11px] font-bold uppercase tracking-wider"
+                >
+                  <MapPin size={14} />
+                  Location
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-white hover:bg-white/5 rounded-xl transition-all text-[11px] font-bold uppercase tracking-wider"
+                >
+                  <Upload size={14} />
+                  Upload
+                </button>
+              </div>
+              
+              <div className="text-[10px] text-slate-700 font-bold uppercase tracking-widest hidden sm:block">
+                Press Enter to send
+              </div>
+            </div>
+
+            {/* Pending Context Badge - Floating inside input */}
+            {pendingRouteContext && (
+              <div className="absolute -top-16 left-4 right-4 flex justify-start pointer-events-none">
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-[#11141b] backdrop-blur-xl border border-indigo-500/30 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <Navigation size={16} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em]">Route Context Active</span>
+                    <span className="text-[11px] font-bold text-white">
+                      {(pendingRouteContext.estimatedDistanceKm || 0).toFixed(1)} KM • {Math.round(pendingRouteContext.estimatedDurationMin || 0)} Min
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => setPendingRouteContext(null)}
+                    className="ml-2 p-1.5 hover:bg-white/5 rounded-lg text-slate-600 hover:text-rose-400 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <input
             ref={fileInputRef}
@@ -532,7 +739,6 @@ export const IntelligencePage = () => {
             accept=".pdf,.csv,.txt,.json"
             onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
             className="hidden"
-            title="Upload file for analysis"
           />
         </div>
       </div>
@@ -563,150 +769,18 @@ export const IntelligencePage = () => {
         </div>
       </div>
 
-      {/* CHAT PALETTE SETTINGS MODAL */}
-      {showPaletteSettings && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-3xl max-h-[80vh] bg-[#0a0c10] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-              <div>
-                <h2 className="text-lg font-bold text-white">ตั้งค่าสีแชต</h2>
-                <p className="text-xs text-slate-500">ปรับสีของคำตอบแชตแบบสดๆ ได้เลย</p>
-              </div>
-              <button
-                onClick={() => setShowPaletteSettings(false)}
-                className="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
 
-            {/* Modal Body - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="space-y-6">
-                {/* Chat Accent Section */}
-                <div className="bg-[#0f1115] rounded-xl border border-white/5 p-4">
-                  <h3 className="text-sm font-semibold text-white mb-4">Chat Accent</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { key: 'accentPrimary', label: 'Primary Accent' },
-                      { key: 'accentPrimaryHover', label: 'Primary Hover' },
-                      { key: 'accentText', label: 'Accent Text' },
-                      { key: 'accentSoft', label: 'Soft Surface' },
-                      { key: 'accentSoftBorder', label: 'Soft Border' },
-                      { key: 'recentActiveBg', label: 'Recent Active BG' },
-                      { key: 'recentActiveBorder', label: 'Recent Active Border' },
-                      { key: 'recentActiveShadow', label: 'Recent Active Shadow' },
-                    ].map((field) => (
-                      <PaletteColorField
-                        key={field.key}
-                        label={field.label}
-                        value={theme[field.key as keyof typeof theme]}
-                        onChange={(val) => {
-                          const { patchTheme } = useChatThemeStore.getState();
-                          patchTheme({ [field.key]: val } as any);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Markdown Hierarchy Section */}
-                <div className="bg-[#0f1115] rounded-xl border border-white/5 p-4">
-                  <h3 className="text-sm font-semibold text-white mb-4">Markdown Hierarchy</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { key: 'markdownHeading1', label: '# Heading 1' },
-                      { key: 'markdownHeading2', label: '## Heading 2' },
-                      { key: 'markdownHeading3', label: '### Heading 3' },
-                      { key: 'markdownListStrong', label: 'Bullet Strong' },
-                      { key: 'markdownStrong', label: 'Default Strong' },
-                      { key: 'markdownText', label: 'Body Text' },
-                      { key: 'markdownMuted', label: 'Muted Text' },
-                      { key: 'markdownItalic', label: 'Italic Text' },
-                      { key: 'markdownCodeText', label: 'Inline Code Text' },
-                      { key: 'markdownCodeBg', label: 'Inline Code BG' },
-                      { key: 'markdownBullet', label: 'Bullet Marker' },
-                      { key: 'markdownDivider', label: 'Divider' },
-                    ].map((field) => (
-                      <PaletteColorField
-                        key={field.key}
-                        label={field.label}
-                        value={theme[field.key as keyof typeof theme]}
-                        onChange={(val) => {
-                          const { patchTheme } = useChatThemeStore.getState();
-                          patchTheme({ [field.key]: val } as any);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-white/5">
-              <button
-                onClick={() => {
-                  const { resetTheme } = useChatThemeStore.getState();
-                  resetTheme();
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-slate-300 transition-colors"
-              >
-                <RotateCcw size={14} />
-                Reset Colors
-              </button>
-              <button
-                onClick={() => setShowPaletteSettings(false)}
-                className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-xl text-sm font-bold text-white transition-colors"
-              >
-                ปิด
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ==================== PALETTE COLOR FIELD ====================
-const PaletteColorField = ({
-  label,
-  value,
-  onChange
-}: {
-  label: string;
-  value: string;
-  onChange: (val: string) => void;
-}) => {
-  return (
-    <div className="flex items-center gap-3">
-      <div
-        className="w-8 h-8 rounded-lg border border-white/10 shrink-0 cursor-pointer"
-        style={{ background: value }}
-        title={value}
+      {/* QUICK LOCATION SEARCH MODAL */}
+      <LocationSearchModal 
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        onConfirm={handleLocationSearchConfirm}
       />
-      <div className="flex-1 min-w-0">
-        <div className="text-xs text-slate-400 truncate">{label}</div>
-        <div className="flex items-center gap-1">
-          <input
-            type="color"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-6 h-6 rounded border border-white/10 bg-transparent cursor-pointer p-0"
-          />
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="flex-1 bg-[#0b0d11] border border-white/10 rounded px-2 py-1 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
-          />
-        </div>
-      </div>
     </div>
   );
 };
+
+
         // ==================== SUB COMPONENTS ====================
 
 interface MessageBubbleProps {
@@ -757,12 +831,16 @@ const MessageBubble = ({
     <div className={`flex gap-3 group ${isUser ? 'flex-row-reverse' : 'flex-row'} ${isEditing ? 'flex-col' : ''}`}>
       {/* Avatar */}
       {!isEditing && (
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-          isUser 
-            ? 'bg-gradient-to-br from-cyan-500 to-blue-600' 
-            : 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20'
-        }`}>
-          {isUser ? <User size={18} className="text-white" /> : <Bot size={18} className="text-cyan-400" />}
+        <div 
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+          style={{ 
+            backgroundColor: isUser ? 'rgba(var(--chat-btn-rgb, 6, 182, 212), 0.15)' : 'rgba(var(--chat-accent-rgb, 6, 182, 212), 0.15)',
+            borderColor: isUser ? 'var(--chat-btn)' : 'var(--chat-accent)',
+          }}
+        >
+          {isUser 
+            ? <User size={18} style={{ color: 'var(--chat-btn)' }} /> 
+            : <Bot size={18} style={{ color: 'var(--chat-accent)' }} />}
         </div>
       )}
 
@@ -808,9 +886,9 @@ const MessageBubble = ({
         ) : (
           /* ── Normal / Error Bubble ── */
           <>
-            <div className={`p-4 rounded-2xl ${
+            <div className={`p-4 rounded-2xl shadow-xl transition-all duration-300 ${
               isUser 
-                ? 'bg-cyan-600/10 border border-cyan-500/20 rounded-tr-md' 
+                ? 'bg-[#f1f5f9] text-slate-900 font-medium rounded-tr-md scale-[1.01] origin-right shadow-white/5' 
                 : `bg-white/5 border ${
                     isError
                       ? 'border-red-500/30'
@@ -828,7 +906,22 @@ const MessageBubble = ({
               )}
 
               {/* Message Text with Markdown-like formatting */}
-              <MarkdownLite text={message.text} className="text-sm" />
+              {isUser ? (
+                <div style={{ 
+                  '--chat-md-text': '#000000',
+                  '--chat-md-strong': '#000000',
+                  '--chat-md-list-strong': '#000000',
+                  '--chat-md-h1': '#000000',
+                  '--chat-md-h2': '#000000',
+                  '--chat-md-h3': '#000000',
+                  '--chat-md-bullet': '#333333',
+                  '--chat-md-muted': '#444444'
+                } as any}>
+                  <MarkdownLite text={message.text} className="text-sm" />
+                </div>
+              ) : (
+                <MarkdownLite text={message.text} className="text-sm" />
+              )}
 
               {message.status === 'pending' && (
                 <div className="mt-3 flex items-center gap-2 text-xs text-cyan-400">
@@ -919,125 +1012,87 @@ interface SmartActionBarProps {
 
 const SmartActionBar = ({ text }: SmartActionBarProps) => {
   const navigate = useNavigate();
+  const [showSelector, setShowSelector] = useState(false);
   const provinces = useMemo(() => extractMentionedProvinces(text), [text]);
   const regions = useMemo(() => extractMentionedRegions(text), [text]);
 
   // If no provinces or regions detected, show generic actions only
-  const hasContext = provinces.length > 0 || regions.length > 0;
-  if (!hasContext) return null;
+  const hasProvinces = provinces.length > 0;
+  const hasRegions = regions.length > 0;
+  
+  if (!hasProvinces && !hasRegions) return null;
 
-  // Pick first detected province for primary actions
-  const primaryProvince = provinces[0] || null;
-  const primaryRegion = regions[0] || null;
-
-  // Determine navigation targets
-  const regionIdForTravel = primaryProvince?.regionId || primaryRegion?.id || 'central';
-
-  const actionButtons: Array<{
-    label: string;
-    icon: React.ReactNode;
-    color: string;
-    bgColor: string;
-    borderColor: string;
-    onClick: () => void;
-  }> = [];
-
-  // Hot Location button
-  actionButtons.push({
-    label: 'Hot Location',
-    icon: <Flame size={13} />,
-    color: 'text-orange-300',
-    bgColor: 'bg-orange-500/10',
-    borderColor: 'border-orange-500/30',
-    onClick: () => navigate('/', { state: { focusRegion: regionIdForTravel } }),
-  });
-
-  // Travel Guide button
-  actionButtons.push({
-    label: 'Travel Guide',
-    icon: <Compass size={13} />,
-    color: 'text-teal-300',
-    bgColor: 'bg-teal-500/10',
-    borderColor: 'border-teal-500/30',
-    onClick: () => navigate(`/travel-guide/${regionIdForTravel}`),
-  });
-
-  // Province-specific buttons (only if a province was detected)
-  if (primaryProvince) {
-    actionButtons.push({
-      label: 'Open Map',
-      icon: <Map size={13} />,
-      color: 'text-sky-300',
-      bgColor: 'bg-sky-500/10',
-      borderColor: 'border-sky-500/30',
-      onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`),
-    });
-  }
-
-  // Category quick-links
-  if (primaryProvince) {
-    actionButtons.push(
-      {
-        label: 'Transit',
-        icon: <Bus size={13} />,
-        color: 'text-blue-300',
-        bgColor: 'bg-blue-500/10',
-        borderColor: 'border-blue-500/30',
-        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'travel' } }),
-      },
-      {
-        label: 'Stay',
-        icon: <Bed size={13} />,
-        color: 'text-violet-300',
-        bgColor: 'bg-violet-500/10',
-        borderColor: 'border-violet-500/30',
-        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'stay' } }),
-      },
-      {
-        label: 'Food',
-        icon: <Utensils size={13} />,
-        color: 'text-amber-300',
-        bgColor: 'bg-amber-500/10',
-        borderColor: 'border-amber-500/30',
-        onClick: () => navigate(`/province/${primaryProvince.regionId}/${primaryProvince.id}`, { state: { defaultTab: 'eat' } }),
-      },
-    );
-  }
-
-  // If multiple provinces found, show secondary province chips
-  const secondaryProvinces = provinces.slice(1, 4);
+  // Primary action logic
+  const handlePrimaryAction = () => {
+    console.log('[SmartActionBar] handlePrimaryAction triggered. Provinces:', provinces);
+    if (provinces.length === 1) {
+      const p = provinces[0];
+      const targetUrl = `/province/${p.regionId}/${p.id}`;
+      console.log(`[SmartActionBar] Navigating to: ${targetUrl}`);
+      navigate(targetUrl);
+    } else if (provinces.length > 1) {
+      setShowSelector(true);
+    } else if (regions.length > 0) {
+      const r = regions[0];
+      navigate(`/travel-guide/${r.id}`);
+    }
+  };
 
   return (
-    <div className="mt-4 pt-3 border-t border-white/[0.06]">
-      {/* Action Buttons Row */}
-      <div className="flex flex-wrap gap-1.5">
-        {actionButtons.map((btn, idx) => (
-          <button
-            key={idx}
-            onClick={btn.onClick}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 hover:brightness-125 hover:scale-[1.03] active:scale-[0.97] ${btn.color} ${btn.bgColor} ${btn.borderColor}`}
-          >
-            {btn.icon}
-            {btn.label}
-          </button>
-        ))}
+    <div className="mt-4 pt-3 border-t border-white/[0.06] relative">
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={handlePrimaryAction}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[12px] font-black transition-all shadow-lg active:scale-[0.98] hover:scale-[1.02]"
+          style={{ 
+            backgroundColor: 'rgba(var(--chat-btn-rgb, 6, 182, 212), 0.1)', 
+            border: '1px solid var(--chat-btn)',
+            color: 'var(--chat-btn)',
+          } as React.CSSProperties}
+        >
+          <Compass size={14} className="animate-pulse" style={{ color: 'var(--chat-btn)' }} />
+          {provinces.length > 1 
+            ? `View Mentioned Provinces (${provinces.length})` 
+            : provinces.length === 1 
+              ? `View ${provinces[0].name} Tactical Detail` 
+              : 'Explore Regional Intelligence'}
+        </button>
       </div>
 
-      {/* Secondary Province Chips */}
-      {secondaryProvinces.length > 0 && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="text-[10px] text-slate-500 mr-1">ยังเกี่ยวข้องกับ:</span>
-          {secondaryProvinces.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => navigate(`/province/${p.regionId}/${p.id}`)}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-white/10 bg-white/[0.03] text-[10px] text-slate-400 hover:text-white hover:border-cyan-500/30 hover:bg-cyan-500/10 transition-all"
-            >
-              <MapPin size={10} />
-              {p.name}
-            </button>
-          ))}
-        </div>
+      {/* Multi-Province Selector Popup */}
+      {showSelector && (
+        <>
+          <div 
+            className="fixed inset-0 z-[100]" 
+            onClick={() => setShowSelector(false)} 
+          />
+          <div className="absolute bottom-full left-0 mb-2 w-64 bg-[#0f1115] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[101] animate-in slide-in-from-bottom-2 duration-200">
+            <div className="p-3 border-b border-white/5 bg-white/[0.02]">
+              <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Select Province to View</h3>
+            </div>
+            <div className="max-h-48 overflow-y-auto p-1.5 custom-scrollbar">
+              {provinces.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    navigate(`/province/${p.regionId}/${p.id}`);
+                    setShowSelector(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-cyan-500/10 hover:text-cyan-400 text-slate-300 text-xs font-bold transition-all text-left group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-cyan-500/20">
+                    <MapPin size={14} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate">{p.name}</div>
+                    <div className="text-[9px] text-slate-500 uppercase">{p.regionName}</div>
+                  </div>
+                  <ChevronRight size={12} className="text-slate-600 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -1068,9 +1123,50 @@ const SourceBadge = ({ source }: { source: Source }) => {
 interface RecentChatItemProps {
   chat: RecentChatSummary
   isActive: boolean
+  indexFromBottom: number
   onSelect: () => void
   onDelete: () => void
+  onRename: (newTitle: string) => void
 }
+
+const CHAT_HISTORY_COLORS = [
+  { 
+    bg: 'bg-green-500/10', border: 'border-green-500/20', text: 'text-green-400', iconBg: 'bg-green-500/20', 
+    active: 'bg-green-500/20 border-green-500/50 shadow-green-500/10',
+    headerGradient: 'from-green-600/40 via-green-500/20 to-green-600/30',
+    mdH: '#22c55e', mdB: '#86efac', mdL: '#c084fc', btn: '#a855f7', accent: '#22c55e'
+  }, // Green -> Purple Button
+  { 
+    bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', text: 'text-yellow-400', iconBg: 'bg-yellow-500/20', 
+    active: 'bg-yellow-500/20 border-yellow-500/50 shadow-yellow-500/10',
+    headerGradient: 'from-yellow-600/40 via-yellow-500/20 to-yellow-600/30',
+    mdH: '#facc15', mdB: '#a16207', mdL: '#60a5fa', btn: '#3b82f6', accent: '#facc15'
+  }, // Yellow -> Blue Button
+  { 
+    bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400', iconBg: 'bg-orange-500/20', 
+    active: 'bg-orange-500/20 border-orange-500/50 shadow-orange-500/10',
+    headerGradient: 'from-orange-600/40 via-orange-500/20 to-orange-600/30',
+    mdH: '#fb923c', mdB: '#ca8a04', mdL: '#4ade80', btn: '#22c55e', accent: '#fb923c'
+  }, // Orange -> Green Button
+  { 
+    bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', iconBg: 'bg-rose-500/20', 
+    active: 'bg-rose-500/20 border-rose-500/50 shadow-rose-500/10',
+    headerGradient: 'from-rose-600/40 via-rose-500/20 to-rose-600/30',
+    mdH: '#f87171', mdB: '#fb923c', mdL: '#facc15', btn: '#06b6d4', accent: '#f87171'
+  }, // Red -> Cyan Button
+  { 
+    bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-400', iconBg: 'bg-purple-500/20', 
+    active: 'bg-purple-500/20 border-purple-500/50 shadow-purple-500/10',
+    headerGradient: 'from-purple-600/40 via-purple-500/20 to-purple-600/30',
+    mdH: '#c084fc', mdB: '#f87171', mdL: '#fb923c', btn: '#facc15', accent: '#c084fc'
+  }, // Purple -> Yellow Button
+  { 
+    bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400', iconBg: 'bg-blue-500/20', 
+    active: 'bg-blue-500/20 border-blue-500/50 shadow-blue-500/10',
+    headerGradient: 'from-blue-600/40 via-blue-500/20 to-blue-600/30',
+    mdH: '#60a5fa', mdB: '#c084fc', mdL: '#f87171', btn: '#fb923c', accent: '#60a5fa'
+  }, // Blue -> Orange Button
+];
 
 const formatRelativeChatTime = (timestamp: string) => {
   const date = new Date(timestamp)
@@ -1083,73 +1179,120 @@ const formatRelativeChatTime = (timestamp: string) => {
   }).format(date)
 }
 
-const RecentChatItem = ({ chat, isActive, onSelect, onDelete }: RecentChatItemProps) => (
-  <div
-    className={`group w-full rounded-2xl border p-3 transition-all ${
-      isActive
-        ? ''
-        : 'border-white/5 bg-white/[0.03] hover:border-white/10 hover:bg-white/[0.05]'
-    }`}
-    style={
-      isActive
-        ? {
-            borderColor: 'var(--chat-recent-active-border)',
-            backgroundColor: 'var(--chat-recent-active-bg)',
-            boxShadow: 'var(--chat-recent-active-shadow)'
-          }
-        : undefined
+const RecentChatItem = ({ chat, isActive, indexFromBottom, onSelect, onDelete, onRename }: RecentChatItemProps) => {
+  const colorTheme = CHAT_HISTORY_COLORS[indexFromBottom % CHAT_HISTORY_COLORS.length];
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(chat.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
     }
-  >
-    <div className="flex items-start gap-3">
-      <div
-        className={`mt-0.5 rounded-xl p-2 ${isActive ? '' : 'bg-white/5 text-slate-400'}`}
-        style={
-          isActive
-            ? {
-                backgroundColor: 'var(--chat-recent-active-icon-bg)',
-                color: 'var(--chat-recent-active-icon-text)'
-              }
-            : undefined
-        }
-      >
-        <Clock3 size={14} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <button onClick={onSelect} className="min-w-0 flex-1 text-left">
-            <div className={`truncate text-sm font-semibold ${isActive ? 'text-white' : 'text-slate-200'}`}>{chat.title}</div>
-            <div className="mt-1 text-[11px] text-slate-500">{formatRelativeChatTime(chat.updatedAt)}</div>
-          </button>
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete();
-            }}
-            className="rounded-lg p-1.5 text-slate-500 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-300 group-hover:opacity-100"
-            title="ลบบทสนทนานี้"
-          >
-            <Trash2 size={14} />
+  }, [isEditing]);
+
+  const handleRenameConfirm = () => {
+    if (editTitle.trim() && editTitle !== chat.title) {
+      onRename(editTitle);
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleRenameConfirm();
+    } else if (e.key === 'Escape') {
+      setEditTitle(chat.title);
+      setIsEditing(false);
+    }
+  };
+
+  return (
+    <div
+      className={`group w-full rounded-2xl border p-3 transition-all duration-300 ${
+        isActive
+          ? `${colorTheme.active} shadow-lg scale-[1.02]`
+          : `${colorTheme.bg} ${colorTheme.border} hover:scale-[1.01] hover:brightness-125`
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={`mt-0.5 rounded-xl p-2 transition-colors ${
+            isActive ? colorTheme.iconBg + ' ' + colorTheme.text : 'bg-white/5 text-slate-400 group-hover:' + colorTheme.text
+          }`}
+        >
+          <Clock3 size={14} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              {isEditing ? (
+                <input
+                  ref={inputRef}
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={handleRenameConfirm}
+                  onKeyDown={handleKeyDown}
+                  className="w-full bg-black/20 border-b border-cyan-500 text-sm font-semibold text-white focus:outline-none py-0.5"
+                />
+              ) : (
+                <button onClick={onSelect} className="w-full text-left">
+                  <div className={`truncate text-sm font-semibold transition-colors ${isActive ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
+                    {chat.title}
+                  </div>
+                </button>
+              )}
+              <div className="mt-1 text-[11px] text-slate-500">{formatRelativeChatTime(chat.updatedAt)}</div>
+            </div>
+            
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+              {!isEditing && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditing(true);
+                  }}
+                  className="rounded-lg p-1.5 text-slate-500 hover:bg-white/10 hover:text-white"
+                  title="เปลี่ยนชื่อแชต"
+                >
+                  <Edit3 size={14} />
+                </button>
+              )}
+              <button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete();
+                }}
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-red-500/10 hover:text-red-300"
+                title="ลบบทสนทนานี้"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+          <button onClick={onSelect} className="w-full text-left">
+            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-400 group-hover:text-slate-300 transition-colors">
+              {chat.preview}
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              {chat.contextName && (
+                <span className={`rounded-full border px-2 py-1 text-[10px] font-medium ${colorTheme.border} ${colorTheme.bg} ${colorTheme.text}`}>
+                  {chat.contextName}
+                </span>
+              )}
+              {chat.isPending && (
+                <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-300 animate-pulse">
+                  Pending
+                </span>
+              )}
+            </div>
           </button>
         </div>
-        <button onClick={onSelect} className="w-full text-left">
-          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-400">{chat.preview}</p>
-          <div className="mt-3 flex items-center gap-2">
-            {chat.contextName && (
-              <span className="rounded-full border border-purple-500/20 bg-purple-500/10 px-2 py-1 text-[10px] font-medium text-purple-300">
-                {chat.contextName}
-              </span>
-            )}
-            {chat.isPending && (
-              <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-300">
-                Pending
-              </span>
-            )}
-          </div>
-        </button>
       </div>
     </div>
-  </div>
-)
+  );
+};
 
 const ContextCanvas = ({ context }: { context: Message }) => {
   return (

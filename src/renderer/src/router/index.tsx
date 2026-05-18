@@ -15,6 +15,7 @@ const SettingsPage = lazy(() => import('../pages/SettingsPage').then(m => ({ def
 const IntelligencePage = lazy(() => import('../pages/IntelligencePage').then(m => ({ default: m.IntelligencePage })));
 const AnalyticsPage = lazy(() => import('../pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })));
 const TravelGuidePage = lazy(() => import('../pages/TravelGuide').then(m => ({ default: m.TravelGuidePage })));
+const TravelPlanHistoryPage = lazy(() => import('../pages/TravelPlanHistoryPage').then(m => ({ default: m.TravelPlanHistoryPage })));
 
 /**
  * Locus Navigation Routes
@@ -80,6 +81,14 @@ export const routes: RouteObject[] = [
         element: (
           <Suspense fallback={<PageLoading />}>
             <TravelGuidePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'travel-plans',
+        element: (
+          <Suspense fallback={<PageLoading />}>
+            <TravelPlanHistoryPage />
           </Suspense>
         ),
       },

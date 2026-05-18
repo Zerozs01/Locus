@@ -28,7 +28,8 @@ import {
   WifiOff as OfflineIcon,
   Palette,
   RotateCcw,
-  MessageSquareText
+  MessageSquareText,
+  Newspaper
 } from 'lucide-react';
 import { pingAgent, sendChatMessage } from '../services/n8nClient';
 import { ThreatConfig } from '../components/ThreatConfig';
@@ -109,6 +110,24 @@ export const SettingsPage = () => {
       icon: <Key size={18} />,
       required: false,
     },
+    {
+      id: 'newsapi_key',
+      name: 'NewsAPI Key',
+      description: 'API key สำหรับดึงข่าวจาก newsapi.org เพื่อ sync กับ Province News',
+      value: '',
+      placeholder: 'your_newsapi_key',
+      icon: <Newspaper size={18} />,
+      required: false,
+    },
+      {
+        id: 'news_api_url',
+        name: 'News API Server URL',
+        description: 'URL ของเซิร์ฟเวอร์ข่าว (เช่น http://localhost:4000)',
+        value: '',
+        placeholder: 'http://localhost:4000',
+        icon: <Globe size={18} />,
+        required: false,
+      },
     {
       id: 'gemini',
       name: 'Google Gemini API Key',
@@ -298,7 +317,8 @@ export const SettingsPage = () => {
     try {
       const agentOnline = await pingAgent();
       setSystemStatus(prev => ({ ...prev, agent: agentOnline ? 'online' : 'offline' }));
-    } catch {
+    } catch (error) {
+      console.warn('Agent health check failed:', error);
       setSystemStatus(prev => ({ ...prev, agent: 'offline' }));
     }
 

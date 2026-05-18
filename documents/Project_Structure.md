@@ -203,7 +203,7 @@ locus/
 - ✅ Knowledge/Tips section from portal data
 - ✅ Supply/Facilities section (bank, gas, other)
 - ✅ Danger zones with hotspot visualization
-- ✅ Province news panel with API sync + mock fallback
+- ✅ Province news panel with live API sync via local news aggregator server (`/news?province=...`) and mock fallback only when no live data is available
 - ✅ Live AQI/Temperature sync from SQLite
 - ✅ Weather history modal
 
@@ -299,19 +299,40 @@ locus/
 
 ## Storybook Stories
 
-### Components
-- `RegionDashboard.stories.tsx` - Region/Province dashboard with all modes
-- `ChatOverlay.stories.tsx` - Chat overlay component
-- `DataCard.stories.tsx` - Data display cards
-- `DetailCard.stories.tsx` - Detail cards
-- `Footer.stories.tsx` - Footer component
-- `Header.stories.tsx` - Header component
-- `Sidebar.stories.tsx` - Navigation sidebar
-- `ThailandMap.stories.tsx` - Thailand interactive map
+### Components (Available Stories)
+| Story File | Component | Description |
+|------------|-----------|-------------|
+| `RegionDashboard.stories.tsx` | RegionDashboard | Region/Province dashboard with region & province modes |
+| `Header.stories.tsx` | Header | App header with navigation |
+| `Sidebar.stories.tsx` | Sidebar | Navigation sidebar with route icons |
+| `ThailandMap.stories.tsx` | ThailandMap | Interactive Thailand map (react-simple-maps) |
+| `AQIModal.stories.tsx` | AQIModal | Air Quality Index modal with 7-day trend charts |
+| `WeatherHistoryModal.stories.tsx` | WeatherHistoryModal | Temperature history/forecast modal |
+| `GradientProgressBar.stories.tsx` | GradientProgressBar | Animated rainbow progress bar |
+| `TrendingPlacesCard.stories.tsx` | TrendingPlacesCard | Trending places card with score breakdown |
+
+### Components Without Stories
+- `CachedImage.tsx` - Safe cached image wrapper
+- `ChatOverlay.tsx` - AI Chat Overlay
+- `DataCard.tsx` - Data Display Cards
+- `DetailCard.tsx` - Region Detail Cards
+- `Footer.tsx` - Footer Component
+- `LocationSearchModal.tsx` - Location search modal
+- `MarkdownLite.tsx` - Lightweight markdown renderer
+- `PopularProvincePopup.tsx` - Popular province popup
+- `PremiumCalendarCard.tsx` - Premium calendar card
+- `ProvinceMap.tsx` - Leaflet Province Map
+- `ProvinceReconPopup.tsx` - Province reconnaissance popup
+- `RegionalIntelBar.tsx` - Regional Intelligence Overview Bar
+- `ResourceInventory.tsx` - Resource inventory component
+- `TacticalSeasonPopup.tsx` - Tactical season popup
+- `ThreatConfig.tsx` - Threat configuration
+- `ThreatMatrixModal.tsx` - Threat matrix modal
+- `UpcomingEventBanner.tsx` - Upcoming event banner
 
 ### Pages
 - `RadarPage.stories.tsx` - Main map view
-- `GeoArchivePage.stories.tsx` - Province gallery
+- `GeoArchivePage.stories.tsx` - Explore Hub (intent-first landing)
 - `IntelligencePage.stories.tsx` - AI chat (with/without context)
 
 ---

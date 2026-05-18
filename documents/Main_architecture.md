@@ -107,7 +107,7 @@ The system uses a **"Tunneling"** method to communicate.
 - **Traffic Modeling:** Traffic penalty by transport type + seasonal conditions
 - **Portal Data:** Essential data (supply, knowledge, ecology, emergency, local foods)
 - **Ecology Browser:** Fauna, flora, terrain, climate entity categories
-- **Danger Zones:** Hotspot visualization + province news panel
+- **Danger Zones:** Hotspot visualization + province news panel driven by live local news aggregator output
 
 ### AI Chat (Intelligence Page)
 - **Fluid Layout:** Auto-expanding chat input window anchored bottom-right
@@ -189,10 +189,34 @@ For a single-user or small-group local-first app, Redis adds unnecessary complex
 - **Province Data Layers:** traffic, gistdaAqi, aqicnAqi, rainRadar, floodRecurrent, evCharger, slope
 - **GISTDA Features:** Dedicated no-proxy session for CORS-free API access
 
+## Storybook Stories
+
+### Components (8 Active Stories)
+| Story | Component | Description |
+|-------|-----------|-------------|
+| RegionDashboard | RegionDashboard | Region/Province dashboard with gallery modes |
+| Header | Header | App header with navigation |
+| Sidebar | Sidebar | Navigation sidebar with route icons |
+| ThailandMap | ThailandMap | Interactive Thailand map |
+| AQIModal | AQIModal | AQI modal with 7-day trend charts |
+| WeatherHistoryModal | WeatherHistoryModal | Temperature history/forecast modal |
+| GradientProgressBar | GradientProgressBar | Animated rainbow progress bar |
+| TrendingPlacesCard | TrendingPlacesCard | Trending places with score breakdown |
+
+### Pages (3 Active Stories)
+| Story | Page | Description |
+|-------|------|-------------|
+| RadarPage | ThreatRadarPage | Main map view |
+| GeoArchivePage | GeoArchivePage | Explore Hub (intent-first landing) |
+| IntelligencePage | IntelligencePage | AI chat with context support |
+
+### Components Without Stories
+CachedImage, ChatOverlay, DataCard, DetailCard, Footer, LocationSearchModal, MarkdownLite, PopularProvincePopup, PremiumCalendarCard, ProvinceMap, ProvinceReconPopup, RegionalIntelBar, ResourceInventory, TacticalSeasonPopup, ThreatConfig, ThreatMatrixModal, UpcomingEventBanner
+
 ## 10. Runtime Configuration
 
 Runtime config persisted via `config:get` / `config:set` IPC:
 - `ngrok` / `VITE_NGROK_URL`: n8n webhook base URL
 - `n8n_api_key` / `VITE_N8N_API_KEY`: Optional API key for n8n
 - `openweather` / `VITE_OPENWEATHER_API_KEY`: OpenWeather API key
-- `news_api_url`: Province news API endpoint
+- `news_api_url`: Province news aggregator base URL, typically `http://localhost:4000/news` and auto-queried with `?province=<province name>` from Travel Guide/Analytics

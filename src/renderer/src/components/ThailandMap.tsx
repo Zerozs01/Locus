@@ -161,22 +161,23 @@ export const ThailandMap = memo(({
 
   const { center, zoom } = getZoomCenter();
   const handleGeographyClick = (regionId: string, provinceName: string) => {
-    if (viewMode === 'province') {
+    // In province mode, always prefer selecting by province name
+    if (viewMode === 'province' && onSelectProvinceByName) {
       const isSelected = selectedProvince && 
         (selectedProvince.name === provinceName || 
          (selectedProvince.name === 'Bangkok' && provinceName === 'Bangkok Metropolis') ||
-         (selectedProvince.name === 'Ayutthaya' && provinceName === 'Phra Nakhon Si Ayutthaya'));
+         (selectedProvince.name === 'Ayutthaya' && provinceName === 'Phra Nakhon Si Ayutthaya') ||
+         (selectedProvince.name === 'Phra Nakhon Si Ayutthaya' && provinceName === 'Ayutthaya'));
 
       if (isSelected) {
         onClearProvince?.();
-        return;
-      }
-      if (onSelectProvinceByName) {
+      } else {
         onSelectProvinceByName(provinceName);
-        return;
       }
+      return;
     }
-    // If we're in region mode OR we fall back
+
+    // Otherwise, handle region selection
     if (regionId !== activeId) {
       onSelectRegion(regionId);
     }
@@ -199,13 +200,25 @@ export const ThailandMap = memo(({
           maxZoom={8}
         >
           <Geographies geography={thailandGeo}>
-            {({ geographies }: { geographies: Array<{ rsmKey: string; properties: { name: string } }> }) =>
-              geographies.map((geo) => {
+            {({ geographies }: { geographies: Array<{ rsmKey: string; properties: { name: string } }> }) => {
+              const currentActiveRegionId = activeId;
+              const isProvinceMode = viewMode === 'province';
+              const selProvName = selectedProvince?.name;
+
+              return geographies.map((geo) => {
                 const provinceName = geo.properties.name;
                 const regionId = provinceToRegion[provinceName] || 'central';
-                const isRegionActive = activeId === regionId;
-                const isProvinceView = viewMode === 'province';
-                const isOtherRegion = activeId && !isRegionActive;
+                const isRegionActive = currentActiveRegionId === regionId;
+                const isOtherRegion = currentActiveRegionId && !isRegionActive;
+                
+                // Pre-determine if this is the selected province (optimized check)
+                const isSelectedProvince = selProvName && (
+                  provinceName === selProvName || 
+                  (provinceName === 'Bangkok Metropolis' && selProvName === 'Bangkok') ||
+                  (provinceName === 'Phra Nakhon Si Ayutthaya' && selProvName === 'Ayutthaya') ||
+                  (provinceName === 'Ayutthaya' && selProvName === 'Phra Nakhon Si Ayutthaya')
+                );
+
                 const theme = regionTheme[regionId as RegionId] || regionTheme.central;
                 const colors = {
                   default: mapBaseColors.default,
@@ -214,48 +227,27 @@ export const ThailandMap = memo(({
                   dimmed: theme.mapDimmed
                 };
                 
-                // Province highlight logic
-                const normalizedProvinceName = (name: string) => {
-                  if (name === 'Bangkok') return 'Bangkok Metropolis';
-                  if (name === 'Ayutthaya') return 'Phra Nakhon Si Ayutthaya';
-                  return name;
-                };
-
-                const isSelectedProvince = selectedProvince && 
-                  (provinceName === selectedProvince.name || provinceName === normalizedProvinceName(selectedProvince.name));
-                const isSameRegionAsSelected = selectedProvince && regionId === activeId;
-                
                 // Determine fill color
                 let fillColor = colors.default;
                 let opacity = 1;
                 
-                if (isProvinceView && activeId) {
+                if (isProvinceMode && currentActiveRegionId) {
                   if (isSelectedProvince) {
-                    // Selected province - bright active color
                     fillColor = colors.active;
                     opacity = 1;
-                  } else if (isSameRegionAsSelected && !isSelectedProvince) {
-                    // Same region but not selected - dimmed version of active color
-                    fillColor = colors.dimmed;
-                    opacity = 0.9;
-                  } else if (isRegionActive && !selectedProvince) {
-                    // Region active but no province selected yet - all provinces bright
-                    fillColor = colors.active;
-                    opacity = 1;
-                  } else if (isOtherRegion) {
-                    // Other regions - use default gray instead of dark slate
+                  } else if (isRegionActive) {
+                    fillColor = selProvName ? colors.dimmed : colors.active;
+                    opacity = selProvName ? 0.9 : 1;
+                  } else {
                     fillColor = colors.default;
                     opacity = 0.4;
                   }
                 } else if (isRegionActive) {
-                  // Standard region mode - highlight active region
                   fillColor = colors.active;
                   opacity = 1;
-                } else if (activeId) {
-                  // Region is selected, but this province is not in it. 
-                  // Use default gray (colors.default) instead of dark slate to keep it bright.
+                } else if (currentActiveRegionId) {
                   fillColor = colors.default;
-                  opacity = 0.7; 
+                  opacity = 0.4;
                 } else if (safetyByProvince && safetyByProvince[provinceName] !== undefined) {
                   // Safety overlay: only show when NO region is selected (prevents green flash)
                   fillColor = getSafetyFillColor(safetyByProvince[provinceName]);
@@ -282,7 +274,7 @@ export const ThailandMap = memo(({
                         strokeWidth: 0.5,
                         outline: 'none',
                         cursor: 'pointer',
-                        opacity: isOtherRegion ? 0.5 : 1,
+                        opacity: isOtherRegion ? 0.8 : 1,
                       },
                       pressed: {
                         fill: colors.active,
@@ -295,7 +287,8 @@ export const ThailandMap = memo(({
                 );
               })
             }
-          </Geographies>
+          }
+        </Geographies>
 
           {/* Region Labels - Using Annotation to stay fixed with map */}
           {viewMode !== 'province' && Object.entries(regionLabelPositions).map(([regionId, coords]) => (
