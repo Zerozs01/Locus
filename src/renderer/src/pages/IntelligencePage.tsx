@@ -653,77 +653,85 @@ export const IntelligencePage = () => {
         </div>
 
         {/* Input Area */}
-                <div className="p-4 mx-auto w-full max-w-4xl bg-gradient-to-t from-[#0a0c10] pb-8 via-[#0a0c10] to-transparent sticky bottom-0 z-10">
+        {/* Input Area - Premium AI Command Center */}
+        <div className="p-6 mx-auto w-full max-w-4xl bg-gradient-to-t from-[#050608] pb-10 via-[#050608]/90 to-transparent sticky bottom-0 z-10">
           <div 
-            className="relative flex items-end gap-3 bg-[#15181e] border border-white/10 rounded-3xl px-6 py-2 pb-3 shadow-[0_10px_40px_rgba(0,0,0,0.4)] transition-all focus-within:ring-1"
-            style={{ 
-              borderColor: 'rgba(var(--chat-accent-rgb, 6, 182, 212), 0.3)',
-              '--tw-ring-color': 'var(--chat-accent)',
-            } as any}
+            className="relative flex flex-col gap-2 bg-[#11141b] border border-white/5 rounded-[2rem] p-2 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)] transition-all focus-within:border-indigo-500/30 focus-within:ring-4 focus-within:ring-indigo-500/5 group"
           >
-            <textarea
-              ref={textareaRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={pendingRouteContext ? "พิมพ์คำถามเกี่ยวกับเส้นทางที่แนบไว้..." : "ถามคำถาม หรือบอกให้ Locus ช่วยวางแผนให้..."}
-              rows={1}
-              style={{ maxHeight: "300px", minHeight: "32px", overflowY: "auto" }}
-              className="w-full flex-1 bg-transparent border-none outline-none text-[15px] text-white placeholder:text-slate-500 resize-none py-2.5 leading-relaxed custom-scrollbar"
-            />
+            <div className="flex items-end gap-3 px-4 pt-2">
+              <textarea
+                ref={textareaRef}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={pendingRouteContext ? "ถามคำถามเกี่ยวกับเส้นทางที่แนบไว้..." : "ถามคำถาม หรือบอกให้ Locus ช่วยวางแผนให้..."}
+                rows={1}
+                style={{ maxHeight: "300px", minHeight: "44px", overflowY: "auto" }}
+                className="w-full flex-1 bg-transparent border-none outline-none text-[16px] text-white placeholder:text-slate-600 resize-none py-3 leading-relaxed custom-scrollbar font-medium"
+              />
 
-            {/* Pending Context Badge */}
+              <div className="flex items-center gap-2 shrink-0 pb-2">
+                <button
+                  onClick={handleSend}
+                  disabled={(!inputText.trim() && !pendingRouteContext) || isLoading}
+                  className="w-10 h-10 flex items-center justify-center disabled:opacity-30 disabled:grayscale rounded-2xl text-white transition-all hover:scale-105 active:scale-95 shadow-lg"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                    boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)'
+                  }}
+                  title="Send message"
+                >
+                  <Send size={18} className={isLoading ? 'animate-pulse' : ''} />
+                </button>
+              </div>
+            </div>
+
+            {/* Accessory Bar */}
+            <div className="flex items-center justify-between px-4 pb-2 border-t border-white/[0.02] pt-2 mt-1">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all text-[11px] font-bold uppercase tracking-wider"
+                >
+                  <MapPin size={14} />
+                  Location
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-white hover:bg-white/5 rounded-xl transition-all text-[11px] font-bold uppercase tracking-wider"
+                >
+                  <Upload size={14} />
+                  Upload
+                </button>
+              </div>
+              
+              <div className="text-[10px] text-slate-700 font-bold uppercase tracking-widest hidden sm:block">
+                Press Enter to send
+              </div>
+            </div>
+
+            {/* Pending Context Badge - Floating inside input */}
             {pendingRouteContext && (
-              <div className="absolute -top-14 left-0 right-0 flex justify-center pointer-events-none">
-                <div className="flex items-center gap-3 px-4 py-2 bg-[#0a0c10]/95 backdrop-blur-md border border-cyan-500/30 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.4)] animate-in fade-in slide-in-from-bottom-3 duration-300 pointer-events-auto">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-                      <Navigation size={16} />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">Route Active</span>
-                      <span className="text-[11px] font-semibold text-white">
-                        {(pendingRouteContext.estimatedDistanceKm || 0).toFixed(1)} KM • {Math.round(pendingRouteContext.estimatedDurationMin || 0)} Min
-                      </span>
-                    </div>
+              <div className="absolute -top-16 left-4 right-4 flex justify-start pointer-events-none">
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-[#11141b] backdrop-blur-xl border border-indigo-500/30 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-300 pointer-events-auto">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                    <Navigation size={16} />
                   </div>
-                  <div className="w-px h-6 bg-white/10 mx-1"></div>
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em]">Route Context Active</span>
+                    <span className="text-[11px] font-bold text-white">
+                      {(pendingRouteContext.estimatedDistanceKm || 0).toFixed(1)} KM • {Math.round(pendingRouteContext.estimatedDurationMin || 0)} Min
+                    </span>
+                  </div>
                   <button 
                     onClick={() => setPendingRouteContext(null)}
-                    className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-rose-400 transition-colors"
-                    title="ลบข้อมูลเส้นทาง"
+                    className="ml-2 p-1.5 hover:bg-white/5 rounded-lg text-slate-600 hover:text-rose-400 transition-colors"
                   >
-                    <X size={16} />
+                    <X size={14} />
                   </button>
                 </div>
               </div>
             )}
-
-            <div className="flex items-center gap-2 shrink-0 pb-1">
-              <button
-                onClick={() => setIsLocationModalOpen(true)}
-                className="p-2 text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
-                title="Quick Location Search (#search)"
-              >
-                <MapPin size={18} />
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                title="Upload file"
-              >
-                <Upload size={18} />
-              </button>
-              <button
-                onClick={handleSend}
-                disabled={(!inputText.trim() && !pendingRouteContext) || isLoading}
-                className="p-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
-                style={{ backgroundColor: 'var(--chat-accent)' }}
-                title="Send message"
-              >
-                <Send size={18} />
-              </button>
-            </div>
           </div>
           <input
             ref={fileInputRef}
@@ -731,7 +739,6 @@ export const IntelligencePage = () => {
             accept=".pdf,.csv,.txt,.json"
             onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
             className="hidden"
-            title="Upload file for analysis"
           />
         </div>
       </div>

@@ -77,7 +77,7 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
 
   return (
     <div className="bg-tactical-card border border-zinc-800 rounded-2xl p-4 shadow-xl card-hover flex flex-col h-full">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex flex-col gap-3 mb-4">
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-zinc-800 rounded-lg text-zinc-400">
             <TrendingUp size={20} />
@@ -87,13 +87,13 @@ export const TrendingPlacesCard: React.FC<TrendingPlacesCardProps> = ({
           </h3>
         </div>
         
-        {/* Timeframe Selector */}
-        <div className="flex bg-zinc-900/80 p-0.5 rounded-lg border border-zinc-800">
+        {/* Timeframe Selector - Placed on a new line for better spacing in sidebar */}
+        <div className="flex w-full bg-zinc-900/80 p-0.5 rounded-lg border border-zinc-800">
           {timeframes.map((tf) => (
             <button
               key={tf.id}
               onClick={() => setTimeframe(tf.id)}
-              className={`px-3 py-1.5 text-[11px] font-black rounded-md transition-all ${
+              className={`flex-1 text-center py-1.5 text-[11px] font-black rounded-md transition-all ${
                 timeframe === tf.id 
                   ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-[0_0_15px_rgba(245,158,11,0.3)]' 
                   : 'text-zinc-600 hover:text-zinc-400'

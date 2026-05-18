@@ -207,3 +207,37 @@ if (selectedRegionFilters.length > 0) {
 ---
 
 *Generated after refactoring sessions. TypeScript compilation: ✓ No errors.*
+
+---
+
+## v1.x — May 2026: Storybook Documentation Update
+
+### Document Update Summary
+
+**Files Updated:**
+- `documents/Project_Structure.md` - Storybook section restructured to show available stories vs components without stories
+
+**Current Storybook Stories (8 Component + 3 Page):**
+
+| Story File | Component | Status |
+|------------|-----------|--------|
+| `RegionDashboard.stories.tsx` | RegionDashboard | ✅ Active |
+| `Header.stories.tsx` | Header | ✅ Active |
+| `Sidebar.stories.tsx` | Sidebar | ✅ Active |
+| `ThailandMap.stories.tsx` | ThailandMap | ✅ Active |
+| `AQIModal.stories.tsx` | AQIModal | ✅ Active |
+| `WeatherHistoryModal.stories.tsx` | WeatherHistoryModal | ✅ Active |
+| `GradientProgressBar.stories.tsx` | GradientProgressBar | ✅ Active |
+| `TrendingPlacesCard.stories.tsx` | TrendingPlacesCard | ✅ Active |
+
+**Components Without Stories (16):**
+CachedImage, ChatOverlay, DataCard, DetailCard, Footer, LocationSearchModal, MarkdownLite, PopularProvincePopup, PremiumCalendarCard, ProvinceMap, ProvinceReconPopup, RegionalIntelBar, ResourceInventory, TacticalSeasonPopup, ThreatConfig, ThreatMatrixModal, UpcomingEventBanner
+
+**Page Stories:**
+- `GeoArchivePage.stories.tsx` - Explore Hub (intent-first landing)
+- `IntelligencePage.stories.tsx` - AI chat (with/without context)
+- `RadarPage.stories.tsx` - Main map view
+
+---
+
+## v1.x — May 2026: GeoArchive Multi-Region Filter Refactoring

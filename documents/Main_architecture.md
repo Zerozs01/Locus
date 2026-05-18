@@ -189,6 +189,30 @@ For a single-user or small-group local-first app, Redis adds unnecessary complex
 - **Province Data Layers:** traffic, gistdaAqi, aqicnAqi, rainRadar, floodRecurrent, evCharger, slope
 - **GISTDA Features:** Dedicated no-proxy session for CORS-free API access
 
+## Storybook Stories
+
+### Components (8 Active Stories)
+| Story | Component | Description |
+|-------|-----------|-------------|
+| RegionDashboard | RegionDashboard | Region/Province dashboard with gallery modes |
+| Header | Header | App header with navigation |
+| Sidebar | Sidebar | Navigation sidebar with route icons |
+| ThailandMap | ThailandMap | Interactive Thailand map |
+| AQIModal | AQIModal | AQI modal with 7-day trend charts |
+| WeatherHistoryModal | WeatherHistoryModal | Temperature history/forecast modal |
+| GradientProgressBar | GradientProgressBar | Animated rainbow progress bar |
+| TrendingPlacesCard | TrendingPlacesCard | Trending places with score breakdown |
+
+### Pages (3 Active Stories)
+| Story | Page | Description |
+|-------|------|-------------|
+| RadarPage | ThreatRadarPage | Main map view |
+| GeoArchivePage | GeoArchivePage | Explore Hub (intent-first landing) |
+| IntelligencePage | IntelligencePage | AI chat with context support |
+
+### Components Without Stories
+CachedImage, ChatOverlay, DataCard, DetailCard, Footer, LocationSearchModal, MarkdownLite, PopularProvincePopup, PremiumCalendarCard, ProvinceMap, ProvinceReconPopup, RegionalIntelBar, ResourceInventory, TacticalSeasonPopup, ThreatConfig, ThreatMatrixModal, UpcomingEventBanner
+
 ## 10. Runtime Configuration
 
 Runtime config persisted via `config:get` / `config:set` IPC:

@@ -20,17 +20,18 @@ body,
 }
 
 body {
-  font-family: "Inter", system-ui, sans-serif;
-  background-color: #0a0a0b;
-  color: #d4d4d8;
+  font-family: "Outfit", "Inter", system-ui, sans-serif;
+  background-color: #09090b;
+  color: #fafafa;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
 
-/* Custom Scrollbar - Ultra Minimal */
+/* Custom Scrollbar - Ultra Minimal & Professional */
 ::-webkit-scrollbar {
-  width: 3px;
-  height: 3px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -38,29 +39,35 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* For specific containers that need even thinner bars */
 .custom-scrollbar::-webkit-scrollbar {
   width: 2px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.05) transparent;
 }
 
 /* Scan Line Animation */
@@ -120,22 +127,44 @@ input:focus-visible {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Glass Effect */
+/* Glass Effect - Enhanced */
 .glass {
-  background: rgba(13, 13, 15, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(39, 39, 42, 0.5);
+  background: rgba(13, 13, 17, 0.7);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Card Hover */
+.glass-light {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Card Hover - Premium */
 .card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Typography Refinements */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+/* Modern Button Base */
+.btn-premium {
+  @apply transition-all duration-300 active:scale-95;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-premium:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 /* Custom Utilities from New Design */

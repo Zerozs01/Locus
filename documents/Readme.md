@@ -50,6 +50,32 @@ npm install
 - **Run Storybook:** `npm run storybook` (Develop UI components in isolation)
 - **Build App:** `npm run build:win`
 
+### Storybook Components
+The following component stories are available:
+
+**Components (8):**
+- `RegionDashboard` - Region/Province dashboard with region & province gallery modes
+- `Header` - App header with navigation
+- `Sidebar` - Navigation sidebar with route icons
+- `ThailandMap` - Interactive Thailand map (react-simple-maps)
+- `AQIModal` - Air Quality Index modal with 7-day trend charts
+- `WeatherHistoryModal` - Temperature history/forecast modal
+- `GradientProgressBar` - Animated rainbow progress bar
+- `TrendingPlacesCard` - Trending places card with score breakdown
+
+**Components without stories (16):**
+CachedImage, ChatOverlay, DataCard, DetailCard, Footer, LocationSearchModal, MarkdownLite, PopularProvincePopup, PremiumCalendarCard, ProvinceMap, ProvinceReconPopup, RegionalIntelBar, ResourceInventory, TacticalSeasonPopup, ThreatConfig, ThreatMatrixModal, UpcomingEventBanner
+
+**Pages (3):**
+- `RadarPage` - Main map view
+- `GeoArchivePage` - Explore Hub (intent-first landing)
+- `IntelligencePage` - AI chat (with/without context)
+
+**Run Storybook:**
+```bash
+npm run storybook
+```
+
 ### Backend Services
 - Execute `scripts/start_all.bat` to launch n8n and Ngrok tunnel.
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Compass, Map, Newspaper, Settings, MessageSquare, Package, Navigation } from 'lucide-react';
+import { Map, Newspaper, Settings, MessageSquare, CalendarDays } from 'lucide-react';
 import { ResourceInventory } from './ResourceInventory';
 import logo from '../../../../src/Image/Locus_logo.png';
 
@@ -84,6 +84,12 @@ export const Sidebar = () => {
             label="News" 
             active={isActive('/analytics')}
             onClick={() => navigate('/analytics')}
+          />
+          <SidebarBtn 
+            icon={<CalendarDays size={20}/>} 
+            label="Travel Plans" 
+            active={isActive('/travel-plans')}
+            onClick={() => navigate('/travel-plans')}
           />
           {/* Directions & Resource Inventory - DISABLED for demo */}
           {/* <SidebarBtn 
