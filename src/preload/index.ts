@@ -87,7 +87,9 @@ const api = {
     getAll: () =>
       ipcRenderer.invoke('db:getExplorePlaces'),
     getByCategories: (categories: string[]) =>
-      ipcRenderer.invoke('db:getExplorePlacesByCategories', categories)
+      ipcRenderer.invoke('db:getExplorePlacesByCategories', categories),
+    scrapeSinglePlace: (id: number) =>
+      ipcRenderer.invoke('db:scrape-single-place', id)
   },
   fetchBangchak: () =>
     ipcRenderer.invoke('fuel:getBangchakPrices'),

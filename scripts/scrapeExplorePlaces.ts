@@ -169,8 +169,9 @@ async function scrapeGoogleMaps(
 
   try {
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    // Wait for the map to settle
-    await page.waitForTimeout(2500);
+    try {
+      await page.waitForSelector('img[src*="googleusercontent"], a[href*="/maps/place/"]', { timeout: 5000 });
+    } catch {}
 
     const result: ScrapedData = {
       sourceUrl: page.url(),
@@ -187,7 +188,9 @@ async function scrapeGoogleMaps(
         const firstResult = page.locator('a[href^="https://www.google.com/maps/place"]').first();
         if (await firstResult.count()) {
           await firstResult.click({ timeout: 5000 });
-          await page.waitForTimeout(2000);
+          try {
+            await page.waitForSelector('img[src*="googleusercontent"]', { timeout: 5000 });
+          } catch {}
           result.sourceUrl = page.url();
         }
       } catch {
@@ -255,29 +258,81 @@ async function scrapeGoogleMaps(
       console.log(`  ⚠️ Rating extraction error: ${err instanceof Error ? err.message : err}`);
     }
 
-    // Try to get an image URL
+    // Try to get multiple image URLs
     try {
-      const imgSrc = await page
-        .locator('img[decoding="async"][src*="googleusercontent"], img[src*="ggpht.com"]')
-        .first()
-        .getAttribute('src', { timeout: 5000 });
-      if (imgSrc) {
-        result.thumbnailUrl = imgSrc;
-        // Construct a larger version
-        result.fullImageUrl = imgSrc.replace(/=w\d+-h\d+/, '=w1200-h800');
-        console.log(`  🖼️ Image found`);
+      let clicked = false;
+      const selectors = [
+        'img[src*="googleusercontent"]',
+        'img[src*="ggpht.com"]',
+        'button[aria-label*="รูปภาพ ของ"]',
+        'button[aria-label*="Photo of"]',
+        'button[aria-label*="ภาพถ่ายของ"]',
+        'button[aria-label*="รูปภาพ"]',
+        'button[aria-label*="ภาพถ่าย"]',
+        'button[aria-label*="Photo"]',
+        'button[aria-label*="photo"]'
+      ];
+      
+      for (const selector of selectors) {
+        try {
+          const btn = page.locator(selector).first();
+          if (await btn.isVisible({ timeout: 1000 })) {
+            console.log(`  [Scraper] Clicking gallery selector: ${selector}`);
+            await btn.click({ force: true });
+            await page.waitForTimeout(800);
+            
+            // Check if gallery is opened by verifying if there are multiple images loaded
+            const imgCount = await page.locator('img[src*="googleusercontent"], img[src*="ggpht.com"]').count();
+            if (imgCount > 2) {
+              console.log(`  [Scraper] Gallery successfully opened with ${imgCount} images using: ${selector}`);
+              clicked = true;
+              break;
+            }
+          }
+        } catch (e) {
+          console.warn(`  [Scraper] Selector click attempt failed (${selector}):`, e);
+        }
+      }
+
+      // Wait for gallery images to settle
+      try {
+        await page.waitForSelector('img[src*="googleusercontent"], img[src*="ggpht.com"]', { timeout: 3000 });
+      } catch {}
+
+      const imgLocators = await page.locator('img[src*="googleusercontent"], img[src*="ggpht.com"]').all();
+      const imgUrls = new Set<string>();
+      
+      for (const img of imgLocators) {
+        try {
+          const src = await img.getAttribute('src');
+          if (src) {
+            // Golden Rule: Exclude Google User Avatars/Profile Pics
+            if (src.includes('/a/') || src.includes('/a-/') || src.includes('-mo')) continue;
+            
+            // Exclude extremely small thumbnails (often used for icons/avatars)
+            const dimMatch = src.match(/w(\d+)-h(\d+)/);
+            if (dimMatch) {
+              const w = parseInt(dimMatch[1]);
+              const h = parseInt(dimMatch[2]);
+              if (w < 80 || h < 80) continue;
+            }
+
+            const fullSrc = src.startsWith('//') ? `https:${src}` : src;
+            const largeUrl = fullSrc.replace(/=w\d+-h\d+.*$/, '=w1200-h800-k-no');
+            imgUrls.add(largeUrl);
+          }
+        } catch {}
+        if (imgUrls.size >= 12) break;
+      }
+
+      const uniqueUrls = Array.from(imgUrls);
+      if (uniqueUrls.length > 0) {
+        result.thumbnailUrl = uniqueUrls[0].replace(/=w\d+-h\d+.*$/, '=w400-h300-k-no');
+        result.fullImageUrl = JSON.stringify(uniqueUrls);
+        console.log(`  🖼️ Images found: ${uniqueUrls.length}`);
       }
     } catch {
-      // Try alternative image selector
-      try {
-        const imgAlt = await page.locator('img[src*="maps/"]').first().getAttribute('src', { timeout: 3000 });
-        if (imgAlt && imgAlt.startsWith('http')) {
-          result.thumbnailUrl = imgAlt;
-          console.log(`  🖼️ Image found (alt)`);
-        }
-      } catch {
-        console.log(`  ⚠️ Could not find image`);
-      }
+      console.log(`  ⚠️ Could not find images`);
     }
 
     // Try to get description / address
@@ -305,6 +360,18 @@ async function scrapeGoogleMaps(
     } catch {
       console.log(`  ⚠️ Could not find hours`);
     }
+
+    // Try to get website
+    try {
+      const websiteButton = page.locator('a[data-item-id="authority"]').first();
+      if (await websiteButton.isVisible({ timeout: 1500 })) {
+        const websiteUrl = await websiteButton.getAttribute('href', { timeout: 2000 });
+        if (websiteUrl) {
+          result.description = (result.description ? result.description + '\n' : '') + 'Website: ' + websiteUrl.trim();
+          console.log(`  🌐 Website: ${websiteUrl.substring(0, 50)}...`);
+        }
+      }
+    } catch {}
 
     if (!result.thumbnailUrl && !result.rating) {
       console.log('  ⚠️ No image/rating found after search (likely search list or consent block)');

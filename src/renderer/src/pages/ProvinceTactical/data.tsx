@@ -582,6 +582,7 @@ export function generateProvinceData(province: Province, region: Region, dbPlace
   const dbAttractions = dbPlaces
     .filter(p => p.category === 'nature' || p.category === 'culture' || p.category === 'landmark')
     .map(p => ({
+      id: p.id,
       name: p.title,
       type: p.category || 'Landmark',
       rating: p.rating || 0,
@@ -590,7 +591,8 @@ export function generateProvinceData(province: Province, region: Region, dbPlace
       price: 'Check on site',
       coordinates: p.locationName ? undefined : { lat: coords.lat, lng: coords.lng }, // Use coords if locationName is just a string
       sourceUrl: p.sourceUrl,
-      image: p.thumbnailUrl
+      image: p.thumbnailUrl,
+      fullImageUrl: p.fullImageUrl
     }));
 
   const dbRestaurants = dbPlaces

@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
 import { Region, Province } from '../../shared/types';
+import { EXPLORE_PLACES_SEED } from './explorePlacesSeed';
 
 const dbPath = path.join(app.getPath('userData'), 'locus.db');
 
@@ -307,6 +308,40 @@ export function initDatabase() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_explore_places_category ON explore_places(category);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_explore_places_region ON explore_places(region_id);`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_explore_places_province ON explore_places(province_id);`);
+
+  // --- Auto-Seed Logic ---
+  const explorePlacesCount = db.prepare("SELECT COUNT(*) as count FROM explore_places").get() as { count: number };
+  if (explorePlacesCount.count === 0) {
+    console.log("🚚 No data found in explore_places. Executing default seed data injection...");
+    const insertStmt = db.prepare(`
+      INSERT INTO explore_places (
+        title, location_name, category, icon_name, tags, region_id, province_id, 
+        description, source_url, thumbnail_url, lat, lng
+      ) VALUES (
+        @title, @locationName, @category, @iconName, @tags, @regionId, @provinceId, 
+        @description, @sourceUrl, @thumbnailUrl, @lat, @lng
+      )
+    `);
+    const doSeed = db.transaction((places) => {
+      for (const place of places) {
+        insertStmt.run({
+          title: place.title,
+          locationName: place.locationName || null,
+          category: place.category || null,
+          iconName: place.iconName || null,
+          tags: place.tags ? JSON.stringify(place.tags) : null,
+          regionId: place.regionId || null,
+          provinceId: place.provinceId || null,
+          description: place.description || null,
+          sourceUrl: place.sourceUrl || null,
+          thumbnailUrl: place.thumbnailUrl || null,
+          lat: place.lat || null,
+          lng: place.lng || null
+        });
+      }
+    });
+    doSeed(EXPLORE_PLACES_SEED);
+  }
 
   // ====== 15. Provinces Stats: Regional popularity data from MOTS ======
   db.exec(`
@@ -2176,6 +2211,77 @@ export function saveExplorePlaces(places: any[]): number {
 
 export function seedExplorePlaces(places: any[]): void {
   saveExplorePlaces(places);
+}
+
+export function getExplorePlaceById(id: number): any {
+  const row = db.prepare('SELECT * FROM explore_places WHERE id = ?').get(id) as any;
+  if (!row) return null;
+  return {
+    id: row.id,
+    title: row.title,
+    locationName: row.location_name,
+    category: row.category,
+    iconName: row.icon_name,
+    regionId: row.region_id,
+    provinceId: row.province_id,
+    tags: row.tags ? JSON.parse(row.tags) : [],
+    thumbnailUrl: row.thumbnail_url,
+    fullImageUrl: row.full_image_url,
+    description: row.description,
+    rating: row.rating,
+    reviewCount: row.review_count,
+    reviewCountWeek: row.review_count_week,
+    lastReviewAt: row.last_review_at,
+    checkinCount: row.checkin_count,
+    openingHours: row.opening_hours,
+    sourceUrl: row.source_url,
+    lat: row.lat,
+    lng: row.lng
+  };
+}
+
+export function updateExplorePlace(id: number, data: any): void {
+  const updates: string[] = [];
+  const params: (string | number | null)[] = [];
+
+  if (data.thumbnailUrl) {
+    updates.push('thumbnail_url = ?');
+    params.push(data.thumbnailUrl);
+  }
+  if (data.fullImageUrl) {
+    // Merge fullImageUrl into an array if we want Pinterest-style multiple images
+    // Wait, the schema originally held a string URL. The user wants it to be a JSON string array of URLs.
+    // We should parse the existing one if it's a JSON array, or convert it.
+    // Let's just store the scraped fullImageUrl as a string, but the prompt says:
+    // "If full_image_url contains multiple entries (e.g., stored as a parsed JSON string or mapped array)..."
+    // Since Playwright scraper scrapes one image, maybe it just gets one fullImageUrl. The prompt says "เปลี่ยนจากเก็บ String URL ภาพเดียวใน full_image_url ให้รองรับก้อนข้อมูลภาพ...". 
+    updates.push('full_image_url = ?');
+    // If it's passed as an array (JSON), we store it as JSON string. Otherwise just a string.
+    params.push(Array.isArray(data.fullImageUrl) ? JSON.stringify(data.fullImageUrl) : data.fullImageUrl);
+  }
+  if (data.description) {
+    updates.push('description = ?');
+    params.push(data.description);
+  }
+  if (data.rating !== undefined) {
+    updates.push('rating = ?');
+    params.push(data.rating);
+  }
+  if (data.openingHours) {
+    updates.push('opening_hours = ?');
+    params.push(data.openingHours);
+  }
+  if (data.sourceUrl) {
+    updates.push('source_url = ?');
+    params.push(data.sourceUrl);
+  }
+
+  if (updates.length === 0) return;
+
+  updates.push("updated_at = datetime('now')");
+  params.push(id);
+
+  db.prepare(`UPDATE explore_places SET ${updates.join(', ')} WHERE id = ?`).run(...params);
 }
 
 export interface ProvinceStats {

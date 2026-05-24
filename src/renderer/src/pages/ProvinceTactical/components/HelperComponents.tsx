@@ -166,7 +166,7 @@ export const CollapsibleSection = ({
   );
 };
 
-export const PlaceCard = ({ rank, name, type, rating, description, openHours, price, coordinates, sourceUrl, onFlyTo, image }: {
+export const PlaceCard = ({ rank, name, type, rating, description, openHours, price, coordinates, sourceUrl, onFlyTo, image, onClick }: {
   rank: number;
   name: string;
   type: string;
@@ -178,6 +178,7 @@ export const PlaceCard = ({ rank, name, type, rating, description, openHours, pr
   sourceUrl?: string;
   onFlyTo?: FlyToHandler;
   image?: string;
+  onClick?: () => void;
 }) => {
   const handleFlyTo = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -187,7 +188,10 @@ export const PlaceCard = ({ rank, name, type, rating, description, openHours, pr
   };
 
   return (
-    <div className="flex gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group">
+    <div 
+      className="flex gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer group"
+      onClick={onClick}
+    >
       {/* Image / Rank Placeholder */}
       <div className="relative w-16 h-16 rounded-lg bg-teal-500/10 flex items-center justify-center overflow-hidden flex-shrink-0 border border-teal-500/20">
         {image ? (
@@ -198,9 +202,12 @@ export const PlaceCard = ({ rank, name, type, rating, description, openHours, pr
             </div>
           </>
         ) : (
-          <div className="text-teal-400 font-black text-xl opacity-40">
-            {rank}
-          </div>
+          <>
+            <div className="w-full h-full bg-gradient-to-br from-slate-800 to-black opacity-80" />
+            <div className="absolute inset-0 flex items-center justify-center text-teal-400 font-black text-xl opacity-50">
+              {rank}
+            </div>
+          </>
         )}
       </div>
 
@@ -219,7 +226,7 @@ export const PlaceCard = ({ rank, name, type, rating, description, openHours, pr
               </button>
             )}
             {/* Maps button */}
-            {sourceUrl && (
+            {sourceUrl ? (
               <button
                 onClick={(e) => { e.stopPropagation(); window.open(sourceUrl, '_blank'); }}
                 className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 hover:text-emerald-300 transition-all hover:scale-110 active:scale-95"
@@ -227,17 +234,33 @@ export const PlaceCard = ({ rank, name, type, rating, description, openHours, pr
               >
                 <ExternalLink size={14} />
               </button>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}`, '_blank'); }}
+                className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 hover:text-emerald-300 transition-all hover:scale-110 active:scale-95"
+                title="Search in Google Maps (Fallback)"
+              >
+                <ExternalLink size={14} />
+              </button>
             )}
             <div className="flex items-center gap-1 text-amber-400">
               <Star size={12} fill="currentColor" />
-              <span className="text-xs font-bold">{rating}</span>
+              {rating ? (
+                <span className="text-xs font-bold">{rating}</span>
+              ) : (
+                <span className="text-[9px] font-bold text-amber-400/60 uppercase tracking-tighter">Pending</span>
+              )}
             </div>
           </div>
         </div>
         <p className="text-[11px] font-medium text-teal-400/80 leading-none mb-1.5">{type}</p>
         {description && <p className="text-[11px] text-slate-400 line-clamp-1 italic">{description}</p>}
         <div className="flex items-center gap-3 mt-1.5 text-[10px] text-slate-500 font-medium">
-          {openHours && <span className="flex items-center gap-1"><Clock size={10} className="text-slate-400" /> {openHours}</span>}
+          {openHours ? (
+            <span className="flex items-center gap-1"><Clock size={10} className="text-slate-400" /> {openHours}</span>
+          ) : (
+            <span className="flex items-center gap-1 text-slate-500/60 italic"><Clock size={10} /> Intel Pending</span>
+          )}
           {price && <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{price}</span>}
         </div>
       </div>

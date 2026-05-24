@@ -18,48 +18,51 @@ const formatLocalDateKey = (date: Date) => {
 
 interface PremiumCalendarCardProps {
   onDateClick?: (date: string, events: Holiday[]) => void;
+  customEvents?: Holiday[];
 }
 
-export const PremiumCalendarCard: React.FC<PremiumCalendarCardProps> = ({ onDateClick }) => {
+export const PremiumCalendarCard: React.FC<PremiumCalendarCardProps> = ({ onDateClick, customEvents = [] }) => {
   const [viewMode, setViewMode] = useState<'week' | 'month' | 'year'>('month');
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = formatLocalDateKey(now);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   const monthDays: Array<{ date: Date; key: string; inMonth: boolean; holidays: Holiday[]; isToday: boolean }> = [];
   const startPad = monthStart.getDay();
   const endPad = 6 - monthEnd.getDay();
+  
+  const allEvents = useMemo(() => [...HOLIDAYS, ...customEvents], [customEvents]);
 
   for (let i = startPad; i > 0; i -= 1) {
     const d = new Date(now.getFullYear(), now.getMonth(), 1 - i);
     const dateKey = formatLocalDateKey(d);
-    monthDays.push({ date: d, key: `${d.toISOString()}-prev`, inMonth: false, isToday: false, holidays: HOLIDAYS.filter((holiday) => holiday.date === dateKey) });
+    monthDays.push({ date: d, key: `${d.toISOString()}-prev`, inMonth: false, isToday: false, holidays: allEvents.filter((holiday) => holiday.date === dateKey) });
   }
 
   for (let day = 1; day <= monthEnd.getDate(); day += 1) {
     const d = new Date(now.getFullYear(), now.getMonth(), day);
-    const dStr = d.toISOString().split('T')[0];
+    const dStr = formatLocalDateKey(d);
     monthDays.push({
       date: d,
       key: dStr,
       inMonth: true,
       isToday: dStr === todayStr,
-      holidays: HOLIDAYS.filter((holiday) => holiday.date === dStr),
+      holidays: allEvents.filter((holiday) => holiday.date === dStr),
     });
   }
 
   for (let i = 1; i <= endPad; i += 1) {
     const d = new Date(now.getFullYear(), now.getMonth() + 1, i);
     const dateKey = formatLocalDateKey(d);
-    monthDays.push({ date: d, key: `${d.toISOString()}-next`, inMonth: false, isToday: false, holidays: HOLIDAYS.filter((holiday) => holiday.date === dateKey) });
+    monthDays.push({ date: d, key: `${d.toISOString()}-next`, inMonth: false, isToday: false, holidays: allEvents.filter((holiday) => holiday.date === dateKey) });
   }
   
   const monthEvents = useMemo(() => {
-    return HOLIDAYS.filter((holiday) => {
+    return allEvents.filter((holiday) => {
       const d = new Date(`${holiday.date}T00:00:00`);
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     });
-  }, [todayStr]);
+  }, [todayStr, allEvents]);
 
   const weekDays = useMemo(() => {
     const current = new Date(now);
@@ -68,20 +71,20 @@ export const PremiumCalendarCard: React.FC<PremiumCalendarCardProps> = ({ onDate
     return Array.from({ length: 7 }, (_, index) => {
       const date = new Date(current);
       date.setDate(current.getDate() + index);
-      const dateKey = date.toISOString().split('T')[0];
+      const dateKey = formatLocalDateKey(date);
       return {
         date,
         key: dateKey,
         inMonth: date.getMonth() === now.getMonth(),
         isToday: dateKey === todayStr,
-        holiday: HOLIDAYS.find((holiday) => holiday.date === dateKey),
+        holiday: allEvents.find((holiday) => holiday.date === dateKey),
       };
     });
-  }, [todayStr]);
+  }, [todayStr, allEvents]);
 
   const yearMonths = useMemo(() => {
     return Array.from({ length: 12 }, (_, monthIndex) => {
-      const monthEventsCount = HOLIDAYS.filter((holiday) => {
+      const monthEventsCount = allEvents.filter((holiday) => {
         const d = new Date(`${holiday.date}T00:00:00`);
         return d.getFullYear() === now.getFullYear() && d.getMonth() === monthIndex;
       }).length;
@@ -92,7 +95,7 @@ export const PremiumCalendarCard: React.FC<PremiumCalendarCardProps> = ({ onDate
         isCurrent: monthIndex === now.getMonth(),
       };
     });
-  }, []);
+  }, [allEvents]);
 
   const formatThaiDate = (date: Date) => {
     return `${date.getDate()} ${THAI_MONTHS[date.getMonth()]} ${date.getFullYear() + 543}`;
@@ -161,25 +164,23 @@ export const PremiumCalendarCard: React.FC<PremiumCalendarCardProps> = ({ onDate
             </div>
           ))}
           {monthDays.map(({ key, date, holidays, inMonth, isToday }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => {
-                if (!holidays.length) return;
-                onDateClick?.(formatLocalDateKey(date), holidays);
-              }}
-              disabled={holidays.length === 0}
-              className={`group relative flex min-h-[2.25rem] flex-col items-start justify-start rounded-xl border px-2 py-1.5 text-left transition-all ${
-                inMonth ? 'border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05]' : 'border-white/0 bg-transparent opacity-25'
-              } ${isToday ? 'ring-1 ring-indigo-500/60 bg-indigo-500/10' : ''} ${holidays.length > 0 ? 'cursor-pointer' : 'cursor-default'}`}
-            >
-              <span className={`text-[10px] font-black leading-none ${isToday ? 'text-white' : inMonth ? 'text-slate-300' : 'text-slate-600'}`}>
-                {date.getDate()}
-              </span>
-              {holidays.length > 0 && (
-                <span className="mt-1 flex h-1.5 w-1.5 rounded-full bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.8)]" title={holidays.map((holiday) => holiday.name).join(', ')} />
-              )}
-            </button>
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  onDateClick?.(formatLocalDateKey(date), holidays);
+                }}
+                className={`group relative flex min-h-[2.25rem] flex-col items-start justify-start rounded-xl border px-2 py-1.5 text-left transition-all ${
+                  inMonth ? 'border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05] cursor-pointer' : 'border-white/0 bg-transparent opacity-25 cursor-default'
+                } ${isToday ? 'ring-1 ring-indigo-500/60 bg-indigo-500/10' : ''}`}
+              >
+                <span className={`text-[10px] font-black leading-none ${isToday ? 'text-white' : inMonth ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {date.getDate()}
+                </span>
+                {holidays.length > 0 && (
+                  <span className="mt-1 flex h-1.5 w-1.5 rounded-full bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.8)]" title={holidays.map((holiday) => holiday.name).join(', ')} />
+                )}
+              </button>
           ))}
         </div>
       )}
@@ -191,8 +192,7 @@ export const PremiumCalendarCard: React.FC<PremiumCalendarCardProps> = ({ onDate
               key={key}
               type="button"
               onClick={() => {
-                if (!holiday) return;
-                onDateClick?.(formatLocalDateKey(date), HOLIDAYS.filter((entry) => entry.date === formatLocalDateKey(date)));
+                onDateClick?.(formatLocalDateKey(date), allEvents.filter((entry) => entry.date === formatLocalDateKey(date)));
               }}
               className={`rounded-2xl border px-2 py-2 text-left transition-all ${
                 isToday ? 'border-indigo-500/60 bg-indigo-500/10' : inMonth ? 'border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.05]' : 'border-white/0 bg-transparent opacity-25'

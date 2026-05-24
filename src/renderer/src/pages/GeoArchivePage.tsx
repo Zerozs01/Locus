@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getFuelPricesWithRefresh, refreshFuelPrices } from '../services/fuelPricesService';
 import { getRecords } from '../utils/csvDb';
@@ -24,6 +24,7 @@ import {
   CalendarDays,
   ArrowRight,
   ChevronRight,
+  ChevronLeft,
   Mountain,
   Waves,
   Camera,
@@ -45,7 +46,13 @@ import {
   Wind,
   RefreshCw,
   Search,
-  Bell
+  Bell,
+  Globe,
+  X,
+  Clock,
+  Video,
+  AlignLeft,
+  ChevronDown
 } from 'lucide-react';
 import KohKradan from '../../../Image/koh_kradan.png';
 import { PremiumCalendarCard } from '../components/PremiumCalendarCard';
@@ -69,6 +76,7 @@ interface RegionStats {
 }
 
 interface ExploreResultItem {
+  id?: number;
   title: string;
   location: string;
   category: string;
@@ -81,6 +89,7 @@ interface ExploreResultItem {
   thumbnailUrl?: string | null;
   sourceUrl?: string | null;
   openingHours?: string | null;
+  fullImageUrl?: string | null;
 }
 
 // ─── Data ───────────────────────────────────────────
@@ -421,8 +430,31 @@ export const GeoArchivePage = () => {
   const [homeProvinceIndex, setHomeProvinceIndex] = useState<ProvinceIndexItem[]>([]);
   const [homeExplorePlaces, setHomeExplorePlaces] = useState<Array<{ id: number; title: string; locationName: string | null; regionId: string | null; provinceId: string | null; category: string | null; tags: string[] | null }>>([]);
   const [planChecklist, setPlanChecklist] = useState<Record<string, boolean>>(() => Object.fromEntries(TRAVEL_CHECKLIST_ITEMS.map((task) => [task.id, task.done])));
+  const [customDraftItems, setCustomDraftItems] = useState<any[]>(() => {
+    try {
+      const snap = JSON.parse(window.localStorage.getItem('locus_travel_plan_snapshot') || 'null');
+      if (snap && Array.isArray(snap.items)) {
+        const baseIds = new Set(TRAVEL_CHECKLIST_ITEMS.map(t => t.id));
+        return snap.items.filter((i: any) => !baseIds.has(i.id));
+      }
+    } catch {}
+    return [];
+  });
   const [showPlanEditor, setShowPlanEditor] = useState(false);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
+  const [userEvents, setUserEvents] = useState<Holiday[]>([]);
+  const [calendarActiveTab, setCalendarActiveTab] = useState<'plan' | 'activity'>('plan');
+  const [newEventCategory, setNewEventCategory] = useState('Plan');
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [showEventTimeInput, setShowEventTimeInput] = useState(false);
+  const [showEventGuestInput, setShowEventGuestInput] = useState(false);
+  const [showEventLocationInput, setShowEventLocationInput] = useState(false);
+  const [showEventDescInput, setShowEventDescInput] = useState(false);
+  const [newEventTimeStart, setNewEventTimeStart] = useState('09:00');
+  const [newEventTimeEnd, setNewEventTimeEnd] = useState('10:00');
+  const [newEventGuests, setNewEventGuests] = useState('');
+  const [newEventLocation, setNewEventLocation] = useState('');
+  const [newEventDesc, setNewEventDesc] = useState('');
   const [planDraft, setPlanDraft] = useState({
     title: '',
     detail: '',
@@ -434,18 +466,17 @@ export const GeoArchivePage = () => {
   // Checklist is rendered as a scrollable list (max 4 visible) — no windowing required.
 
   useEffect(() => {
-    saveTravelPlanSnapshot(
-      TRAVEL_CHECKLIST_ITEMS.map((task) => ({
-        id: task.id,
-        title: task.title,
-        detail: task.detail,
-        when: task.when,
-        date: task.date,
-        category: task.category,
-        completed: planChecklist[task.id] ?? task.done,
-      })),
-    );
-  }, [planChecklist]);
+    const baseItems = TRAVEL_CHECKLIST_ITEMS.map((task) => ({
+      id: task.id,
+      title: task.title,
+      detail: task.detail,
+      when: task.when,
+      date: task.date,
+      category: task.category,
+      completed: planChecklist[task.id] ?? task.done,
+    }));
+    saveTravelPlanSnapshot([...baseItems, ...customDraftItems]);
+  }, [planChecklist, customDraftItems]);
 
   const handleHomeSearch = (queryOverride?: string) => {
     const query = (queryOverride ?? homeSearch).trim();
@@ -527,6 +558,67 @@ export const GeoArchivePage = () => {
   const [fuelSort, setFuelSort] = useState<'asc' | 'desc' | null>(null);
   const [fuelVehicleType, setFuelVehicleType] = useState<'car' | 'motorcycle'>('car');
   const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
+  const [isSyncingPlace, setIsSyncingPlace] = useState(false);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [isFullscreenViewerOpen, setIsFullscreenViewerOpen] = useState(false);
+
+  // Auto-sync Google Maps gallery photos when place detail is opened
+  useEffect(() => {
+    setActiveImageIdx(0); // Reset index on place change!
+
+    if (!selectedPlace) return;
+
+    let hasMultipleImages = false;
+    try {
+      if (selectedPlace.fullImageUrl) {
+        if (selectedPlace.fullImageUrl.startsWith('[')) {
+          const arr = JSON.parse(selectedPlace.fullImageUrl);
+          if (Array.isArray(arr) && arr.length > 1) {
+            hasMultipleImages = true;
+          }
+        }
+      }
+    } catch (e) {}
+
+    // Only auto-trigger if we don't have multiple images, have an ID, and are not currently syncing
+    if (!hasMultipleImages && selectedPlace.id && !isSyncingPlace) {
+      console.log(`[Auto-Sync] Triggering background enrichment for: ${selectedPlace.title}`);
+      
+      const autoSync = async () => {
+        setIsSyncingPlace(true);
+        try {
+          const api = (window as any).api;
+          const result = await api.explorePlaces.scrapeSinglePlace(selectedPlace.id);
+          if (result) {
+            const updatedPlace = {
+              id: result.id,
+              title: result.title,
+              location: result.locationName || '',
+              category: result.category || '',
+              iconName: result.iconName || null,
+              tags: result.tags || undefined,
+              regionId: result.regionId || undefined,
+              provinceId: result.provinceId || undefined,
+              rating: result.rating,
+              description: result.description,
+              thumbnailUrl: result.thumbnailUrl,
+              sourceUrl: result.sourceUrl,
+              openingHours: result.openingHours,
+              fullImageUrl: result.fullImageUrl,
+            };
+            setSelectedPlace(updatedPlace);
+            setExploreResults(prev => prev.map(p => p.id === selectedPlace.id ? updatedPlace : p));
+          }
+        } catch (err) {
+          console.error('[Auto-Sync] Failed:', err);
+        } finally {
+          setIsSyncingPlace(false);
+        }
+      };
+
+      autoSync();
+    }
+  }, [selectedPlace?.id]);
 
   const handleShowRegionWeather = useCallback(async (id: string, name: string) => {
     try {
@@ -579,6 +671,26 @@ export const GeoArchivePage = () => {
           'E85': 'bg-rose-500', 'B7': 'bg-amber-500', 'B20': 'bg-orange-500',
           'Diesel': 'bg-slate-500', 'Premium': 'bg-purple-600', '98+': 'bg-red-600'
         };
+
+        // 1. Optimistic load from cache instantly
+        const api = (window as any).api;
+        if (api?.fuelPrices?.get) {
+          try {
+            const cached = await api.fuelPrices.get();
+            if (cached && cached.length > 0 && isMounted) {
+              setGasPrices(cached.map((p: any) => ({
+                type: p.fuelType,
+                price: p.price,
+                color: colorMap[p.fuelType] || 'bg-slate-500'
+              })));
+            }
+          } catch (e) {
+            console.warn('[GeoArchive] Failed to load cached fuel prices:', e);
+          }
+        }
+
+        // 2. Fetch fresh data in the background
+        setIsRefreshingFuel(true);
         const prices = await getFuelPricesWithRefresh();
         if (!isMounted) return;
         
@@ -591,13 +703,59 @@ export const GeoArchivePage = () => {
         }
       } catch (err) {
         console.error('[GeoArchive] Failed to load fuel prices:', err);
+      } finally {
+        if (isMounted) setIsRefreshingFuel(false);
       }
     };
     loadFuelPrices();
+
+    // Load custom user events
+    try {
+      const storedEvents = localStorage.getItem('locus_custom_events');
+      if (storedEvents && isMounted) {
+        setUserEvents(JSON.parse(storedEvents));
+      }
+    } catch (e) {
+      console.warn('Failed to load custom events', e);
+    }
+
     return () => {
       isMounted = false;
     };
   }, []);
+
+  // Pre-fill modal data when opening a calendar date
+  useEffect(() => {
+    if (selectedCalendarDate) {
+      const customEventObj = userEvents.find((e) => e.date === selectedCalendarDate && e.type === 'custom') as any;
+      if (customEventObj) {
+        setNewEventTitle(customEventObj.name || '');
+        setNewEventTimeStart(customEventObj.timeStart || '09:00');
+        setNewEventTimeEnd(customEventObj.timeEnd || '10:00');
+        setNewEventGuests(customEventObj.guests || '');
+        setNewEventLocation(customEventObj.location || '');
+        setNewEventDesc(customEventObj.description || '');
+        
+        setShowEventTimeInput(!!customEventObj.timeStart);
+        setShowEventGuestInput(!!customEventObj.guests);
+        setShowEventLocationInput(!!customEventObj.location);
+        setShowEventDescInput(!!customEventObj.description);
+      } else {
+        const publicEvent = HOLIDAYS.find((e) => e.date === selectedCalendarDate);
+        setNewEventTitle(publicEvent ? publicEvent.name : '');
+        setNewEventTimeStart('09:00');
+        setNewEventTimeEnd('10:00');
+        setNewEventGuests('');
+        setNewEventLocation('');
+        setNewEventDesc('');
+        
+        setShowEventTimeInput(false);
+        setShowEventGuestInput(false);
+        setShowEventLocationInput(false);
+        setShowEventDescInput(false);
+      }
+    }
+  }, [selectedCalendarDate]); // Intentionally omitting userEvents so it doesn't re-run on save unless date changes
 
   // ─── Icon Name → React Component mapping ──────────
   const ICON_MAP: Record<string, React.ReactNode> = {
@@ -680,6 +838,7 @@ export const GeoArchivePage = () => {
         if (!isMounted) return;
         if (places && places.length > 0) {
           let filtered = places.map((p: any) => ({
+            id: p.id,
             title: p.title,
             location: p.locationName || '',
             category: p.category || '',
@@ -692,6 +851,7 @@ export const GeoArchivePage = () => {
             thumbnailUrl: p.thumbnailUrl,
             sourceUrl: p.sourceUrl,
             openingHours: p.openingHours,
+            fullImageUrl: p.fullImageUrl,
           }));
 
           // Apply region filter
@@ -1271,7 +1431,7 @@ export const GeoArchivePage = () => {
                       : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
-                  รถยนต์ (~14 km/L)
+                  รถยนต์ 
                 </button>
                 <button
                   type="button"
@@ -1282,7 +1442,7 @@ export const GeoArchivePage = () => {
                       : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
-                  มอเตอร์ไซค์ (~35 km/L)
+                  มอเตอร์ไซค์ 
                 </button>
               </div>
 
@@ -1405,7 +1565,16 @@ export const GeoArchivePage = () => {
                     History
                   </button>
                   <button
-                    onClick={() => setShowPlanEditor(true)}
+                    onClick={() => {
+                      setPlanDraft({
+                        title: '',
+                        detail: '',
+                        when: new Date().toISOString().split('T')[0], // YYYY-MM-DD for date input picker
+                        date: '09:00 - 10:00', // start - end time initial value
+                        category: 'Plan',
+                      });
+                      setShowPlanEditor(true);
+                    }}
                     className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 hover:bg-cyan-500/20 transition-all hover:scale-110"
                     title="Create plan"
                   >
@@ -1452,50 +1621,60 @@ export const GeoArchivePage = () => {
               </div>
               {/* Compact checklist: show up to 4 items and allow vertical scrolling for extras */}
               <div className="flex-1 space-y-2 max-h-56 overflow-y-auto pr-2">
-                {TRAVEL_CHECKLIST_ITEMS.map((task) => {
-                  const done = planChecklist[task.id] ?? task.done;
-                  return (
-                    <button
-                      key={task.id}
-                      type="button"
-                      onClick={() => {
-                        const nextDone = !done;
-                        setPlanChecklist((prev) => ({ ...prev, [task.id]: nextDone }));
-                        appendTravelPlanHistory({
-                          type: 'checklist-toggle',
-                          title: task.title,
-                          detail: task.detail,
-                          when: task.when,
-                          date: task.date,
-                          category: task.category,
-                          completed: nextDone,
-                        });
-                      }}
-                      className="flex w-full items-start gap-3 rounded-xl border border-white/[0.02] bg-white/[0.02] px-3 py-2.5 text-left transition-all hover:border-cyan-500/20 hover:bg-white/[0.05]"
-                    >
-                      <div className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-lg border transition-colors ${done ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400' : 'border-white/10 bg-white/5 text-slate-600'}`}>
-                        {done ? <span className="text-[10px] font-black">✓</span> : <div className="h-1.5 w-1.5 rounded-full bg-current opacity-40" />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className={`text-[12px] font-bold transition-colors ${done ? 'text-slate-300 line-through decoration-slate-500/60' : 'text-slate-200'}`}>{task.title}</div>
-                        <div className="text-[10px] font-medium text-slate-600">{task.detail}</div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 text-right">
-                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.22em] text-slate-500">{task.category}</span>
-                        <div className="text-[10px] font-bold text-cyan-300">{task.when}</div>
-                        <div className="text-[9px] font-medium text-slate-600">{task.date}</div>
-                      </div>
-                    </button>
-                  );
-                })}
+                {TRAVEL_CHECKLIST_ITEMS.filter((task) => !(planChecklist[task.id] ?? task.done)).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3">
+                      <span className="text-xl text-emerald-400">✓</span>
+                    </div>
+                    <div className="text-sm font-bold text-white">ยอดเยี่ยม! จัดการครบแล้ว</div>
+                    <div className="text-[10px] text-slate-500 mt-1">ดูประวัติทั้งหมดได้ที่หน้า History</div>
+                  </div>
+                ) : (
+                  TRAVEL_CHECKLIST_ITEMS.filter((task) => !(planChecklist[task.id] ?? task.done)).map((task) => {
+                    const done = planChecklist[task.id] ?? task.done;
+                    return (
+                      <button
+                        key={task.id}
+                        type="button"
+                        onClick={() => {
+                          const nextDone = !done;
+                          setPlanChecklist((prev) => ({ ...prev, [task.id]: nextDone }));
+                          appendTravelPlanHistory({
+                            type: 'checklist-toggle',
+                            title: task.title,
+                            detail: task.detail,
+                            when: task.when,
+                            date: task.date,
+                            category: task.category,
+                            completed: nextDone,
+                          });
+                        }}
+                        className="flex w-full items-start gap-3 rounded-xl border border-white/[0.02] bg-white/[0.02] px-3 py-2.5 text-left transition-all hover:border-cyan-500/20 hover:bg-white/[0.05]"
+                      >
+                        <div className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-lg border transition-colors ${done ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400' : 'border-white/10 bg-white/5 text-slate-600'}`}>
+                          {done ? <span className="text-[10px] font-black">✓</span> : <div className="h-1.5 w-1.5 rounded-full bg-current opacity-40" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className={`text-[12px] font-bold transition-colors ${done ? 'text-slate-300 line-through decoration-slate-500/60' : 'text-slate-200'}`}>{task.title}</div>
+                          <div className="text-[10px] font-medium text-slate-600">{task.detail}</div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 text-right">
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.22em] text-slate-500">{task.category}</span>
+                          <div className="text-[10px] font-bold text-cyan-300">{task.when}</div>
+                          <div className="text-[9px] font-medium text-slate-600">{task.date}</div>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
 
           {showPlanEditor && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 py-6 backdrop-blur-sm">
-              <div className="w-full max-w-lg rounded-[2rem] border border-white/10 bg-[#0a0c10] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.65)]">
-                <div className="flex items-start justify-between gap-4">
+              <div className="w-full max-w-lg rounded-[2rem] border border-white/10 bg-[#0a0c10] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.65)] flex flex-col gap-4">
+                <div className="flex items-start justify-between gap-4 border-b border-white/5 pb-3">
                   <div>
                     <div className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-300">Create plan</div>
                     <h4 className="mt-1 text-lg font-bold text-white">กำหนดรายละเอียด checklist ใหม่</h4>
@@ -1503,72 +1682,167 @@ export const GeoArchivePage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPlanEditor(false)}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/10 hover:text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-[#e8eaed] hover:bg-white/10 hover:text-white transition-all text-xs font-bold"
                     aria-label="Close plan editor"
                   >
-                    <ChevronRight size={16} className="rotate-45" />
+                    ✕
                   </button>
                 </div>
 
-                <div className="mt-4 grid gap-3">
-                  <input
-                    value={planDraft.title}
-                    onChange={(event) => setPlanDraft((prev) => ({ ...prev, title: event.target.value }))}
-                    placeholder="ชื่อรายการ เช่น จองโรงแรม"
-                    className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
-                  />
-                  <textarea
-                    value={planDraft.detail}
-                    onChange={(event) => setPlanDraft((prev) => ({ ...prev, detail: event.target.value }))}
-                    rows={3}
-                    placeholder="รายละเอียดที่อยากให้จำ เช่น ใกล้สถานีรถไฟ / มีที่จอดรถ"
-                    className="resize-none rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
-                  />
-                  <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-4">
+                  {/* Title */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">ชื่อกิจกรรมหลัก</label>
                     <input
-                      value={planDraft.when}
-                      onChange={(event) => setPlanDraft((prev) => ({ ...prev, when: event.target.value }))}
-                      placeholder="ช่วงเวลา เช่น วันนี้ / ก่อนเดินทาง 3 วัน"
-                      className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
-                    />
-                    <input
-                      value={planDraft.date}
-                      onChange={(event) => setPlanDraft((prev) => ({ ...prev, date: event.target.value }))}
-                      placeholder="เวลา เช่น 09:00"
-                      className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
+                      value={planDraft.title}
+                      onChange={(event) => setPlanDraft((prev) => ({ ...prev, title: event.target.value }))}
+                      placeholder="เช่น จองโรงแรมสไตล์ลอฟท์, ล็อกจุดเช็คอินดอยสุเทพ"
+                      className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-700 focus:border-cyan-400/50 transition-colors"
                     />
                   </div>
-                  <input
-                    value={planDraft.category}
-                    onChange={(event) => setPlanDraft((prev) => ({ ...prev, category: event.target.value }))}
-                    placeholder="หมวดหมู่ เช่น Booking / Route / Packing"
-                    className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/50"
-                  />
+
+                  {/* Detail */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">รายละเอียดกิจกรรม</label>
+                    <textarea
+                      value={planDraft.detail}
+                      onChange={(event) => setPlanDraft((prev) => ({ ...prev, detail: event.target.value }))}
+                      rows={3}
+                      placeholder="ใส่รายละเอียดที่ช่วยให้จำได้ดีขึ้น เช่น จองเตียงคู่, ใกล้รถไฟฟ้า, เช็คฝุ่นละออง"
+                      className="resize-none rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-700 focus:border-cyan-400/50 transition-colors"
+                    />
+                  </div>
+
+                  {/* Date & Time Picker */}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {/* Date Picker (when) */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">เลือกวันที่จัดทริป</label>
+                      <input
+                        type="date"
+                        value={planDraft.when}
+                        onClick={(event) => {
+                          try {
+                            event.currentTarget.showPicker();
+                          } catch (err) {
+                            console.warn(err);
+                          }
+                        }}
+                        onFocus={(event) => {
+                          try {
+                            event.currentTarget.showPicker();
+                          } catch (err) {
+                            console.warn(err);
+                          }
+                        }}
+                        onChange={(event) => setPlanDraft((prev) => ({ ...prev, when: event.target.value }))}
+                        className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none focus:border-cyan-400/50 transition-colors cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Time Picker (Start & End Times merged into date) */}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">กำหนดช่วงเวลา (เริ่ม - จบ)</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          list="popular-times"
+                          value={planDraft.date.split(' - ')[0] || '09:00'}
+                          onClick={(event) => {
+                            try {
+                              event.currentTarget.showPicker();
+                            } catch (err) {}
+                          }}
+                          onFocus={(event) => {
+                            try {
+                              event.currentTarget.showPicker();
+                            } catch (err) {}
+                          }}
+                          onChange={(event) => {
+                            const endTime = planDraft.date.split(' - ')[1] || '10:00';
+                            setPlanDraft((prev) => ({ ...prev, date: `${event.target.value} - ${endTime}` }));
+                          }}
+                          className="flex-1 rounded-xl border border-white/10 bg-[#06080c] px-2 py-2 text-center text-xs text-white outline-none focus:border-cyan-400/50"
+                        />
+                        <span className="text-slate-500 text-xs">-</span>
+                        <input
+                          type="time"
+                          list="popular-times"
+                          value={planDraft.date.split(' - ')[1] || '10:00'}
+                          onClick={(event) => {
+                            try {
+                              event.currentTarget.showPicker();
+                            } catch (err) {}
+                          }}
+                          onFocus={(event) => {
+                            try {
+                              event.currentTarget.showPicker();
+                            } catch (err) {}
+                          }}
+                          onChange={(event) => {
+                            const startTime = planDraft.date.split(' - ')[0] || '09:00';
+                            setPlanDraft((prev) => ({ ...prev, date: `${startTime} - ${event.target.value}` }));
+                          }}
+                          className="flex-1 rounded-xl border border-white/10 bg-[#06080c] px-2 py-2 text-center text-xs text-white outline-none focus:border-cyan-400/50"
+                        />
+                      </div>
+                      <datalist id="popular-times">
+                        {Array.from({ length: 48 }).map((_, i) => {
+                          const hour = Math.floor(i / 2).toString().padStart(2, '0');
+                          const min = (i % 2 === 0) ? '00' : '30';
+                          return <option key={`${hour}:${min}`} value={`${hour}:${min}`} />;
+                        })}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  {/* Category Dropdown (Category) */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">หมวดหมู่ / แท็กประเภทข้อมูล</label>
+                    <select
+                      value={planDraft.category}
+                      onChange={(event) => setPlanDraft((prev) => ({ ...prev, category: event.target.value }))}
+                      className="rounded-2xl border border-white/10 bg-[#06080c] px-4 py-3 text-sm text-white outline-none focus:border-cyan-400/50 cursor-pointer transition-colors"
+                    >
+                      <option value="Plan">Plan (การกำหนดแผนการเดินทางย่อย)</option>
+                      <option value="Booking">Booking (การจองที่พัก / ยานพาหนะ)</option>
+                      <option value="Weather">Weather (การวิเคราะห์สภาพดินฟ้าอากาศ/AQI)</option>
+                      <option value="Packing">Packing (การจัดเป้/สัมภาระและยาสามัญ)</option>
+                      <option value="Route">Route (การวางเส้นทางและค่าน้ำมันเฉลี่ย)</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div className="mt-4 flex items-center justify-end gap-2">
+                <div className="mt-4 flex items-center justify-end gap-3 border-t border-white/5 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowPlanEditor(false)}
-                    className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-white/10 hover:text-white"
+                    className="rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all"
                   >
                     ยกเลิก
                   </button>
                   <button
                     type="button"
                     onClick={() => {
-                      appendTravelPlanHistory({
-                        type: 'draft-saved',
-                        title: planDraft.title.trim() || 'draft',
-                        detail: planDraft.detail.trim() || 'บันทึก draft จากหน้า Home',
-                        when: planDraft.when.trim() || 'วันนี้',
-                        date: planDraft.date.trim() || '09:00',
+                      const newDraft = {
+                        type: 'draft-saved' as const,
+                        title: planDraft.title.trim() || 'เช็คอินทริปเดินทางใหม่',
+                        detail: planDraft.detail.trim() || 'บันทึกแผนกิจกรรมย่อยเพิ่มเติม',
+                        when: planDraft.when.trim() || new Date().toISOString().split('T')[0],
+                        date: planDraft.date.trim() || '09:00 - 10:00',
                         category: planDraft.category.trim() || 'Plan',
                         completed: false,
-                      });
+                      };
+                      const appendedEntry = appendTravelPlanHistory(newDraft);
+                      
+                      setCustomDraftItems(prev => [...prev, {
+                        ...newDraft,
+                        id: appendedEntry.id
+                      }]);
+
                       setShowPlanEditor(false);
                     }}
-                    className="rounded-2xl border border-cyan-500/30 bg-cyan-500/15 px-4 py-2.5 text-sm font-black text-cyan-200 hover:bg-cyan-500/25"
+                    className="rounded-2xl border border-cyan-500/30 bg-cyan-500/20 px-6 py-2.5 text-xs font-black text-cyan-200 hover:bg-cyan-500/35 hover:scale-[1.02] active:scale-95 shadow-md shadow-cyan-500/10 transition-all"
                   >
                     บันทึก draft
                   </button>
@@ -1578,43 +1852,226 @@ export const GeoArchivePage = () => {
           )}
 
           {selectedCalendarDate && (() => {
-            const selectedEvents = HOLIDAYS.filter((holiday) => holiday.date === selectedCalendarDate);
+            const allSelectedEvents = [...HOLIDAYS, ...userEvents].filter((holiday) => holiday.date === selectedCalendarDate);
+            const eventObj = allSelectedEvents[0];
+            const defaultTitle = eventObj ? eventObj.name : '';
             const selectedDateLabel = new Date(`${selectedCalendarDate}T00:00:00`).toLocaleDateString('th-TH', {
-              dateStyle: 'full',
+              weekday: 'long',
+              day: 'numeric',
+              month: 'short'
             });
+
+            const closeModal = () => {
+              setNewEventTitle('');
+              setShowEventTimeInput(false);
+              setShowEventGuestInput(false);
+              setShowEventLocationInput(false);
+              setShowEventDescInput(false);
+              setSelectedCalendarDate(null);
+              setCalendarActiveTab('plan');
+              setNewEventCategory('Plan');
+            };
+
+            const handleSaveEvent = () => {
+              const titleToSave = newEventTitle.trim() || defaultTitle || 'New Event';
+              const newEvent = {
+                date: selectedCalendarDate,
+                name: titleToSave,
+                nameEn: titleToSave,
+                type: 'custom' as const,
+                timeStart: showEventTimeInput ? newEventTimeStart : '',
+                timeEnd: showEventTimeInput ? newEventTimeEnd : '',
+                guests: showEventGuestInput ? newEventGuests : '',
+                location: showEventLocationInput ? newEventLocation : '',
+                description: showEventDescInput ? newEventDesc : '',
+                category: newEventCategory,
+              };
+              
+              setUserEvents(prev => {
+                const updated = [...prev.filter(e => !(e.date === selectedCalendarDate && e.type === 'custom')), newEvent];
+                localStorage.setItem('locus_custom_events', JSON.stringify(updated));
+                return updated;
+              });
+              
+              closeModal();
+            };
+
+            const handleDeleteEvent = () => {
+              setUserEvents(prev => {
+                const updated = prev.filter(e => !(e.date === selectedCalendarDate && e.type === 'custom'));
+                localStorage.setItem('locus_custom_events', JSON.stringify(updated));
+                return updated;
+              });
+              closeModal();
+            };
 
             return (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 py-6 backdrop-blur-sm">
-                <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-[#0a0c10] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.65)]">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">Calendar detail</div>
-                      <h4 className="mt-1 text-lg font-bold text-white">{selectedDateLabel}</h4>
-                    </div>
+                <div className="w-full max-w-lg rounded-xl border border-[#3c4043] bg-[#202124] text-[#e8eaed] shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                  {/* Header */}
+                  <div className="flex items-center justify-between bg-[#303134] px-2 py-1 cursor-move">
+                    <button className="p-2 text-[#9aa0a6] hover:bg-white/10 rounded-full transition-colors flex flex-col gap-1 items-center justify-center opacity-70">
+                      <div className="w-3.5 h-[1.5px] bg-current"></div>
+                      <div className="w-3.5 h-[1.5px] bg-current"></div>
+                    </button>
                     <button
-                      type="button"
-                      onClick={() => setSelectedCalendarDate(null)}
-                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/10 hover:text-white"
-                      aria-label="Close calendar detail"
+                      onClick={closeModal}
+                      className="p-2 text-[#9aa0a6] hover:bg-white/10 rounded-full transition-colors"
                     >
-                      <ChevronRight size={16} className="rotate-45" />
+                      <X size={20} />
                     </button>
                   </div>
 
-                  <div className="mt-4 space-y-2">
-                    {selectedEvents.map((holiday) => (
-                      <div key={`${holiday.date}-${holiday.name}`} className="rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-sm font-bold text-white">{holiday.name}</div>
-                            <div className="mt-1 text-xs text-slate-500">{holiday.nameEn}</div>
-                          </div>
-                          <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.22em] ${holiday.type === 'public' ? 'border-blue-500/30 bg-blue-500/10 text-blue-300' : holiday.type === 'religious' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300' : holiday.type === 'chinese' ? 'border-rose-500/30 bg-rose-500/10 text-rose-300' : 'border-white/10 bg-white/5 text-slate-300'}`}>
-                            {holiday.type}
-                          </span>
-                        </div>
+                  {/* Body */}
+                  <div className="p-4 pr-6 pl-14 relative flex flex-col gap-4">
+                    {/* Title Input */}
+                    <div className="mb-1">
+                      <input 
+                        type="text" 
+                        placeholder="เพิ่มชื่อและเวลา (Add title)" 
+                        defaultValue={defaultTitle}
+                        onChange={(e) => setNewEventTitle(e.target.value)}
+                        autoFocus
+                        className="w-full bg-transparent text-[22px] text-white outline-none border-b-2 border-[#8ab4f8] pb-1 placeholder:text-[#9aa0a6]"
+                      />
+                    </div>
+                    
+                    {/* Time */}
+                    <div className="flex items-start gap-4 -ml-10">
+                      <div className="mt-1 flex items-center justify-center w-6 text-[#9aa0a6]">
+                        <Clock size={20} />
                       </div>
-                    ))}
+                      <div className="flex-1 flex flex-col items-start mt-0.5">
+                        <div className="text-[14px] text-[#e8eaed]">{selectedDateLabel}</div>
+                        {showEventTimeInput ? (
+                          <div className="flex items-center gap-2 mt-2 w-full pr-4">
+                            <input 
+                              type="time" 
+                              list="calendar-popular-times"
+                              value={newEventTimeStart} 
+                              onClick={(e) => { try { e.currentTarget.showPicker() } catch(err){} }}
+                              onFocus={(e) => { try { e.currentTarget.showPicker() } catch(err){} }}
+                              onChange={(e) => setNewEventTimeStart(e.target.value)} 
+                              className="bg-[#303134] text-white px-2 py-1.5 rounded text-[13px] border border-[#5f6368] outline-none focus:border-[#8ab4f8] flex-1 cursor-pointer" 
+                            />
+                            <span className="text-[#9aa0a6]">-</span>
+                            <input 
+                              type="time" 
+                              list="calendar-popular-times"
+                              value={newEventTimeEnd} 
+                              onClick={(e) => { try { e.currentTarget.showPicker() } catch(err){} }}
+                              onFocus={(e) => { try { e.currentTarget.showPicker() } catch(err){} }}
+                              onChange={(e) => setNewEventTimeEnd(e.target.value)} 
+                              className="bg-[#303134] text-white px-2 py-1.5 rounded text-[13px] border border-[#5f6368] outline-none focus:border-[#8ab4f8] flex-1 cursor-pointer" 
+                            />
+                            <datalist id="calendar-popular-times">
+                              {Array.from({ length: 48 }).map((_, i) => {
+                                const hour = Math.floor(i / 2).toString().padStart(2, '0');
+                                const min = (i % 2 === 0) ? '00' : '30';
+                                return <option key={`${hour}:${min}`} value={`${hour}:${min}`} />;
+                              })}
+                            </datalist>
+                          </div>
+                        ) : (
+                          <div className="text-[12px] text-[#9aa0a6] mt-0.5">ไม่เกิดซ้ำ (Doesn't repeat)</div>
+                        )}
+                      </div>
+                      {!showEventTimeInput && (
+                        <button onClick={() => setShowEventTimeInput(true)} className="border border-[#5f6368] text-[#8ab4f8] px-4 py-1.5 rounded-full text-[13px] font-medium hover:bg-white/5 transition-colors shrink-0">
+                          เพิ่มเวลา
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Guests */}
+                    <div 
+                      onClick={() => !showEventGuestInput && setShowEventGuestInput(true)}
+                      className="flex items-center gap-4 -ml-10 hover:bg-white/5 px-2 py-2.5 -my-2 rounded-md transition-colors cursor-text"
+                    >
+                      <div className="flex items-center justify-center w-6 text-[#9aa0a6]">
+                        <Users size={20} />
+                      </div>
+                      {showEventGuestInput ? (
+                        <input type="text" autoFocus placeholder="ระบุจำนวน หรือชื่อผู้ร่วมเดินทาง..." value={newEventGuests} onChange={(e) => setNewEventGuests(e.target.value)} className="flex-1 bg-transparent text-[14px] text-white outline-none border-b border-[#8ab4f8] pb-1" />
+                      ) : (
+                        <div className="text-[14px] text-[#e8eaed] flex-1">เพิ่มผู้ร่วมเดินทาง</div>
+                      )}
+                    </div>
+
+                    {/* Location */}
+                    <div 
+                      onClick={() => !showEventLocationInput && setShowEventLocationInput(true)}
+                      className="flex items-center gap-4 -ml-10 hover:bg-white/5 px-2 py-2.5 -my-2 rounded-md transition-colors cursor-text"
+                    >
+                      <div className="flex items-center justify-center w-6 text-[#9aa0a6]">
+                        <MapPin size={20} />
+                      </div>
+                      {showEventLocationInput ? (
+                        <input type="text" autoFocus placeholder="ค้นหาสถานที่..." value={newEventLocation} onChange={(e) => setNewEventLocation(e.target.value)} className="flex-1 bg-transparent text-[14px] text-white outline-none border-b border-[#8ab4f8] pb-1" />
+                      ) : (
+                        <div className="text-[14px] text-[#e8eaed] flex-1">เพิ่มสถานที่ (Location)</div>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <div 
+                      onClick={() => !showEventDescInput && setShowEventDescInput(true)}
+                      className={`flex ${showEventDescInput ? 'items-start' : 'items-center'} gap-4 -ml-10 hover:bg-white/5 px-2 py-2.5 -my-2 rounded-md transition-colors cursor-text`}
+                    >
+                      <div className="flex items-center justify-center w-6 text-[#9aa0a6] mt-1">
+                        <AlignLeft size={20} />
+                      </div>
+                      {showEventDescInput ? (
+                        <textarea autoFocus placeholder="เพิ่มรายละเอียดที่นี่..." rows={3} value={newEventDesc} onChange={(e) => setNewEventDesc(e.target.value)} className="flex-1 bg-[#303134] text-[14px] text-white outline-none border border-[#5f6368] rounded-md p-2 resize-none focus:border-[#8ab4f8]" />
+                      ) : (
+                        <div className="text-[14px] text-[#e8eaed] flex-1">เพิ่มรายละเอียด หรือแนบไฟล์</div>
+                      )}
+                    </div>
+
+                    {/* Category Selection */}
+                    <div className="flex items-center gap-4 -ml-10 hover:bg-white/5 px-2 py-2.5 -my-2 rounded-md transition-colors cursor-pointer">
+                      <div className="flex items-center justify-center w-6 text-[#9aa0a6]">
+                        <div className="w-3 h-3 rounded-full bg-[#009688]" />
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <div className="flex items-center gap-2 text-[14px] text-[#e8eaed]">
+                          หมวดหมู่ / แท็กประเภทข้อมูล
+                        </div>
+                        <select
+                          value={newEventCategory}
+                          onChange={(e) => setNewEventCategory(e.target.value)}
+                          className="mt-1 bg-transparent text-[13px] text-[#9aa0a6] outline-none border-b border-[#5f6368] focus:border-[#8ab4f8] pb-1 w-full"
+                        >
+                          <option value="Plan">Plan (การกำหนดแผนการเดินทางย่อย)</option>
+                          <option value="Booking">Booking (การจองที่พัก / ยานพาหนะ)</option>
+                          <option value="Weather">Weather (การวิเคราะห์สภาพดินฟ้าอากาศ/AQI)</option>
+                          <option value="Packing">Packing (การจัดเป้/สัมภาระและยาสามัญ)</option>
+                          <option value="Route">Route (การวางเส้นทางและค่าน้ำมันเฉลี่ย)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between gap-2 px-4 py-3 bg-[#202124]">
+                    <div>
+                      {userEvents.find(e => e.date === selectedCalendarDate && e.type === 'custom') && (
+                        <button onClick={handleDeleteEvent} className="text-[#f28b82] hover:bg-red-400/10 px-3 py-2 rounded-md text-[14px] font-medium transition-colors">
+                          ลบ (Delete)
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button className="text-[#8ab4f8] hover:bg-blue-400/10 px-3 py-2 rounded-md text-[14px] font-medium transition-colors">
+                        ตัวเลือกเพิ่มเติม
+                      </button>
+                      <button 
+                        onClick={handleSaveEvent}
+                        className="bg-[#8ab4f8] text-[#202124] hover:bg-[#9ebff9] px-6 py-2 rounded-full text-[14px] font-medium transition-colors shadow-sm"
+                      >
+                        บันทึก (Save)
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1629,6 +2086,7 @@ export const GeoArchivePage = () => {
 
             {/* Calendar / Schedule - Premium Component */}
             <PremiumCalendarCard
+              customEvents={userEvents}
               onDateClick={(date) => {
                 setSelectedCalendarDate(date);
               }}
@@ -2482,29 +2940,135 @@ export const GeoArchivePage = () => {
 
             {/* Place Detail Popup */}
             {selectedPlace && (
-              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0a0c10] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-                  <div className="relative h-56 bg-slate-900 shrink-0">
-                    {selectedPlace.thumbnailUrl ? (
-                      <CachedImage src={selectedPlace.thumbnailUrl} alt={selectedPlace.title} className="absolute inset-0 h-full w-full object-cover" />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/5 text-slate-400">
-                          {selectedPlace.iconName ? ICON_MAP[selectedPlace.iconName] || <MapPin size={32} /> : <MapPin size={32} />}
-                        </div>
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+                  <div className="relative h-72 bg-slate-950 shrink-0 overflow-hidden flex items-center justify-center group">
+                    {/* Auto-Sync Indicator Spinner */}
+                    {isSyncingPlace && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-xs gap-3">
+                        <RefreshCw size={24} className="text-yellow-400 animate-spin" />
+                        <span className="text-[10px] font-bold tracking-wider text-yellow-200 bg-yellow-500/10 px-2.5 py-1 rounded-full border border-yellow-500/20 shadow-md">
+                          กำลังขุดภาพความละเอียดสูง...
+                        </span>
                       </div>
                     )}
+
+                    {(() => {
+                      let images: string[] = [];
+                      try {
+                        if (selectedPlace.fullImageUrl) {
+                          if (selectedPlace.fullImageUrl.startsWith('[')) {
+                            images = JSON.parse(selectedPlace.fullImageUrl);
+                          } else {
+                            images = selectedPlace.fullImageUrl.split(',').map((u: string) => u.trim());
+                          }
+                        }
+                      } catch (e) {}
+                      if (images.length === 0 && selectedPlace.thumbnailUrl) {
+                        images = [selectedPlace.thumbnailUrl];
+                      }
+
+                      if (images.length > 0) {
+                        const currentImg = images[activeImageIdx] || images[0];
+                        return (
+                          <div 
+                            className="relative h-full w-full cursor-pointer overflow-hidden"
+                            onClick={() => setIsFullscreenViewerOpen(true)}
+                          >
+                            <CachedImage 
+                              src={currentImg} 
+                              alt={`${selectedPlace.title}`} 
+                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/60 text-white px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md flex items-center gap-1.5 border border-white/10 shadow-xl translate-y-2 group-hover:translate-y-0">
+                                <Search size={14} /> ดูภาพขยาย
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="absolute inset-0 flex items-center justify-center bg-slate-800 w-full">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/5 text-slate-400">
+                            {selectedPlace.iconName ? ICON_MAP[selectedPlace.iconName] || <MapPin size={32} /> : <MapPin size={32} />}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    
+                    {/* Navigation Arrows */}
+                    {(() => {
+                      try {
+                        let count = 1;
+                        if (selectedPlace.fullImageUrl && selectedPlace.fullImageUrl.startsWith('[')) {
+                          count = JSON.parse(selectedPlace.fullImageUrl).length;
+                        }
+                        if (count > 1) {
+                          return (
+                            <>
+                              {activeImageIdx > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveImageIdx(prev => prev - 1);
+                                  }}
+                                  className="absolute left-3 top-1/2 -translate-y-1/2 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 hover:scale-105 border border-white/10 transition-all backdrop-blur-md shadow-lg"
+                                  aria-label="Previous image"
+                                >
+                                  <ChevronLeft size={14} />
+                                </button>
+                              )}
+                              {activeImageIdx < count - 1 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveImageIdx(prev => prev + 1);
+                                  }}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 hover:scale-105 border border-white/10 transition-all backdrop-blur-md shadow-lg"
+                                  aria-label="Next image"
+                                >
+                                  <ChevronRight size={14} />
+                                </button>
+                              )}
+                            </>
+                          );
+                        }
+                      } catch (e) {}
+                      return null;
+                    })()}
+
                     <button 
                       onClick={() => setSelectedPlace(null)}
-                      className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors backdrop-blur-md"
+                      className="absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors backdrop-blur-md"
                     >
                       ✕
                     </button>
-                    <div className="absolute bottom-4 left-4 flex gap-2">
+                    <div className="absolute bottom-4 left-4 z-10 flex gap-2">
                       <span className="rounded-lg bg-black/60 backdrop-blur-md px-2.5 py-1 text-xs font-bold text-white border border-white/10 shadow-lg">
                         {selectedPlace.category}
                       </span>
                     </div>
+                    {/* Image Indicators */}
+                    {(() => {
+                      try {
+                        let count = 1;
+                        if (selectedPlace.fullImageUrl && selectedPlace.fullImageUrl.startsWith('[')) {
+                          count = JSON.parse(selectedPlace.fullImageUrl).length;
+                        }
+                        if (count > 1) {
+                          return (
+                            <div className="absolute bottom-4 right-4 z-10 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-[10px] font-bold text-white border border-white/10 shadow-lg">
+                              {activeImageIdx + 1} / {count} Photos
+                            </div>
+                          );
+                        }
+                      } catch (e) {}
+                      return null;
+                    })()}
                   </div>
                   <div className="p-6 overflow-y-auto">
                     <div className="flex items-start justify-between mb-2">
@@ -2520,15 +3084,47 @@ export const GeoArchivePage = () => {
                       {selectedPlace.location || 'ไม่ระบุตำแหน่ง'}
                     </div>
                     
-                    {selectedPlace.description ? (
-                      <p className="text-sm text-slate-300 leading-relaxed mb-8">
-                        {selectedPlace.description}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-slate-500 italic leading-relaxed mb-8">
-                        ไม่มีรายละเอียดเพิ่มเติม
-                      </p>
-                    )}
+                    {(() => {
+                      if (!selectedPlace.description) {
+                        return (
+                          <p className="text-sm text-slate-500 italic leading-relaxed mb-8">
+                            ไม่มีรายละเอียดเพิ่มเติม
+                          </p>
+                        );
+                      }
+                      
+                      const desc = selectedPlace.description;
+                      const websiteMatch = desc.match(/(.*?)\s*Website:\s*(https?:\/\/[^\s]+)(.*)/is);
+                      
+                      if (websiteMatch) {
+                        const [, mainDesc, url, restDesc] = websiteMatch;
+                        const finalDesc = (mainDesc + (restDesc || '')).trim();
+                        return (
+                          <div className="flex flex-col gap-3 mb-8">
+                            {finalDesc && (
+                              <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+                                {finalDesc}
+                              </p>
+                            )}
+                            <a 
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors bg-cyan-500/10 self-start px-3 py-1.5 rounded-lg border border-cyan-500/20"
+                            >
+                              <Globe size={14} />
+                              เข้าสู่เว็บไซต์
+                            </a>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <p className="text-sm text-slate-300 leading-relaxed mb-8 whitespace-pre-line">
+                          {desc}
+                        </p>
+                      );
+                    })()}
                     
                     <div className="flex flex-col gap-3 mt-auto">
                       {/* Primary Actions */}
@@ -2554,6 +3150,52 @@ export const GeoArchivePage = () => {
                         </button>
                       </div>
 
+                      {/* Sync Intel Action */}
+                      {selectedPlace.id && (
+                        <button
+                          disabled={isSyncingPlace}
+                          onClick={async () => {
+                            setIsSyncingPlace(true);
+                            try {
+                              const api = (window as any).api;
+                              const result = await api.explorePlaces.scrapeSinglePlace(selectedPlace.id);
+                              if (result) {
+                                const updatedPlace = {
+                                  id: result.id,
+                                  title: result.title,
+                                  location: result.locationName || '',
+                                  category: result.category || '',
+                                  iconName: result.iconName || null,
+                                  tags: result.tags || undefined,
+                                  regionId: result.regionId || undefined,
+                                  provinceId: result.provinceId || undefined,
+                                  rating: result.rating,
+                                  description: result.description,
+                                  thumbnailUrl: result.thumbnailUrl,
+                                  sourceUrl: result.sourceUrl,
+                                  openingHours: result.openingHours,
+                                  fullImageUrl: result.fullImageUrl,
+                                };
+                                setSelectedPlace(updatedPlace);
+                                setExploreResults(prev => prev.map(p => p.id === selectedPlace.id ? updatedPlace : p));
+                              }
+                            } catch (err) {
+                              console.error('Failed to sync place details:', err);
+                            } finally {
+                              setIsSyncingPlace(false);
+                            }
+                          }}
+                          className={`flex items-center justify-center gap-2 rounded-xl py-3 text-xs font-black transition-all ${
+                            isSyncingPlace
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/10 hover:from-amber-500/30 hover:to-yellow-500/20 text-yellow-300 border border-yellow-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)] hover:shadow-[0_0_25px_rgba(245,158,11,0.35)] hover:scale-[1.02]'
+                          }`}
+                        >
+                          <RefreshCw size={14} className={isSyncingPlace ? 'animate-spin' : ''} />
+                          {isSyncingPlace ? 'กำลังขุดข้อมูลล่าสุด...' : 'SYNC INTEL (ดึงภาพ Gallery)'}
+                        </button>
+                      )}
+
                       {/* Secondary Actions */}
                       {selectedPlace.sourceUrl && (
                         <a 
@@ -2569,6 +3211,82 @@ export const GeoArchivePage = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Fullscreen Lightbox */}
+            {selectedPlace && isFullscreenViewerOpen && (
+              <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-200">
+                <button 
+                  onClick={() => setIsFullscreenViewerOpen(false)}
+                  className="absolute top-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors backdrop-blur-md"
+                >
+                  ✕
+                </button>
+                
+                {(() => {
+                  let images: string[] = [];
+                  try {
+                    if (selectedPlace.fullImageUrl) {
+                      if (selectedPlace.fullImageUrl.startsWith('[')) {
+                        images = JSON.parse(selectedPlace.fullImageUrl);
+                      } else {
+                        images = selectedPlace.fullImageUrl.split(',').map((u: string) => u.trim());
+                      }
+                    }
+                  } catch (e) {}
+                  if (images.length === 0 && selectedPlace.thumbnailUrl) {
+                    images = [selectedPlace.thumbnailUrl];
+                  }
+
+                  if (images.length > 0) {
+                    const currentImg = images[activeImageIdx] || images[0];
+                    return (
+                      <div className="relative w-full h-full flex items-center justify-center p-4 md:p-12">
+                        <CachedImage 
+                          src={currentImg} 
+                          alt={`${selectedPlace.title}`} 
+                          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" 
+                        />
+                        
+                        {/* Lightbox Navigation */}
+                        {images.length > 1 && (
+                          <>
+                            {activeImageIdx > 0 && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveImageIdx(prev => prev - 1);
+                                }}
+                                className="absolute left-6 top-1/2 -translate-y-1/2 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/80 hover:scale-110 border border-white/10 transition-all backdrop-blur-md shadow-2xl"
+                              >
+                                <ChevronLeft size={24} />
+                              </button>
+                            )}
+                            {activeImageIdx < images.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveImageIdx(prev => prev + 1);
+                                }}
+                                className="absolute right-6 top-1/2 -translate-y-1/2 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/80 hover:scale-110 border border-white/10 transition-all backdrop-blur-md shadow-2xl"
+                              >
+                                <ChevronRight size={24} />
+                              </button>
+                            )}
+                            
+                            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 rounded-full bg-black/60 backdrop-blur-md px-5 py-2 text-sm font-bold text-white border border-white/10 shadow-2xl tracking-widest">
+                              {activeImageIdx + 1} / {images.length}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
           </div>

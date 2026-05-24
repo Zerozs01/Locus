@@ -23,6 +23,7 @@ import { northPart1 } from './database/portalSeed_north1'
 import { northPart2 } from './database/portalSeed_north2'
 import { northPart3 } from './database/portalSeed_north3'
 import { readRuntimeConfig, writeRuntimeConfig } from './config/runtimeConfig'
+import { scrapeSinglePlaceLogic } from './scraper'
 import { createHash } from 'crypto'
 import { promises as fs } from 'fs'
 import path from 'path'
@@ -799,8 +800,12 @@ app.whenReady().then(async () => {
      return getFloodCache(provinceId);
   })
 
-  ipcMain.handle('db:isFloodCacheValid', (_, provinceId: string, maxAgeHours = 24) => {
+  ipcMain.handle('db:isFloodCacheValid', (_, provinceId: string, maxAgeHours?: number) => {
      return isFloodCacheValid(provinceId, maxAgeHours);
+  })
+
+  ipcMain.handle('db:scrape-single-place', async (_, id: number) => {
+     return await scrapeSinglePlaceLogic(id);
   })
 
   ipcMain.handle('db:saveFuelPrices', (_, prices: Array<{ fuelType: string; price: number; source?: string }>) => {

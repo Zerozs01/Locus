@@ -9,6 +9,7 @@ import { FlyToHandler, ProvinceData } from '../types';
 import * as Helpers from '../components/HelperComponents';
 import { useEffect, useMemo, useState } from 'react';
 import { WeatherHistoryModal } from '../../../components/WeatherHistoryModal';
+import { ExploreDetailModal } from '../../../components/ExploreDetailModal';
 
 interface ProvinceOverviewInfo {
   displayName: string;
@@ -43,8 +44,12 @@ export const ExploreTab = ({
   const [currentSeason, setCurrentSeason] = useState<{name: string; months: string; description: string}>({ name: 'Season', months: '', description: '' });
   const [showWeatherHistory, setShowWeatherHistory] = useState(false);
   const [showSloganPopup, setShowSloganPopup] = useState(false);
-  // Image dimensions: 480x280 (banner) or 160x120 (thumbnail)
-  // AVIF/WebP recommended for best compression
+  const [localAttractions, setLocalAttractions] = useState(data.attractions);
+  const [selectedPlace, setSelectedPlace] = useState<any>(null);
+  
+  useEffect(() => {
+    setLocalAttractions(data.attractions);
+  }, [data.attractions]);
 
   const aqiLevelLabel = useMemo(() => {
     const aqi = Number(data.weather.aqi);
@@ -143,7 +148,7 @@ export const ExploreTab = ({
         borderColor="teal"
       >
         <div className="space-y-2">
-          {data.attractions.map((item, idx) => (
+          {localAttractions.map((item, idx) => (
             <Helpers.PlaceCard 
               key={idx}
               rank={idx + 1}
@@ -157,6 +162,20 @@ export const ExploreTab = ({
               sourceUrl={item.sourceUrl}
               onFlyTo={onFlyTo}
               image={item.image}
+              onClick={() => {
+                // Map local items to ExplorePlace shape for the modal
+                setSelectedPlace({
+                  id: item.id,
+                  title: item.name,
+                  category: item.type,
+                  rating: item.rating,
+                  description: item.description,
+                  openingHours: item.openHours,
+                  thumbnailUrl: item.image,
+                  fullImageUrl: item.fullImageUrl,
+                  sourceUrl: item.sourceUrl
+                });
+              }}
             />
           ))}
         </div>
@@ -200,6 +219,29 @@ export const ExploreTab = ({
           </div>
         </div>
       )}
+
+      {/* Detail Modal */}
+      <ExploreDetailModal 
+        isOpen={!!selectedPlace}
+        place={selectedPlace}
+        onClose={() => setSelectedPlace(null)}
+        onSyncComplete={(updatedPlace) => {
+          setLocalAttractions(prev => prev.map(p => {
+            if (p.id === updatedPlace.id) {
+              return {
+                ...p,
+                rating: updatedPlace.rating || p.rating,
+                description: updatedPlace.description || p.description,
+                openHours: updatedPlace.openingHours || p.openHours,
+                sourceUrl: updatedPlace.sourceUrl || p.sourceUrl,
+                image: updatedPlace.thumbnailUrl || p.image,
+                fullImageUrl: updatedPlace.fullImageUrl || p.fullImageUrl
+              };
+            }
+            return p;
+          }));
+        }}
+      />
     </div>
   );
 };
