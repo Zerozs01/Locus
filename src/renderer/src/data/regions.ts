@@ -1,10 +1,10 @@
-// Region card images
-import RegionNorth from '../../../Image/nouse/RegionCard_North.webp';
-import RegionNortheast from '../../../Image/nouse/RegionCard_Northeast.webp';
-import RegionCentral from '../../../Image/nouse/RegionCard_Central.webp';
-import RegionSouth from '../../../Image/nouse/RegionCard_South.webp';
-import RegionWest from '../../../Image/nouse/RegionCard_West.webp';
-import RegionEast from '../../../Image/nouse/RegionCard_East.webp';
+// Region card images (using high-quality online Unsplash images since local files were removed from tracking)
+const RegionNorth = 'https://images.unsplash.com/photo-1543731068-7e0f5beff43a?q=80&w=600';
+const RegionNortheast = 'https://images.unsplash.com/photo-1590301157890-4810ed352733?q=80&w=600';
+const RegionCentral = 'https://images.unsplash.com/photo-1598970434795-0c54fe7c0648?q=80&w=600';
+const RegionSouth = 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?q=80&w=600';
+const RegionWest = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=600';
+const RegionEast = 'https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=600';
 import { regionTheme } from './regionTheme';
 
 // Central Province Images

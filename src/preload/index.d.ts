@@ -71,6 +71,7 @@ declare global {
       explorePlaces: {
         getAll: () => Promise<ExplorePlace[]>
         getByCategories: (categories: string[]) => Promise<ExplorePlace[]>
+        scrapeSinglePlace: (id: number) => Promise<ExplorePlace>
       }
       fetchBangchak: () => Promise<{ ok: boolean; data?: string; status?: number; error?: string }>
       assets: {
