@@ -19,6 +19,8 @@ const sensitiveKeys = new Set([
   'n8n_api_key',
   'gemini',
   'openrouter',
+  'newsapi_key',
+  'aqicn',
   'supabase_key',
   'openweather',
   'google_maps'

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useDeferredValue, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getFuelPricesWithRefresh, refreshFuelPrices } from '../services/fuelPricesService';
 import { getRecords } from '../utils/csvDb';
@@ -282,6 +282,15 @@ const scoreTextMatch = (query: string, candidate: string) => {
   return qi / q.length >= 0.8 ? 60 : 0;
 };
 
+const POPULAR_PLACE_CANDIDATES = [
+  { name: 'สยามพารากอน', keywords: 'siam paragon สยามพารากอน สยามพารากอ สยามพา', provinceName: 'Bangkok', regionId: 'central', provinceId: 'bangkok' },
+  { name: 'สยามสแควร์', keywords: 'siam square สยามสแควร์ สยาม', provinceName: 'Bangkok', regionId: 'central', provinceId: 'bangkok' },
+  { name: 'เซ็นทรัลเวิลด์', keywords: 'central world centralworld เซ็นทรัลเวิลด์', provinceName: 'Bangkok', regionId: 'central', provinceId: 'bangkok' },
+  { name: 'เยาวราช', keywords: 'yaowarat chinatown เยาวราช', provinceName: 'Bangkok', regionId: 'central', provinceId: 'bangkok' },
+  { name: 'จตุจักร', keywords: 'chatuchak จตุจักร jj market', provinceName: 'Bangkok', regionId: 'central', provinceId: 'bangkok' },
+  { name: 'วัดอรุณ', keywords: 'wat arun วัดอรุณ temple', provinceName: 'Bangkok', regionId: 'central', provinceId: 'bangkok' },
+];
+
 const buildHomeSuggestions = (
   query: string,
   provinces: ProvinceIndexItem[],
@@ -322,7 +331,22 @@ const buildHomeSuggestions = (
     }))
     .filter((item) => item.score > 0);
 
-  return [...provinceItems, ...placeItems]
+  const popularItems: HomeSuggestionItem[] = POPULAR_PLACE_CANDIDATES.map((place, idx) => ({
+    kind: 'place' as const,
+    id: `popular-${idx}`,
+    label: place.name,
+    subtitle: `Landmark · ${place.provinceName}`,
+    regionId: place.regionId,
+    provinceId: place.provinceId,
+    score: Math.max(
+      scoreTextMatch(trimmed, place.name),
+      scoreTextMatch(trimmed, place.keywords),
+      isLooseMatch(trimmed, place.name) ? 60 : 0,
+      isLooseMatch(trimmed, place.keywords) ? 40 : 0
+    )
+  })).filter(item => item.score > 0);
+
+  return [...provinceItems, ...popularItems, ...placeItems]
     .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label, 'th'))
     .slice(0, 8);
 };
@@ -427,6 +451,7 @@ export const GeoArchivePage = () => {
   const [ratingSort, setRatingSort] = useState<'desc' | 'asc' | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
   const [homeSearch, setHomeSearch] = useState('');
+  const deferredHomeSearch = useDeferredValue(homeSearch);
   const [homeProvinceIndex, setHomeProvinceIndex] = useState<ProvinceIndexItem[]>([]);
   const [homeExplorePlaces, setHomeExplorePlaces] = useState<Array<{ id: number; title: string; locationName: string | null; regionId: string | null; provinceId: string | null; category: string | null; tags: string[] | null }>>([]);
   const [planChecklist, setPlanChecklist] = useState<Record<string, boolean>>(() => Object.fromEntries(TRAVEL_CHECKLIST_ITEMS.map((task) => [task.id, task.done])));
@@ -1297,8 +1322,10 @@ export const GeoArchivePage = () => {
     const minValue = topStats.length > 0 ? Math.min(...topStats.map(s => statsViewMode === 'temp' ? s.avgTemp : s.avgAqi)) : 0;
     const valueRange = Math.max(maxValue - minValue, 1);
     const visibleGas = gasPrices.slice(0, 5);
-    const suggestionQuery = homeSearch.trim();
-    const homeSuggestionItems = buildHomeSuggestions(suggestionQuery, homeProvinceIndex, homeExplorePlaces);
+    const suggestionQuery = deferredHomeSearch.trim();
+    const homeSuggestionItems = useMemo(() => {
+      return buildHomeSuggestions(suggestionQuery, homeProvinceIndex, homeExplorePlaces);
+    }, [suggestionQuery, homeProvinceIndex, homeExplorePlaces]);
     const showHomeSuggestions = suggestionQuery.length > 0;
 
     return (

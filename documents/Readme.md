@@ -17,7 +17,7 @@ It follows a **"Local-First"** architecture, ensuring fast performance and offli
   - **Local:** SQLite (Better-SQLite3) for ultra-fast offline data and caching.
   - **Cloud:** Supabase (PostgreSQL) for chat history, structured data, and syncing.
 - **Knowledge Base:** LightRAG (Graph-based Retrieval)
-- **AI Models:** Gemini 1.5 Flash (Vision & Reasoning) via OpenRouter
+- **AI Models:** Gemini 1.5 Flash (Vision & Reasoning) via OpenRouter, optional for assistant-driven analysis
 
 ## ⚙️ Key Features
 - **Intent-Driven Workflow:** Dynamic entry points prioritizing user intent (Known Destination, Guided Discovery, Interest-based) over static data browsing.
@@ -29,7 +29,7 @@ It follows a **"Local-First"** architecture, ensuring fast performance and offli
 - **Live Weather & AQI:** Real-time weather/AQI sync from SQLite with 10s polling and event-based updates.
 - **Multi-Layer Province Maps:** Leaflet-based maps with themes (voyager, positron, dark, osm, satellite, terrain, admin) and toggleable data layers (traffic, AQI, rain radar, EV chargers, flood, slope).
 - **Travel Guide & Route Planner:** Transport company cards, route recommendations with speed/price sorting, traffic penalty modeling, and season-based travel conditions.
-- **Province News Sync:** Travel Guide Province News now pulls live stories from the local news aggregator server and only falls back to mock items when the endpoint is unavailable.
+- **Province News Sync:** Travel Guide Province News now pulls live stories from the local news aggregator server, merges them with SQLite archive data, and only falls back to cached/mock items when the endpoint is unavailable.
 - **Ecology & Portal Data:** Extended province data covering transport, supply, knowledge, ecology (fauna/flora/terrain/climate), emergency contacts, local foods, and danger zones.
 - **Image Cache Protocol:** `locus://image` protocol with 512MB disk cache, range requests, and fallback handling.
 

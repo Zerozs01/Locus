@@ -2144,6 +2144,8 @@ function ProvinceMapComponent(props: ProvinceMapProps, ref: React.ForwardedRef<P
         routeLayerRef.current = null;
         highlightLayerRef.current = null;
         adminBoundaryLayerRef.current = null;
+        boundaryLayerRef.current = null;
+        userLocationLayerRef.current = null;
       };
     } catch (error) {
       console.error('Map initialization error:', error);
@@ -2157,6 +2159,36 @@ function ProvinceMapComponent(props: ProvinceMapProps, ref: React.ForwardedRef<P
     if (!map) return;
     map.setView([coords.lat, coords.lng], zoom, { animate: true });
   }, [coords.lat, coords.lng, zoom]);
+
+  useEffect(() => {
+    const container = mapRef.current;
+    const map = mapInstanceRef.current;
+    if (!container || !map) return;
+
+    let resizeTimer: number | null = null;
+
+    const observer = new ResizeObserver((entries) => {
+      if (entries.length === 0) return;
+      
+      if (resizeTimer) {
+        cancelAnimationFrame(resizeTimer);
+      }
+      resizeTimer = requestAnimationFrame(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize({ animate: false });
+        }
+      });
+    });
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+      if (resizeTimer) {
+        cancelAnimationFrame(resizeTimer);
+      }
+    };
+  }, [isLoading]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -3326,4 +3358,4 @@ const LayerItem = ({ opt, isEnabled, onToggle, status }: { opt: any; isEnabled: 
   );
 }
 
-export default React.forwardRef(ProvinceMapComponent);
+export default React.memo(React.forwardRef(ProvinceMapComponent));
