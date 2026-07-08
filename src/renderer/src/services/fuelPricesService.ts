@@ -1,7 +1,7 @@
 /**
  * Fuel Prices Service
- * Fetches oil prices from Bangchak Corporation via Electron main process (bypasses CSP)
- * and manages local database cache
+ * Fetches Bangchak oil prices via Electron main-process fetch (no-proxy session)
+ * then parses the returned JSON/HTML payload and manages local database cache.
  */
 
 export interface FuelPriceData {
@@ -35,8 +35,9 @@ const FUEL_TYPE_MAP: Record<string, string> = {
 };
 
 /**
- * Fetch raw HTML from Bangchak website via Electron main process
- * This bypasses the browser's CSP restrictions
+ * Fetch Bangchak's public price page via Electron main process.
+ * The no-proxy session bypasses renderer CSP / CORS limits, and the
+ * returned payload is parsed as JSON first, then HTML/script fallbacks.
  */
 async function fetchBangchakHtml(): Promise<string> {
   if (!window.api?.fetchBangchak) {
@@ -50,7 +51,9 @@ async function fetchBangchakHtml(): Promise<string> {
 }
 
 /**
- * Parse fuel prices from Bangchak HTML
+ * Parse fuel prices from Bangchak payload.
+ * Bangchak has shipped both JSON-like responses and HTML pages, so the
+ * parser tries structured data first and falls back to regex extraction.
  */
 function parseFuelPricesFromHtml(content: string): FuelPriceData[] {
   const prices: FuelPriceData[] = [];

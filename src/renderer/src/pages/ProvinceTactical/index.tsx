@@ -322,9 +322,9 @@ export const ProvinceTacticalPage = () => {
     [mapDataLayers]
   );
 
-  const handleToggleDataLayer = (layer: ProvinceDataLayer) => {
+  const handleToggleDataLayer = useCallback((layer: ProvinceDataLayer) => {
     setMapDataLayers((prev) => ({ ...prev, [layer]: !prev[layer] }));
-  };
+  }, []);
 
   // Resize handlers for drag-to-resize sidebar
   const handleMouseDown = useCallback((e: React.MouseEvent) => {

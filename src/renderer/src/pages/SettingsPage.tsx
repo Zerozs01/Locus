@@ -25,10 +25,6 @@ import {
   Bot,
   Map,
   Mountain,
-  WifiOff as OfflineIcon,
-  Palette,
-  RotateCcw,
-  MessageSquareText,
   Newspaper
 } from 'lucide-react';
 import { pingAgent, sendChatMessage } from '../services/n8nClient';
@@ -65,6 +61,32 @@ interface ImageCacheStats {
 
 type ConnectionTestState = 'idle' | 'testing' | 'success' | 'error';
 type OfflineMode = boolean;
+
+const getProgressWidthClass = (filled: number, total: number) => {
+  if (total <= 0) return 'w-0';
+  const percent = Math.max(0, Math.min(100, Math.round((filled / total) * 100)));
+  if (percent <= 0) return 'w-0';
+  if (percent <= 5) return 'w-[5%]';
+  if (percent <= 10) return 'w-[10%]';
+  if (percent <= 15) return 'w-[15%]';
+  if (percent <= 20) return 'w-[20%]';
+  if (percent <= 25) return 'w-[25%]';
+  if (percent <= 30) return 'w-[30%]';
+  if (percent <= 35) return 'w-[35%]';
+  if (percent <= 40) return 'w-[40%]';
+  if (percent <= 45) return 'w-[45%]';
+  if (percent <= 50) return 'w-[50%]';
+  if (percent <= 55) return 'w-[55%]';
+  if (percent <= 60) return 'w-[60%]';
+  if (percent <= 65) return 'w-[65%]';
+  if (percent <= 70) return 'w-[70%]';
+  if (percent <= 75) return 'w-[75%]';
+  if (percent <= 80) return 'w-[80%]';
+  if (percent <= 85) return 'w-[85%]';
+  if (percent <= 90) return 'w-[90%]';
+  if (percent <= 95) return 'w-[95%]';
+  return 'w-full';
+};
 
 /**
  * Settings Page - API Keys & Configuration Management
@@ -113,11 +135,11 @@ export const SettingsPage = () => {
     {
       id: 'newsapi_key',
       name: 'NewsAPI Key',
-      description: 'API key สำหรับดึงข่าวจาก newsapi.org เพื่อ sync กับ Province News',
+      description: 'API key สำหรับแหล่งข่าวแบบ live sync ของ Province News',
       value: '',
       placeholder: 'your_newsapi_key',
       icon: <Newspaper size={18} />,
-      required: false,
+      required: true,
     },
       {
         id: 'news_api_url',
@@ -131,11 +153,11 @@ export const SettingsPage = () => {
     {
       id: 'gemini',
       name: 'Google Gemini API Key',
-      description: 'API key for Gemini AI model access',
+      description: 'API key สำหรับ Gemini AI model access (optional)',
       value: '',
       placeholder: 'AIzaSy...',
       icon: <Zap size={18} />,
-      required: true,
+      required: false,
     },
     {
       id: 'openrouter',
@@ -169,20 +191,20 @@ export const SettingsPage = () => {
     {
       id: 'openweather',
       name: 'OpenWeather API Key',
-      description: 'สำหรับดึงสภาพอากาศ real-time (ฝน, อุณหภูมิ, ความชื้น)',
+      description: 'คีย์หลักสำหรับดึงสภาพอากาศ real-time และ fallback AQI',
       value: '',
       placeholder: 'xxxxxxxxxxxxxxxxxxxx',
       icon: <Cloud size={18} />,
-      required: false,
+      required: true,
     },
     {
       id: 'aqicn',
       name: 'AQICN API Token (World AQI)',
-      description: 'สำหรับดึงค่าฝุ่น PM2.5 ที่แม่นยำจากสถานีจริง (แนะนําให้ใช้แทน OpenWeather)',
+      description: 'คีย์หลักสำหรับดึงค่าฝุ่น PM2.5 จากสถานีจริง',
       value: '',
       placeholder: 'your_aqicn_token',
       icon: <Wind size={18} />,
-      required: false,
+      required: true,
     },
     {
       id: 'google_maps',
@@ -490,8 +512,7 @@ export const SettingsPage = () => {
           </div>
           <div className="h-2 bg-white/10 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
-              style={{ width: `${(filledRequired / requiredKeys.length) * 100}%` }}
+              className={`h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500 ${getProgressWidthClass(filledRequired, requiredKeys.length)}`}
             />
           </div>
         </div>
@@ -526,6 +547,8 @@ export const SettingsPage = () => {
               {isClearingCache ? 'Clearing...' : 'Clear Cache'}
             </button>
           </div>
+              title={strictOfflineMode ? 'Disable strict offline mode' : 'Enable strict offline mode'}
+              aria-label={strictOfflineMode ? 'Disable strict offline mode' : 'Enable strict offline mode'}
           {imageCacheStats ? (
             <div className="grid grid-cols-3 gap-4">
               <SystemInfoItem label="Cached Files" value={`${imageCacheStats.fileCount} files`} />
@@ -731,6 +754,8 @@ export const SettingsPage = () => {
             </div>
             <button
               onClick={() => setStrictOfflineMode(prev => !prev)}
+              title={strictOfflineMode ? 'Disable strict offline mode' : 'Enable strict offline mode'}
+              aria-label={strictOfflineMode ? 'Disable strict offline mode' : 'Enable strict offline mode'}
               className={`relative w-14 h-7 rounded-full transition-all duration-300 mt-1 ${
                 strictOfflineMode 
                   ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' 
@@ -834,6 +859,8 @@ const ApiKeyInput = ({ apiKey, showValue, onToggleShow, onChange, onTest, testSt
               {!isDisabled && (
                 <button
                   onClick={onToggleShow}
+                  title={showValue ? 'Hide API key' : 'Show API key'}
+                  aria-label={showValue ? 'Hide API key' : 'Show API key'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
                 >
                   {showValue ? <EyeOff size={16} /> : <Eye size={16} />}

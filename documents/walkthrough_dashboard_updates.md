@@ -8,11 +8,11 @@
 - **Error Prevention:** เพิ่มการใช้ `React.Fragment` พร้อม `key` ในการวน Loop เพื่อป้องกันปัญหาการ Render ที่ไม่ถูกต้อง
 
 ## ⛽ 2. การปรับปรุง Fuel Price Widget (New Logic)
-- **Icon-based Toggle:** เปลี่ยนการกดดูข้อมูลจากการใช้ข้อความ (Bangchak S Evo) เป็นไอคอน `Info` เพื่อประหยัดพื้นที่
-- **Chunked Row Layout:**
-  - ปรับการแสดงผลข้อมูลคำนวณ (Info Section) ให้แสดง **ใต้แถวของน้ำมันชนิดนั้นๆ** โดยตรง
-  - ใช้ระบบแบ่งกลุ่มทีละ 3 (Chunks of 3) เพื่อให้แถวราคาน้ำมันคงที่ 3 คอลัมน์เสมอ ไม่มีการขยับที่เมื่อเปิดข้อมูลคำนวณ
-- **Single Selection Logic:** เพิ่มระบบ Auto-close โดยอนุญาตให้เปิดดูข้อมูลคำนวณได้ทีละ 1 ชนิดเท่านั้น เพื่อความสะอาดของหน้าจอ
+- **Cross-domain Retrieval:** ราคาน้ำมันดึงจากหน้า Bangchak แบบ public endpoint ผ่าน Electron main process โดยใช้ `no-proxy session` ก่อนส่งกลับมาให้ renderer
+- **Parse Strategy:** ระบบจะพยายามอ่าน payload แบบ JSON ก่อน ถ้าไม่สำเร็จจะ fallback ไปไล่หา HTML/script pattern เพื่อดึงชื่อชนิดน้ำมันและราคา
+- **Realtime Travel Cost:** ข้อมูลนี้ถูกนำไปใช้คำนวณค่าใช้จ่ายในการเดินทางโดยประมาณแบบ cross-domain เพื่อช่วยลดปัญหา context mismatch ของแอปแผนที่ทั่วไป
+- **UI Behavior:** ปรับการแสดงผล Info section ให้อยู่ใต้แถวของน้ำมันชนิดนั้นโดยตรง พร้อมคง layout 3 คอลัมน์ให้ไม่ขยับเมื่อเปิดรายละเอียด
+- **Single Selection Logic:** เปิดดูข้อมูลคำนวณได้ทีละ 1 ชนิดเท่านั้น เพื่อให้อ่านง่ายและไม่รบกวนสายตา
 
 ## 📊 3. Layout & Aesthetic Enhancements
 - **Dynamic Stretching:** ปรับ Grid หลักให้เป็นแบบ `items-stretch` (Default) เพื่อให้ส่วน **"เปรียบเทียบภูมิภาค"** และ **"ราคาน้ำมัน"** มีความสูงเท่ากันเสมอเมื่อมีการขยายเนื้อหา ลดช่องว่าง (Gap) ในดีไซน์

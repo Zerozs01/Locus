@@ -218,5 +218,8 @@ CachedImage, ChatOverlay, DataCard, DetailCard, Footer, LocationSearchModal, Mar
 Runtime config persisted via `config:get` / `config:set` IPC:
 - `ngrok` / `VITE_NGROK_URL`: n8n webhook base URL
 - `n8n_api_key` / `VITE_N8N_API_KEY`: Optional API key for n8n
-- `openweather` / `VITE_OPENWEATHER_API_KEY`: OpenWeather API key
+- `newsapi_key`: Required live-news API key used by the news aggregation pipeline
+- `openweather` / `VITE_OPENWEATHER_API_KEY`: Required OpenWeather API key for weather and fallback AQI
+- `aqicn`: Required AQICN token for ground-station AQI
+- `gemini`: Optional Gemini API key for AI-driven analysis flows
 - `news_api_url`: Province news aggregator base URL, typically `http://localhost:4000/news` and auto-queried with `?province=<province name>` from Travel Guide/Analytics
